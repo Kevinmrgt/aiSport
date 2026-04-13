@@ -17,6 +17,8 @@ export default defineConfig({
       include: ['src/**/*.ts'],
       exclude: [
         'src/index.ts',
+        // app.ts assemble l'application — testé indirectement via les tests unitaires
+        'src/app.ts',
         'src/db/**',
         // Les repositories et routes nécessitent une vraie DB — testés en intégration
         'src/repositories/**',
