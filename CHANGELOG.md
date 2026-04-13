@@ -11,6 +11,32 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+---
+
+## [0.2.0] — 2026-04-13
+
+### Added
+- `server-api.ts` : module server-only pour les appels Hono authentifiés (Next.js → Hono)
+- `WorkoutCard` : composant carte accessible (RGAA 4.1 — role="article", aria-label)
+- Navbar session-aware : affichage conditionnel connecté/déconnecté, bouton de déconnexion
+- Page `/workouts` : liste réelle des séances avec grille responsive
+- Page `/workouts/[id]` : détail complet avec échauffement, Timer et récupération
+- 6 nouveaux tests unitaires pour `authMiddleware` (secret invalide, userId manquant, OWASP A09)
+
+### Changed
+- `auth.middleware.ts` : remplacement du placeholder par validation `x-internal-secret` réelle
+- `generate/page.tsx` : Server Action connecté à `serverApi.generateWorkout()` + redirect
+- `layout.tsx` : navbar async session-aware avec `auth()` et `signOut`
+- CI/CD : ajout `SERVICE_SECRET` dans les env du job test
+
+### Security
+- OWASP A01 : pattern service-to-service (secret partagé, jamais exposé au client)
+- OWASP A09 : logging des tentatives d'auth invalides avec timestamp
+
+---
+
+## [0.1.0] — 2026-04-13
+
 ### Added
 - Bootstrap du monorepo pnpm (apps/web, apps/api, packages/shared)
 - Structure Next.js 14 App Router avec Tailwind CSS

@@ -1,12 +1,20 @@
 import { redirect, notFound } from 'next/navigation';
+import Link from 'next/link';
 import { auth } from '@/lib/auth';
+import { serverApi } from '@/lib/server-api';
 import { Timer } from '@/components/Timer';
 
 interface WorkoutPageProps {
   params: { id: string };
 }
 
-// OWASP A01: route protégée + le backend vérifiera l'ownership
+const DIFFICULTY_LABELS = {
+  beginner: 'Débutant',
+  intermediate: 'Intermédiaire',
+  advanced: 'Avancé',
+};
+
+// OWASP A01: route protégée + ownership vérifié côté backend
 export default async function WorkoutDetailPage({ params }: WorkoutPageProps) {
   const session = await auth();
 
@@ -14,56 +22,84 @@ export default async function WorkoutDetailPage({ params }: WorkoutPageProps) {
     redirect('/login');
   }
 
-  // TODO: charger le workout via api-client avec vérification d'ownership backend
-  // Pour l'instant, page de démonstration avec un workout fictif
-  const workoutId = params.id;
-
-  if (!workoutId) {
+  let workout;
+  try {
+    workout = await serverApi.getWorkout(params.id);
+  } catch {
+    // 404 ou ownership invalide → page 404
     notFound();
   }
 
-  // Exemple de données pour la démo du timer
-  const mockExercises = [
-    {
-      name: 'Échauffement — Footing léger',
-      description: 'Course à allure très confortable, respiration nasale',
-      duration_seconds: 300,
-      rest_seconds: 30,
-      tips: 'Maintenez une cadence où vous pouvez tenir une conversation',
-    },
-    {
-      name: 'Intervalles courts',
-      description: 'Accélération à 80% de votre VMA pendant 30 secondes',
-      duration_seconds: 30,
-      rest_seconds: 60,
-      tips: 'Gardez un appui actif au sol, bras décontractés',
-    },
-    {
-      name: 'Retour au calme',
-      description: 'Footing très lent puis marche progressive',
-      duration_seconds: 180,
-      rest_seconds: 0,
-      tips: 'Respirez profondément pour abaisser la fréquence cardiaque',
-    },
-  ];
-
   return (
     <div className="max-w-2xl mx-auto">
+      {/* RGAA 4.1: fil d'Ariane */}
       <nav aria-label="Fil d'Ariane" className="mb-6">
         <ol className="flex items-center gap-2 text-sm text-gray-500">
           <li>
-            <a href="/workouts" className="hover:text-primary-600">
+            <Link href="/workouts" className="hover:text-primary-600 focus:outline-none focus:underline">
               Mes entraînements
-            </a>
+            </Link>
           </li>
           <li aria-hidden="true">/</li>
           <li className="text-gray-900 font-medium" aria-current="page">
-            Séance en cours
+            {workout.title}
           </li>
         </ol>
       </nav>
 
-      <Timer exercises={mockExercises} />
+      {/* En-tête du workout */}
+      <header className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-3">{workout.title}</h1>
+        <div className="flex items-center gap-4 text-sm text-gray-600">
+          <span>{workout.sport}</span>
+          <span aria-hidden="true">·</span>
+          <span>{DIFFICULTY_LABELS[workout.difficulty]}</span>
+          <span aria-hidden="true">·</span>
+          <span>{workout.durationMinutes} minutes</span>
+        </div>
+      </header>
+
+      {/* Section échauffement */}
+      {workout.warmup && workout.warmup.length > 0 && (
+        <section aria-labelledby="warmup-title" className="mb-6 bg-amber-50 rounded-xl p-4">
+          <h2 id="warmup-title" className="text-base font-semibold text-amber-800 mb-3">
+            Échauffement
+          </h2>
+          <ul className="space-y-2">
+            {workout.warmup.map((phase, i) => (
+              <li key={i} className="text-sm text-amber-700">
+                <span className="font-medium">{phase.name}</span>
+                {' — '}{Math.round(phase.duration_seconds / 60)} min · {phase.description}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Timer principal avec les exercices */}
+      <section aria-labelledby="timer-title">
+        <h2 id="timer-title" className="text-base font-semibold text-gray-900 mb-4">
+          Programme ({workout.exercises.length} exercice{workout.exercises.length > 1 ? 's' : ''})
+        </h2>
+        <Timer exercises={workout.exercises} />
+      </section>
+
+      {/* Section récupération */}
+      {workout.cooldown && workout.cooldown.length > 0 && (
+        <section aria-labelledby="cooldown-title" className="mt-6 bg-blue-50 rounded-xl p-4">
+          <h2 id="cooldown-title" className="text-base font-semibold text-blue-800 mb-3">
+            Récupération
+          </h2>
+          <ul className="space-y-2">
+            {workout.cooldown.map((phase, i) => (
+              <li key={i} className="text-sm text-blue-700">
+                <span className="font-medium">{phase.name}</span>
+                {' — '}{Math.round(phase.duration_seconds / 60)} min · {phase.description}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }
