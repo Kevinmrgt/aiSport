@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import type { Hono } from 'hono';
 import { healthRouter } from './health.routes.js';
 import { workoutRouter } from './workout.routes.js';
 

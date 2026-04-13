@@ -56,8 +56,7 @@ serve({ fetch: app.fetch, port }, (info) => {
 });
 
 // Fermeture propre (graceful shutdown)
-process.on('SIGTERM', async () => {
+process.on('SIGTERM', () => {
   console.info('[API] Arrêt du serveur...');
-  await pool.end();
-  process.exit(0);
+  void pool.end().then(() => process.exit(0));
 });

@@ -23,11 +23,11 @@ function WorkoutFormWrapper() {
   // Le sessionToken est passé via les headers (OWASP A01)
   return (
     <WorkoutForm
-      onSubmit={async (data) => {
+      // eslint-disable-next-line @typescript-eslint/require-await
+      onSubmit={async (_data) => {
         'use server';
         // La génération est gérée côté client dans WorkoutForm via api-client
-        // Cette action server-side sert de fallback
-        console.info('[Generate] Données reçues:', data);
+        // Cette action server-side sert de fallback — Next.js server actions must be async
       }}
     />
   );

@@ -68,7 +68,7 @@ function extractJson(raw: string): string {
   return jsonMatch[0];
 }
 
-async function callMistralApi(prompt: string, attempt: number): Promise<string> {
+async function callMistralApi(prompt: string, _attempt: number): Promise<string> {
   // OWASP A02: lire la clé à chaque appel (testable + résilience au rechargement d'env)
   const apiKey = process.env['MISTRAL_API_KEY'];
   if (!apiKey) {

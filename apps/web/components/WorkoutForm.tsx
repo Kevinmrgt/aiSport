@@ -67,7 +67,7 @@ export function WorkoutForm({ onSubmit }: WorkoutFormProps) {
   return (
     // RGAA 4.1: formulaire avec aria-labelledby
     <form
-      onSubmit={handleSubmit}
+      onSubmit={(e) => { void handleSubmit(e); }}
       noValidate
       aria-labelledby="form-title"
       className="flex flex-col gap-5 w-full max-w-lg"
