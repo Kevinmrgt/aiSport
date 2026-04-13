@@ -13,6 +13,21 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ---
 
+## [0.5.0] — 2026-04-13
+
+### Added
+- `rate-limit.middleware.ts` : rate limiting 5 req/min par userId sur `/workouts/generate` (OWASP A04)
+- `AppError.tooManyRequests()` : factory 429 `RATE_LIMIT_EXCEEDED` avec header `Retry-After`
+- `loading.tsx` pour `/workouts`, `/generate`, `/workouts/[id]` : skeletons accessibles (RGAA 4.1, `aria-busy`)
+- 5 nouveaux tests unitaires pour `rateLimitMiddleware` (quota, isolation userId, Retry-After, A09 logging)
+- `docs/bloc4/bugs/BUG-001-coverage-threshold.md` : rapport de bug RNCP Bloc 4
+- `docs/bloc4/veille-technologique.md` : veille IA, frameworks, sécurité, testing, accessibilité
+
+### Security
+- OWASP A04 : rate limiting in-memory, isolation par userId, log des dépassements
+
+---
+
 ## [0.4.0] — 2026-04-13
 
 ### Added

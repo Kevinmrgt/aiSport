@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.middleware.js';
+import { rateLimitMiddleware } from '../middleware/rate-limit.middleware.js';
 import {
   handleGenerateWorkout,
   handleGetWorkouts,
@@ -12,8 +13,8 @@ const workoutRouter = new Hono();
 // OWASP A01: toutes les routes workout nécessitent une session valide
 workoutRouter.use('*', authMiddleware);
 
-// POST /workouts/generate — générer un entraînement via Mistral AI
-workoutRouter.post('/generate', handleGenerateWorkout);
+// POST /workouts/generate — OWASP A04: rate limit 5 req/min par utilisateur
+workoutRouter.post('/generate', rateLimitMiddleware, handleGenerateWorkout);
 
 // GET /workouts — liste des entraînements de l'utilisateur connecté
 workoutRouter.get('/', handleGetWorkouts);
