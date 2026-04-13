@@ -13,6 +13,20 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ---
 
+## [0.10.0] — 2026-04-13
+
+### Added
+- `apps/web/app/api/health/route.ts` : endpoint GET /api/health pour le healthcheck Docker web
+- `apps/api/src/lib/validate-env.ts` : validation des env vars obligatoires au démarrage (fail-fast)
+
+### Security
+- OWASP A05 : fail-fast si SERVICE_SECRET, DATABASE_URL ou MISTRAL_API_KEY sont absents au boot
+
+### Fixed
+- Dockerfile web : healthcheck `wget /api/health` pointe maintenant vers une route existante
+
+---
+
 ## [0.9.0] — 2026-04-13
 
 ### Fixed

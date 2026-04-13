@@ -1,5 +1,9 @@
 // Charger les variables d'environnement en premier (avant tout autre import)
 import 'dotenv/config';
+import { validateEnv } from './lib/validate-env.js';
+// OWASP A05: fail-fast si la configuration est incomplète
+validateEnv();
+
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
