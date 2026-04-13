@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Hono } from 'hono';
-import { handleGenerateWorkout, handleGetWorkouts } from '../src/controllers/workout.controller.js';
+import {
+  handleGenerateWorkout,
+  handleGetWorkouts,
+  handleGetWorkout,
+  handleDeleteWorkout,
+} from '../src/controllers/workout.controller.js';
 import { handleError } from '../src/middleware/error.middleware.js';
 
 // Mock des services (tests unitaires — pas de BDD réelle)
@@ -14,13 +19,14 @@ vi.mock('../src/services/workout.service.js', () => ({
 import {
   generateAndSaveWorkout,
   getUserWorkouts,
+  getWorkoutDetail,
+  removeWorkout,
 } from '../src/services/workout.service.js';
 
 const mockAuth = { userId: 'user-123', email: 'test@example.com' };
 
 function createTestApp() {
   const app = new Hono();
-  // Handler d'erreurs via app.onError() — API idiomatique Hono
   app.onError(handleError);
   app.use('*', async (ctx, next) => {
     ctx.set('auth', mockAuth);
@@ -29,6 +35,24 @@ function createTestApp() {
   return app;
 }
 
+const mockWorkoutRecord = {
+  id: 'workout-123',
+  userId: 'user-123',
+  title: 'Séance Test',
+  sport: 'course',
+  difficulty: 'beginner' as const,
+  durationMinutes: 30,
+  data: {
+    title: 'Séance Test',
+    sport: 'course',
+    difficulty: 'beginner' as const,
+    duration_minutes: 30,
+    exercises: [{ name: 'Course', description: 'Courir', rest_seconds: 60, duration_seconds: 600 }],
+  },
+  createdAt: new Date('2026-01-01'),
+  updatedAt: new Date('2026-01-01'),
+};
+
 describe('WorkoutController', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -36,43 +60,17 @@ describe('WorkoutController', () => {
 
   describe('handleGenerateWorkout', () => {
     it('retourne 201 avec le workout créé', async () => {
-      const mockWorkout = {
-        id: 'workout-123',
-        userId: 'user-123',
-        title: 'Séance Test',
-        sport: 'course',
-        difficulty: 'beginner' as const,
-        durationMinutes: 30,
-        data: {
-          title: 'Séance Test',
-          sport: 'course',
-          difficulty: 'beginner' as const,
-          duration_minutes: 30,
-          exercises: [
-            { name: 'Course', description: 'Courir', rest_seconds: 60, duration_seconds: 600 },
-          ],
-        },
-        createdAt: new Date('2026-01-01'),
-        updatedAt: new Date('2026-01-01'),
-      };
-
-      vi.mocked(generateAndSaveWorkout).mockResolvedValue(mockWorkout);
+      vi.mocked(generateAndSaveWorkout).mockResolvedValue(mockWorkoutRecord);
 
       const app = createTestApp();
       app.post('/workouts/generate', handleGenerateWorkout);
 
-      const req = new Request('http://localhost/workouts/generate', {
+      const res = await app.fetch(new Request('http://localhost/workouts/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sport: 'course',
-          level: 'beginner',
-          duration_minutes: 30,
-          goals: 'Améliorer endurance',
-        }),
-      });
+        body: JSON.stringify({ sport: 'course', level: 'beginner', duration_minutes: 30, goals: 'Améliorer endurance' }),
+      }));
 
-      const res = await app.fetch(req);
       expect(res.status).toBe(201);
       const body = (await res.json()) as { title: string };
       expect(body.title).toBe('Séance Test');
@@ -82,45 +80,96 @@ describe('WorkoutController', () => {
       const app = createTestApp();
       app.post('/workouts/generate', handleGenerateWorkout);
 
-      const req = new Request('http://localhost/workouts/generate', {
+      const res = await app.fetch(new Request('http://localhost/workouts/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          // Manque: sport, level, duration_minutes, goals
-          sport: '',
-        }),
-      });
+        body: JSON.stringify({ sport: '' }),
+      }));
 
-      const res = await app.fetch(req);
+      expect(res.status).toBe(400);
+    });
+
+    it('retourne 400 si le corps JSON est malformé', async () => {
+      const app = createTestApp();
+      app.post('/workouts/generate', handleGenerateWorkout);
+
+      const res = await app.fetch(new Request('http://localhost/workouts/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: 'pas du json{{{',
+      }));
+
       expect(res.status).toBe(400);
     });
   });
 
   describe('handleGetWorkouts', () => {
     it('retourne la liste des workouts de l\'utilisateur', async () => {
-      const mockList = [
-        {
-          id: 'w1',
-          title: 'Séance 1',
-          sport: 'yoga',
-          difficulty: 'beginner' as const,
-          durationMinutes: 45,
-          createdAt: '2026-01-01T00:00:00.000Z',
-        },
-      ];
-
+      const mockList = [{
+        id: 'w1', title: 'Séance 1', sport: 'yoga',
+        difficulty: 'beginner' as const, durationMinutes: 45, createdAt: '2026-01-01T00:00:00.000Z',
+      }];
       vi.mocked(getUserWorkouts).mockResolvedValue(mockList);
 
       const app = createTestApp();
       app.get('/workouts', handleGetWorkouts);
 
-      const req = new Request('http://localhost/workouts');
-      const res = await app.fetch(req);
-
+      const res = await app.fetch(new Request('http://localhost/workouts'));
       expect(res.status).toBe(200);
       const body = (await res.json()) as typeof mockList;
       expect(body).toHaveLength(1);
       expect(body[0]?.title).toBe('Séance 1');
+    });
+  });
+
+  describe('handleGetWorkout', () => {
+    it('retourne 200 avec le détail du workout', async () => {
+      vi.mocked(getWorkoutDetail).mockResolvedValue(mockWorkoutRecord);
+
+      const app = createTestApp();
+      app.get('/workouts/:id', handleGetWorkout);
+
+      const res = await app.fetch(new Request('http://localhost/workouts/workout-123'));
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { id: string; exercises: unknown[] };
+      expect(body.id).toBe('workout-123');
+      expect(body.exercises).toHaveLength(1);
+    });
+
+    it('propage l\'erreur 404 du service si workout introuvable', async () => {
+      const { AppError } = await import('../src/types/app-error.js');
+      vi.mocked(getWorkoutDetail).mockRejectedValue(AppError.notFound('Workout introuvable'));
+
+      const app = createTestApp();
+      app.get('/workouts/:id', handleGetWorkout);
+
+      const res = await app.fetch(new Request('http://localhost/workouts/inexistant'));
+      expect(res.status).toBe(404);
+    });
+  });
+
+  describe('handleDeleteWorkout', () => {
+    it('retourne 200 avec message de confirmation', async () => {
+      vi.mocked(removeWorkout).mockResolvedValue(undefined);
+
+      const app = createTestApp();
+      app.delete('/workouts/:id', handleDeleteWorkout);
+
+      const res = await app.fetch(new Request('http://localhost/workouts/workout-123', { method: 'DELETE' }));
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { message: string };
+      expect(body.message).toBe('Entraînement supprimé');
+    });
+
+    it('propage l\'erreur 403 si ownership invalide', async () => {
+      const { AppError } = await import('../src/types/app-error.js');
+      vi.mocked(removeWorkout).mockRejectedValue(AppError.forbidden('Accès refusé'));
+
+      const app = createTestApp();
+      app.delete('/workouts/:id', handleDeleteWorkout);
+
+      const res = await app.fetch(new Request('http://localhost/workouts/autre-workout', { method: 'DELETE' }));
+      expect(res.status).toBe(403);
     });
   });
 });
