@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { serverApi } from '@/lib/server-api';
 import { WorkoutCard } from '@/components/WorkoutCard';
@@ -10,6 +11,14 @@ export default async function WorkoutsPage() {
 
   if (!session?.user) {
     redirect('/login');
+  }
+
+  // Server Action : suppression avec ownership vérifié côté backend (OWASP A01)
+  async function handleDelete(id: string) {
+    'use server';
+    await serverApi.deleteWorkout(id);
+    // Revalider le cache de la page liste après suppression
+    revalidatePath('/workouts');
   }
 
   const workouts = await serverApi.getWorkouts();
@@ -60,7 +69,7 @@ export default async function WorkoutsPage() {
         aria-label={`${workouts.length} entraînement${workouts.length > 1 ? 's' : ''}`}
       >
         {workouts.map((workout) => (
-          <WorkoutCard key={workout.id} workout={workout} />
+          <WorkoutCard key={workout.id} workout={workout} onDelete={handleDelete} />
         ))}
       </ul>
     </section>

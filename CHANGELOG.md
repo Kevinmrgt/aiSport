@@ -13,6 +13,29 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ---
 
+## [0.3.0] — 2026-04-13
+
+### Added
+- `DeleteWorkoutButton` : dialog de confirmation accessible (RGAA 4.1 — `role="alertdialog"`, `aria-modal`)
+- Server Action `handleDelete` dans `/workouts` avec `revalidatePath` après suppression
+- `not-found.tsx` : page 404 accessible (RGAA 4.1)
+- `error.tsx` : error boundary client avec bouton "Réessayer" (OWASP A09 — digest uniquement)
+- ADR-004 : documentation du pattern auth service-to-service (Next.js → Hono)
+- 18 nouveaux tests unitaires (workout.service, workout.controller complet, error.middleware)
+
+### Changed
+- `WorkoutCard` : intégration du bouton supprimer, lien et bouton séparés (RGAA 4.1)
+- `cahier-recettes.md` : 34 scénarios avec résultats réels Sprint 02/03
+- Coverage exclusion `repositories/` et `routes/` (dépendances DB)
+
+### Fixed
+- Coverage CI 54% → 96% — seuil RNCP >70% atteint
+
+### Security
+- OWASP A09 : `error.tsx` loggue uniquement `error.digest`, pas les détails internes
+
+---
+
 ## [0.2.0] — 2026-04-13
 
 ### Added
