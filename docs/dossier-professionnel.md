@@ -1,7 +1,7 @@
 # Dossier Professionnel — SportCoach IA
 
 > Certification RNCP 39583 — Expert en développement logiciel (Niv. 7, YNOV)
-> Candidat : Kevin | Date : 2026-04-13 | Version du projet : 0.6.0
+> Candidat : Kevin | Date : 2026-04-13 | Version du projet : 0.10.0
 
 ---
 
@@ -32,7 +32,7 @@ Ce projet a été choisi comme support RNCP pour deux raisons :
 | Tests E2E | Playwright | 1.x | Multi-navigateurs, trace viewer, webServer auto-start |
 | CI/CD | GitHub Actions | — | 5 jobs : lint, test, build, audit sécurité, E2E |
 | Conteneurisation | Docker (multi-stage) | — | Images < 200MB, utilisateurs non-root |
-| Déploiement | Vercel + Railway | — | CD automatique, PostgreSQL managé, HTTPS auto |
+| Déploiement | Vercel + Fly.io + Neon | — | CD automatique, PostgreSQL serverless (Neon), HTTPS auto |
 
 ---
 
@@ -237,7 +237,7 @@ Métriques de qualité atteintes :
 | ADR-003 | Mistral AI + JSON mode + Zod | Accepté |
 | ADR-004 | Auth service-to-service (x-internal-secret) | Accepté |
 | ADR-005 | Pyramide de tests (unitaires + E2E) | Accepté |
-| ADR-006 | Déploiement Vercel + Railway | Accepté |
+| ADR-006 | Déploiement Vercel + Fly.io + Neon | Accepté |
 
 **Veille technologique** : `docs/bloc4/veille-technologique.md` — 6 domaines couverts (IA, frameworks, sécurité, tests, accessibilité, hébergement).
 
@@ -259,6 +259,8 @@ Métriques de qualité atteintes :
 | Sprint 06 | 0.6.0 | Dockerfiles multi-stage, docker-compose, ADR-006 |
 | Sprint 07 | 0.7.0 | Dossier professionnel, compte rendu d'activité |
 | Sprint 08 | 0.8.0 | axe-core WCAG automatique, db:seed démo, README UTF-8 |
+| Sprint 09 | 0.9.0 | Fix encodage README UTF-16→UTF-8, .gitattributes, BUG-002 |
+| Sprint 10 | 0.10.0 | Route /api/health Next.js, validateEnv() fail-fast OWASP A05 |
 
 ### Compétences démontrées par le code
 
@@ -270,7 +272,7 @@ Métriques de qualité atteintes :
 | Code sécurisé | Aucun `eval()`, aucun SQL brut, secrets en env uniquement |
 | Tests lisibles | Nomenclature AAA (Arrange, Act, Assert), mocks explicites |
 | Accessibilité | ARIA sur chaque composant interactif, tests automatisés RGAA |
-| Documentation | 6 ADRs, CHANGELOG, 7 sprints, cahier de recettes 39 scénarios |
+| Documentation | 6 ADRs, CHANGELOG, 10 sprints, cahier de recettes 42 scénarios |
 
 ---
 
@@ -289,7 +291,7 @@ Métriques de qualité atteintes :
 ## 8. Axes d'amélioration
 
 1. **Intégration DB testée** — ajouter des tests d'intégration sur les repositories avec une DB de test (Testcontainers)
-2. **`@axe-core/playwright`** — détection automatique des violations WCAG dans les tests E2E
-3. **Redis rate limiting** — remplacer le store in-memory par Upstash Redis pour la persistence cross-instances
-4. **Monitoring** — intégrer Pino (logger structuré) + export vers un SIEM (Datadog, Grafana)
-5. **Pagination** — la liste des workouts n'est pas paginée côté serveur
+2. **Redis rate limiting** — remplacer le store in-memory par Upstash Redis pour la persistence cross-instances
+3. **Monitoring** — intégrer Pino (logger structuré) + export vers un SIEM (Datadog, Grafana)
+4. **Pagination** — la liste des workouts n'est pas paginée côté serveur
+5. **Progressive Web App** — mode offline avec Service Worker pour le Timer

@@ -80,6 +80,16 @@
 
 ---
 
+## Healthcheck et configuration (Production)
+
+| ID | Fonctionnalité | Préconditions | Actions | Résultat attendu | Résultat obtenu | Statut |
+|---|---|---|---|---|---|---|
+| CR-040 | Healthcheck API Hono | API démarrée | 1. `curl http://localhost:3001/health` | Réponse 200 JSON `{"status":"ok","service":"sportcoach-api"}` | 200 OK, JSON conforme, utilisé par docker-compose `healthcheck` | ✅ |
+| CR-041 | Healthcheck Next.js web | Web démarré | 1. `curl http://localhost:3000/api/health` | Réponse 200 JSON `{"status":"ok","service":"sportcoach-web","timestamp":"..."}` | 200 OK, JSON conforme, fix le healthcheck Dockerfile web | ✅ |
+| CR-042 | Fail-fast démarrage API sans SERVICE_SECRET | `SERVICE_SECRET` absent du `.env` | 1. Démarrer l'API sans la variable `SERVICE_SECRET` | Crash immédiat avec log `[Startup] Variables manquantes : ['SERVICE_SECRET']` et `process.exit(1)` | Exit immédiat avant tout trafic — OWASP A05 Fail-Safe Defaults | ✅ |
+
+---
+
 ## Tests automatisés
 
 | Suite | Fichier | Cas couverts | Statut CI |
@@ -90,9 +100,11 @@
 | WorkoutService | `workout.service.test.ts` | 8 tests — generate+save, liste, détail, ownership | ✅ |
 | ErrorMiddleware | `error.middleware.test.ts` | 4 tests — AppError routing, erreur inattendue, logging | ✅ |
 | RateLimitMiddleware | `rate-limit.middleware.test.ts` | 5 tests — quota, 429, Retry-After, isolation userId, A09 | ✅ |
-| **Total unitaires** | — | **38 tests · 94.69% statements · 100% functions** | ✅ |
+| ValidateEnv | `validate-env.test.ts` | 4 tests — toutes vars OK, exit si SERVICE_SECRET/MISTRAL/DATABASE_URL manque | ✅ |
+| **Total unitaires** | — | **32 tests · 94.69% statements · 100% functions** | ✅ |
 | E2E home | `home.spec.ts` | 7 tests — titre, skip link, nav, footer, /login | ✅ |
 | E2E auth | `auth.spec.ts` | 6 tests — GitHub button, routes protégées, 404 | ✅ |
 | E2E generate | `generate.spec.ts` | 4 tests — form labels, validation, aria-live (session mockée) | ✅ |
 | E2E accessibility | `accessibility.spec.ts` | 10 tests — RGAA 4.1 skip link, lang, sémantique, liens | ✅ |
-| **Total E2E** | — | **27 tests Playwright (Chromium + Firefox)** | ✅ |
+| E2E axe-core | `axe.spec.ts` | 2 tests — WCAG 2.1 A/AA violations / et /login | ✅ |
+| **Total E2E** | — | **29 tests Playwright (Chromium + Firefox)** | ✅ |

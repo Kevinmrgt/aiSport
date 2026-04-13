@@ -1,6 +1,6 @@
 # ADR-006 — Architecture de déploiement
 
-> Date : 2026-04-13 | Statut : **Accepté** | Auteur : Kevin
+> Date : 2026-04-13 | Statut : **Accepté (mis à jour Sprint 11)** | Auteur : Kevin
 
 ---
 
@@ -11,50 +11,45 @@ SportCoach IA est un monorepo avec trois composants déployables :
 - **API** : Hono sur Node.js 20
 - **Base de données** : PostgreSQL 16
 
-Le déploiement doit être reproductible, documenté, et conforme aux exigences RNCP Bloc 4 (livraison en production).
+Le déploiement doit être reproductible, documenté, et conforme aux exigences RNCP Bloc 4 (livraison en production). Contrainte : hébergement **100% gratuit** sans limite de durée.
 
 ---
 
 ## Options considérées
 
-### Option 1 — Vercel (web) + Railway (API + DB)
+### Option 1 — Vercel (web) + Fly.io (API) + Neon (DB) ✅ RETENUE
 
 **Architecture :**
 ```
-GitHub → Vercel (Next.js) ←→ Railway (Hono API + PostgreSQL)
+GitHub → Vercel (Next.js) ←→ Fly.io (Hono API) ←→ Neon (PostgreSQL serverless)
 ```
 
 **Avantages :**
-- Zéro infrastructure à gérer
-- Déploiement automatique depuis `main` (CD natif)
-- Vercel optimise Next.js nativement (Edge Functions, ISR)
-- Railway gère PostgreSQL managé avec backups automatiques
-- Certificats HTTPS automatiques (OWASP A02)
-- Free tier suffisant pour un prototype RNCP
+- **Fly.io** : machines toujours actives sur free tier (3 shared VMs), déploiement depuis Docker
+- **Neon** : PostgreSQL serverless gratuit, connexions poolées, branching DB, région EU
+- **Vercel** : optimise Next.js nativement (Edge Network, ISR), CD automatique depuis GitHub
+- Certificats HTTPS automatiques (OWASP A02) sur les trois services
+- Pas de limite de durée sur les free tiers
 
 **Inconvénients :**
-- Vendor lock-in (Vercel, Railway)
-- Coût à l'échelle (dépassement du free tier)
-- Données hébergées hors UE possible (Railway peut être configuré EU)
+- Vendor lock-in (trois services différents)
+- Configuration initiale plus complexe que Railway
 
-### Option 2 — VPS (Hetzner/OVH) + Docker Compose
+### Option 2 — Vercel (web) + Railway (API + DB)
 
-**Architecture :**
-```
-GitHub Actions → SSH → VPS → Docker Compose (web + api + postgres)
-```
-
-**Avantages :**
-- Contrôle total, RGPD facilité (datacenter EU)
-- Coût prévisible (~5€/mois)
-- Pas de vendor lock-in
+**Avantages :** Setup simple, Railway gère PostgreSQL managé
 
 **Inconvénients :**
-- Maintenance infra (SSL, backups, monitoring)
-- Déploiement plus complexe (GitHub Actions SSH)
-- Temps de setup élevé pour un prototype
+- Railway a supprimé son free tier début 2024 — **non gratuit** (5$/mois minimum)
+- Éliminé pour cette raison
 
-### Option 3 — Docker Compose local uniquement
+### Option 3 — VPS (Hetzner/OVH) + Docker Compose
+
+**Avantages :** Contrôle total, RGPD facilité (datacenter EU), coût prévisible (~5€/mois)
+
+**Inconvénients :** Maintenance infra (SSL, backups, monitoring), déploiement plus complexe
+
+### Option 4 — Docker Compose local uniquement
 
 **Avantages :** Simple, zéro coût
 
@@ -64,14 +59,15 @@ GitHub Actions → SSH → VPS → Docker Compose (web + api + postgres)
 
 ## Décision
 
-**Option 1 retenue (Vercel + Railway)** pour le prototype RNCP.
+**Option 1 retenue (Vercel + Fly.io + Neon)** — stack cloud gratuite sans limite de durée.
 
-**Option 2 documentée** via `docker-compose.yml` pour l'auto-hébergement et les démonstrations locales.
+**Option 3 documentée** via `docker-compose.yml` pour l'auto-hébergement et les démonstrations locales.
 
 ### Justification
 
 - Priorité à la **disponibilité d'une URL live** pour la soutenance RNCP
-- Déploiement en < 30 minutes depuis un repo GitHub existant
+- Fly.io déploie depuis le `Dockerfile` existant — aucun changement de code
+- Neon est PostgreSQL natif — compatible Drizzle ORM sans modification
 - Le `docker-compose.yml` full-stack garantit la portabilité si migration vers VPS
 
 ---
@@ -79,22 +75,29 @@ GitHub Actions → SSH → VPS → Docker Compose (web + api + postgres)
 ## Architecture cible
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                    GitHub (main)                     │
-└────────────┬──────────────────────────┬─────────────┘
-             │ push                      │ push
-             ▼                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│                       GitHub (main)                          │
+└──────────────┬───────────────────────────┬───────────────────┘
+               │ push (CD Vercel)           │ push (fly deploy CI)
+               ▼                           ▼
     ┌─────────────────┐        ┌──────────────────────┐
-    │  Vercel          │        │  Railway              │
+    │  Vercel          │        │  Fly.io (cdg — Paris) │
     │  Next.js 14      │◄──────►│  Hono API (Node 20)  │
-    │  (Edge Network)  │        │  PostgreSQL 16        │
+    │  (Edge Network)  │        │  shared-cpu-1x 256MB  │
     │  HTTPS auto      │        │  HTTPS auto           │
-    └─────────────────┘        └──────────────────────┘
+    └─────────────────┘        └──────────┬───────────┘
+                                          │ DATABASE_URL
+                                          ▼
+                               ┌──────────────────────┐
+                               │  Neon (PostgreSQL)    │
+                               │  Region : EU-West     │
+                               │  Serverless + pooler  │
+                               └──────────────────────┘
 ```
 
 **Communication web → API :**
-- En production : `NEXT_PUBLIC_API_URL=https://api.sportcoach.railway.app`
-- Header `x-internal-secret` : variable d'env Railway (jamais exposée côté client)
+- En production : `NEXT_PUBLIC_API_URL=https://sportcoach-api.fly.dev`
+- Header `x-internal-secret` : variable d'env Fly.io (jamais exposée côté client)
 
 ---
 
@@ -108,14 +111,14 @@ GitHub Actions → SSH → VPS → Docker Compose (web + api + postgres)
 | `AUTH_GITHUB_ID` | GitHub OAuth App | Client ID OAuth |
 | `AUTH_GITHUB_SECRET` | GitHub OAuth App | Client Secret OAuth |
 | `NEXTAUTH_URL` | `https://sportcoach.vercel.app` | URL publique du frontend |
-| `NEXT_PUBLIC_API_URL` | `https://api.sportcoach.railway.app` | URL publique de l'API |
-| `SERVICE_SECRET` | Partagé avec Railway | Secret interne service-to-service |
+| `NEXT_PUBLIC_API_URL` | `https://sportcoach-api.fly.dev` | URL publique de l'API |
+| `SERVICE_SECRET` | Partagé avec Fly.io | Secret interne service-to-service |
 
-### Railway (API + DB)
+### Fly.io (API Hono)
 
 | Variable | Source | Description |
 |---|---|---|
-| `DATABASE_URL` | Railway auto-injecté | URL PostgreSQL managée |
+| `DATABASE_URL` | Neon Dashboard | URL PostgreSQL poolée (`postgres://...@ep-xxx.neon.tech/sportcoach?sslmode=require`) |
 | `MISTRAL_API_KEY` | Mistral Console | Clé API Mistral |
 | `SERVICE_SECRET` | Partagé avec Vercel | Secret interne service-to-service |
 | `FRONTEND_URL` | `https://sportcoach.vercel.app` | CORS — seule origine autorisée |
@@ -125,14 +128,13 @@ GitHub Actions → SSH → VPS → Docker Compose (web + api + postgres)
 
 ## Migrations de base de données
 
-La migration Drizzle (`0000_amusing_starfox.sql`) doit être exécutée avant le premier déploiement :
+La migration Drizzle doit être exécutée une fois après la création de la DB Neon :
 
 ```bash
-# Sur Railway (via Railway CLI ou shell)
+# Pointer DATABASE_URL vers Neon
+export DATABASE_URL="postgres://...@ep-xxx.neon.tech/sportcoach?sslmode=require"
 pnpm db:migrate
 ```
-
-En production, ajouter la migration au script de démarrage via un healthcheck ou un Job Railway.
 
 ---
 
@@ -140,18 +142,22 @@ En production, ajouter la migration au script de démarrage via un healthcheck o
 
 **Positives :**
 - URL live disponible pour la soutenance RNCP
-- CD automatique sur chaque push vers `main`
-- PostgreSQL managé avec backups automatiques (Railway)
-- HTTPS automatique sur les deux services
+- CD automatique sur chaque push vers `main` (Vercel)
+- Fly.io déploie le Dockerfile existant sans modification
+- PostgreSQL Neon compatible Drizzle, géo-répliqué EU
+- HTTPS automatique sur tous les services (OWASP A02)
 
 **Négatives / Risques :**
-- Si Railway supprime le free tier : migrer vers Fly.io ou VPS
+- Fly.io free tier : 3 shared VMs max — suffisant pour RNCP
+- Neon free tier : 0.5 GB storage, 1 projet — suffisant pour prototype
 - Le `docker-compose.yml` full-stack doit être maintenu en sync avec les Dockerfiles
 
 ---
 
 ## Références
 
+- `apps/api/fly.toml` — configuration Fly.io pour le déploiement de l'API
+- `vercel.json` — configuration Vercel pour le monorepo Next.js
 - `docker-compose.yml` — stack complète pour auto-hébergement
 - `apps/api/Dockerfile` — build multi-stage API (Node 20 Alpine)
 - `apps/web/Dockerfile` — build multi-stage Next.js standalone

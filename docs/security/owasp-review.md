@@ -68,7 +68,7 @@
 
 ## A05 — Security Misconfiguration ✅
 
-**Risque** : Headers HTTP manquants, CORS trop permissif, ports exposés.
+**Risque** : Headers HTTP manquants, CORS trop permissif, ports exposés, démarrage en état non sécurisé.
 
 **Contrôles en place :**
 | Contrôle | Détail | Fichier |
@@ -77,6 +77,7 @@
 | CORS restrictif | `origin: process.env.FRONTEND_URL` uniquement, `credentials: true` | `apps/api/src/index.ts` |
 | Next.js CSP | `X-Frame-Options`, `X-Content-Type-Options` via `next.config` headers | `apps/web/next.config.mjs` |
 | Pas de stack trace client | `handleError` renvoie uniquement `error.code` + `message` sanitisé | `apps/api/src/middleware/error.middleware.ts` |
+| **Fail-fast env vars** | `validateEnv()` appelé au boot — `process.exit(1)` si `DATABASE_URL`, `SERVICE_SECRET` ou `MISTRAL_API_KEY` manquent. Principe de Fail-Safe Defaults : un serveur sans `SERVICE_SECRET` accepterait toutes les requêtes sans contrôle d'accès. | `apps/api/src/lib/validate-env.ts` |
 
 ---
 
@@ -163,7 +164,7 @@
 | A02 — Cryptographic Failures | ✅ Contrôlé | Revue de code |
 | A03 — Injection | ✅ Contrôlé | `CR-030`, Zod + Drizzle |
 | A04 — Insecure Design | ✅ Contrôlé | Architecture en couches |
-| A05 — Security Misconfiguration | ✅ Contrôlé | `secureHeaders()`, CORS |
+| A05 — Security Misconfiguration | ✅ Contrôlé | `secureHeaders()`, CORS, `validateEnv()` fail-fast |
 | A06 — Vulnerable Components | ✅ Contrôlé | CI `pnpm audit` |
 | A07 — Auth Failures | ✅ Contrôlé | Auth.js, JWT signé |
 | A08 — Integrity Failures | ✅ Contrôlé | Lockfile, CI frozen |

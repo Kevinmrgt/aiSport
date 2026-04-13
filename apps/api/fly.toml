@@ -1,0 +1,39 @@
+# fly.toml — Configuration Fly.io pour l'API SportCoach IA (Hono)
+# Déployer avec : fly launch (première fois) ou fly deploy
+
+app = "sportcoach-api"
+primary_region = "cdg"  # Paris
+
+[build]
+  # Utilise le Dockerfile existant dans apps/api/
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "3001"
+  NODE_ENV = "production"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  auto_stop_machines = false  # toujours actif (free tier)
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+
+[checks]
+  [checks.health]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    path = "/health"
+    port = 3001
+    timeout = "5s"
+    type = "http"
