@@ -15,7 +15,13 @@ export default defineConfig({
         statements: 70,
       },
       include: ['src/**/*.ts'],
-      exclude: ['src/index.ts', 'src/db/**'],
+      exclude: [
+        'src/index.ts',
+        'src/db/**',
+        // Les repositories et routes nécessitent une vraie DB — testés en intégration
+        'src/repositories/**',
+        'src/routes/**',
+      ],
     },
   },
   resolve: {
