@@ -13,6 +13,16 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ---
 
+## [0.8.0] — 2026-04-13
+
+### Added
+- `@axe-core/playwright` : détection automatique violations WCAG 2.1 A/AA sur `/` et `/login`
+- `apps/web/tests/e2e/axe.spec.ts` : 2 tests axe-core (critical + serious uniquement)
+- `apps/api/src/db/seed.ts` : script de seed avec 3 workouts de démo (beginner/intermediate/advanced)
+- `pnpm db:seed` : commande racine monorepo pour exécuter le seed
+
+---
+
 ## [0.7.0] — 2026-04-13
 
 ### Added
