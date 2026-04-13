@@ -13,6 +13,25 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ---
 
+## [0.6.0] — 2026-04-13
+
+### Added
+- `apps/api/Dockerfile` : build multi-stage Node 20 Alpine, utilisateur non-root, healthcheck
+- `apps/web/Dockerfile` : build multi-stage Next.js standalone, utilisateur non-root
+- `docker-compose.yml` : stack complète postgres + api + web avec healthchecks et depends_on
+- `.env.example` (racine) : template de toutes les variables pour docker-compose
+- ADR-006 : architecture de déploiement (Vercel + Railway vs Docker VPS)
+- `docs/deployment.md` : guide complet déploiement cloud, Docker Compose, et local
+
+### Changed
+- `next.config.mjs` : `output: 'standalone'` pour réduire la taille de l'image Docker (~90%)
+
+### Security
+- OWASP A05 : utilisateurs non-root dans les deux Dockerfiles (`hono:1001`, `nextjs:1001`)
+- OWASP A02 : secrets injectés via variables d'env, jamais dans les images Docker
+
+---
+
 ## [0.5.0] — 2026-04-13
 
 ### Added

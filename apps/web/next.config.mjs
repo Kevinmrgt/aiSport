@@ -35,6 +35,8 @@ const nextConfig = {
   },
   // Transpiler le package shared du monorepo
   transpilePackages: ['@sportcoach/shared'],
+  // Output standalone pour le déploiement Docker (réduit la taille de l'image)
+  output: 'standalone',
 };
 
 export default nextConfig;
