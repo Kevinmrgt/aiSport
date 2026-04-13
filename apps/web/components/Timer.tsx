@@ -60,7 +60,7 @@ export function Timer({ exercises }: TimerProps) {
       // RGAA 4.1: message de fin avec aria-live
       <div role="status" aria-live="polite" className="text-center py-8">
         <p className="text-2xl font-bold text-sport-green">Séance terminée !</p>
-        <p className="text-gray-600 mt-2">Bien joué — n'oubliez pas de vous étirer.</p>
+        <p className="text-gray-600 mt-2">Bien joué — n&apos;oubliez pas de vous étirer.</p>
       </div>
     );
   }

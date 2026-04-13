@@ -35,7 +35,7 @@ export async function createWorkout(
     sport: created.sport,
     difficulty: created.difficulty,
     durationMinutes: created.durationMinutes,
-    data: created.data as Workout,
+    data: created.data,
     createdAt: created.createdAt,
     updatedAt: created.updatedAt,
   };
@@ -99,7 +99,7 @@ export async function findWorkoutById(
     sport: row.sport,
     difficulty: row.difficulty,
     durationMinutes: row.durationMinutes,
-    data: row.data as Workout,
+    data: row.data,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

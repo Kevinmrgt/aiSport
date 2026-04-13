@@ -15,7 +15,7 @@ export async function handleGenerateWorkout(ctx: Context): Promise<Response> {
   const auth = ctx.get('auth');
 
   // OWASP A04: validation Zod systématique avant tout traitement
-  const body = await ctx.req.json().catch(() => {
+  const body: unknown = await ctx.req.json<unknown>().catch(() => {
     throw AppError.badRequest('Corps de la requête JSON invalide');
   });
 

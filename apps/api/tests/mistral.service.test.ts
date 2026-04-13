@@ -55,7 +55,7 @@ describe('MistralService', () => {
     it('retourne un workout valide pour une réponse Mistral correcte', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => validApiResponse,
+        json: () => Promise.resolve(validApiResponse),
       });
 
       const result = await generateWorkout(defaultInput);
@@ -71,7 +71,7 @@ describe('MistralService', () => {
       const wrappedJson = `Voici votre programme:\n${JSON.stringify(validWorkoutResponse)}\nBonne séance!`;
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({
+        json: () => Promise.resolve({
           choices: [{ message: { content: wrappedJson } }],
         }),
       });
@@ -86,14 +86,14 @@ describe('MistralService', () => {
       mockFetch
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({
+          json: () => Promise.resolve({
             choices: [{ message: { content: JSON.stringify(invalidWorkout) } }],
           }),
         })
         // Deuxième essai: réponse valide
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => validApiResponse,
+          json: () => Promise.resolve(validApiResponse),
         });
 
       const result = await generateWorkout(defaultInput);
@@ -104,7 +104,7 @@ describe('MistralService', () => {
     it('lance AppError.serviceUnavailable après 2 échecs', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: async () => ({
+        json: () => Promise.resolve({
           choices: [{ message: { content: 'pas du JSON valide' } }],
         }),
       });
