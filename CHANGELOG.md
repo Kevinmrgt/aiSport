@@ -13,6 +13,21 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ---
 
+## [0.4.0] — 2026-04-13
+
+### Added
+- Tests E2E Playwright : 27 tests (home, auth, generate, accessibilité RGAA 4.1)
+- `playwright.config.ts` : webServer auto-start, Chromium + Firefox, trace on-first-retry
+- `tests/fixtures/session.json` + `createMockSession()` : session mockée pour tests authentifiés
+- ADR-005 : stratégie de tests (pyramide unitaires Vitest + E2E Playwright)
+- `docs/security/owasp-review.md` : revue OWASP Top 10 complète (A01–A10)
+- Job `test-e2e` dans GitHub Actions CI (Playwright, `continue-on-error: true`)
+
+### Changed
+- CI pipeline : 5 jobs (lint-typecheck, test-unit, build, security-audit, **test-e2e**)
+
+---
+
 ## [0.3.0] — 2026-04-13
 
 ### Added
