@@ -9,7 +9,14 @@
       "Bash(psql --version)",
       "Bash(pnpm dev:web)",
       "Bash(winget --version)",
-      "Bash(winget install:*)"
+      "Bash(winget install:*)",
+      "Bash(wsl --status)",
+      "Bash(wsl --list --verbose)",
+      "Bash(wsl --install -d Ubuntu)",
+      "Bash(wsl docker:*)",
+      "Bash(wsl -e bash -c \"cd /mnt/c/Users/kevin/OneDrive/Documents/Dev/aiSport && docker compose up -d 2>&1\")",
+      "Bash(wsl -e bash -c \"cd /mnt/c/Users/kevin/OneDrive/Documents/Dev/aiSport && docker compose ps 2>&1\")",
+      "Bash(pnpm db:migrate)"
     ]
   }
 }
