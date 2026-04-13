@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Focus visible — RGAA 4.1: navigation clavier */
+:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Supprimer l'outline pour les clics souris uniquement */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Skip link — RGAA 4.1: accès rapide au contenu principal */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  z-index: 100;
+  padding: 0.5rem 1rem;
+  background: #1d4ed8;
+  color: white;
+  border-radius: 0 0 4px 4px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 0;
+}

@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm install:*)",
+      "Bash(pnpm approve-builds:*)",
+      "Bash(pnpm --filter shared build)",
+      "Bash(pnpm --filter api test)",
+      "Bash(pnpm db:generate)",
+      "Bash(psql --version)",
+      "Bash(pnpm dev:web)",
+      "Bash(winget --version)",
+      "Bash(winget install:*)"
+    ]
+  }
+}

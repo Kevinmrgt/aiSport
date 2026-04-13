@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+
+# Environment — OWASP A02: jamais de secrets en clair
+.env
+.env.*
+!.env.example
+
+# Database
+*.sqlite
+drizzle/
+
+# Testing
+coverage/
+playwright-report/
+test-results/
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
