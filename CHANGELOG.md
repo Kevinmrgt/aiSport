@@ -13,6 +13,16 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ---
 
+## [0.7.0] — 2026-04-13
+
+### Added
+- `docs/dossier-professionnel.md` : synthèse des 4 blocs RNCP (livrable clé soutenance)
+- `docs/bloc4/compte-rendu-activite.md` : CRA avec chronologie, compétences, métriques
+- Cahier de recettes : CR-035/036 (rate limiting) + CR-037/038/039 (loading states)
+- Cahier de recettes : table des suites de tests complète (55 tests : 28 unitaires + 27 E2E)
+
+---
+
 ## [0.6.0] — 2026-04-13
 
 ### Added
