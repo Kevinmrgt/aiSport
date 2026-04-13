@@ -13,6 +13,20 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ---
 
+## [0.9.0] — 2026-04-13
+
+### Fixed
+- `README.md` : réécrit en UTF-8 sans BOM (était en UTF-16 LE — illisible sur GitHub)
+
+### Added
+- `.gitattributes` : force UTF-8 + LF pour tous les fichiers texte (prévient la récurrence)
+- `docs/bloc4/bugs/BUG-002-readme-utf16.md` : rapport de bug encodage (Bloc 4 RNCP)
+
+### Changed
+- `docs/dossier-professionnel.md` : Sprint 08 ajouté, métriques E2E mises à jour (27→29 tests)
+
+---
+
 ## [0.8.0] — 2026-04-13
 
 ### Added

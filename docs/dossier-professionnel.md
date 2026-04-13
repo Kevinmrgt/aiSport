@@ -223,7 +223,7 @@ Métriques de qualité atteintes :
 | Coverage statements | ≥ 70% | **94.69%** |
 | Coverage functions | ≥ 70% | **100%** |
 | Tests unitaires | — | **28 tests** |
-| Tests E2E | — | **27 tests (Chromium + Firefox)** |
+| Tests E2E | — | **29 tests (Playwright + axe-core, Chromium + Firefox)** |
 | Zéro erreur lint | Oui | **✅** |
 | Zéro erreur TypeScript | Oui | **✅** |
 | Vulnérabilités `high` | 0 | **0 (audit CI)** |
@@ -258,6 +258,7 @@ Métriques de qualité atteintes :
 | Sprint 05 | 0.5.0 | Rate limiting, loading states, Bloc 4 docs |
 | Sprint 06 | 0.6.0 | Dockerfiles multi-stage, docker-compose, ADR-006 |
 | Sprint 07 | 0.7.0 | Dossier professionnel, compte rendu d'activité |
+| Sprint 08 | 0.8.0 | axe-core WCAG automatique, db:seed démo, README UTF-8 |
 
 ### Compétences démontrées par le code
 
