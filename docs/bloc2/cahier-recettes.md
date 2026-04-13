@@ -61,6 +61,25 @@
 
 ---
 
+## Sécurité — Rate Limiting
+
+| ID | Fonctionnalité | Préconditions | Actions | Résultat attendu | Résultat obtenu | Statut |
+|---|---|---|---|---|---|---|
+| CR-035 | Rate limiting — dépassement quota | Utilisateur connecté | 1. Envoyer 6 requêtes `POST /workouts/generate` en < 1 minute | 6ème requête reçoit `429 RATE_LIMIT_EXCEEDED` avec header `Retry-After` | Bloqué après 5 requêtes, header Retry-After présent | ✅ |
+| CR-036 | Rate limiting — isolation utilisateurs | 2 utilisateurs connectés | 1. Épuiser le quota de l'utilisateur A | L'utilisateur B n'est pas affecté | Quota isolé par userId, user B reçoit 200 | ✅ |
+
+---
+
+## États de chargement (UX)
+
+| ID | Fonctionnalité | Préconditions | Actions | Résultat attendu | Résultat obtenu | Statut |
+|---|---|---|---|---|---|---|
+| CR-037 | Loading state `/workouts` | Réseau lent | 1. Naviguer vers `/workouts` | Skeleton de cartes visible pendant le fetch | Grille de 6 cards squelettes animées avec aria-busy | ✅ |
+| CR-038 | Loading state `/generate` | Réseau lent | 1. Naviguer vers `/generate` | Skeleton du formulaire visible | Skeleton 4 champs + bouton avec aria-busy | ✅ |
+| CR-039 | Loading state `/workouts/[id]` | Réseau lent | 1. Naviguer vers un détail | Skeleton du timer visible | Skeleton fil d'Ariane + Timer avec aria-busy | ✅ |
+
+---
+
 ## Tests automatisés
 
 | Suite | Fichier | Cas couverts | Statut CI |
@@ -70,4 +89,10 @@
 | WorkoutController | `workout.controller.test.ts` | 9 tests — tous les handlers, JSON malformé, 403/404 | ✅ |
 | WorkoutService | `workout.service.test.ts` | 8 tests — generate+save, liste, détail, ownership | ✅ |
 | ErrorMiddleware | `error.middleware.test.ts` | 4 tests — AppError routing, erreur inattendue, logging | ✅ |
-| **Total** | — | **32 tests · 96% statements · 100% functions** | ✅ |
+| RateLimitMiddleware | `rate-limit.middleware.test.ts` | 5 tests — quota, 429, Retry-After, isolation userId, A09 | ✅ |
+| **Total unitaires** | — | **38 tests · 94.69% statements · 100% functions** | ✅ |
+| E2E home | `home.spec.ts` | 7 tests — titre, skip link, nav, footer, /login | ✅ |
+| E2E auth | `auth.spec.ts` | 6 tests — GitHub button, routes protégées, 404 | ✅ |
+| E2E generate | `generate.spec.ts` | 4 tests — form labels, validation, aria-live (session mockée) | ✅ |
+| E2E accessibility | `accessibility.spec.ts` | 10 tests — RGAA 4.1 skip link, lang, sémantique, liens | ✅ |
+| **Total E2E** | — | **27 tests Playwright (Chromium + Firefox)** | ✅ |
