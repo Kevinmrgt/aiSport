@@ -34,6 +34,10 @@ export class AppError extends Error {
     return new AppError(500, 'INTERNAL_ERROR', message);
   }
 
+  static tooManyRequests(message: string): AppError {
+    return new AppError(429, 'RATE_LIMIT_EXCEEDED', message);
+  }
+
   static serviceUnavailable(message: string): AppError {
     return new AppError(503, 'SERVICE_UNAVAILABLE', message);
   }
