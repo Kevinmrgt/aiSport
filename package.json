@@ -1,7 +1,7 @@
 {
   "name": "sportcoach-ia",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.10.0",
   "description": "Application web de génération d'entraînements sportifs personnalisés par IA",
   "scripts": {
     "dev": "concurrently \"pnpm dev:api\" \"pnpm dev:web\"",

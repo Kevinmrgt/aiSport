@@ -7,7 +7,7 @@
 
 ## Contexte de l'activité
 
-Dans le cadre de la certification RNCP 39583 Expert en développement logiciel, j'ai conçu et développé **SportCoach IA**, une application web de génération d'entraînements sportifs personnalisés par intelligence artificielle. Le projet a été conduit en autonomie complète sur 7 sprints de développement itératif.
+Dans le cadre de la certification RNCP 39583 Expert en développement logiciel, j'ai conçu et développé **SportCoach IA**, une application web de génération d'entraînements sportifs personnalisés par intelligence artificielle. Le projet a été conduit en autonomie complète sur 10 sprints de développement itératif.
 
 ---
 
@@ -22,6 +22,9 @@ Dans le cadre de la certification RNCP 39583 Expert en développement logiciel, 
 | S02 2026 | Sprint 05 | Rate limiting, loading states, docs Bloc 4 | Middleware 429, skeletons RGAA, veille techno |
 | S02 2026 | Sprint 06 | Dockerisation, docker-compose full-stack, guide déploiement | Dockerfiles, ADR-006, deployment.md |
 | S02 2026 | Sprint 07 | Dossier professionnel, CRA, mise à jour cahier de recettes | dossier-professionnel.md, CRA |
+| S02 2026 | Sprint 08 | Tests WCAG automatisés axe-core, seed démo, fix README UTF-8 | axe.spec.ts, db:seed, BUG-002 |
+| S02 2026 | Sprint 09 | Correction encodage UTF-16→UTF-8, .gitattributes, rapport bug | README.md UTF-8, .gitattributes |
+| S02 2026 | Sprint 10 | Route healthcheck Next.js, validateEnv() fail-fast OWASP A05 | /api/health, validate-env.ts |
 
 ---
 
@@ -64,7 +67,7 @@ Le développement a suivi une approche sprint-based inspirée de Scrum :
 | Next.js App Router / Server Actions | Intermédiaire | Avancé | `generate/page.tsx`, `workouts/page.tsx` |
 | Architecture monorepo TypeScript | Débutant | Intermédiaire | `pnpm-workspace.yaml`, `tsconfig.base.json` |
 | Sécurité OWASP Top 10 | Notions | Intermédiaire | `owasp-review.md`, ADR-004 |
-| Tests automatisés (Vitest + Playwright) | Débutant | Intermédiaire | 28 tests unitaires + 27 E2E |
+| Tests automatisés (Vitest + Playwright) | Débutant | Intermédiaire | 32 tests unitaires + 29 E2E |
 | Conteneurisation Docker | Notions | Intermédiaire | Dockerfiles multi-stage, docker-compose |
 | Accessibilité RGAA 4.1 | Notions | Intermédiaire | Tests automatisés, aria-*, skip links |
 | Intégration LLM (Mistral AI) | Découverte | Intermédiaire | JSON mode, validation Zod, retry/backoff |
@@ -72,7 +75,7 @@ Le développement a suivi une approche sprint-based inspirée de Scrum :
 ### Transversales
 
 - **Autonomie** : projet conduit seul de la conception au déploiement
-- **Documentation** : 6 ADRs, 7 sprints, cahier de recettes 39 scénarios, veille technologique
+- **Documentation** : 6 ADRs, 10 sprints, cahier de recettes 42 scénarios, veille technologique
 - **Rigueur** : 0 erreur TypeScript, 0 erreur ESLint, 94.69% coverage en CI
 - **Adaptabilité** : bugs CI résolus (coverage, secrets GitHub, ESLint), solutions documentées
 
@@ -113,11 +116,11 @@ Le développement a suivi une approche sprint-based inspirée de Scrum :
 | Catégorie | Quantité |
 |---|---|
 | Fichiers de code source | ~60 fichiers TypeScript/TSX |
-| Tests automatisés | 55 tests (28 unitaires + 27 E2E) |
+| Tests automatisés | 61 tests (32 unitaires + 29 E2E) |
 | ADRs | 6 décisions documentées |
-| Sprints documentés | 7 revues |
-| Scénarios cahier de recettes | 39 |
-| Environnements déployables | 3 (Vercel+Railway, Docker, local) |
+| Sprints documentés | 10 revues |
+| Scénarios cahier de recettes | 42 |
+| Environnements déployables | 3 (Vercel+Fly.io+Neon, Docker, local) |
 
 ### Métriques qualité
 

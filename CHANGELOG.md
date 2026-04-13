@@ -13,6 +13,27 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ---
 
+## [0.11.0] — 2026-04-13
+
+### Added
+- `apps/api/tests/validate-env.test.ts` : 4 tests unitaires pour `validateEnv()` (process.exit spy, isolation par variable)
+- `apps/api/fly.toml` : configuration Fly.io pour le déploiement de l'API Hono (région cdg, shared-cpu-1x, healthcheck)
+- `vercel.json` : configuration monorepo pour le déploiement Next.js sur Vercel (rootDirectory, buildCommand)
+- `docs/bloc2/cahier-recettes.md` : CR-040 (GET /health API), CR-041 (GET /api/health web), CR-042 (fail-fast validateEnv)
+
+### Changed
+- `docs/adr/ADR-006-deployment-architecture.md` : mise à jour — remplace Railway (non gratuit) par Fly.io + Neon (free tier sans limite)
+- `docs/deployment.md` : réécriture Option A avec Fly.io + Neon — instructions `fly launch`, secrets, migration Neon
+- `docs/dossier-professionnel.md` : Sprint 09 et 10 ajoutés à la chronologie, métriques finales corrigées (0.10.0)
+- `docs/bloc4/compte-rendu-activite.md` : Sprints 08/09/10 ajoutés, métriques 10 sprints / 32 tests unitaires / 29 E2E
+- `docs/security/owasp-review.md` : section A05 enrichie — `validateEnv()` documenté (Fail-Safe Defaults)
+- `package.json` : version `0.1.0` → `0.10.0`
+
+### Security
+- OWASP A05 : `validateEnv()` désormais testé (4 tests) et documenté dans la revue OWASP
+
+---
+
 ## [0.10.0] — 2026-04-13
 
 ### Added
