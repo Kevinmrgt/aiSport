@@ -5,8 +5,7 @@ export const metadata: Metadata = {
   title: 'SportCoach IA — Entraînements personnalisés par IA',
   description:
     "Générez des entraînements sportifs sur mesure grâce à l'intelligence artificielle Mistral AI",
-  // RGAA 4.1: langue de la page déclarée
-  lang: 'fr',
+  // RGAA 4.1: la langue est déclarée via lang="fr" sur la balise <html> ci-dessous
 };
 
 export default function RootLayout({ children }: { readonly children: React.ReactNode }) {
