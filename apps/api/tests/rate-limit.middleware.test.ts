@@ -4,6 +4,28 @@ import { rateLimitMiddleware } from '../src/middleware/rate-limit.middleware.js'
 import { authMiddleware } from '../src/middleware/auth.middleware.js';
 import { handleError } from '../src/middleware/error.middleware.js';
 
+// Mock DB — authMiddleware upsert utilisateur, évite la connexion réelle
+vi.mock('../src/db/index.js', () => ({
+  db: {
+    insert: vi.fn(() => {
+      let capturedEmail = 'unknown';
+      return {
+        values: vi.fn((vals: { email: string; name?: string | null }) => {
+          capturedEmail = vals.email;
+          return {
+            onConflictDoUpdate: vi.fn(() => ({
+              returning: vi.fn(() =>
+                Promise.resolve([{ id: `uuid-${capturedEmail}` }]),
+              ),
+            })),
+          };
+        }),
+      };
+    }),
+  },
+}));
+vi.mock('../src/db/schema.js', () => ({ users: {} }));
+
 // OWASP A04: tests du rate limiter sur /workouts/generate
 
 const VALID_SECRET = 'test-service-secret';
@@ -24,6 +46,7 @@ function makeRequest(userId = USER_ID) {
     headers: {
       'x-internal-secret': VALID_SECRET,
       'x-user-id': userId,
+      'x-user-email': `${userId}@test.com`,
     },
   });
 }

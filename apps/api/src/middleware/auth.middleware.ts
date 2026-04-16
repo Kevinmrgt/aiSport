@@ -1,4 +1,7 @@
 import type { Context, Next } from 'hono';
+import { eq, sql } from 'drizzle-orm';
+import { db } from '../db/index.js';
+import { users } from '../db/schema.js';
 import { AppError } from '../types/app-error.js';
 
 // OWASP A01: middleware d'authentification sur toutes les routes protégées
@@ -31,13 +34,29 @@ export async function authMiddleware(ctx: Context, next: Next): Promise<void> {
     throw AppError.unauthorized('Session requise');
   }
 
-  const userId = ctx.req.header('x-user-id');
+  const oauthId = ctx.req.header('x-user-id');
   const email = ctx.req.header('x-user-email') ?? '';
+  const name = ctx.req.header('x-user-name') ?? null;
 
-  if (!userId) {
+  if (!oauthId || !email) {
     throw AppError.unauthorized('Identifiant utilisateur manquant');
   }
 
-  ctx.set('auth', { userId, email });
+  // Auth.js JWT strategy ne crée pas les utilisateurs en base — on upsert ici
+  // pour garantir que la FK workouts.user_id → users.id est satisfaite (OWASP A01)
+  const [user] = await db
+    .insert(users)
+    .values({ email, name })
+    .onConflictDoUpdate({
+      target: users.email,
+      set: { updatedAt: sql`now()` },
+    })
+    .returning({ id: users.id });
+
+  if (!user) {
+    throw AppError.internal('Impossible de résoudre l\'utilisateur en base');
+  }
+
+  ctx.set('auth', { userId: user.id, email });
   await next();
 }
