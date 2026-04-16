@@ -3,67 +3,38 @@ import Link from 'next/link';
 // RGAA 4.1: page d'accueil accessible — sémantique HTML5 + contraste AA
 export default function HomePage() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center gap-8">
-      {/* RGAA 4.1: hiérarchie de titres correcte */}
-      <section aria-labelledby="hero-title">
-        <h1 id="hero-title" className="text-4xl sm:text-5xl font-bold text-gray-900 leading-tight">
-          Votre coach sportif{' '}
-          <span className="text-primary-600">personnel par IA</span>
-        </h1>
-        <p className="mt-4 text-xl text-gray-600 max-w-2xl">
-          Générez des entraînements sportifs personnalisés en quelques secondes grâce à{' '}
-          <strong>Mistral AI</strong>. Adapté à votre niveau, vos objectifs et vos contraintes.
-        </p>
-      </section>
+    <section
+      aria-labelledby="hero-title"
+      className="flex flex-col items-center justify-center min-h-[60vh] text-center"
+    >
+      <h1
+        id="hero-title"
+        className="text-5xl sm:text-7xl font-bold tracking-tight text-zinc-900 leading-none"
+      >
+        Votre coach sportif
+        <br />
+        <span className="text-zinc-400">par IA</span>
+      </h1>
 
-      <div className="flex flex-col sm:flex-row gap-4">
-        {/* RGAA 4.1: boutons avec texte explicite, pas juste icône */}
+      <p className="mt-6 text-lg text-zinc-500 max-w-md">
+        Générez des entraînements personnalisés en quelques secondes grâce à Mistral AI.
+      </p>
+
+      <div className="mt-10 flex flex-col sm:flex-row gap-3">
+        {/* RGAA 4.1: boutons avec texte explicite */}
         <Link
           href="/generate"
-          className="inline-flex items-center justify-center px-8 py-3 text-base font-semibold rounded-lg bg-primary-600 text-white hover:bg-primary-700 focus-visible:ring-2 focus-visible:ring-primary-500 transition-colors"
+          className="inline-flex items-center justify-center px-6 py-2.5 rounded-md bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
         >
           Générer un entraînement
         </Link>
         <Link
           href="/workouts"
-          className="inline-flex items-center justify-center px-8 py-3 text-base font-semibold rounded-lg border-2 border-primary-600 text-primary-600 hover:bg-primary-50 transition-colors"
+          className="inline-flex items-center justify-center px-6 py-2.5 rounded-md border border-zinc-300 text-zinc-900 text-sm font-medium hover:bg-zinc-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2"
         >
-          Mes entraînements
+          Mes séances
         </Link>
       </div>
-
-      {/* Section features — RGAA 4.1: section avec aria-label */}
-      <section aria-label="Fonctionnalités" className="grid sm:grid-cols-3 gap-6 mt-8 w-full max-w-4xl">
-        {[
-          {
-            icon: '🏋️',
-            title: 'Personnalisé',
-            desc: 'Adapté à votre sport, niveau, durée et objectifs',
-          },
-          {
-            icon: '⚡',
-            title: 'Instantané',
-            desc: 'Programme généré en quelques secondes par Mistral AI',
-          },
-          {
-            icon: '⏱️',
-            title: 'Timer intégré',
-            desc: 'Suivez chaque exercice avec le timer de séance',
-          },
-        ].map(({ icon, title, desc }) => (
-          <article
-            key={title}
-            className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 text-left"
-          >
-            {/* RGAA 4.1: emoji décoratif masqué aux lecteurs d'écran */}
-            <span aria-hidden="true" className="text-3xl">
-              {icon}
-            </span>
-            <h2 className="mt-3 text-lg font-semibold text-gray-900">{title}</h2>
-            <p className="mt-1 text-sm text-gray-600">{desc}</p>
-          </article>
-        ))}
-      </section>
-    </div>
+    </section>
   );
 }

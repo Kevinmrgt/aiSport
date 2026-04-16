@@ -16,18 +16,12 @@ export default async function GeneratePage() {
   async function handleGenerate(data: GenerateWorkoutInput) {
     'use server';
     const workout = await serverApi.generateWorkout(data);
-    // Redirection vers le détail du workout généré
     redirect(`/workouts/${workout.id}`);
   }
 
   return (
-    <div className="flex flex-col items-center py-8">
-      <div className="w-full max-w-lg mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Générer un entraînement</h1>
-        <p className="text-gray-600">
-          Décrivez votre séance et l&apos;IA crée un programme personnalisé en quelques secondes.
-        </p>
-      </div>
+    <div className="max-w-lg mx-auto">
+      <h1 className="text-2xl font-bold text-zinc-900 mb-8">Générer un entraînement</h1>
       <WorkoutForm onSubmit={handleGenerate} />
     </div>
   );

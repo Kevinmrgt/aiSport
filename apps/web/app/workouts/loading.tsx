@@ -3,39 +3,32 @@ export default function WorkoutsLoading() {
   return (
     <section aria-labelledby="workouts-title" aria-busy="true">
       <div className="flex items-center justify-between mb-8">
-        <h1 id="workouts-title" className="text-3xl font-bold text-gray-900">
-          Mes entraînements
+        <h1 id="workouts-title" className="text-2xl font-bold text-zinc-900">
+          Mes séances
         </h1>
-        {/* Bouton skeleton */}
-        <div className="h-9 w-40 rounded-lg bg-gray-200 animate-pulse" aria-hidden="true" />
+        <div className="h-9 w-36 rounded-md bg-zinc-100 animate-pulse" aria-hidden="true" />
       </div>
 
-      <ul
-        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-        aria-label="Chargement des entraînements"
-      >
-        {Array.from({ length: 6 }).map((_, i) => (
-          <li
-            key={i}
-            className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-3"
-            aria-hidden="true"
-          >
-            {/* Titre skeleton */}
-            <div className="h-5 w-3/4 rounded bg-gray-200 animate-pulse" />
-            {/* Badges skeleton */}
-            <div className="flex gap-2">
-              <div className="h-5 w-16 rounded-full bg-gray-200 animate-pulse" />
-              <div className="h-5 w-20 rounded-full bg-gray-200 animate-pulse" />
+      {/* Filtres skeleton */}
+      <div className="flex gap-2 mb-6" aria-hidden="true">
+        <div className="h-8 w-32 rounded-md bg-zinc-100 animate-pulse" />
+        <div className="h-8 w-32 rounded-md bg-zinc-100 animate-pulse" />
+        <div className="h-8 w-16 rounded-md bg-zinc-100 animate-pulse" />
+      </div>
+
+      {/* Liste skeleton */}
+      <ul className="divide-y divide-zinc-100" aria-label="Chargement des entraînements">
+        {Array.from({ length: 7 }).map((_, i) => (
+          <li key={i} className="flex items-center gap-4 py-4" aria-hidden="true">
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-1/2 rounded bg-zinc-100 animate-pulse" />
+              <div className="h-3 w-1/3 rounded bg-zinc-100 animate-pulse" />
             </div>
-            {/* Durée skeleton */}
-            <div className="h-4 w-1/3 rounded bg-gray-200 animate-pulse" />
-            {/* Bouton skeleton */}
-            <div className="h-8 w-full rounded-lg bg-gray-100 animate-pulse mt-2" />
+            <div className="h-4 w-10 rounded bg-zinc-100 animate-pulse shrink-0" />
           </li>
         ))}
       </ul>
 
-      {/* Message SR uniquement */}
       <p className="sr-only">Chargement de vos entraînements en cours…</p>
     </section>
   );
