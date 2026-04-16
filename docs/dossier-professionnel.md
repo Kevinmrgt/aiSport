@@ -261,6 +261,8 @@ Métriques de qualité atteintes :
 | Sprint 08 | 0.8.0 | axe-core WCAG automatique, db:seed démo, README UTF-8 |
 | Sprint 09 | 0.9.0 | Fix encodage README UTF-16→UTF-8, .gitattributes, BUG-002 |
 | Sprint 10 | 0.10.0 | Route /api/health Next.js, validateEnv() fail-fast OWASP A05 |
+| Sprint 11 | 0.11.0 | Tests validateEnv(), IaC Fly.io + Vercel, déploiement cloud, docs RNCP finalisées |
+| Sprint 12 | 0.12.0 | Pagination/filtres workouts, dashboard stats, BDD Neon migrée, fix OAuth Vercel |
 
 ### Compétences démontrées par le code
 
@@ -272,7 +274,7 @@ Métriques de qualité atteintes :
 | Code sécurisé | Aucun `eval()`, aucun SQL brut, secrets en env uniquement |
 | Tests lisibles | Nomenclature AAA (Arrange, Act, Assert), mocks explicites |
 | Accessibilité | ARIA sur chaque composant interactif, tests automatisés RGAA |
-| Documentation | 6 ADRs, CHANGELOG, 10 sprints, cahier de recettes 42 scénarios |
+| Documentation | 6 ADRs, CHANGELOG, 12 sprints, cahier de recettes 44 scénarios |
 
 ---
 
