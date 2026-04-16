@@ -3,6 +3,22 @@ import { Hono } from 'hono';
 import { authMiddleware } from '../src/middleware/auth.middleware.js';
 import { handleError } from '../src/middleware/error.middleware.js';
 
+const MOCK_DB_UUID = 'db-uuid-from-upsert';
+
+// Mock DB — évite la connexion réelle en tests unitaires
+vi.mock('../src/db/index.js', () => ({
+  db: {
+    insert: vi.fn(() => ({
+      values: vi.fn(() => ({
+        onConflictDoUpdate: vi.fn(() => ({
+          returning: vi.fn().mockResolvedValue([{ id: MOCK_DB_UUID }]),
+        })),
+      })),
+    })),
+  },
+}));
+vi.mock('../src/db/schema.js', () => ({ users: {} }));
+
 // OWASP A01: tests de la validation du secret service-to-service
 function createApp() {
   const app = new Hono();
@@ -73,7 +89,7 @@ describe('authMiddleware', () => {
 
     expect(res.status).toBe(200);
     const body = (await res.json()) as { userId: string; email: string };
-    expect(body.userId).toBe('user-abc');
+    expect(body.userId).toBe(MOCK_DB_UUID);
     expect(body.email).toBe('user@example.com');
   });
 

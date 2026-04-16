@@ -22,6 +22,7 @@ async function serverFetch<T>(path: string, options?: RequestInit): Promise<T> {
       'x-internal-secret': process.env['SERVICE_SECRET'] ?? '',
       'x-user-id': session.user.id,
       'x-user-email': session.user.email ?? '',
+      'x-user-name': session.user.name ?? '',
       ...(options?.headers as Record<string, string>),
     },
   });
