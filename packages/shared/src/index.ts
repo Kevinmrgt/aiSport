@@ -14,6 +14,8 @@ export type {
   GenerateWorkoutInput,
   WorkoutRecord,
   WorkoutListItem,
+  WorkoutListResponse,
   WorkoutDetail,
+  WorkoutStats,
   ApiError,
 } from './types/workout.types.js';
