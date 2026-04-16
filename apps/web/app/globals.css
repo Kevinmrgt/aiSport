@@ -4,7 +4,7 @@
 
 /* Focus visible — RGAA 4.1: navigation clavier */
 :focus-visible {
-  outline: 3px solid #2563eb;
+  outline: 2px solid #18181b;
   outline-offset: 2px;
   border-radius: 2px;
 }
@@ -21,7 +21,7 @@
   left: 1rem;
   z-index: 100;
   padding: 0.5rem 1rem;
-  background: #1d4ed8;
+  background: #18181b;
   color: white;
   border-radius: 0 0 4px 4px;
   font-weight: 600;

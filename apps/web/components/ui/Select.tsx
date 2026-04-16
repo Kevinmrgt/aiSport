@@ -26,12 +26,12 @@ export function Select({
   const errorId = error ? `${selectId}-error` : undefined;
 
   return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={selectId} className="text-sm font-medium text-gray-700">
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={selectId} className="text-sm font-medium text-zinc-700">
         {label}
         {props.required && (
           <>
-            <span aria-hidden="true" className="text-red-600 ml-1">*</span>
+            <span aria-hidden="true" className="text-red-500 ml-1">*</span>
             <span className="sr-only">(requis)</span>
           </>
         )}
@@ -43,9 +43,9 @@ export function Select({
         aria-describedby={errorId}
         aria-invalid={error ? true : undefined}
         className={[
-          'rounded-lg border px-3 py-2 text-sm transition-colors bg-white',
-          'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
-          error ? 'border-red-400 bg-red-50' : 'border-gray-300',
+          'rounded-md border px-3 py-2 text-sm transition-colors bg-white',
+          'focus:outline-none focus:ring-1 focus:ring-zinc-900 focus:border-zinc-900',
+          error ? 'border-red-400' : 'border-zinc-300',
           className,
         ].join(' ')}
       >
@@ -63,7 +63,7 @@ export function Select({
 
       {error && (
         <p id={errorId} role="alert" className="text-xs text-red-600">
-          <span aria-hidden="true">⚠</span> {error}
+          {error}
         </p>
       )}
     </div>

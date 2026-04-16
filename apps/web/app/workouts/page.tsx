@@ -36,10 +36,8 @@ export default async function WorkoutsPage({
   }
 
   const { workouts, total, hasMore } = await serverApi.getWorkouts({ page, sport, level });
-
   const totalPages = Math.ceil(total / 9);
 
-  // Construire les params pour les liens de navigation
   function pageUrl(p: number) {
     const params = new URLSearchParams();
     params.set('page', String(p));
@@ -50,15 +48,16 @@ export default async function WorkoutsPage({
 
   return (
     <section aria-labelledby="workouts-title">
-      <div className="flex items-center justify-between mb-6">
-        <h1 id="workouts-title" className="text-3xl font-bold text-gray-900">
-          Mes entraînements
+      {/* En-tête */}
+      <div className="flex items-center justify-between mb-8">
+        <h1 id="workouts-title" className="text-2xl font-bold text-zinc-900">
+          Mes séances
         </h1>
         <Link
           href="/generate"
-          className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+          className="inline-flex items-center justify-center px-4 py-2 rounded-md bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
         >
-          Nouvel entraînement
+          Nouvelle séance
         </Link>
       </div>
 
@@ -66,83 +65,74 @@ export default async function WorkoutsPage({
       <form
         method="GET"
         action="/workouts"
-        className="flex flex-wrap gap-3 mb-6 p-4 bg-white rounded-xl border border-gray-100 shadow-sm"
+        className="flex flex-wrap items-center gap-2 mb-6"
         aria-label="Filtrer les entraînements"
       >
-        <div className="flex flex-col gap-1">
-          <label htmlFor="filter-sport" className="text-xs font-medium text-gray-600">
-            Sport
-          </label>
-          <select
-            id="filter-sport"
-            name="sport"
-            defaultValue={sport ?? ''}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-          >
-            <option value="">Tous les sports</option>
-            {SPORTS.map((s) => (
-              <option key={s} value={s}>
-                {s.charAt(0).toUpperCase() + s.slice(1)}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* RGAA 4.1: labels sr-only pour selects sans label visible */}
+        <label htmlFor="filter-sport" className="sr-only">Sport</label>
+        <select
+          id="filter-sport"
+          name="sport"
+          defaultValue={sport ?? ''}
+          className="rounded-md border border-zinc-200 px-3 py-1.5 text-sm text-zinc-700 bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900"
+        >
+          <option value="">Tous les sports</option>
+          {SPORTS.map((s) => (
+            <option key={s} value={s}>
+              {s.charAt(0).toUpperCase() + s.slice(1)}
+            </option>
+          ))}
+        </select>
 
-        <div className="flex flex-col gap-1">
-          <label htmlFor="filter-level" className="text-xs font-medium text-gray-600">
-            Niveau
-          </label>
-          <select
-            id="filter-level"
-            name="level"
-            defaultValue={level ?? ''}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-          >
-            <option value="">Tous les niveaux</option>
-            {LEVELS.map((l) => (
-              <option key={l.value} value={l.value}>
-                {l.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <label htmlFor="filter-level" className="sr-only">Niveau</label>
+        <select
+          id="filter-level"
+          name="level"
+          defaultValue={level ?? ''}
+          className="rounded-md border border-zinc-200 px-3 py-1.5 text-sm text-zinc-700 bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900"
+        >
+          <option value="">Tous les niveaux</option>
+          {LEVELS.map((l) => (
+            <option key={l.value} value={l.value}>
+              {l.label}
+            </option>
+          ))}
+        </select>
 
-        <div className="flex items-end gap-2">
-          <button
-            type="submit"
-            className="px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
-          >
-            Filtrer
-          </button>
-          {(sport || level) && (
-            <Link
-              href="/workouts"
-              className="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
-            >
-              Réinitialiser
-            </Link>
-          )}
-        </div>
+        <button
+          type="submit"
+          className="px-3 py-1.5 rounded-md bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+        >
+          Filtrer
+        </button>
 
-        <p className="flex items-end text-sm text-gray-500 ml-auto">
-          {total} entraînement{total > 1 ? 's' : ''}
-        </p>
+        {(sport || level) && (
+          <Link
+            href="/workouts"
+            className="text-sm text-zinc-400 hover:text-zinc-900 transition-colors"
+          >
+            Effacer
+          </Link>
+        )}
+
+        <span className="ml-auto text-sm text-zinc-400">
+          {total} résultat{total !== 1 ? 's' : ''}
+        </span>
       </form>
 
       {workouts.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-xl border border-gray-100 shadow-sm">
-          <p aria-hidden="true" className="text-5xl mb-4">🏃</p>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            {sport || level ? 'Aucun résultat pour ces filtres' : 'Aucun entraînement pour l\'instant'}
+        <div className="py-24 text-center">
+          <h2 className="text-base font-medium text-zinc-900 mb-2">
+            {sport || level ? 'Aucun résultat' : 'Aucune séance pour l\'instant'}
           </h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-sm text-zinc-400 mb-6">
             {sport || level
-              ? 'Essayez d\'autres filtres ou générez un nouvel entraînement.'
-              : 'Générez votre premier programme personnalisé par IA.'}
+              ? 'Essayez d\'autres filtres ou générez une nouvelle séance.'
+              : 'Votre premier programme personnalisé est à un clic.'}
           </p>
           <Link
             href="/generate"
-            className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-primary-600 text-white font-semibold hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+            className="inline-flex items-center justify-center px-5 py-2 rounded-md bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
           >
             Générer un entraînement
           </Link>
@@ -150,8 +140,8 @@ export default async function WorkoutsPage({
       ) : (
         <>
           <ul
-            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-            aria-label={`${workouts.length} entraînement${workouts.length > 1 ? 's' : ''} affichés sur ${total}`}
+            className="divide-y divide-zinc-100"
+            aria-label={`${workouts.length} entraînement${workouts.length > 1 ? 's' : ''} sur ${total}`}
           >
             {workouts.map((workout) => (
               <WorkoutCard key={workout.id} workout={workout} onDelete={handleDelete} />
@@ -162,30 +152,34 @@ export default async function WorkoutsPage({
           {totalPages > 1 && (
             <nav
               aria-label="Pagination des entraînements"
-              className="mt-8 flex items-center justify-center gap-2"
+              className="mt-8 flex items-center justify-center gap-6 text-sm"
             >
-              {page > 1 && (
+              {page > 1 ? (
                 <Link
                   href={pageUrl(page - 1)}
-                  className="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="text-zinc-500 hover:text-zinc-900 transition-colors focus-visible:outline-none focus-visible:underline"
                   aria-label="Page précédente"
                 >
                   ← Précédent
                 </Link>
+              ) : (
+                <span className="text-zinc-300 select-none">← Précédent</span>
               )}
 
-              <span className="text-sm text-gray-600" aria-current="page">
-                Page {page} sur {totalPages}
+              <span className="text-zinc-400" aria-current="page">
+                {page} / {totalPages}
               </span>
 
-              {hasMore && (
+              {hasMore ? (
                 <Link
                   href={pageUrl(page + 1)}
-                  className="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="text-zinc-500 hover:text-zinc-900 transition-colors focus-visible:outline-none focus-visible:underline"
                   aria-label="Page suivante"
                 >
                   Suivant →
                 </Link>
+              ) : (
+                <span className="text-zinc-300 select-none">Suivant →</span>
               )}
             </nav>
           )}

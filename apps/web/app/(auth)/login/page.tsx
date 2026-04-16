@@ -4,15 +4,12 @@ import { signIn } from '@/lib/auth';
 export default function LoginPage() {
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <section
-        className="w-full max-w-sm bg-white rounded-xl shadow-sm border border-gray-100 p-8"
-        aria-labelledby="login-title"
-      >
-        <h1 id="login-title" className="text-2xl font-bold text-gray-900 text-center mb-6">
+      <section className="w-full max-w-sm text-center" aria-labelledby="login-title">
+        <h1 id="login-title" className="text-2xl font-bold text-zinc-900 mb-2">
           Connexion
         </h1>
-        <p className="text-sm text-gray-600 text-center mb-6">
-          Connectez-vous pour créer et consulter vos entraînements personnalisés.
+        <p className="text-sm text-zinc-500 mb-8">
+          Connectez-vous pour accéder à vos entraînements.
         </p>
 
         {/* RGAA 4.1: formulaire avec action server-side */}
@@ -25,13 +22,13 @@ export default function LoginPage() {
           {/* RGAA 4.1: bouton avec texte descriptif complet */}
           <button
             type="submit"
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-800 focus-visible:ring-2 focus-visible:ring-gray-700 transition-colors"
+            className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-md bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
           >
-            {/* RGAA 4.1: SVG avec role et title pour lecteurs d'écran */}
+            {/* RGAA 4.1: SVG avec title pour lecteurs d'écran */}
             <svg
               role="img"
               aria-label="Logo GitHub"
-              className="w-5 h-5"
+              className="w-4 h-4"
               viewBox="0 0 24 24"
               fill="currentColor"
             >
