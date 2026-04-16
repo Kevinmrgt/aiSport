@@ -25,6 +25,8 @@ Dans le cadre de la certification RNCP 39583 Expert en développement logiciel, 
 | S02 2026 | Sprint 08 | Tests WCAG automatisés axe-core, seed démo, fix README UTF-8 | axe.spec.ts, db:seed, BUG-002 |
 | S02 2026 | Sprint 09 | Correction encodage UTF-16→UTF-8, .gitattributes, rapport bug | README.md UTF-8, .gitattributes |
 | S02 2026 | Sprint 10 | Route healthcheck Next.js, validateEnv() fail-fast OWASP A05 | /api/health, validate-env.ts |
+| S02 2026 | Sprint 11 | Tests validateEnv(), déploiement Vercel + Neon, IaC, docs RNCP | validate-env.test.ts, fly.toml, vercel.json |
+| S02 2026 | Sprint 12 | Pagination/filtres workouts, dashboard stats, migration BDD live | dashboard/page.tsx, /workouts/stats, Neon migré |
 
 ---
 
@@ -67,7 +69,7 @@ Le développement a suivi une approche sprint-based inspirée de Scrum :
 | Next.js App Router / Server Actions | Intermédiaire | Avancé | `generate/page.tsx`, `workouts/page.tsx` |
 | Architecture monorepo TypeScript | Débutant | Intermédiaire | `pnpm-workspace.yaml`, `tsconfig.base.json` |
 | Sécurité OWASP Top 10 | Notions | Intermédiaire | `owasp-review.md`, ADR-004 |
-| Tests automatisés (Vitest + Playwright) | Débutant | Intermédiaire | 32 tests unitaires + 29 E2E |
+| Tests automatisés (Vitest + Playwright) | Débutant | Intermédiaire | 41 tests unitaires + 29 E2E |
 | Conteneurisation Docker | Notions | Intermédiaire | Dockerfiles multi-stage, docker-compose |
 | Accessibilité RGAA 4.1 | Notions | Intermédiaire | Tests automatisés, aria-*, skip links |
 | Intégration LLM (Mistral AI) | Découverte | Intermédiaire | JSON mode, validation Zod, retry/backoff |
@@ -75,8 +77,8 @@ Le développement a suivi une approche sprint-based inspirée de Scrum :
 ### Transversales
 
 - **Autonomie** : projet conduit seul de la conception au déploiement
-- **Documentation** : 6 ADRs, 10 sprints, cahier de recettes 42 scénarios, veille technologique
-- **Rigueur** : 0 erreur TypeScript, 0 erreur ESLint, 94.69% coverage en CI
+- **Documentation** : 6 ADRs, 12 sprints, cahier de recettes 44 scénarios, veille technologique
+- **Rigueur** : 0 erreur TypeScript, 0 erreur ESLint, >90% coverage en CI
 - **Adaptabilité** : bugs CI résolus (coverage, secrets GitHub, ESLint), solutions documentées
 
 ---

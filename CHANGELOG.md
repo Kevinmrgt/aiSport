@@ -13,6 +13,30 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ---
 
+## [0.12.0] — 2026-04-16
+
+### Added
+- `apps/api/src/repositories/workout.repository.ts` : `findWorkoutsByUser()` paginée avec filtres `sport` et `level` (LIMIT/OFFSET, comptage total)
+- `apps/api/src/repositories/workout.repository.ts` : `getWorkoutStatsByUser()` — agrégats BDD (total, byLevel, bySport, lastGenerated)
+- `apps/api/src/controllers/workout.controller.ts` : `handleGetStats()` — `GET /workouts/stats`
+- `apps/web/app/workouts/page.tsx` : `FilterBar` (sport + niveau, form GET sans JS requis) + `Pagination` (liens prev/next, aria-labels RGAA)
+- `apps/web/app/dashboard/page.tsx` : page `/dashboard` — 3 KPIs, barres de progression par niveau, top 4 sports
+- `packages/shared/src/types/workout.types.ts` : `WorkoutListResponse`, `WorkoutStats`
+- `apps/web/app/layout.tsx` : lien "Dashboard" dans la navigation authentifiée
+- Neon (PostgreSQL) : migrations appliquées + seed 3 workouts de démonstration
+
+### Changed
+- `apps/api/src/services/workout.service.ts` : `getUserWorkouts()` accepte `{ page, limit, sport, level }` — réponse paginée
+- `apps/web/lib/server-api.ts` : `getWorkouts(params?)` accepte les filtres, ajout `getStats()`
+- `apps/api/tests/workout.service.test.ts` : 2 nouveaux cas — pagination passée au repository, filtres transmis
+- `apps/web/lib/auth.ts` : ajout `trustHost: true` — résout `error=Configuration` Auth.js v5 sur Vercel
+
+### Security
+- OWASP A04 : query params `page`, `limit`, `sport`, `level` validés par Zod avant tout accès BDD
+- OWASP A01 : filtres pagination respectent le scope userId — aucun workout d'un autre utilisateur
+
+---
+
 ## [0.11.0] — 2026-04-13
 
 ### Added

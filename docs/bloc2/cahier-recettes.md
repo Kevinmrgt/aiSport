@@ -90,6 +90,15 @@
 
 ---
 
+## Pagination, Filtres et Dashboard
+
+| ID | Fonctionnalité | Préconditions | Actions | Résultat attendu | Résultat obtenu | Statut |
+|---|---|---|---|---|---|---|
+| CR-043 | Filtrer la liste des entraînements | Utilisateur connecté, au moins 1 workout | 1. Aller sur `/workouts` 2. Sélectionner un sport et/ou un niveau 3. Cliquer "Filtrer" | Liste filtrée, compteur mis à jour, bouton "Réinitialiser" visible | Formulaire GET sans JS requis, LIMIT/OFFSET BDD, OWASP A04 Zod | ✅ |
+| CR-044 | Dashboard statistiques utilisateur | Utilisateur connecté, au moins 1 workout | 1. Cliquer "Dashboard" dans la navbar | Page affiche total entraînements, répartition par niveau (barres), top sports | Agrégats SQL Drizzle, barres aria-progressbar accessibles | ✅ |
+
+---
+
 ## Tests automatisés
 
 | Suite | Fichier | Cas couverts | Statut CI |
@@ -97,11 +106,11 @@
 | MistralService | `mistral.service.test.ts` | 6 tests — JSON valide, retry, timeout, 429 | ✅ |
 | AuthMiddleware | `auth.middleware.test.ts` | 6 tests — secret invalide, userId manquant, logging A09 | ✅ |
 | WorkoutController | `workout.controller.test.ts` | 9 tests — tous les handlers, JSON malformé, 403/404 | ✅ |
-| WorkoutService | `workout.service.test.ts` | 8 tests — generate+save, liste, détail, ownership | ✅ |
+| WorkoutService | `workout.service.test.ts` | 10 tests — generate+save, liste paginée, filtres, détail, ownership | ✅ |
 | ErrorMiddleware | `error.middleware.test.ts` | 4 tests — AppError routing, erreur inattendue, logging | ✅ |
 | RateLimitMiddleware | `rate-limit.middleware.test.ts` | 5 tests — quota, 429, Retry-After, isolation userId, A09 | ✅ |
 | ValidateEnv | `validate-env.test.ts` | 4 tests — toutes vars OK, exit si SERVICE_SECRET/MISTRAL/DATABASE_URL manque | ✅ |
-| **Total unitaires** | — | **32 tests · 94.69% statements · 100% functions** | ✅ |
+| **Total unitaires** | — | **41 tests · >90% statements · 100% functions** | ✅ |
 | E2E home | `home.spec.ts` | 7 tests — titre, skip link, nav, footer, /login | ✅ |
 | E2E auth | `auth.spec.ts` | 6 tests — GitHub button, routes protégées, 404 | ✅ |
 | E2E generate | `generate.spec.ts` | 4 tests — form labels, validation, aria-live (session mockée) | ✅ |
