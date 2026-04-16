@@ -9,6 +9,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       clientSecret: process.env['AUTH_GITHUB_SECRET'],
     }),
   ],
+  // Requis sur Vercel — le host est derrière un proxy
+  trustHost: true,
   // OWASP A07: pages d'auth personnalisées
   pages: {
     signIn: '/login',
