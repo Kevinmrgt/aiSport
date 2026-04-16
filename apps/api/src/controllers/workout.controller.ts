@@ -1,12 +1,21 @@
 import type { Context } from 'hono';
+import { z } from 'zod';
 import { GenerateWorkoutRequestSchema } from '../schemas/workout.input.schema.js';
 import {
   generateAndSaveWorkout,
   getUserWorkouts,
   getWorkoutDetail,
   removeWorkout,
+  getUserStats,
 } from '../services/workout.service.js';
 import { AppError } from '../types/app-error.js';
+
+const WorkoutQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).optional().default(1),
+  limit: z.coerce.number().int().min(1).max(50).optional().default(9),
+  sport: z.string().trim().optional(),
+  level: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
+});
 
 // Valide les inputs Zod, appelle le service, formate la réponse HTTP (architecture.md)
 // Jamais d'accès BDD ni de logique métier ici
@@ -48,8 +57,28 @@ export async function handleGenerateWorkout(ctx: Context): Promise<Response> {
 
 export async function handleGetWorkouts(ctx: Context): Promise<Response> {
   const auth = ctx.get('auth');
-  const workouts = await getUserWorkouts(auth.userId);
-  return ctx.json(workouts);
+
+  // OWASP A04: valider les query params avec Zod
+  const parsed = WorkoutQuerySchema.safeParse(ctx.req.query());
+  if (!parsed.success) {
+    throw AppError.badRequest('Paramètres de requête invalides', parsed.error.flatten());
+  }
+
+  // Filtrer les undefined pour satisfaire exactOptionalPropertyTypes
+  const opts = {
+    page: parsed.data.page,
+    limit: parsed.data.limit,
+    ...(parsed.data.sport !== undefined && { sport: parsed.data.sport }),
+    ...(parsed.data.level !== undefined && { level: parsed.data.level }),
+  };
+  const result = await getUserWorkouts(auth.userId, opts);
+  return ctx.json(result);
+}
+
+export async function handleGetStats(ctx: Context): Promise<Response> {
+  const auth = ctx.get('auth');
+  const stats = await getUserStats(auth.userId);
+  return ctx.json(stats);
 }
 
 export async function handleGetWorkout(ctx: Context): Promise<Response> {

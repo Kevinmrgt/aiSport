@@ -40,6 +40,12 @@ export default async function RootLayout({ children }: { readonly children: Reac
               {session?.user ? (
                 <>
                   <Link
+                    href="/dashboard"
+                    className="text-sm font-medium text-gray-600 hover:text-primary-600 transition-colors focus:outline-none focus:underline"
+                  >
+                    Dashboard
+                  </Link>
+                  <Link
                     href="/generate"
                     className="text-sm font-medium text-gray-600 hover:text-primary-600 transition-colors focus:outline-none focus:underline"
                   >

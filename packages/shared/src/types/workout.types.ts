@@ -30,6 +30,23 @@ export interface WorkoutDetail extends WorkoutListItem {
   cooldown?: Phase[];
 }
 
+// Réponse paginée de la liste des workouts
+export interface WorkoutListResponse {
+  workouts: WorkoutListItem[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
+// Statistiques utilisateur
+export interface WorkoutStats {
+  total: number;
+  byLevel: { beginner: number; intermediate: number; advanced: number };
+  bySport: Record<string, number>;
+  lastGenerated: string | null; // ISO string
+}
+
 // Réponse d'erreur API standardisée
 export interface ApiError {
   error: string;

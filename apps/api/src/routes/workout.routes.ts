@@ -6,6 +6,7 @@ import {
   handleGetWorkouts,
   handleGetWorkout,
   handleDeleteWorkout,
+  handleGetStats,
 } from '../controllers/workout.controller.js';
 
 const workoutRouter = new Hono();
@@ -18,6 +19,9 @@ workoutRouter.post('/generate', rateLimitMiddleware, handleGenerateWorkout);
 
 // GET /workouts — liste des entraînements de l'utilisateur connecté
 workoutRouter.get('/', handleGetWorkouts);
+
+// GET /workouts/stats — statistiques de l'utilisateur (avant /:id pour éviter le conflit)
+workoutRouter.get('/stats', handleGetStats);
 
 // GET /workouts/:id — détail d'un entraînement (avec vérification ownership)
 workoutRouter.get('/:id', handleGetWorkout);

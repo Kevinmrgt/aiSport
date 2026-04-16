@@ -18,6 +18,7 @@ vi.mock('../src/repositories/workout.repository.js', () => ({
   findWorkoutsByUser: vi.fn(),
   findWorkoutById: vi.fn(),
   deleteWorkout: vi.fn(),
+  getWorkoutStatsByUser: vi.fn(),
 }));
 
 import { generateWorkout as generateWithMistral } from '../src/services/mistral.service.js';
@@ -83,24 +84,28 @@ describe('WorkoutService', () => {
   });
 
   describe('getUserWorkouts', () => {
-    it('retourne la liste des workouts de l\'utilisateur', async () => {
-      const mockList = [
-        { id: 'w1', title: 'Séance 1', sport: 'yoga', difficulty: 'beginner' as const, durationMinutes: 45, createdAt: '2026-01-01T00:00:00.000Z' },
-      ];
-      vi.mocked(findWorkoutsByUser).mockResolvedValue(mockList);
+    it('retourne la liste paginée des workouts de l\'utilisateur', async () => {
+      const mockResponse = {
+        workouts: [{ id: 'w1', title: 'Séance 1', sport: 'yoga', difficulty: 'beginner' as const, durationMinutes: 45, createdAt: '2026-01-01T00:00:00.000Z' }],
+        total: 1, page: 1, limit: 9, hasMore: false,
+      };
+      vi.mocked(findWorkoutsByUser).mockResolvedValue(mockResponse);
 
       const result = await getUserWorkouts('user-123');
 
-      expect(findWorkoutsByUser).toHaveBeenCalledWith('user-123');
-      expect(result).toHaveLength(1);
-      expect(result[0]?.title).toBe('Séance 1');
+      expect(findWorkoutsByUser).toHaveBeenCalledWith('user-123', {});
+      expect(result.workouts).toHaveLength(1);
+      expect(result.workouts[0]?.title).toBe('Séance 1');
+      expect(result.total).toBe(1);
     });
 
-    it('retourne une liste vide si aucun workout', async () => {
-      vi.mocked(findWorkoutsByUser).mockResolvedValue([]);
+    it('passe les filtres et la pagination au repository', async () => {
+      const mockResponse = { workouts: [], total: 0, page: 2, limit: 9, hasMore: false };
+      vi.mocked(findWorkoutsByUser).mockResolvedValue(mockResponse);
 
-      const result = await getUserWorkouts('user-123');
-      expect(result).toHaveLength(0);
+      await getUserWorkouts('user-123', { page: 2, sport: 'yoga' });
+
+      expect(findWorkoutsByUser).toHaveBeenCalledWith('user-123', { page: 2, sport: 'yoga' });
     });
   });
 

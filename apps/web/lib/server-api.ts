@@ -1,6 +1,6 @@
 import 'server-only';
 import { auth } from '@/lib/auth';
-import type { WorkoutDetail, WorkoutListItem, GenerateWorkoutInput } from '@sportcoach/shared';
+import type { WorkoutDetail, WorkoutListResponse, WorkoutStats, GenerateWorkoutInput } from '@sportcoach/shared';
 
 // OWASP A02: URL backend depuis variable d'env uniquement
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001';
@@ -41,7 +41,22 @@ export const serverApi = {
       body: JSON.stringify(input),
     }),
 
-  getWorkouts: (): Promise<WorkoutListItem[]> => serverFetch<WorkoutListItem[]>('/workouts'),
+  getWorkouts: (params?: {
+    page?: number;
+    limit?: number;
+    sport?: string;
+    level?: string;
+  }): Promise<WorkoutListResponse> => {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.limit) qs.set('limit', String(params.limit));
+    if (params?.sport) qs.set('sport', params.sport);
+    if (params?.level) qs.set('level', params.level);
+    const query = qs.toString();
+    return serverFetch<WorkoutListResponse>(`/workouts${query ? `?${query}` : ''}`);
+  },
+
+  getStats: (): Promise<WorkoutStats> => serverFetch<WorkoutStats>('/workouts/stats'),
 
   getWorkout: (id: string): Promise<WorkoutDetail> =>
     serverFetch<WorkoutDetail>(`/workouts/${id}`),

@@ -4,8 +4,10 @@ import {
   findWorkoutsByUser,
   findWorkoutById,
   deleteWorkout,
+  getWorkoutStatsByUser,
 } from '../repositories/workout.repository.js';
-import type { GenerateWorkoutInput, WorkoutRecord, WorkoutListItem } from '@sportcoach/shared';
+import type { GenerateWorkoutInput, WorkoutRecord, WorkoutListResponse, WorkoutStats } from '@sportcoach/shared';
+
 
 // Logique métier — ne connaît pas HTTP ni Drizzle (architecture.md)
 
@@ -20,8 +22,15 @@ export async function generateAndSaveWorkout(
   return createWorkout(userId, workout);
 }
 
-export async function getUserWorkouts(userId: string): Promise<WorkoutListItem[]> {
-  return findWorkoutsByUser(userId);
+export async function getUserWorkouts(
+  userId: string,
+  opts: { page?: number; limit?: number; sport?: string; level?: string } = {},
+): Promise<WorkoutListResponse> {
+  return findWorkoutsByUser(userId, opts);
+}
+
+export async function getUserStats(userId: string): Promise<WorkoutStats> {
+  return getWorkoutStatsByUser(userId);
 }
 
 export async function getWorkoutDetail(
