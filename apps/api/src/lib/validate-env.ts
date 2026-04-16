@@ -20,7 +20,9 @@ export function validateEnv(): void {
   if (missing.length > 0) {
     console.error('[Startup] Variables d\'environnement manquantes :', missing);
     console.error('[Startup] Vérifiez votre fichier .env ou les secrets CI/CD.');
-    process.exit(1);
+    // Throw instead of process.exit so serverless runtimes (Vercel) return 500
+    // instead of a function timeout (504)
+    throw new Error(`Variables d'environnement manquantes : ${missing.join(', ')}`);
   }
 
   console.info('[Startup] Variables d\'environnement validées ✓');
