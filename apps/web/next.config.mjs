@@ -17,7 +17,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self'",
-              "connect-src 'self' http://localhost:3001",
+              `connect-src 'self' ${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'}`,
               "frame-ancestors 'none'",
             ].join('; '),
           },
@@ -35,8 +35,8 @@ const nextConfig = {
   },
   // Transpiler le package shared du monorepo
   transpilePackages: ['@sportcoach/shared'],
-  // Output standalone pour le déploiement Docker (réduit la taille de l'image)
-  output: 'standalone',
+  // Output standalone pour le déploiement Docker uniquement (incompatible Vercel)
+  ...(process.env.BUILD_STANDALONE === 'true' && { output: 'standalone' }),
 };
 
 export default nextConfig;
