@@ -12,11 +12,31 @@ export default async function GeneratePage() {
     redirect('/login');
   }
 
-  // Server Action : s'exécute côté serveur, pas d'exposition de token au client
-  async function handleGenerate(data: GenerateWorkoutInput) {
+  // Server Action : s'exécute côté serveur, pas d'exposition de token au client.
+  // Pattern : try-catch retourne l'erreur au lieu de throw — en production Next.js
+  // remplace le message de tout throw par un message générique, rendant l'erreur
+  // illisible côté client. On sépare la gestion d'erreur du redirect (qui utilise
+  // lui-même un throw interne Next.js et doit rester hors du try-catch).
+  async function handleGenerate(data: GenerateWorkoutInput): Promise<{ error?: string } | void> {
     'use server';
-    const workout = await serverApi.generateWorkout(data);
-    redirect(`/workouts/${workout.id}`);
+    let workoutId: string;
+    try {
+      const workout = await serverApi.generateWorkout(data);
+      workoutId = workout.id;
+    } catch (error) {
+      // OWASP A09: logger l'erreur réelle côté serveur (visible dans les logs Vercel/Railway)
+      console.error('[GeneratePage] Erreur génération entraînement:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString(),
+      });
+      const message =
+        error instanceof Error ? error.message : 'Erreur inattendue, veuillez réessayer';
+      return { error: message };
+    }
+    // redirect() est en dehors du try-catch — il throw une erreur interne Next.js
+    // (NEXT_REDIRECT) qui ne doit pas être interceptée par notre catch
+    redirect(`/workouts/${workoutId}`);
   }
 
   return (

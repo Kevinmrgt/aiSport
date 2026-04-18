@@ -22,7 +22,13 @@ export function handleError(error: Error, ctx: Context): Response {
   }
 
   // Erreur inattendue — ne pas exposer les détails internes (OWASP A09)
-  console.error('[UnexpectedError]', error);
+  // Stack trace loggée en dev uniquement pour faciliter le debug sans fuiter en prod
+  console.error('[UnexpectedError]', {
+    message: error.message,
+    name: error.name,
+    stack: process.env['NODE_ENV'] !== 'production' ? error.stack : undefined,
+    timestamp: new Date().toISOString(),
+  });
 
   return ctx.json(
     {
