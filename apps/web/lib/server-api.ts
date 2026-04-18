@@ -14,6 +14,15 @@ async function serverFetch<T>(path: string, options?: RequestInit): Promise<T> {
     throw new Error('Non authentifié');
   }
 
+  // OWASP A09: trace structurée de chaque appel API côté Next.js server
+  console.info('[ServerAPI] Appel:', {
+    method: options?.method ?? 'GET',
+    path,
+    userId: session.user.id,
+    apiUrl: API_URL,
+    timestamp: new Date().toISOString(),
+  });
+
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
@@ -28,7 +37,19 @@ async function serverFetch<T>(path: string, options?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    const err = (await response.json().catch(() => ({}))) as { message?: string };
+    const err = (await response.json().catch(() => ({}))) as {
+      message?: string;
+      error?: string;
+      statusCode?: number;
+    };
+    // OWASP A09: logger l'erreur API complète côté Next.js server (visible dans les logs Vercel)
+    console.error('[ServerAPI] Erreur réponse API:', {
+      url: `${API_URL}${path}`,
+      status: response.status,
+      statusText: response.statusText,
+      apiError: err,
+      timestamp: new Date().toISOString(),
+    });
     throw new Error(err.message ?? `Erreur API: ${response.status}`);
   }
 

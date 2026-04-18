@@ -1,6 +1,7 @@
 import { eq, desc, and, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { workouts } from '../db/schema.js';
+import type { WorkoutRow } from '../db/schema.js';
 import type { Workout } from '@sportcoach/shared';
 import type { WorkoutRecord, WorkoutListResponse, WorkoutStats } from '@sportcoach/shared';
 import { AppError } from '../types/app-error.js';
@@ -12,17 +13,31 @@ export async function createWorkout(
   userId: string,
   workout: Workout,
 ): Promise<WorkoutRecord> {
-  const [created] = await db
-    .insert(workouts)
-    .values({
+  let created: WorkoutRow | undefined;
+  try {
+    const result = await db
+      .insert(workouts)
+      .values({
+        userId,
+        title: workout.title,
+        sport: workout.sport,
+        difficulty: workout.difficulty,
+        durationMinutes: workout.duration_minutes,
+        data: workout,
+      })
+      .returning();
+    created = result[0];
+  } catch (error) {
+    // OWASP A09: logger l'erreur DB native avant de la convertir en AppError
+    // (les erreurs Drizzle/PostgreSQL ne sont pas des AppError — elles deviendraient
+    // des [UnexpectedError] 500 sans message utile sans ce wrapper)
+    console.error('[WorkoutRepository] Erreur DB createWorkout:', {
       userId,
-      title: workout.title,
-      sport: workout.sport,
-      difficulty: workout.difficulty,
-      durationMinutes: workout.duration_minutes,
-      data: workout,
-    })
-    .returning();
+      error: error instanceof Error ? error.message : error,
+      timestamp: new Date().toISOString(),
+    });
+    throw AppError.internal("Erreur de base de données lors de la création de l'entraînement");
+  }
 
   if (!created) {
     throw AppError.internal("Erreur lors de la création de l'entraînement");

@@ -8,7 +8,7 @@ import { GenerateWorkoutInputSchema } from '@sportcoach/shared';
 import type { GenerateWorkoutInput } from '@sportcoach/shared';
 
 interface WorkoutFormProps {
-  onSubmit: (data: GenerateWorkoutInput) => Promise<void>;
+  onSubmit: (data: GenerateWorkoutInput) => Promise<{ error?: string } | void>;
 }
 
 const LEVEL_OPTIONS = [
@@ -54,8 +54,14 @@ export function WorkoutForm({ onSubmit }: WorkoutFormProps) {
 
     setIsLoading(true);
     try {
-      await onSubmit(parsed.data);
+      const result = await onSubmit(parsed.data);
+      // Le server action retourne { error } au lieu de throw pour conserver
+      // le message réel (Next.js remplace les throws par un message générique en prod)
+      if (result?.error) {
+        setGlobalError(result.error);
+      }
     } catch (error) {
+      // Fallback pour les erreurs non interceptées par le server action
       setGlobalError(
         error instanceof Error ? error.message : "Une erreur est survenue, veuillez réessayer",
       );

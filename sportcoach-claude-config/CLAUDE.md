@@ -93,3 +93,41 @@ pnpm build:api        # Build Hono
 - Chaque bug est documenté dans `docs/bloc4/bugs/`
 - CHANGELOG.md mis à jour à chaque release
 - ADR pour chaque décision technique importante dans `docs/adr/`
+
+## Déploiement & CI/CD
+
+Voir `rules/ci.md` pour le détail complet (pipeline, rollback, debug).
+
+### URLs de production
+
+| App | URL |
+|---|---|
+| **Web** | `https://ai-sport-web.vercel.app` |
+| **API** | `https://ai-sport-api.vercel.app` |
+
+### Variables d'env critiques (Vercel)
+
+- `NEXT_PUBLIC_API_URL` (web) doit pointer vers l'URL de production de l'API
+- `SERVICE_SECRET` **doit être identique** dans les deux projets Vercel
+- `MISTRAL_API_KEY` requis sur l'API — tout 500 sur `/generate` sans log Mistral visible indique une clé manquante
+
+### Diagnostic rapide en production
+
+```bash
+# Santé de l'API
+curl https://ai-sport-api.vercel.app/health
+
+# Logs CI
+gh run list --workflow=ci.yml --limit=5
+gh run view <RUN_ID> --log
+```
+
+### Logs structurés
+
+Les logs de debug suivent le préfixe `[Module]` :
+- `[GeneratePage]` — erreurs server action Next.js
+- `[ServerAPI]` — appels et erreurs vers l'API Hono
+- `[MistralService]` — appels Mistral AI
+- `[WorkoutRepository]` — erreurs DB
+- `[AppError]` / `[UnexpectedError]` — erreurs Hono centralisées
+- `[Auth]` — tentatives d'accès non autorisées
