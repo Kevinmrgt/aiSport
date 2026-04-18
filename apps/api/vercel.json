@@ -2,5 +2,8 @@
   "buildCommand": "cd ../.. && pnpm --filter shared build && pnpm --filter api build",
   "outputDirectory": "public",
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+  "functions": {
+    "api/index.ts": { "maxDuration": 60 }
+  },
   "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]
 }

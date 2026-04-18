@@ -44,12 +44,14 @@ export async function authMiddleware(ctx: Context, next: Next): Promise<void> {
 
   // Auth.js JWT strategy ne crée pas les utilisateurs en base — on upsert ici
   // pour garantir que la FK workouts.user_id → users.id est satisfaite (OWASP A01)
+  // Les casts sont nécessaires : Drizzle 0.38.x + exactOptionalPropertyTypes
+  // exclut les colonnes nullable/defaultNow des types d'insert/update inférés
   const [user] = await db
     .insert(users)
-    .values({ email, name })
+    .values({ email, name } as { email: string; name: string | null })
     .onConflictDoUpdate({
       target: users.email,
-      set: { updatedAt: sql`now()` },
+      set: { updatedAt: sql`now()` } as Record<string, unknown>,
     })
     .returning({ id: users.id });
 

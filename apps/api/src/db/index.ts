@@ -10,10 +10,13 @@ if (!databaseUrl) {
 
 const pool = new Pool({
   connectionString: databaseUrl,
-  // Limiter les connexions pour éviter les surcharges
-  max: 10,
-  idleTimeoutMillis: 30_000,
-  connectionTimeoutMillis: 2_000,
+  // Serverless-optimisé : peu de connexions, expiration rapide
+  max: 3,
+  idleTimeoutMillis: 5_000,
+  connectionTimeoutMillis: 5_000,
+  // Critique pour Vercel : permet au process Node.js de s'arrêter
+  // quand toutes les connexions sont idle (évite le hang de la lambda)
+  allowExitOnIdle: true,
 });
 
 export const db = drizzle(pool, { schema });
