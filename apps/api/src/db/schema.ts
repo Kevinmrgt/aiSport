@@ -1,5 +1,5 @@
 import { pgTable, text, timestamp, jsonb, uuid, integer } from 'drizzle-orm/pg-core';
-import type { Workout } from '@sportcoach/shared';
+import type { Workout, TrainingProgram } from '@sportcoach/shared';
 
 // Table des utilisateurs — Auth.js compatible
 export const users = pgTable('users', {
@@ -60,7 +60,31 @@ export const workouts = pgTable('workouts', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+// Table des programmes multi-semaines
+// OWASP A01: userId lie chaque programme à son propriétaire
+export const trainingPrograms = pgTable('training_programs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  // OWASP A01 — contrôle d'accès: chaque programme appartient à un utilisateur
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  sport: text('sport').notNull(),
+  difficulty: text('difficulty', {
+    enum: ['beginner', 'intermediate', 'advanced'],
+  }).notNull(),
+  weeksCount: integer('weeks_count').notNull(),
+  sessionsPerWeek: integer('sessions_per_week').notNull(),
+  sessionDurationMinutes: integer('session_duration_minutes').notNull(),
+  // Programme complet stocké en JSONB — même pattern que workouts.data
+  data: jsonb('data').notNull().$type<TrainingProgram>(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type WorkoutRow = typeof workouts.$inferSelect;
 export type NewWorkoutRow = typeof workouts.$inferInsert;
+export type TrainingProgramRow = typeof trainingPrograms.$inferSelect;
+export type NewTrainingProgramRow = typeof trainingPrograms.$inferInsert;

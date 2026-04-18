@@ -50,6 +50,12 @@ export default async function RootLayout({ children }: { readonly children: Reac
                     Générer
                   </Link>
                   <Link
+                    href="/programs"
+                    className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
+                  >
+                    Programmes
+                  </Link>
+                  <Link
                     href="/workouts"
                     className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
                   >
