@@ -1,4 +1,4 @@
-// Schémas Zod — contrat JSON Mistral
+// Schémas Zod — contrat JSON Mistral (séances simples)
 export {
   ExerciseSchema,
   PhaseSchema,
@@ -6,7 +6,15 @@ export {
   GenerateWorkoutInputSchema,
 } from './schemas/workout.schema.js';
 
-// Types TypeScript
+// Schémas Zod — contrat JSON Mistral (programmes multi-semaines)
+export {
+  ProgramSessionSchema,
+  ProgramWeekSchema,
+  TrainingProgramSchema,
+  GenerateProgramInputSchema,
+} from './schemas/program.schema.js';
+
+// Types TypeScript — séances simples
 export type {
   Exercise,
   Phase,
@@ -19,3 +27,18 @@ export type {
   WorkoutStats,
   ApiError,
 } from './types/workout.types.js';
+
+// Types TypeScript — programmes multi-semaines (inférés depuis le schema)
+export type {
+  ProgramSession,
+  ProgramWeek,
+  TrainingProgram,
+  GenerateProgramInput,
+} from './schemas/program.schema.js';
+
+// Types TypeScript — programmes multi-semaines (entités DB + réponses API)
+export type {
+  TrainingProgramRecord,
+  ProgramListItem,
+  ProgramListResponse,
+} from './types/program.types.js';

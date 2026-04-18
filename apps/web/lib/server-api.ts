@@ -1,6 +1,7 @@
 import 'server-only';
 import { auth } from '@/lib/auth';
 import type { WorkoutDetail, WorkoutListResponse, WorkoutStats, GenerateWorkoutInput } from '@sportcoach/shared';
+import type { GenerateProgramInput, ProgramListResponse, TrainingProgramRecord, ProgramListItem } from '@sportcoach/shared';
 
 // OWASP A02: URL backend depuis variable d'env uniquement
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001';
@@ -85,4 +86,26 @@ export const serverApi = {
 
   deleteWorkout: (id: string): Promise<void> =>
     serverFetch<void>(`/workouts/${id}`, { method: 'DELETE' }),
+
+  // --- Programmes multi-semaines ---
+
+  generateProgram: (input: GenerateProgramInput): Promise<ProgramListItem> =>
+    serverFetch<ProgramListItem>('/programs/generate', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  getPrograms: (params?: { page?: number; limit?: number }): Promise<ProgramListResponse> => {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.limit) qs.set('limit', String(params.limit));
+    const query = qs.toString();
+    return serverFetch<ProgramListResponse>(`/programs${query ? `?${query}` : ''}`);
+  },
+
+  getProgram: (id: string): Promise<TrainingProgramRecord & { createdAt: string }> =>
+    serverFetch<TrainingProgramRecord & { createdAt: string }>(`/programs/${id}`),
+
+  deleteProgram: (id: string): Promise<void> =>
+    serverFetch<void>(`/programs/${id}`, { method: 'DELETE' }),
 };
