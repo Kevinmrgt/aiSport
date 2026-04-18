@@ -32,6 +32,9 @@ logs/
 *.swp
 *.swo
 
+# Claude Code — fichiers locaux contenant des tokens/permissions
+.claude/settings.local.json
+
 # OS
 .DS_Store
 Thumbs.db
