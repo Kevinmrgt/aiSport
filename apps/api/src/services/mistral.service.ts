@@ -7,7 +7,8 @@ import { AppError } from '../types/app-error.js';
 const MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions';
 const MISTRAL_MODEL = 'mistral-small-latest';
 // OWASP A10: timeout strict sur les appels externes (mistral-contract.md)
-const TIMEOUT_MS = 30_000;
+// 20s par tentative × 2 max = 40s < maxDuration 60s configuré dans vercel.json
+const TIMEOUT_MS = 20_000;
 
 // Log structuré pour OWASP A09
 function logMistralCall(data: {
@@ -174,8 +175,7 @@ export async function generateWorkout(input: GenerateWorkoutInput): Promise<Work
         );
       }
 
-      // Attendre avant retry (backoff simple)
-      await new Promise((resolve) => setTimeout(resolve, 1_000));
+      // Pas de délai avant retry (budget temps serverless limité)
     }
   }
 
