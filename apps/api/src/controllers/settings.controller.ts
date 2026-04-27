@@ -55,11 +55,16 @@ export async function handleSaveSettings(ctx: Context): Promise<Response> {
     aiApiKeyEncrypted = null;
   }
 
-  await upsertSettings(auth.userId, {
-    provider: parsed.data.provider,
-    aiApiKeyEncrypted,
-    aiModel: parsed.data.model ?? null,
-  });
+  try {
+    await upsertSettings(auth.userId, {
+      provider: parsed.data.provider,
+      aiApiKeyEncrypted,
+      aiModel: parsed.data.model ?? null,
+    });
+  } catch (err) {
+    console.error('[Settings] Erreur upsertSettings:', err);
+    throw AppError.internal('Impossible de sauvegarder les paramètres. Réessayez dans quelques instants.');
+  }
 
   return ctx.json({ ok: true });
 }
