@@ -74,7 +74,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutPageProps) {
         <h2 id="timer-title" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-4">
           Programme — {workout.exercises.length} exercice{workout.exercises.length > 1 ? 's' : ''}
         </h2>
-        <Timer exercises={workout.exercises} />
+        <Timer exercises={workout.exercises} totalDurationMinutes={workout.durationMinutes} />
       </section>
 
       {/* Récupération */}

@@ -95,7 +95,7 @@ export default async function ProgramSessionPage({ params }: SessionPageProps) {
         >
           Programme — {trainingSession.exercises.length} exercice{trainingSession.exercises.length > 1 ? 's' : ''}
         </h2>
-        <Timer exercises={trainingSession.exercises} />
+        <Timer exercises={trainingSession.exercises} totalDurationMinutes={trainingSession.duration_minutes} />
       </section>
 
       {/* Récupération */}
