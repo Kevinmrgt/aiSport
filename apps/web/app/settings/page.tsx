@@ -13,7 +13,11 @@ export default async function SettingsPage() {
     redirect('/login');
   }
 
-  const aiSettings = await serverApi.getAiSettings();
+  const aiSettings = await serverApi.getAiSettings().catch(() => ({
+    provider: 'mistral' as const,
+    hasApiKey: false,
+    model: null,
+  }));
 
   async function handleSave(data: SaveAiSettingsInput): Promise<{ error?: string } | void> {
     'use server';

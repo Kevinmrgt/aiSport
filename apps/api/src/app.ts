@@ -23,8 +23,8 @@ app.use(
   '*',
   cors({
     origin: frontendUrl,
-    allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'x-session-token'],
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization', 'x-session-token', 'x-internal-secret', 'x-user-id', 'x-user-email', 'x-user-name'],
     credentials: true,
     maxAge: 86_400,
   }),

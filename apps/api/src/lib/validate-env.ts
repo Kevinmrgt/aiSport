@@ -5,8 +5,10 @@
 const REQUIRED_ENV_VARS = [
   'DATABASE_URL',
   'SERVICE_SECRET',
-  'MISTRAL_API_KEY',
 ] as const;
+
+// Optional — only needed if no user has their own AI key configured
+const OPTIONAL_ENV_VARS = ['MISTRAL_API_KEY'] as const;
 
 export function validateEnv(): void {
   const missing: string[] = [];
@@ -20,9 +22,13 @@ export function validateEnv(): void {
   if (missing.length > 0) {
     console.error('[Startup] Variables d\'environnement manquantes :', missing);
     console.error('[Startup] Vérifiez votre fichier .env ou les secrets CI/CD.');
-    // Throw instead of process.exit so serverless runtimes (Vercel) return 500
-    // instead of a function timeout (504)
     throw new Error(`Variables d'environnement manquantes : ${missing.join(', ')}`);
+  }
+
+  for (const key of OPTIONAL_ENV_VARS) {
+    if (!process.env[key]) {
+      console.warn(`[Startup] Variable optionnelle manquante : ${key} — les utilisateurs devront configurer leur propre clé IA.`);
+    }
   }
 
   console.info('[Startup] Variables d\'environnement validées ✓');
