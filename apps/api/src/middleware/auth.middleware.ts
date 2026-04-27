@@ -1,5 +1,5 @@
 import type { Context, Next } from 'hono';
-import { eq, sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { users } from '../db/schema.js';
 import { AppError } from '../types/app-error.js';

@@ -1,4 +1,4 @@
-import { eq, desc, and, sql } from 'drizzle-orm';
+import { eq, desc, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { trainingPrograms } from '../db/schema.js';
 import type { TrainingProgramRow } from '../db/schema.js';
