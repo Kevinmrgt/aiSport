@@ -2,10 +2,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { generateWorkout } from '../src/services/mistral.service.js';
 import { AppError } from '../src/types/app-error.js';
 import type { GenerateWorkoutInput } from '@sportcoach/shared';
+import type { AiConfig } from '../src/services/ai.service.js';
 
-// Mock fetch global (OWASP A10: pas d'appels réels à Mistral en test)
+// Mock fetch global (OWASP A10: pas d'appels réels à l'IA en test)
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
+
+const mockAiConfig: AiConfig = {
+  provider: 'mistral',
+  apiKey: 'test-key',
+};
 
 const validWorkoutResponse = {
   title: 'Séance Course à Pied Débutant',
@@ -43,7 +49,6 @@ const defaultInput: GenerateWorkoutInput = {
 
 describe('MistralService', () => {
   beforeEach(() => {
-    process.env['MISTRAL_API_KEY'] = 'test-key';
     vi.clearAllMocks();
   });
 
@@ -52,13 +57,13 @@ describe('MistralService', () => {
   });
 
   describe('generateWorkout', () => {
-    it('retourne un workout valide pour une réponse Mistral correcte', async () => {
+    it('retourne un workout valide pour une réponse IA correcte', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(validApiResponse),
       });
 
-      const result = await generateWorkout(defaultInput);
+      const result = await generateWorkout(defaultInput, mockAiConfig);
 
       expect(result.title).toBe('Séance Course à Pied Débutant');
       expect(result.sport).toBe('course à pied');
@@ -67,7 +72,7 @@ describe('MistralService', () => {
       expect(result.exercises).toHaveLength(1);
     });
 
-    it('extrait le JSON quand Mistral ajoute du texte autour', async () => {
+    it('extrait le JSON quand le provider ajoute du texte autour', async () => {
       const wrappedJson = `Voici votre programme:\n${JSON.stringify(validWorkoutResponse)}\nBonne séance!`;
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -76,7 +81,7 @@ describe('MistralService', () => {
         }),
       });
 
-      const result = await generateWorkout(defaultInput);
+      const result = await generateWorkout(defaultInput, mockAiConfig);
       expect(result.title).toBe('Séance Course à Pied Débutant');
     });
 
@@ -96,12 +101,12 @@ describe('MistralService', () => {
           json: () => Promise.resolve(validApiResponse),
         });
 
-      const result = await generateWorkout(defaultInput);
+      const result = await generateWorkout(defaultInput, mockAiConfig);
       expect(mockFetch).toHaveBeenCalledTimes(2);
       expect(result.exercises).toHaveLength(1);
     });
 
-    it('lance AppError.serviceUnavailable après 2 échecs', async () => {
+    it('lance AppError.serviceUnavailable après 2 échecs de parsing', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
@@ -109,30 +114,23 @@ describe('MistralService', () => {
         }),
       });
 
-      await expect(generateWorkout(defaultInput)).rejects.toThrow(AppError);
-      await expect(generateWorkout(defaultInput)).rejects.toMatchObject({
+      await expect(generateWorkout(defaultInput, mockAiConfig)).rejects.toThrow(AppError);
+      await expect(generateWorkout(defaultInput, mockAiConfig)).rejects.toMatchObject({
         statusCode: 503,
       });
     });
 
-    it('gère l\'absence de clé API Mistral', async () => {
-      delete process.env['MISTRAL_API_KEY'];
-
-      // Vérifie que c'est bien un AppError avec statusCode 500 (Internal, pas 503)
-      // car la vérification de la clé se fait avant les retries
-      const error = await generateWorkout(defaultInput).catch((e: unknown) => e);
-      expect(error).toBeInstanceOf(AppError);
-      expect((error as AppError).statusCode).toBe(500);
-    });
-
-    it('gère les erreurs HTTP de Mistral (status 429)', async () => {
+    it('lance AppError.serviceUnavailable sur erreur HTTP du provider (429)', async () => {
       mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
         statusText: 'Too Many Requests',
       });
 
-      await expect(generateWorkout(defaultInput)).rejects.toThrow(AppError);
+      await expect(generateWorkout(defaultInput, mockAiConfig)).rejects.toThrow(AppError);
+      await expect(generateWorkout(defaultInput, mockAiConfig)).rejects.toMatchObject({
+        statusCode: 503,
+      });
     });
   });
 });

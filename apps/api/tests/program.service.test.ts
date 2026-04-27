@@ -12,6 +12,11 @@ vi.mock('../src/services/mistral-program.service.js', () => ({
   generateProgram: vi.fn(),
 }));
 
+// Mock de resolveAiConfig pour éviter l'import de la BDD
+vi.mock('../src/controllers/settings.controller.js', () => ({
+  resolveAiConfig: vi.fn().mockResolvedValue({ provider: 'mistral', apiKey: 'test-key' }),
+}));
+
 // Mock du repository (dépend de la BDD — testé en intégration)
 vi.mock('../src/repositories/program.repository.js', () => ({
   createProgram: vi.fn(),
@@ -103,7 +108,7 @@ describe('ProgramService', () => {
 
       const result = await generateAndSaveProgram('user-123', mockInput);
 
-      expect(generateWithMistral).toHaveBeenCalledWith(mockInput);
+      expect(generateWithMistral).toHaveBeenCalledWith(mockInput, expect.objectContaining({ provider: 'mistral' }));
       expect(createProgram).toHaveBeenCalledWith('user-123', mockProgramData);
       expect(result.id).toBe('program-abc');
     });
