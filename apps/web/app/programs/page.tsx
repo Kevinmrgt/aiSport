@@ -5,12 +5,6 @@ import { auth } from '@/lib/auth';
 import { serverApi } from '@/lib/server-api';
 import { ProgramCard } from '@/components/ProgramCard';
 
-const DIFFICULTY_LABELS = {
-  beginner: 'Débutant',
-  intermediate: 'Intermédiaire',
-  advanced: 'Avancé',
-};
-
 // OWASP A01: route protégée
 export default async function ProgramsPage({
   searchParams,
