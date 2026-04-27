@@ -61,6 +61,12 @@ export default async function RootLayout({ children }: { readonly children: Reac
                   >
                     Séances
                   </Link>
+                  <Link
+                    href="/settings"
+                    className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
+                  >
+                    Paramètres IA
+                  </Link>
                   <form
                     action={async () => {
                       'use server';

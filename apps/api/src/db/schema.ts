@@ -82,6 +82,27 @@ export const trainingPrograms = pgTable('training_programs', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+// Paramètres IA par utilisateur (clé API chiffrée AES-256-GCM, provider, modèle)
+// OWASP A02: clé API chiffrée côté serveur avant stockage
+export const userSettings = pgTable('user_settings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  aiProvider: text('ai_provider', { enum: ['mistral', 'openai', 'anthropic'] })
+    .notNull()
+    .default('mistral'),
+  // Clé chiffrée AES-256-GCM : format "iv:authTag:ciphertext" en hex
+  aiApiKeyEncrypted: text('ai_api_key_encrypted'),
+  aiModel: text('ai_model'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type UserSettings = typeof userSettings.$inferSelect;
+export type NewUserSettings = typeof userSettings.$inferInsert;
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type WorkoutRow = typeof workouts.$inferSelect;
