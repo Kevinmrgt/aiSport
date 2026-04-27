@@ -144,7 +144,7 @@ export function WorkoutTimeline({ exercises, warmup, cooldown }: WorkoutTimeline
       <ol className="space-y-2" aria-label="Détail des exercices">
         {blocks
           .filter((b) => b.type !== 'rest')
-          .map((block, idx) => (
+          .map((block) => (
             <li
               key={block.id}
               className="flex items-center gap-3 py-2 border-b border-zinc-100 last:border-0"

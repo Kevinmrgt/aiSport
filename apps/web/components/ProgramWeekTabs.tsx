@@ -9,12 +9,6 @@ interface ProgramWeekTabsProps {
   programId: string;
 }
 
-const DIFFICULTY_LABELS = {
-  beginner: 'Débutant',
-  intermediate: 'Intermédiaire',
-  advanced: 'Avancé',
-};
-
 // RGAA 4.1: navigation tabs accessible (aria-tablist / aria-selected / aria-controls)
 export function ProgramWeekTabs({ weeks, programId }: ProgramWeekTabsProps) {
   const [activeWeek, setActiveWeek] = useState(1);
