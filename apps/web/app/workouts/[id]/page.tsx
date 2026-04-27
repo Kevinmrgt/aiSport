@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { serverApi } from '@/lib/server-api';
 import { Timer } from '@/components/Timer';
+import { WorkoutTimeline } from '@/components/WorkoutTimeline';
 
 interface WorkoutPageProps {
   params: { id: string };
@@ -49,53 +50,25 @@ export default async function WorkoutDetailPage({ params }: WorkoutPageProps) {
         </p>
       </header>
 
-      {/* Échauffement */}
-      {workout.warmup && workout.warmup.length > 0 && (
-        <section aria-labelledby="warmup-title" className="py-6 border-t border-zinc-100">
-          <h2 id="warmup-title" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-4">
-            Échauffement
-          </h2>
-          <ul className="space-y-3">
-            {workout.warmup.map((phase, i) => (
-              <li key={i} className="text-sm text-zinc-600">
-                <span className="font-medium text-zinc-900">{phase.name}</span>
-                {' — '}{Math.round(phase.duration_seconds / 60)} min
-                {phase.description && (
-                  <span className="text-zinc-400"> · {phase.description}</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      {/* Timeline visuelle (échauffement + exercices + récupération) */}
+      <section aria-labelledby="timeline-title" className="py-6 border-t border-zinc-100">
+        <h2 id="timeline-title" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-6">
+          Programme
+        </h2>
+        <WorkoutTimeline
+          exercises={workout.exercises}
+          warmup={workout.warmup}
+          cooldown={workout.cooldown}
+        />
+      </section>
 
-      {/* Timer principal */}
+      {/* Timer interactif */}
       <section aria-labelledby="timer-title" className="py-6 border-t border-zinc-100">
         <h2 id="timer-title" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-4">
-          Programme — {workout.exercises.length} exercice{workout.exercises.length > 1 ? 's' : ''}
+          Timer
         </h2>
         <Timer exercises={workout.exercises} totalDurationMinutes={workout.durationMinutes} />
       </section>
-
-      {/* Récupération */}
-      {workout.cooldown && workout.cooldown.length > 0 && (
-        <section aria-labelledby="cooldown-title" className="py-6 border-t border-zinc-100">
-          <h2 id="cooldown-title" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-4">
-            Récupération
-          </h2>
-          <ul className="space-y-3">
-            {workout.cooldown.map((phase, i) => (
-              <li key={i} className="text-sm text-zinc-600">
-                <span className="font-medium text-zinc-900">{phase.name}</span>
-                {' — '}{Math.round(phase.duration_seconds / 60)} min
-                {phase.description && (
-                  <span className="text-zinc-400"> · {phase.description}</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </div>
   );
 }

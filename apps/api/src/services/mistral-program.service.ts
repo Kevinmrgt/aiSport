@@ -1,12 +1,8 @@
 import { ProgramWeekSchema, TrainingProgramSchema } from '@sportcoach/shared';
 import type { ProgramWeek, TrainingProgram, GenerateProgramInput } from '@sportcoach/shared';
 import { AppError } from '../types/app-error.js';
-
-// OWASP A02: clé API uniquement en variable d'env
-const MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions';
-const MISTRAL_MODEL = 'mistral-small-latest';
-// Budget temps : 4 semaines × 12s = 48s < 60s (maxDuration Vercel)
-const TIMEOUT_MS = 12_000;
+import { callAiProvider } from './ai.service.js';
+import type { AiConfig } from './ai.service.js';
 
 // Phases de progression selon la position dans le programme
 function getProgressionPhase(weekNumber: number, totalWeeks: number): string {
@@ -73,81 +69,39 @@ function logMistralProgramCall(data: {
   });
 }
 
-async function callMistralForWeek(
+async function callAiForWeek(
   input: GenerateProgramInput,
   weekNumber: number,
-  attempt: number,
+  aiConfig: AiConfig,
 ): Promise<ProgramWeek> {
-  // OWASP A02: lire la clé à chaque appel (testable + résilience)
-  const apiKey = process.env['MISTRAL_API_KEY'];
-  if (!apiKey) {
-    throw AppError.internal('Clé API Mistral non configurée');
-  }
-
   const phaseLabel = getProgressionPhase(weekNumber, input.weeks_count);
-  const prompt = buildWeekPrompt(input, weekNumber, phaseLabel);
+  // Fusionner le message système dans le prompt pour la compatibilité multi-providers
+  const prompt = `${SYSTEM_MESSAGE}\n\n${buildWeekPrompt(input, weekNumber, phaseLabel)}`;
 
-  const controller = new AbortController();
-  // OWASP A10: timeout strict sur l'appel externe
-  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const content = await callAiProvider(aiConfig, prompt);
 
-  try {
-    const response = await fetch(MISTRAL_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // OWASP A02: clé dans les headers, jamais dans le corps
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: MISTRAL_MODEL,
-        messages: [
-          { role: 'system', content: SYSTEM_MESSAGE },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.7,
-        max_tokens: 1800,
-        response_format: { type: 'json_object' },
-      }),
-      signal: controller.signal,
-    });
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if (!jsonMatch?.[0]) throw new Error('Aucun JSON trouvé dans la réponse IA');
 
-    if (!response.ok) {
-      throw new Error(`Mistral API erreur: ${response.status} ${response.statusText}`);
-    }
-
-    const data = (await response.json()) as {
-      choices: Array<{ message: { content: string } }>;
-    };
-    const content = data.choices[0]?.message.content;
-    if (!content) throw new Error('Réponse Mistral vide');
-
-    // Extraire le JSON de la réponse (au cas où Mistral ajoute du texte)
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch?.[0]) throw new Error('Aucun JSON trouvé dans la réponse Mistral');
-
-    const parsed = JSON.parse(jsonMatch[0]) as unknown;
-    const validated = ProgramWeekSchema.safeParse(parsed);
-    if (!validated.success) {
-      throw new Error(`Schéma semaine invalide: ${validated.error.message}`);
-    }
-
-    return validated.data;
-  } finally {
-    clearTimeout(timeoutId);
+  const parsed = JSON.parse(jsonMatch[0]) as unknown;
+  const validated = ProgramWeekSchema.safeParse(parsed);
+  if (!validated.success) {
+    throw new Error(`Schéma semaine invalide: ${validated.error.message}`);
   }
+
+  return validated.data;
 }
 
-// Génère une semaine avec 1 retry (même contrat que mistral.service.ts)
 async function generateWeekWithRetry(
   input: GenerateProgramInput,
   weekNumber: number,
+  aiConfig: AiConfig,
 ): Promise<ProgramWeek> {
   const start = Date.now();
 
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      const week = await callMistralForWeek(input, weekNumber, attempt);
+      const week = await callAiForWeek(input, weekNumber, aiConfig);
       logMistralProgramCall({
         success: true,
         weekNumber,
@@ -173,23 +127,19 @@ async function generateWeekWithRetry(
     }
   }
 
-  // Ne devrait jamais arriver
   throw AppError.internal('Erreur inattendue dans generateWeekWithRetry');
 }
 
-// Point d'entrée principal — génère toutes les semaines séquentiellement
-export async function generateProgram(input: GenerateProgramInput): Promise<TrainingProgram> {
-  // OWASP A02: vérifier la clé avant la boucle
-  if (!process.env['MISTRAL_API_KEY']) {
-    throw AppError.internal('Clé API Mistral non configurée');
-  }
-
+export async function generateProgram(
+  input: GenerateProgramInput,
+  aiConfig: AiConfig,
+): Promise<TrainingProgram> {
   const globalStart = Date.now();
   const weeks: ProgramWeek[] = [];
 
-  // Appels séquentiels (pas parallèle — budget temps Vercel + concurrence Mistral)
+  // Appels séquentiels (pas parallèle — budget temps Vercel + concurrence API)
   for (let weekNumber = 1; weekNumber <= input.weeks_count; weekNumber++) {
-    const week = await generateWeekWithRetry(input, weekNumber);
+    const week = await generateWeekWithRetry(input, weekNumber, aiConfig);
     weeks.push(week);
   }
 

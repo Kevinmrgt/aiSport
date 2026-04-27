@@ -1,4 +1,5 @@
-import { generateProgram as generateWithMistral } from './mistral-program.service.js';
+import { generateProgram } from './mistral-program.service.js';
+import { resolveAiConfig } from '../controllers/settings.controller.js';
 import {
   createProgram,
   findProgramsByUser,
@@ -13,10 +14,13 @@ export async function generateAndSaveProgram(
   userId: string,
   input: GenerateProgramInput,
 ): Promise<TrainingProgramRecord> {
-  // 1. Générer le programme via Mistral AI (appels séquentiels par semaine)
-  const program = await generateWithMistral(input);
+  // Résoudre la config IA : clé perso de l'utilisateur ou clé serveur Mistral
+  const aiConfig = await resolveAiConfig(userId);
 
-  // 2. Persister en base via le repository
+  // Générer le programme via le provider IA configuré (appels séquentiels par semaine)
+  const program = await generateProgram(input, aiConfig);
+
+  // Persister en base via le repository
   return createProgram(userId, program);
 }
 

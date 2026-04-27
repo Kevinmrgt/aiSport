@@ -1,4 +1,5 @@
-import { generateWorkout as generateWithMistral } from './mistral.service.js';
+import { generateWorkout } from './mistral.service.js';
+import { resolveAiConfig } from '../controllers/settings.controller.js';
 import {
   createWorkout,
   findWorkoutsByUser,
@@ -15,10 +16,13 @@ export async function generateAndSaveWorkout(
   userId: string,
   input: GenerateWorkoutInput,
 ): Promise<WorkoutRecord> {
-  // 1. Générer l'entraînement via Mistral AI
-  const workout = await generateWithMistral(input);
+  // Résoudre la config IA : clé perso de l'utilisateur ou clé serveur Mistral
+  const aiConfig = await resolveAiConfig(userId);
 
-  // 2. Persister en base via le repository
+  // Générer l'entraînement via le provider IA configuré
+  const workout = await generateWorkout(input, aiConfig);
+
+  // Persister en base via le repository
   return createWorkout(userId, workout);
 }
 

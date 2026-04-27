@@ -3,6 +3,18 @@ import { auth } from '@/lib/auth';
 import type { WorkoutDetail, WorkoutListResponse, WorkoutStats, GenerateWorkoutInput } from '@sportcoach/shared';
 import type { GenerateProgramInput, ProgramListResponse, TrainingProgramRecord, ProgramListItem } from '@sportcoach/shared';
 
+export interface UserAiSettings {
+  provider: 'mistral' | 'openai' | 'anthropic';
+  hasApiKey: boolean;
+  model: string | null;
+}
+
+export interface SaveAiSettingsInput {
+  provider: 'mistral' | 'openai' | 'anthropic';
+  apiKey?: string;
+  model?: string;
+}
+
 // OWASP A02: URL backend depuis variable d'env uniquement
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001';
 
@@ -108,4 +120,18 @@ export const serverApi = {
 
   deleteProgram: (id: string): Promise<void> =>
     serverFetch<void>(`/programs/${id}`, { method: 'DELETE' }),
+
+  // --- Paramètres IA ---
+
+  getAiSettings: (): Promise<UserAiSettings> =>
+    serverFetch<UserAiSettings>('/settings'),
+
+  saveAiSettings: (input: SaveAiSettingsInput): Promise<{ ok: boolean }> =>
+    serverFetch<{ ok: boolean }>('/settings', {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
+
+  deleteAiKey: (): Promise<{ ok: boolean }> =>
+    serverFetch<{ ok: boolean }>('/settings/api-key', { method: 'DELETE' }),
 };
