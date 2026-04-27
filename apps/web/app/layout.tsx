@@ -101,7 +101,7 @@ export default async function RootLayout({ children }: { readonly children: Reac
 
         {/* RGAA 4.1: footer sémantique */}
         <footer className="border-t border-zinc-100 mt-24">
-          <div className="max-w-5xl mx-auto px-6 py-6 text-center text-xs text-zinc-400">
+          <div className="max-w-5xl mx-auto px-6 py-6 text-center text-xs text-zinc-600">
             <p>SportCoach IA — Projet RNCP 39583</p>
           </div>
         </footer>

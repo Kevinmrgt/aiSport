@@ -13,7 +13,7 @@ export default function HomePage() {
       >
         Votre coach sportif
         <br />
-        <span className="text-zinc-400">par IA</span>
+        <span className="text-zinc-500">par IA</span>
       </h1>
 
       <p className="mt-6 text-lg text-zinc-500 max-w-md">
