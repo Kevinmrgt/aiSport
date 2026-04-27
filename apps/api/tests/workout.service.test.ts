@@ -12,6 +12,11 @@ vi.mock('../src/services/mistral.service.js', () => ({
   generateWorkout: vi.fn(),
 }));
 
+// Mock de resolveAiConfig pour éviter l'import de la BDD
+vi.mock('../src/controllers/settings.controller.js', () => ({
+  resolveAiConfig: vi.fn().mockResolvedValue({ provider: 'mistral', apiKey: 'test-key' }),
+}));
+
 // Mock du repository (dépend de la BDD — testé en intégration)
 vi.mock('../src/repositories/workout.repository.js', () => ({
   createWorkout: vi.fn(),
@@ -68,7 +73,7 @@ describe('WorkoutService', () => {
 
       const result = await generateAndSaveWorkout('user-123', mockInput);
 
-      expect(generateWithMistral).toHaveBeenCalledWith(mockInput);
+      expect(generateWithMistral).toHaveBeenCalledWith(mockInput, expect.objectContaining({ provider: 'mistral' }));
       expect(createWorkout).toHaveBeenCalledWith('user-123', mockWorkoutData);
       expect(result.id).toBe('workout-abc');
     });

@@ -2,10 +2,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { generateProgram } from '../src/services/mistral-program.service.js';
 import { AppError } from '../src/types/app-error.js';
 import type { GenerateProgramInput } from '@sportcoach/shared';
+import type { AiConfig } from '../src/services/ai.service.js';
 
-// Mock fetch global (OWASP A10: pas d'appels réels à Mistral en test)
+// Mock fetch global (OWASP A10: pas d'appels réels à l'IA en test)
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
+
+const mockAiConfig: AiConfig = {
+  provider: 'mistral',
+  apiKey: 'test-key',
+};
 
 const defaultInput: GenerateProgramInput = {
   sport: 'course à pied',
@@ -60,7 +66,6 @@ const mockApiResponse = (weekNumber: number) => ({
 
 describe('MistralProgramService', () => {
   beforeEach(() => {
-    process.env['MISTRAL_API_KEY'] = 'test-key';
     vi.clearAllMocks();
   });
 
@@ -69,13 +74,12 @@ describe('MistralProgramService', () => {
   });
 
   describe('generateProgram', () => {
-    it('retourne un programme valide pour une réponse Mistral correcte (2 semaines)', async () => {
-      // Un appel Mistral par semaine
+    it('retourne un programme valide pour une réponse IA correcte (2 semaines)', async () => {
       mockFetch
         .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockApiResponse(1)) })
         .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockApiResponse(2)) });
 
-      const result = await generateProgram(defaultInput);
+      const result = await generateProgram(defaultInput, mockAiConfig);
 
       expect(mockFetch).toHaveBeenCalledTimes(2);
       expect(result.title).toContain('course à pied');
@@ -88,7 +92,7 @@ describe('MistralProgramService', () => {
       expect(result.weeks[1]?.week_number).toBe(2);
     });
 
-    it('extrait le JSON quand Mistral ajoute du texte autour', async () => {
+    it('extrait le JSON quand le provider ajoute du texte autour', async () => {
       const wrappedJson = `Voici la semaine :\n${JSON.stringify(validWeekResponse(1))}\nBonne pratique!`;
       mockFetch
         .mockResolvedValueOnce({
@@ -97,52 +101,40 @@ describe('MistralProgramService', () => {
         })
         .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockApiResponse(2)) });
 
-      const result = await generateProgram(defaultInput);
+      const result = await generateProgram(defaultInput, mockAiConfig);
       expect(result.weeks).toHaveLength(2);
     });
 
     it('retente une fois par semaine si la validation Zod échoue', async () => {
-      // Première tentative semaine 1: réponse invalide (sessions vide)
       const invalidWeek = { ...validWeekResponse(1), sessions: [] };
       mockFetch
         .mockResolvedValueOnce({
           ok: true,
           json: () => Promise.resolve({ choices: [{ message: { content: JSON.stringify(invalidWeek) } }] }),
         })
-        // Retry semaine 1: réponse valide
         .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockApiResponse(1)) })
-        // Semaine 2: réponse valide directement
         .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockApiResponse(2)) });
 
-      const result = await generateProgram(defaultInput);
+      const result = await generateProgram(defaultInput, mockAiConfig);
 
-      expect(mockFetch).toHaveBeenCalledTimes(3); // 2 essais sem 1 + 1 sem 2
+      expect(mockFetch).toHaveBeenCalledTimes(3);
       expect(result.weeks).toHaveLength(2);
     });
 
     it('lance AppError.serviceUnavailable si une semaine échoue après 2 tentatives', async () => {
-      // Toutes les réponses invalides (pas de JSON)
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ choices: [{ message: { content: 'pas du JSON' } }] }),
       });
 
-      await expect(generateProgram(defaultInput)).rejects.toThrow(AppError);
-      await expect(generateProgram(defaultInput)).rejects.toMatchObject({ statusCode: 503 });
+      await expect(generateProgram(defaultInput, mockAiConfig)).rejects.toThrow(AppError);
+      await expect(generateProgram(defaultInput, mockAiConfig)).rejects.toMatchObject({ statusCode: 503 });
     });
 
-    it('lance AppError.internal si MISTRAL_API_KEY est absente', async () => {
-      delete process.env['MISTRAL_API_KEY'];
-
-      const error = await generateProgram(defaultInput).catch((e: unknown) => e);
-      expect(error).toBeInstanceOf(AppError);
-      expect((error as AppError).statusCode).toBe(500);
-    });
-
-    it('lance AppError.serviceUnavailable sur erreur HTTP Mistral (429)', async () => {
+    it('lance AppError.serviceUnavailable sur erreur HTTP du provider (429)', async () => {
       mockFetch.mockResolvedValue({ ok: false, status: 429, statusText: 'Too Many Requests' });
 
-      await expect(generateProgram(defaultInput)).rejects.toMatchObject({ statusCode: 503 });
+      await expect(generateProgram(defaultInput, mockAiConfig)).rejects.toMatchObject({ statusCode: 503 });
     });
   });
 });
