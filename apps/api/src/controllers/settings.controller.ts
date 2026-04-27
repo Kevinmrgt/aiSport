@@ -12,13 +12,18 @@ const SaveSettingsSchema = z.object({
 
 export async function handleGetSettings(ctx: Context): Promise<Response> {
   const auth = ctx.get('auth');
-  const row = await findSettingsByUser(auth.userId);
 
-  return ctx.json({
-    provider: row?.provider ?? 'mistral',
-    hasApiKey: !!row?.aiApiKeyEncrypted,
-    model: row?.aiModel ?? null,
-  });
+  try {
+    const row = await findSettingsByUser(auth.userId);
+    return ctx.json({
+      provider: row?.provider ?? 'mistral',
+      hasApiKey: !!row?.aiApiKeyEncrypted,
+      model: row?.aiModel ?? null,
+    });
+  } catch {
+    // Table pas encore migrée — renvoyer les valeurs par défaut
+    return ctx.json({ provider: 'mistral', hasApiKey: false, model: null });
+  }
 }
 
 export async function handleSaveSettings(ctx: Context): Promise<Response> {
@@ -33,7 +38,12 @@ export async function handleSaveSettings(ctx: Context): Promise<Response> {
     throw AppError.badRequest('Données invalides', parsed.error.flatten());
   }
 
-  const existing = await findSettingsByUser(auth.userId);
+  let existing: Awaited<ReturnType<typeof findSettingsByUser>> = null;
+  try {
+    existing = await findSettingsByUser(auth.userId);
+  } catch {
+    // Table pas encore migrée — on continue avec existing = null
+  }
 
   // Chiffrer la nouvelle clé ou conserver l'ancienne
   let aiApiKeyEncrypted: string | null | undefined = undefined;
@@ -75,16 +85,21 @@ export async function resolveAiConfig(userId: string): Promise<{
   apiKey: string;
   model?: string;
 }> {
-  const row = await findSettingsByUser(userId);
+  try {
+    const row = await findSettingsByUser(userId);
 
-  if (row?.aiApiKeyEncrypted) {
-    const apiKey = decryptApiKey(row.aiApiKeyEncrypted);
-    const result: { provider: 'mistral' | 'openai' | 'anthropic'; apiKey: string; model?: string } = {
-      provider: row.provider,
-      apiKey,
-    };
-    if (row.aiModel) result.model = row.aiModel;
-    return result;
+    if (row?.aiApiKeyEncrypted) {
+      const apiKey = decryptApiKey(row.aiApiKeyEncrypted);
+      const result: { provider: 'mistral' | 'openai' | 'anthropic'; apiKey: string; model?: string } = {
+        provider: row.provider,
+        apiKey,
+      };
+      if (row.aiModel) result.model = row.aiModel;
+      return result;
+    }
+  } catch {
+    // Table pas encore migrée — fallback sur la clé serveur
+    console.warn('[resolveAiConfig] user_settings table inaccessible, fallback clé serveur');
   }
 
   // Fallback : clé Mistral serveur
