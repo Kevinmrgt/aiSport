@@ -124,14 +124,16 @@ async function callAnthropic(
     },
     body: JSON.stringify({
       model,
-      max_tokens: 2048,
+      max_tokens: 4096,
       messages: [{ role: 'user', content: prompt }],
     }),
     signal,
   });
 
   if (!response.ok) {
-    throw new Error(`Anthropic API erreur: ${response.status} ${response.statusText}`);
+    const errorBody = await response.json().catch(() => ({})) as Record<string, unknown>;
+    console.error('[Anthropic] Erreur API:', { status: response.status, body: errorBody, model });
+    throw new Error(`Anthropic API erreur: ${response.status} — ${JSON.stringify(errorBody)}`);
   }
 
   const data = (await response.json()) as AnthropicResponse;
