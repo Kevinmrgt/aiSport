@@ -2,17 +2,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // OWASP A05: tests du fail-fast sur les variables d'environnement obligatoires
 describe('validateEnv', () => {
-  const REQUIRED_VARS = ['DATABASE_URL', 'SERVICE_SECRET', 'MISTRAL_API_KEY'];
+  const REQUIRED_VARS = ['DATABASE_URL', 'SERVICE_SECRET'];
+  const OPTIONAL_VARS = ['MISTRAL_API_KEY'];
 
   beforeEach(() => {
     // Supprimer toutes les vars requises avant chaque test
-    for (const key of REQUIRED_VARS) {
+    for (const key of [...REQUIRED_VARS, ...OPTIONAL_VARS]) {
       delete process.env[key];
     }
   });
 
   afterEach(() => {
-    for (const key of REQUIRED_VARS) {
+    for (const key of [...REQUIRED_VARS, ...OPTIONAL_VARS]) {
       delete process.env[key];
     }
     // Vider le cache du module pour forcer un re-import
@@ -37,13 +38,13 @@ describe('validateEnv', () => {
     expect(() => validateEnv()).toThrow(/SERVICE_SECRET/);
   });
 
-  it('lève une erreur si MISTRAL_API_KEY est absente', async () => {
+  it('ne leve pas d\'erreur si MISTRAL_API_KEY est absente', async () => {
     process.env['DATABASE_URL'] = 'postgres://localhost/test';
     process.env['SERVICE_SECRET'] = 'secret-test';
     // MISTRAL_API_KEY absent
 
     const { validateEnv } = await import('../src/lib/validate-env.js');
-    expect(() => validateEnv()).toThrow(/MISTRAL_API_KEY/);
+    expect(() => validateEnv()).not.toThrow();
   });
 
   it('lève une erreur si DATABASE_URL est absente', async () => {

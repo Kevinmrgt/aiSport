@@ -15,7 +15,7 @@ build/
 
 # Database
 *.sqlite
-drizzle/
+# Drizzle migrations are source-controlled under apps/api/drizzle.
 
 # Testing
 coverage/
@@ -34,6 +34,9 @@ logs/
 
 # Claude Code — fichiers locaux contenant des tokens/permissions
 .claude/settings.local.json
+
+# Codex local workspace config
+.codex/
 
 # OS
 .DS_Store

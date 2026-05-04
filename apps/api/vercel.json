@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd ../.. && pnpm --filter shared build && (pnpm --filter api db:migrate || echo 'DB migration skipped - apply manually') && pnpm --filter api build",
+  "buildCommand": "cd ../.. && pnpm --filter shared build && pnpm --filter api build",
   "outputDirectory": "public",
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
   "functions": {

@@ -31,6 +31,9 @@ COPY apps/web/ ./apps/web/
 
 # Build shared puis Next.js en mode standalone
 RUN pnpm --filter shared build
+ARG NEXT_PUBLIC_API_URL=http://api:3001
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV BUILD_STANDALONE=true
 RUN pnpm --filter web build
 
 # ─── Stage 3 : Production ─────────────────────────────────────────────────────

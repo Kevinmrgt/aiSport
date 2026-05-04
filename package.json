@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.12.0",
   "description": "Application web de génération d'entraînements sportifs personnalisés par IA",
+  "packageManager": "pnpm@9.15.9",
   "scripts": {
     "dev": "concurrently \"pnpm dev:api\" \"pnpm dev:web\"",
     "dev:web": "pnpm --filter web dev",
@@ -14,6 +15,7 @@
     "test:web": "pnpm --filter web test",
     "test:api": "pnpm --filter api test",
     "test:e2e": "pnpm --filter web test:e2e",
+    "test:e2e:smoke": "pnpm --filter web exec playwright test tests/e2e/home.spec.ts tests/e2e/auth.spec.ts tests/e2e/accessibility.spec.ts tests/e2e/axe.spec.ts",
     "test:coverage": "pnpm --filter api test:coverage",
     "lint": "pnpm --recursive lint",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore",

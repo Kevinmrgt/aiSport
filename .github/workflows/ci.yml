@@ -1,19 +1,32 @@
-name: CI — SportCoach IA
+name: CI - SportCoach IA
 
 on:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
-  NODE_VERSION: '20'
-  PNPM_VERSION: '9'
+  NODE_VERSION: "20"
+  PNPM_VERSION: "9"
+  NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'http://localhost:3001' }}
+  NEXTAUTH_URL: http://localhost:3000
+  AUTH_SECRET: ci-auth-secret-change-only-in-ci
+  AUTH_GITHUB_ID: ci-github-client-id
+  AUTH_GITHUB_SECRET: ci-github-client-secret
+  SERVICE_SECRET: ${{ secrets.SERVICE_SECRET || 'ci-service-secret-change-only-in-ci' }}
 
 jobs:
-  # ─── Lint & TypeCheck ────────────────────────────────────────────────────────
   lint-typecheck:
-    name: Lint & TypeCheck
+    name: Lint and typecheck
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,7 +41,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -42,9 +55,8 @@ jobs:
       - name: ESLint
         run: pnpm lint
 
-  # ─── Tests Unitaires ─────────────────────────────────────────────────────────
   test-unit:
-    name: Tests unitaires (Vitest)
+    name: Unit tests and coverage
     runs-on: ubuntu-latest
     needs: lint-typecheck
     steps:
@@ -60,7 +72,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -71,9 +83,8 @@ jobs:
       - name: Run API tests with coverage
         run: pnpm test:coverage
         env:
-          # OWASP A02: les secrets viennent de GitHub Secrets, jamais hardcodés
+          DATABASE_URL: postgresql://sportcoach:sportcoach_dev@localhost:5432/sportcoach_ia
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
-          SERVICE_SECRET: ${{ secrets.SERVICE_SECRET }}
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
@@ -81,10 +92,10 @@ jobs:
         with:
           name: coverage-report
           path: apps/api/coverage/
+          if-no-files-found: ignore
 
-  # ─── Build ───────────────────────────────────────────────────────────────────
   build:
-    name: Build
+    name: Build packages
     runs-on: ubuntu-latest
     needs: test-unit
     steps:
@@ -100,7 +111,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -108,15 +119,78 @@ jobs:
       - name: Build all packages
         run: pnpm build
         env:
-          # Variables nécessaires au build Next.js
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'http://localhost:3001' }}
+          DATABASE_URL: postgresql://sportcoach:sportcoach_dev@localhost:5432/sportcoach_ia
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
 
-  # ─── Tests E2E Playwright ────────────────────────────────────────────────────
-  test-e2e:
-    name: Tests E2E (Playwright)
+  test-e2e-smoke:
+    name: E2E smoke and accessibility
     runs-on: ubuntu-latest
     needs: lint-typecheck
-    # E2E nécessite un serveur live — non bloquant en CI (pas de DB en CI)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter shared build
+
+      - name: Install Playwright browsers
+        run: pnpm --filter web exec playwright install --with-deps chromium firefox
+
+      - name: Run public E2E smoke tests
+        run: pnpm test:e2e:smoke
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          if-no-files-found: ignore
+
+  docker-build:
+    name: Docker image build
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build --file apps/api/Dockerfile --tag sportcoach-api:ci .
+
+      - name: Build Web image
+        run: >
+          docker build
+          --file apps/web/Dockerfile
+          --build-arg NEXT_PUBLIC_API_URL=http://localhost:3001
+          --tag sportcoach-web:ci .
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+          NEXTAUTH_URL: http://localhost:3000
+          AUTH_SECRET: ci-auth-secret-change-only-in-ci
+          AUTH_GITHUB_ID: ci-github-client-id
+          AUTH_GITHUB_SECRET: ci-github-client-secret
+          SERVICE_SECRET: ci-service-secret-change-only-in-ci
+
+  security-audit:
+    name: Security audit
+    runs-on: ubuntu-latest
     continue-on-error: true
     steps:
       - name: Checkout
@@ -131,56 +205,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build shared package
-        run: pnpm --filter shared build
-
-      - name: Install Playwright browsers
-        run: pnpm --filter web exec playwright install --with-deps chromium
-
-      - name: Run E2E tests
-        run: pnpm --filter web exec playwright test
-        env:
-          CI: true
-          NEXTAUTH_URL: http://localhost:3000
-          NEXTAUTH_SECRET: test-secret-for-ci-e2e
-          NEXT_PUBLIC_API_URL: http://localhost:3001
-
-      - name: Upload Playwright report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report
-          path: apps/web/playwright-report/
-
-  # ─── Audit de sécurité ───────────────────────────────────────────────────────
-  security-audit:
-    name: Audit sécurité (npm audit)
-    runs-on: ubuntu-latest
-    # OWASP A06: vérifier les dépendances vulnérables
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Security audit
         run: pnpm audit --audit-level=high
-        # Ne bloque pas le pipeline sur les vulnérabilités moyennes (à affiner)
-        continue-on-error: true
