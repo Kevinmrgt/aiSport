@@ -19,8 +19,8 @@ Ce projet sert de support à la certification RNCP 39583 « Expert en développe
 - **IA** : Mistral API (clé gratuite) — réponses JSON normées, validées par Zod
 - **Validation** : Zod (inputs et réponses API)
 - **Tests** : Vitest (unitaires), Playwright (e2e)
-- **CI/CD** : GitHub Actions (lint → tests → build → deploy)
-- **Deploy** : Vercel (front) + Railway/VPS Docker (back + PostgreSQL)
+- **CI/CD** : GitHub Actions (CI, CD Vercel, migrations DB manuelles)
+- **Deploy** : Vercel (front + API) + Neon PostgreSQL
 - **Monitoring** : UptimeRobot ou Better Stack
 
 ## Structure du projet
@@ -96,7 +96,7 @@ pnpm build:api        # Build Hono
 
 ## Déploiement & CI/CD
 
-Voir `rules/ci.md` pour le détail complet (pipeline, rollback, debug).
+Voir `rules/ci.md` et `docs/ci-cd.md` pour le détail complet (pipeline, rollback, debug).
 
 ### URLs de production
 

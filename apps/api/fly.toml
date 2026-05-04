@@ -5,8 +5,9 @@ app = "sportcoach-api"
 primary_region = "cdg"  # Paris
 
 [build]
-  # Utilise le Dockerfile existant dans apps/api/
-  dockerfile = "Dockerfile"
+  # Deployer depuis la racine du monorepo :
+  # fly deploy --config apps/api/fly.toml --remote-only .
+  dockerfile = "apps/api/Dockerfile"
 
 [env]
   PORT = "3001"

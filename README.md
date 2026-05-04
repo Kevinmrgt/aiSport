@@ -18,8 +18,8 @@ L'utilisateur sélectionne un sport, décrit ses objectifs et contraintes, et re
 | Authentification | Auth.js (NextAuth v5) — OAuth GitHub |
 | IA | Mistral AI — JSON mode validé par Zod |
 | Tests | Vitest (unitaires), Playwright (E2E), axe-core (WCAG) |
-| CI/CD | GitHub Actions — 5 jobs |
-| Deploy | Vercel (frontend) + Railway (API + DB) |
+| CI/CD | GitHub Actions — CI, CD Vercel, migrations DB manuelles |
+| Deploy | Vercel (frontend + API) + Neon PostgreSQL |
 
 ---
 
@@ -103,12 +103,13 @@ aiSport/
 
 ## CI/CD
 
-Pipeline GitHub Actions sur chaque push vers main :
+Pipeline GitHub Actions sur chaque push vers main et pull request :
 
 ```
-lint-typecheck → test-unit (coverage ≥ 70%) → build
-              ↘ security-audit (pnpm audit)
-              ↘ test-e2e (Playwright, continue-on-error)
+lint-typecheck → test-unit (coverage ≥ 70%) → build → docker-build
+              ↘ test-e2e-smoke (Playwright + axe-core)
+              ↘ security-audit (pnpm audit, non bloquant)
+CI verte sur main → CD Vercel API → CD Vercel Web → smoke tests prod
 ```
 
 ---
@@ -120,7 +121,7 @@ lint-typecheck → test-unit (coverage ≥ 70%) → build
 | Sécurité OWASP Top 10 | ✅ A01–A10 couverts | docs/security/owasp-review.md |
 | Accessibilité RGAA 4.1 | ✅ + axe-core WCAG 2.1 | tests/e2e/accessibility.spec.ts |
 | Tests automatisés ≥ 70% | ✅ 94.69% statements | Vitest coverage |
-| Documentation ADRs | ✅ 6 décisions | docs/adr/ |
+| Documentation ADRs | ✅ 7 décisions | docs/adr/ |
 | Cahier de recettes | ✅ 39 scénarios | docs/bloc2/cahier-recettes.md |
 | Déploiement conteneurisé | ✅ Dockerfiles multi-stage | apps/*/Dockerfile |
 | Dossier professionnel | ✅ | docs/dossier-professionnel.md |
@@ -131,4 +132,6 @@ lint-typecheck → test-unit (coverage ≥ 70%) → build
 
 Voir [docs/deployment.md](docs/deployment.md) pour le guide complet.
 
-Architecture cible : **Vercel** (Next.js) + **Railway** (Hono API + PostgreSQL managé).
+Architecture cible : **Vercel** (Next.js + Hono API) + **Neon PostgreSQL**.
+
+Voir aussi [docs/ci-cd.md](docs/ci-cd.md) pour les workflows et secrets GitHub.

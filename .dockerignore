@@ -1,0 +1,45 @@
+# Git and local agent state
+.git
+.github
+.claude/settings.local.json
+.codex
+
+# Dependencies and package-manager stores
+node_modules
+**/node_modules
+.pnpm-store
+
+# Build outputs
+dist
+**/dist
+.next
+**/.next
+out
+build
+
+# Environment and secrets
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+
+# Local deployment metadata
+.vercel
+**/.vercel
+
+# Test and report outputs
+coverage
+**/coverage
+playwright-report
+**/playwright-report
+test-results
+**/test-results
+
+# Logs and OS files
+*.log
+logs
+.DS_Store
+Thumbs.db
+*.tsbuildinfo
