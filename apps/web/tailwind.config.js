@@ -7,27 +7,26 @@ const config = {
   theme: {
     extend: {
       colors: {
-        // Design system minimaliste — palette zinc monochrome
-        // primary-600 = zinc-900 (noir interactif principal)
-        // RGAA 4.1: contraste AA conservé (noir sur blanc ≥ 7:1)
         primary: {
-          50:  '#fafafa',  // zinc-50
-          100: '#f4f4f5',  // zinc-100
-          200: '#e4e4e7',  // zinc-200
-          300: '#d4d4d8',  // zinc-300
-          400: '#a1a1aa',  // zinc-400
-          500: '#71717a',  // zinc-500
-          600: '#18181b',  // zinc-900 — couleur interactive principale
-          700: '#27272a',  // zinc-800 — hover
-          900: '#09090b',  // zinc-950
+          50:  '#fbffe8',
+          100: '#f1ffb8',
+          200: '#e6ff7a',
+          300: '#d9ff3f',
+          400: '#c8f20a',
+          500: '#aee600',
+          600: '#8fc400',
+          700: '#6f9703',
+          900: '#263400',
         },
         sport: {
-          green: '#16a34a',
-          orange: '#ea580c',
+          green: '#d9ff3f',
+          orange: '#ff8a3d',
         },
+        ink: '#070a08',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
     },
   },

@@ -49,15 +49,21 @@ export default async function WorkoutsPage({
   return (
     <section aria-labelledby="workouts-title">
       {/* En-tête */}
-      <div className="flex items-center justify-between mb-8">
-        <h1 id="workouts-title" className="text-2xl font-bold text-zinc-900">
-          Mes séances
-        </h1>
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="section-kicker mb-2">Historique</p>
+          <h1 id="workouts-title" className="page-title">
+            Mes séances
+          </h1>
+          <p className="muted-copy mt-2">
+            Retrouvez vos workouts générés et relancez le timer quand vous êtes prêt.
+          </p>
+        </div>
         <Link
           href="/generate"
-          className="inline-flex items-center justify-center px-4 py-2 rounded-md bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
+          className="action-primary w-full sm:w-auto"
         >
-          Nouvelle séance
+          + Nouvelle séance
         </Link>
       </div>
 
@@ -65,16 +71,18 @@ export default async function WorkoutsPage({
       <form
         method="GET"
         action="/workouts"
-        className="flex flex-wrap items-center gap-2 mb-6"
+        className="surface-soft mb-6 flex flex-wrap items-center gap-2 p-3"
         aria-label="Filtrer les entraînements"
       >
         {/* RGAA 4.1: labels sr-only pour selects sans label visible */}
-        <label htmlFor="filter-sport" className="sr-only">Sport</label>
+        <label htmlFor="filter-sport" className="sr-only">
+          Sport
+        </label>
         <select
           id="filter-sport"
           name="sport"
           defaultValue={sport ?? ''}
-          className="rounded-md border border-zinc-200 px-3 py-1.5 text-sm text-zinc-700 bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900"
+          className="field-control py-1.5 sm:w-auto"
         >
           <option value="">Tous les sports</option>
           {SPORTS.map((s) => (
@@ -84,12 +92,14 @@ export default async function WorkoutsPage({
           ))}
         </select>
 
-        <label htmlFor="filter-level" className="sr-only">Niveau</label>
+        <label htmlFor="filter-level" className="sr-only">
+          Niveau
+        </label>
         <select
           id="filter-level"
           name="level"
           defaultValue={level ?? ''}
-          className="rounded-md border border-zinc-200 px-3 py-1.5 text-sm text-zinc-700 bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900"
+          className="field-control py-1.5 sm:w-auto"
         >
           <option value="">Tous les niveaux</option>
           {LEVELS.map((l) => (
@@ -101,7 +111,7 @@ export default async function WorkoutsPage({
 
         <button
           type="submit"
-          className="px-3 py-1.5 rounded-md bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+          className="w-full rounded-full bg-primary-300 px-4 py-1.5 text-sm font-black text-zinc-950 transition-colors hover:bg-primary-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 sm:w-auto"
         >
           Filtrer
         </button>
@@ -109,30 +119,30 @@ export default async function WorkoutsPage({
         {(sport || level) && (
           <Link
             href="/workouts"
-            className="text-sm text-zinc-400 hover:text-zinc-900 transition-colors"
+            className="w-full rounded-full px-3 py-1.5 text-center text-sm font-semibold text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-white sm:w-auto"
           >
             Effacer
           </Link>
         )}
 
-        <span className="ml-auto text-sm text-zinc-400">
+        <span className="w-full text-sm font-semibold text-primary-300 sm:ml-auto sm:w-auto">
           {total} résultat{total !== 1 ? 's' : ''}
         </span>
       </form>
 
       {workouts.length === 0 ? (
-        <div className="py-24 text-center">
-          <h2 className="text-base font-medium text-zinc-900 mb-2">
+        <div className="surface mx-auto max-w-xl p-8 text-center">
+          <h2 className="mb-2 text-xl font-black text-white">
             {sport || level ? 'Aucun résultat' : 'Aucune séance pour l\'instant'}
           </h2>
-          <p className="text-sm text-zinc-400 mb-6">
+          <p className="muted-copy mb-6">
             {sport || level
               ? 'Essayez d\'autres filtres ou générez une nouvelle séance.'
               : 'Votre premier programme personnalisé est à un clic.'}
           </p>
           <Link
             href="/generate"
-            className="inline-flex items-center justify-center px-5 py-2 rounded-md bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
+          className="action-primary w-full sm:w-auto"
           >
             Générer un entraînement
           </Link>
@@ -140,7 +150,7 @@ export default async function WorkoutsPage({
       ) : (
         <>
           <ul
-            className="divide-y divide-zinc-100"
+            className="grid gap-3 lg:grid-cols-2"
             aria-label={`${workouts.length} entraînement${workouts.length > 1 ? 's' : ''} sur ${total}`}
           >
             {workouts.map((workout) => (
@@ -152,34 +162,34 @@ export default async function WorkoutsPage({
           {totalPages > 1 && (
             <nav
               aria-label="Pagination des entraînements"
-              className="mt-8 flex items-center justify-center gap-6 text-sm"
+              className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm sm:gap-6"
             >
               {page > 1 ? (
                 <Link
                   href={pageUrl(page - 1)}
-                  className="text-zinc-500 hover:text-zinc-900 transition-colors focus-visible:outline-none focus-visible:underline"
+                  className="text-zinc-400 transition-colors hover:text-primary-300 focus-visible:outline-none focus-visible:underline"
                   aria-label="Page précédente"
                 >
-                  ← Précédent
+                  Précédent
                 </Link>
               ) : (
-                <span className="text-zinc-300 select-none">← Précédent</span>
+                <span className="select-none text-zinc-700">Précédent</span>
               )}
 
-              <span className="text-zinc-400" aria-current="page">
+              <span className="rounded-full bg-white/10 px-3 py-1 text-zinc-200" aria-current="page">
                 {page} / {totalPages}
               </span>
 
               {hasMore ? (
                 <Link
                   href={pageUrl(page + 1)}
-                  className="text-zinc-500 hover:text-zinc-900 transition-colors focus-visible:outline-none focus-visible:underline"
+                  className="text-zinc-400 transition-colors hover:text-primary-300 focus-visible:outline-none focus-visible:underline"
                   aria-label="Page suivante"
                 >
-                  Suivant →
+                  Suivant
                 </Link>
               ) : (
-                <span className="text-zinc-300 select-none">Suivant →</span>
+                <span className="select-none text-zinc-700">Suivant</span>
               )}
             </nav>
           )}

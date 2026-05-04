@@ -40,8 +40,27 @@ export default async function GeneratePage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto">
-      <h1 className="text-2xl font-bold text-zinc-900 mb-8">Générer un entraînement</h1>
+    <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+      <header className="lg:sticky lg:top-28">
+        <p className="section-kicker mb-2">Studio IA</p>
+        <h1 className="page-title">Générer un entraînement</h1>
+        <p className="muted-copy mt-4 max-w-md">
+          Choisissez le sport, le niveau et vos objectifs. Le coach prépare une séance claire,
+          chronométrée et prête à lancer.
+        </p>
+
+        <div className="mt-8 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+          {['Sport', 'Objectif', 'Timer'].map((label, index) => (
+            <div key={label} className="metric-card">
+              <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">
+                Étape {index + 1}
+              </p>
+              <p className="mt-2 break-words text-lg font-black text-white">{label}</p>
+            </div>
+          ))}
+        </div>
+      </header>
+
       <WorkoutForm onSubmit={handleGenerate} />
     </div>
   );

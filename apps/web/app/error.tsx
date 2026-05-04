@@ -17,22 +17,22 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
 
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
-      <p aria-hidden="true" className="text-6xl font-bold text-zinc-100 mb-6 select-none">!</p>
-      <h1 className="text-xl font-bold text-zinc-900 mb-2">Une erreur est survenue</h1>
-      <p className="text-sm text-zinc-500 mb-8 max-w-sm">
+      <p aria-hidden="true" className="mb-6 select-none text-7xl font-black text-primary-300">!</p>
+      <h1 className="mb-2 text-2xl font-black text-white">Une erreur est survenue</h1>
+      <p className="muted-copy mb-8 max-w-sm">
         Quelque chose s&apos;est mal passé. Réessayez ou retournez à l&apos;accueil.
       </p>
-      <div className="flex items-center gap-4">
+      <div className="flex w-full max-w-sm flex-col items-center gap-3 sm:w-auto sm:max-w-none sm:flex-row">
         <button
           type="button"
           onClick={reset}
-          className="inline-flex items-center justify-center px-5 py-2 rounded-md bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
+          className="action-primary w-full sm:w-auto"
         >
           Réessayer
         </button>
         <Link
           href="/"
-          className="inline-flex items-center justify-center px-5 py-2 rounded-md border border-zinc-300 text-zinc-900 text-sm font-medium hover:bg-zinc-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2"
+          className="action-secondary w-full sm:w-auto"
         >
           Accueil
         </Link>

@@ -76,15 +76,15 @@ export function WorkoutForm({ onSubmit }: WorkoutFormProps) {
       onSubmit={(e) => { void handleSubmit(e); }}
       noValidate
       aria-labelledby="form-title"
-      className="flex flex-col gap-5 w-full max-w-lg"
+      className="surface flex w-full flex-col gap-5 p-5 sm:p-6"
     >
-      <h1 id="form-title" className="text-2xl font-bold text-gray-900">
-        Générer un entraînement
+      <h1 id="form-title" className="break-words text-2xl font-black text-white">
+        Détails de la séance
       </h1>
 
       {/* RGAA 4.1: message d'erreur global avec aria-live */}
       {globalError && (
-        <div role="alert" aria-live="assertive" className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+        <div role="alert" aria-live="assertive" className="rounded-lg border border-red-400/30 bg-red-500/10 p-4 text-sm text-red-200">
           <strong>Erreur :</strong> {globalError}
         </div>
       )}
@@ -132,9 +132,9 @@ export function WorkoutForm({ onSubmit }: WorkoutFormProps) {
 
       <div className="flex flex-col gap-1">
         {/* RGAA 4.1: textarea avec label explicite */}
-        <label htmlFor="goals" className="text-sm font-medium text-gray-700">
+        <label htmlFor="goals" className="field-label">
           Objectifs{' '}
-          <span aria-hidden="true" className="text-red-600">*</span>
+          <span aria-hidden="true" className="text-primary-300">*</span>
           <span className="sr-only">(requis)</span>
         </label>
         <textarea
@@ -147,19 +147,19 @@ export function WorkoutForm({ onSubmit }: WorkoutFormProps) {
           placeholder="ex: améliorer mon endurance, perdre du poids, gagner en force..."
           aria-describedby={errors.goals ? 'goals-error' : undefined}
           aria-invalid={errors.goals ? true : undefined}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-y"
+          className="field-control resize-y"
         />
         {errors.goals && (
-          <p id="goals-error" role="alert" className="text-xs text-red-600">
+          <p id="goals-error" role="alert" className="text-xs text-red-300">
             <span aria-hidden="true">⚠</span> {errors.goals}
           </p>
         )}
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="constraints" className="text-sm font-medium text-gray-700">
+        <label htmlFor="constraints" className="field-label">
           Contraintes physiques{' '}
-          <span className="text-gray-400 text-xs font-normal">(optionnel)</span>
+          <span className="text-xs font-normal text-zinc-400">(optionnel)</span>
         </label>
         <textarea
           id="constraints"
@@ -168,11 +168,11 @@ export function WorkoutForm({ onSubmit }: WorkoutFormProps) {
           onChange={(e) => setFormData((prev) => ({ ...prev, constraints: e.target.value }))}
           rows={2}
           placeholder="ex: douleur au genou gauche, pas de sauts..."
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-y"
+          className="field-control resize-y"
         />
       </div>
 
-      <Button type="submit" isLoading={isLoading} size="lg" className="mt-2">
+      <Button type="submit" isLoading={isLoading} size="lg" className="mt-2 w-full">
         {isLoading ? 'Génération en cours...' : "Générer l'entraînement"}
       </Button>
     </form>

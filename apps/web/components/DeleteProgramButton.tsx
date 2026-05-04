@@ -29,9 +29,9 @@ export function DeleteProgramButton({ programId, programTitle, onDelete }: Delet
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-program-title"
-        className="flex items-center gap-2 p-2 bg-red-50 rounded-lg border border-red-200"
+        className="flex w-full max-w-full flex-col items-stretch gap-2 rounded-lg border border-red-400/30 bg-red-500/10 p-2 sm:max-w-sm sm:flex-row sm:items-center"
       >
-        <span id="confirm-program-title" className="text-xs text-red-700 flex-1">
+        <span id="confirm-program-title" className="min-w-0 flex-1 break-words text-xs text-red-100">
           Supprimer &laquo;{programTitle}&raquo; ?
         </span>
         <button
@@ -39,7 +39,7 @@ export function DeleteProgramButton({ programId, programTitle, onDelete }: Delet
           onClick={() => { void handleDelete(); }}
           disabled={isPending}
           aria-busy={isPending}
-          className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-red-500"
+          className="rounded-full bg-red-500 px-2 py-1 text-xs font-bold text-white hover:bg-red-400 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-red-400"
         >
           {isPending ? 'Suppression…' : 'Confirmer'}
         </button>
@@ -48,7 +48,7 @@ export function DeleteProgramButton({ programId, programTitle, onDelete }: Delet
           onClick={() => { setShowConfirm(false); }}
           disabled={isPending}
           aria-label="Annuler la suppression"
-          className="text-xs px-2 py-1 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-400 rounded"
+          className="rounded-full px-2 py-1 text-xs text-zinc-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-300"
         >
           Annuler
         </button>
@@ -61,7 +61,7 @@ export function DeleteProgramButton({ programId, programTitle, onDelete }: Delet
       type="button"
       onClick={() => { setShowConfirm(true); }}
       aria-label={`Supprimer le programme : ${programTitle}`}
-      className="text-xs text-gray-400 hover:text-red-600 transition-colors focus:outline-none focus:ring-2 focus:ring-red-400 rounded px-1"
+      className="rounded-full px-2 py-1 text-xs font-semibold text-zinc-400 transition-colors hover:bg-red-500/10 hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-400"
     >
       Supprimer
     </button>

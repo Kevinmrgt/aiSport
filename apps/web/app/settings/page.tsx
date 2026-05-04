@@ -40,12 +40,13 @@ export default async function SettingsPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="mx-auto max-w-3xl">
       <header className="mb-8">
-        <h1 id="settings-title" className="text-2xl font-bold text-zinc-900 mb-2">
+        <p className="section-kicker mb-2">Configuration</p>
+        <h1 id="settings-title" className="page-title">
           Paramètres IA
         </h1>
-        <p className="text-sm text-zinc-400">
+        <p className="muted-copy mt-3">
           Configurez votre fournisseur d&apos;IA et votre clé API personnelle.
         </p>
       </header>

@@ -45,21 +45,22 @@ export default async function ProgramDetailPage({ params }: ProgramDetailPagePro
   );
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="mx-auto max-w-3xl">
       {/* RGAA 4.1: lien de retour */}
       <nav aria-label="Retour" className="mb-8">
         <Link
           href="/programs"
-          className="text-sm text-zinc-400 hover:text-zinc-900 transition-colors focus-visible:outline-none focus-visible:underline"
+          className="text-sm font-semibold text-zinc-400 transition-colors hover:text-primary-300 focus-visible:outline-none focus-visible:underline"
         >
-          ← Mes programmes
+          Mes programmes
         </Link>
       </nav>
 
       {/* En-tête */}
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900 mb-2">{program.title}</h1>
-        <p className="text-sm text-zinc-400">
+      <header className="surface mb-6 p-5 sm:p-6">
+        <p className="section-kicker mb-2">Programme</p>
+        <h1 className="page-title">{program.title}</h1>
+        <p className="mt-3 break-words text-sm leading-5 text-zinc-400">
           {program.sport} · {DIFFICULTY_LABELS[program.difficulty]} ·{' '}
           {program.weeksCount} semaines · {program.sessionsPerWeek} séances/sem ·{' '}
           {program.sessionDurationMinutes} min/séance
@@ -68,16 +69,16 @@ export default async function ProgramDetailPage({ params }: ProgramDetailPagePro
 
       {/* Résumé de progression */}
       {program.data.progression_summary && (
-        <section className="mb-8 p-4 bg-zinc-50 rounded-lg border border-zinc-100">
-          <p className="text-sm text-zinc-600">{program.data.progression_summary}</p>
+        <section className="surface-soft mb-8 p-4">
+          <p className="text-sm leading-6 text-zinc-300">{program.data.progression_summary}</p>
         </section>
       )}
 
       {/* Navigation par semaine avec séances */}
-      <section aria-labelledby="program-weeks-title">
+      <section aria-labelledby="program-weeks-title" className="surface p-5 sm:p-6">
         <h2
           id="program-weeks-title"
-          className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-4"
+          className="section-kicker mb-4"
         >
           Programme — {totalSessions} séance{totalSessions > 1 ? 's' : ''}
         </h2>
@@ -85,7 +86,7 @@ export default async function ProgramDetailPage({ params }: ProgramDetailPagePro
       </section>
 
       {/* Suppression */}
-      <div className="mt-12 pt-6 border-t border-zinc-100">
+      <div className="mt-6 border-t border-white/10 pt-6">
         <DeleteProgramButton
           programId={program.id}
           programTitle={program.title}

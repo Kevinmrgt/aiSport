@@ -12,6 +12,7 @@ interface TimelineBlock {
   sublabel?: string;
   seconds: number;
   type: 'warmup' | 'exercise' | 'rest' | 'cooldown';
+  isTimed: boolean;
 }
 
 function buildBlocks(
@@ -28,18 +29,21 @@ function buildBlocks(
       label: p.name,
       seconds: p.duration_seconds,
       type: 'warmup',
+      isTimed: true,
     });
   });
 
   // Exercices + repos
   exercises.forEach((ex, i) => {
-    const duration = ex.duration_seconds ?? 60;
+    const isTimed = ex.duration_seconds != null;
+    const duration = ex.duration_seconds ?? 0;
     blocks.push({
       id: `ex-${i}`,
       label: ex.name,
-      sublabel: ex.sets && ex.reps ? `${ex.sets}×${ex.reps}` : `${duration}s`,
+      sublabel: ex.sets && ex.reps ? `${ex.sets}x${ex.reps}` : isTimed ? formatDuration(duration) : 'Libre',
       seconds: duration,
       type: 'exercise',
+      isTimed,
     });
     if (ex.rest_seconds > 0) {
       blocks.push({
@@ -47,6 +51,7 @@ function buildBlocks(
         label: 'Repos',
         seconds: ex.rest_seconds,
         type: 'rest',
+        isTimed: true,
       });
     }
   });
@@ -58,6 +63,7 @@ function buildBlocks(
       label: p.name,
       seconds: p.duration_seconds,
       type: 'cooldown',
+      isTimed: true,
     });
   });
 
@@ -65,17 +71,17 @@ function buildBlocks(
 }
 
 const TYPE_STYLES: Record<TimelineBlock['type'], string> = {
-  warmup: 'bg-amber-400',
-  exercise: 'bg-primary-600',
-  rest: 'bg-zinc-300',
-  cooldown: 'bg-emerald-500',
+  warmup: 'bg-orange-300',
+  exercise: 'bg-primary-300',
+  rest: 'bg-white/20',
+  cooldown: 'bg-emerald-300',
 };
 
 const TYPE_TEXT: Record<TimelineBlock['type'], string> = {
-  warmup: 'text-amber-900',
-  exercise: 'text-white',
-  rest: 'text-zinc-600',
-  cooldown: 'text-emerald-900',
+  warmup: 'text-zinc-950',
+  exercise: 'text-zinc-950',
+  rest: 'text-zinc-200',
+  cooldown: 'text-zinc-950',
 };
 
 const TYPE_LABELS: Record<TimelineBlock['type'], string> = {
@@ -94,10 +100,17 @@ function formatDuration(seconds: number): string {
   return `${seconds}s`;
 }
 
+function getBlockWidth(block: TimelineBlock, totalTimedSeconds: number): string {
+  if (!block.isTimed || totalTimedSeconds === 0) return '0%';
+  return `${(block.seconds / totalTimedSeconds) * 100}%`;
+}
+
 // RGAA 4.1: timeline accessible avec role=list et aria-labels
 export function WorkoutTimeline({ exercises, warmup, cooldown }: WorkoutTimelineProps) {
   const blocks = buildBlocks(exercises, warmup, cooldown);
-  const totalSeconds = blocks.reduce((acc, b) => acc + b.seconds, 0);
+  const totalTimedSeconds = blocks.reduce((acc, b) => acc + b.seconds, 0);
+  const totalLabel = totalTimedSeconds > 0 ? formatDuration(totalTimedSeconds) : 'aucun chrono';
+  const exerciseBlocks = blocks.filter((b) => b.type === 'exercise');
 
   if (blocks.length === 0) return null;
 
@@ -110,34 +123,38 @@ export function WorkoutTimeline({ exercises, warmup, cooldown }: WorkoutTimeline
           .map((t) => (
             <div key={t} className="flex items-center gap-1.5">
               <span className={`inline-block w-3 h-3 rounded-sm ${TYPE_STYLES[t]}`} aria-hidden="true" />
-              <span className="text-zinc-600">{TYPE_LABELS[t]}</span>
+              <span className="text-zinc-400">{TYPE_LABELS[t]}</span>
             </div>
           ))}
-        <span className="text-zinc-400 ml-auto">
-          Total : {formatDuration(totalSeconds)}
+        <span className="w-full text-primary-300 sm:ml-auto sm:w-auto">
+          Total chrono : {totalLabel}
         </span>
       </div>
 
       {/* Barre timeline */}
       <div
-        className="flex h-10 rounded-lg overflow-hidden gap-px"
+        className="flex h-12 overflow-hidden rounded-lg border border-white/10 bg-zinc-950 gap-px"
         role="img"
-        aria-label={`Timeline de ${formatDuration(totalSeconds)}`}
+        aria-label={`Timeline de ${totalLabel}`}
       >
-        {blocks.map((block) => (
-          <div
-            key={block.id}
-            className={`${TYPE_STYLES[block.type]} flex items-center justify-center overflow-hidden shrink-0 group relative`}
-            style={{ width: `${(block.seconds / totalSeconds) * 100}%`, minWidth: '2px' }}
-            title={`${block.label} — ${formatDuration(block.seconds)}`}
-          >
-            {(block.seconds / totalSeconds) > 0.06 && (
-              <span className={`text-[10px] font-medium truncate px-1 ${TYPE_TEXT[block.type]}`}>
-                {formatDuration(block.seconds)}
-              </span>
-            )}
-          </div>
-        ))}
+        {blocks.map((block) => {
+          const ratio = totalTimedSeconds > 0 ? block.seconds / totalTimedSeconds : 0;
+
+          return (
+            <div
+              key={block.id}
+              className={`${TYPE_STYLES[block.type]} flex items-center justify-center overflow-hidden shrink-0 group relative`}
+              style={{ width: getBlockWidth(block, totalTimedSeconds), minWidth: block.isTimed ? '2px' : '10px' }}
+              title={`${block.label} — ${block.isTimed ? formatDuration(block.seconds) : 'libre'}`}
+            >
+              {ratio > 0.06 && (
+                <span className={`text-[10px] font-medium truncate px-1 ${TYPE_TEXT[block.type]}`}>
+                  {formatDuration(block.seconds)}
+                </span>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Liste détaillée */}
@@ -147,17 +164,17 @@ export function WorkoutTimeline({ exercises, warmup, cooldown }: WorkoutTimeline
           .map((block) => (
             <li
               key={block.id}
-              className="flex items-center gap-3 py-2 border-b border-zinc-100 last:border-0"
+              className="flex items-start gap-3 rounded-lg border border-white/10 bg-zinc-950/60 p-3"
             >
               <span
                 className={`w-2.5 h-2.5 rounded-full shrink-0 ${TYPE_STYLES[block.type]}`}
                 aria-hidden="true"
               />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-zinc-900 truncate">
-                  {block.type !== 'warmup' && block.type !== 'cooldown' && (
-                    <span className="text-zinc-400 font-normal mr-1">
-                      {blocks.filter((b) => b.type === 'exercise').indexOf(block) + 1}.
+                <p className="break-words text-sm font-bold text-white">
+                  {block.type === 'exercise' && (
+                    <span className="mr-1 font-normal text-zinc-400">
+                      {exerciseBlocks.indexOf(block) + 1}.
                     </span>
                   )}
                   {block.label}
@@ -166,8 +183,8 @@ export function WorkoutTimeline({ exercises, warmup, cooldown }: WorkoutTimeline
                   )}
                 </p>
               </div>
-              <span className="text-xs text-zinc-400 shrink-0">
-                {formatDuration(block.seconds)}
+              <span className="shrink-0 text-xs font-semibold text-primary-300">
+                {block.isTimed ? formatDuration(block.seconds) : 'Libre'}
               </span>
             </li>
           ))}

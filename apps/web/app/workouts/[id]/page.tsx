@@ -31,28 +31,29 @@ export default async function WorkoutDetailPage({ params }: WorkoutPageProps) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="mx-auto max-w-3xl">
       {/* RGAA 4.1: lien de retour */}
       <nav aria-label="Retour" className="mb-8">
         <Link
           href="/workouts"
-          className="text-sm text-zinc-400 hover:text-zinc-900 transition-colors focus-visible:outline-none focus-visible:underline"
+          className="text-sm font-semibold text-zinc-400 transition-colors hover:text-primary-300 focus-visible:outline-none focus-visible:underline"
         >
-          ← Mes séances
+          Mes séances
         </Link>
       </nav>
 
       {/* En-tête */}
-      <header className="mb-8">
-        <h1 className="text-2xl font-bold text-zinc-900 mb-2">{workout.title}</h1>
-        <p className="text-sm text-zinc-400">
+      <header className="surface mb-6 p-5 sm:p-6">
+        <p className="section-kicker mb-2">Workout</p>
+        <h1 className="page-title">{workout.title}</h1>
+        <p className="mt-3 break-words text-sm leading-5 text-zinc-400">
           {workout.sport} · {DIFFICULTY_LABELS[workout.difficulty]} · {workout.durationMinutes} min
         </p>
       </header>
 
       {/* Timeline visuelle (échauffement + exercices + récupération) */}
-      <section aria-labelledby="timeline-title" className="py-6 border-t border-zinc-100">
-        <h2 id="timeline-title" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-6">
+      <section aria-labelledby="timeline-title" className="surface mb-6 p-5 sm:p-6">
+        <h2 id="timeline-title" className="section-kicker mb-6">
           Programme
         </h2>
         <WorkoutTimeline
@@ -63,11 +64,11 @@ export default async function WorkoutDetailPage({ params }: WorkoutPageProps) {
       </section>
 
       {/* Timer interactif */}
-      <section aria-labelledby="timer-title" className="py-6 border-t border-zinc-100">
-        <h2 id="timer-title" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-4">
+      <section aria-labelledby="timer-title" className="surface p-5 sm:p-6">
+        <h2 id="timer-title" className="section-kicker mb-4">
           Timer
         </h2>
-        <Timer exercises={workout.exercises} totalDurationMinutes={workout.durationMinutes} />
+        <Timer exercises={workout.exercises} warmup={workout.warmup} cooldown={workout.cooldown} />
       </section>
     </div>
   );
