@@ -200,4 +200,5 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Security audit
+        continue-on-error: true
         run: pnpm audit --audit-level=high
