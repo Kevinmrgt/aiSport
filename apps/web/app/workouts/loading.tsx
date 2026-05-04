@@ -2,29 +2,29 @@
 export default function WorkoutsLoading() {
   return (
     <section aria-labelledby="workouts-title" aria-busy="true">
-      <div className="flex items-center justify-between mb-8">
-        <h1 id="workouts-title" className="text-2xl font-bold text-zinc-900">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h1 id="workouts-title" className="page-title">
           Mes séances
         </h1>
-        <div className="h-9 w-36 rounded-md bg-zinc-100 animate-pulse" aria-hidden="true" />
+        <div className="h-9 w-36 animate-pulse rounded-full bg-white/10" aria-hidden="true" />
       </div>
 
       {/* Filtres skeleton */}
-      <div className="flex gap-2 mb-6" aria-hidden="true">
-        <div className="h-8 w-32 rounded-md bg-zinc-100 animate-pulse" />
-        <div className="h-8 w-32 rounded-md bg-zinc-100 animate-pulse" />
-        <div className="h-8 w-16 rounded-md bg-zinc-100 animate-pulse" />
+      <div className="mb-6 flex flex-wrap gap-2" aria-hidden="true">
+        <div className="h-8 w-full animate-pulse rounded-lg bg-white/10 sm:w-32" />
+        <div className="h-8 w-full animate-pulse rounded-lg bg-white/10 sm:w-32" />
+        <div className="h-8 w-full animate-pulse rounded-full bg-primary-300/30 sm:w-16" />
       </div>
 
       {/* Liste skeleton */}
-      <ul className="divide-y divide-zinc-100" aria-label="Chargement des entraînements">
+      <ul className="grid gap-3 lg:grid-cols-2" aria-label="Chargement des entraînements">
         {Array.from({ length: 7 }).map((_, i) => (
-          <li key={i} className="flex items-center gap-4 py-4" aria-hidden="true">
+          <li key={i} className="surface-soft flex min-w-0 flex-col items-stretch gap-4 p-4 sm:flex-row sm:items-center" aria-hidden="true">
             <div className="flex-1 space-y-2">
-              <div className="h-4 w-1/2 rounded bg-zinc-100 animate-pulse" />
-              <div className="h-3 w-1/3 rounded bg-zinc-100 animate-pulse" />
+              <div className="h-4 w-1/2 animate-pulse rounded bg-white/10" />
+              <div className="h-3 w-1/3 animate-pulse rounded bg-white/10" />
             </div>
-            <div className="h-4 w-10 rounded bg-zinc-100 animate-pulse shrink-0" />
+            <div className="h-4 w-10 shrink-0 animate-pulse rounded bg-white/10" />
           </li>
         ))}
       </ul>

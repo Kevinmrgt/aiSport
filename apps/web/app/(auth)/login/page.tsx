@@ -4,11 +4,12 @@ import { signIn } from '@/lib/auth';
 export default function LoginPage() {
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <section className="w-full max-w-sm text-center" aria-labelledby="login-title">
-        <h1 id="login-title" className="text-2xl font-bold text-zinc-900 mb-2">
+      <section className="surface w-full max-w-sm p-6 text-center" aria-labelledby="login-title">
+        <p className="section-kicker mb-2">Accès coach</p>
+        <h1 id="login-title" className="text-3xl font-black text-white mb-2">
           Connexion
         </h1>
-        <p className="text-sm text-zinc-500 mb-8">
+        <p className="muted-copy mb-8">
           Connectez-vous pour accéder à vos entraînements.
         </p>
 
@@ -22,7 +23,7 @@ export default function LoginPage() {
           {/* RGAA 4.1: bouton avec texte descriptif complet */}
           <button
             type="submit"
-            className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-md bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
+            className="flex w-full items-center justify-center gap-3 rounded-full bg-primary-300 px-4 py-2.5 text-center text-sm font-black leading-tight text-zinc-950 transition-colors hover:bg-primary-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
           >
             {/* RGAA 4.1: SVG avec title pour lecteurs d'écran */}
             <svg

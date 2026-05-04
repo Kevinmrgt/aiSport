@@ -38,102 +38,109 @@ export default async function DashboardPage() {
 
   return (
     <section aria-labelledby="dashboard-title">
-      <div className="flex items-center justify-between mb-12">
-        <h1 id="dashboard-title" className="text-2xl font-bold text-zinc-900">
-          Dashboard
-        </h1>
+      <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="section-kicker mb-2">Rapport quotidien</p>
+          <h1 id="dashboard-title" className="page-title">
+            Dashboard
+          </h1>
+          <p className="muted-copy mt-2">
+            Une vue rapide sur vos séances générées et vos sports dominants.
+          </p>
+        </div>
         <Link
           href="/generate"
-          className="inline-flex items-center justify-center px-4 py-2 rounded-md bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
+          className="action-primary w-full sm:w-auto"
         >
-          Nouvelle séance
+          + Nouvelle séance
         </Link>
       </div>
 
       {stats.total === 0 ? (
-        <div className="py-24 text-center">
-          <h2 className="text-base font-medium text-zinc-900 mb-2">Aucune séance encore</h2>
-          <p className="text-sm text-zinc-400 mb-6">
+        <div className="surface mx-auto max-w-xl p-8 text-center">
+          <h2 className="mb-2 text-xl font-black text-white">Aucune séance encore</h2>
+          <p className="muted-copy mb-6">
             Générez votre premier programme pour voir vos statistiques ici.
           </p>
           <Link
             href="/generate"
-            className="inline-flex items-center justify-center px-5 py-2 rounded-md bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
+          className="action-primary w-full sm:w-auto"
           >
             Commencer
           </Link>
         </div>
       ) : (
-        <div>
-          {/* KPIs — typographie seule, pas de cards */}
-          <dl className="grid grid-cols-1 sm:grid-cols-3 gap-10 pb-10 border-b border-zinc-100">
-            <div>
-              <dt className="text-xs font-medium text-zinc-400 uppercase tracking-widest mb-2">
-                Séances générées
+        <div className="space-y-6">
+          <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="metric-card">
+              <dt className="text-xs font-bold uppercase tracking-widest text-zinc-400">
+                Séances
               </dt>
               <dd
-                className="text-5xl font-bold text-zinc-900 tabular-nums"
+                className="mt-3 text-5xl font-black tabular-nums text-primary-300"
                 aria-label={`${stats.total} séances au total`}
               >
                 {stats.total}
               </dd>
             </div>
 
-            <div>
-              <dt className="text-xs font-medium text-zinc-400 uppercase tracking-widest mb-2">
+            <div className="metric-card">
+              <dt className="text-xs font-bold uppercase tracking-widest text-zinc-400">
                 Niveau principal
               </dt>
-              <dd className="text-3xl font-bold text-zinc-900">{topLevel}</dd>
+              <dd className="mt-3 text-3xl font-black text-white">{topLevel}</dd>
             </div>
 
-            <div>
-              <dt className="text-xs font-medium text-zinc-400 uppercase tracking-widest mb-2">
-                Dernière séance
+            <div className="metric-card">
+              <dt className="text-xs font-bold uppercase tracking-widest text-zinc-400">
+                Dernière
               </dt>
-              <dd className="text-lg font-semibold text-zinc-900">
+              <dd className="mt-3 text-lg font-bold text-white">
                 {stats.lastGenerated ? formatDate(stats.lastGenerated) : '—'}
               </dd>
             </div>
           </dl>
 
-          {/* Répartition par niveau */}
-          <div className="py-8 border-b border-zinc-100">
-            <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-4">
-              Par niveau
-            </h2>
-            <dl className="space-y-2" aria-label="Répartition par niveau">
-              {Object.entries(stats.byLevel).map(([level, count]) => (
-                <div key={level} className="flex justify-between text-sm">
-                  <dt className="text-zinc-500">{LEVEL_LABELS[level] ?? level}</dt>
-                  <dd className="font-medium text-zinc-900 tabular-nums">{count}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-
-          {/* Sports pratiqués */}
-          {topSports.length > 0 && (
-            <div className="py-8 border-b border-zinc-100">
-              <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-4">
-                Sports pratiqués
+          <div className="grid gap-4 lg:grid-cols-2">
+            <section className="surface p-5" aria-labelledby="level-title">
+              <h2 id="level-title" className="section-kicker mb-5">
+                Par niveau
               </h2>
-              <dl className="space-y-2" aria-label="Sports pratiqués">
-                {topSports.map(([sport, count]) => (
-                  <div key={sport} className="flex justify-between text-sm">
-                    <dt className="text-zinc-500 capitalize">{sport}</dt>
-                    <dd className="font-medium text-zinc-900 tabular-nums">{count}</dd>
+              <dl className="space-y-3" aria-label="Répartition par niveau">
+                {Object.entries(stats.byLevel).map(([level, count]) => (
+                  <div key={level} className="flex items-start justify-between gap-4">
+                    <dt className="min-w-0 break-words text-sm text-zinc-300">{LEVEL_LABELS[level] ?? level}</dt>
+                    <dd className="rounded-full bg-primary-300 px-3 py-1 text-xs font-black tabular-nums text-zinc-950">
+                      {count}
+                    </dd>
                   </div>
                 ))}
               </dl>
-            </div>
-          )}
+            </section>
 
-          <div className="pt-6">
+            <section className="surface p-5" aria-labelledby="sports-title">
+              <h2 id="sports-title" className="section-kicker mb-5">
+                Sports pratiqués
+              </h2>
+              <dl className="space-y-3" aria-label="Sports pratiqués">
+                {topSports.map(([sport, count]) => (
+                  <div key={sport} className="flex items-start justify-between gap-4">
+                    <dt className="min-w-0 break-words text-sm capitalize text-zinc-300">{sport}</dt>
+                    <dd className="rounded-full bg-white/10 px-3 py-1 text-xs font-black tabular-nums text-primary-300">
+                      {count}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          </div>
+
+          <div className="pt-2">
             <Link
               href="/workouts"
-              className="text-sm text-zinc-400 hover:text-zinc-900 transition-colors focus-visible:outline-none focus-visible:underline"
+              className="text-sm font-semibold text-primary-300 transition hover:text-primary-100 focus-visible:outline-none focus-visible:underline"
             >
-              Voir toutes mes séances →
+              Voir toutes mes séances
             </Link>
           </div>
         </div>

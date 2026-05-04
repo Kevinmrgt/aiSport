@@ -27,11 +27,11 @@ export function Select({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={selectId} className="text-sm font-medium text-zinc-700">
+      <label htmlFor={selectId} className="field-label">
         {label}
         {props.required && (
           <>
-            <span aria-hidden="true" className="text-red-500 ml-1">*</span>
+            <span aria-hidden="true" className="text-primary-300 ml-1">*</span>
             <span className="sr-only">(requis)</span>
           </>
         )}
@@ -43,9 +43,8 @@ export function Select({
         aria-describedby={errorId}
         aria-invalid={error ? true : undefined}
         className={[
-          'rounded-md border px-3 py-2 text-sm transition-colors bg-white',
-          'focus:outline-none focus:ring-1 focus:ring-zinc-900 focus:border-zinc-900',
-          error ? 'border-red-400' : 'border-zinc-300',
+          'field-control',
+          error ? 'border-red-400' : 'border-white/10',
           className,
         ].join(' ')}
       >

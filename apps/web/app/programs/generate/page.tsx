@@ -37,7 +37,24 @@ export default async function GenerateProgramPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto">
+    <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+      <header className="lg:sticky lg:top-28">
+        <p className="section-kicker mb-2">Plan progressif</p>
+        <h1 className="page-title">Générer un programme</h1>
+        <p className="muted-copy mt-4 max-w-md">
+          Construisez un cycle de plusieurs semaines avec progression, repos et séances calibrées.
+        </p>
+
+        <div className="mt-8 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+          {['2 à 4 semaines', '2 à 5 séances', 'Objectifs guidés'].map((label) => (
+            <div key={label} className="metric-card">
+              <p className="break-words text-lg font-black text-white">{label}</p>
+              <p className="mt-1 text-xs text-primary-300">Personnalisé par IA</p>
+            </div>
+          ))}
+        </div>
+      </header>
+
       <ProgramForm onSubmit={handleGenerate} />
     </div>
   );

@@ -12,60 +12,66 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { readonly children: React.ReactNode }) {
   const session = await auth();
 
+  const navLink =
+    'whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-zinc-300 transition hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300';
+
   return (
     <html lang="fr">
-      <body className="min-h-screen bg-white text-zinc-900 antialiased">
+      <body className="min-h-screen overflow-x-hidden bg-ink text-zinc-100 antialiased">
         {/* RGAA 4.1: lien d'évitement */}
         <a href="#main-content" className="skip-link">
           Aller au contenu principal
         </a>
 
         {/* RGAA 4.1: header sémantique */}
-        <header className="bg-white border-b border-zinc-200">
+        <header className="sticky top-0 z-50 border-b border-white/10 bg-ink/80 backdrop-blur-xl">
           <nav
-            className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between"
+            className="mx-auto flex min-h-16 max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 lg:px-6"
             aria-label="Navigation principale"
           >
             <Link
               href="/"
-              className="text-sm font-semibold text-zinc-900 tracking-tight hover:text-zinc-600 transition-colors"
+              className="group inline-flex items-center gap-2 text-sm font-black tracking-tight text-white transition-colors hover:text-primary-300"
               aria-label="SportCoach IA — Accueil"
             >
-              SportCoach IA
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary-300 text-sm text-zinc-950 shadow-lg shadow-primary-400/20">
+                SC
+              </span>
+              <span>SportCoach IA</span>
             </Link>
 
-            <div className="flex items-center gap-6">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
               {session?.user ? (
                 <>
                   <Link
                     href="/dashboard"
-                    className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
+                    className={navLink}
                   >
                     Dashboard
                   </Link>
                   <Link
                     href="/generate"
-                    className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
+                    className={navLink}
                   >
                     Générer
                   </Link>
                   <Link
                     href="/programs"
-                    className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
+                    className={navLink}
                   >
                     Programmes
                   </Link>
                   <Link
                     href="/workouts"
-                    className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
+                    className={navLink}
                   >
                     Séances
                   </Link>
                   <Link
                     href="/settings"
-                    className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
+                    className={navLink}
                   >
-                    Paramètres IA
+                    IA
                   </Link>
                   <form
                     action={async () => {
@@ -76,7 +82,7 @@ export default async function RootLayout({ children }: { readonly children: Reac
                     <button
                       type="submit"
                       aria-label="Se déconnecter"
-                      className="text-sm text-zinc-400 hover:text-zinc-900 transition-colors"
+                      className="whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-zinc-400 transition hover:bg-white/[0.06] hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
                     >
                       Déconnexion
                     </button>
@@ -85,7 +91,7 @@ export default async function RootLayout({ children }: { readonly children: Reac
               ) : (
                 <Link
                   href="/login"
-                  className="text-sm font-medium text-zinc-900 hover:text-zinc-600 transition-colors"
+                  className="action-primary"
                 >
                   Se connecter
                 </Link>
@@ -95,13 +101,13 @@ export default async function RootLayout({ children }: { readonly children: Reac
         </header>
 
         {/* RGAA 4.1: main sémantique avec id pour le skip link */}
-        <main id="main-content" className="max-w-5xl mx-auto px-6 py-12">
+        <main id="main-content" className="mx-auto w-full max-w-6xl px-5 py-10 sm:py-12 lg:px-6">
           {children}
         </main>
 
         {/* RGAA 4.1: footer sémantique */}
-        <footer className="border-t border-zinc-100 mt-24">
-          <div className="max-w-5xl mx-auto px-6 py-6 text-center text-xs text-zinc-600">
+        <footer className="mt-24 border-t border-white/10">
+          <div className="mx-auto max-w-6xl px-5 py-6 text-center text-xs text-zinc-400 lg:px-6">
             <p>SportCoach IA — Projet RNCP 39583</p>
           </div>
         </footer>

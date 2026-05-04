@@ -10,9 +10,9 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 // - État loading annoncé aux lecteurs d'écran via aria-busy
 // - Désactivé correctement avec aria-disabled
 const variantClasses: Record<NonNullable<ButtonProps['variant']>, string> = {
-  primary:   'bg-zinc-900 text-white hover:bg-zinc-700 focus-visible:ring-zinc-900',
-  secondary: 'border border-zinc-300 text-zinc-900 hover:bg-zinc-50 focus-visible:ring-zinc-500',
-  danger:    'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500',
+  primary:   'bg-primary-300 text-zinc-950 hover:bg-primary-200 focus-visible:ring-primary-300 shadow-lg shadow-primary-400/15',
+  secondary: 'border border-white/10 bg-white/[0.06] text-zinc-100 hover:bg-white/[0.1] focus-visible:ring-primary-300',
+  danger:    'bg-red-500 text-white hover:bg-red-400 focus-visible:ring-red-400',
 };
 
 const sizeClasses: Record<NonNullable<ButtonProps['size']>, string> = {
@@ -39,8 +39,8 @@ export function Button({
       aria-busy={isLoading}
       aria-disabled={isDisabled}
       className={[
-        'inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+        'inline-flex min-h-10 items-center justify-center gap-2 rounded-full text-center font-bold leading-tight transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-ink',
         'disabled:opacity-50 disabled:cursor-not-allowed',
         variantClasses[variant],
         sizeClasses[size],

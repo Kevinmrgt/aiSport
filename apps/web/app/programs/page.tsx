@@ -36,31 +36,37 @@ export default async function ProgramsPage({
   return (
     <section aria-labelledby="programs-title">
       {/* En-tête */}
-      <div className="flex items-center justify-between mb-8">
-        <h1 id="programs-title" className="text-2xl font-bold text-zinc-900">
-          Mes programmes
-        </h1>
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="section-kicker mb-2">Cycles guidés</p>
+          <h1 id="programs-title" className="page-title">
+            Mes programmes
+          </h1>
+          <p className="muted-copy mt-2">
+            Des blocs de plusieurs semaines pour progresser sans perdre le fil.
+          </p>
+        </div>
         <Link
           href="/programs/generate"
-          className="inline-flex items-center justify-center px-4 py-2 rounded-md bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
+          className="action-primary w-full sm:w-auto"
         >
-          Nouveau programme
+          + Nouveau programme
         </Link>
       </div>
 
-      <p className="text-sm text-zinc-400 mb-6">{total} programme{total !== 1 ? 's' : ''}</p>
+      <p className="mb-6 text-sm font-semibold text-primary-300">{total} programme{total !== 1 ? 's' : ''}</p>
 
       {programs.length === 0 ? (
-        <div className="py-24 text-center">
-          <h2 className="text-base font-medium text-zinc-900 mb-2">
+        <div className="surface mx-auto max-w-xl p-8 text-center">
+          <h2 className="mb-2 text-xl font-black text-white">
             Aucun programme pour l&apos;instant
           </h2>
-          <p className="text-sm text-zinc-400 mb-6">
+          <p className="muted-copy mb-6">
             Générez votre premier programme d&apos;entraînement progressif sur plusieurs semaines.
           </p>
           <Link
             href="/programs/generate"
-            className="inline-flex items-center justify-center px-5 py-2 rounded-md bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
+          className="action-primary w-full sm:w-auto"
           >
             Créer un programme
           </Link>
@@ -68,7 +74,7 @@ export default async function ProgramsPage({
       ) : (
         <>
           <ul
-            className="divide-y divide-zinc-100"
+            className="grid gap-3 lg:grid-cols-2"
             aria-label={`${programs.length} programme${programs.length > 1 ? 's' : ''} sur ${total}`}
           >
             {programs.map((program) => (
@@ -80,34 +86,34 @@ export default async function ProgramsPage({
           {totalPages > 1 && (
             <nav
               aria-label="Pagination des programmes"
-              className="mt-8 flex items-center justify-center gap-6 text-sm"
+              className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm sm:gap-6"
             >
               {page > 1 ? (
                 <Link
                   href={pageUrl(page - 1)}
-                  className="text-zinc-500 hover:text-zinc-900 transition-colors focus-visible:outline-none focus-visible:underline"
+                  className="text-zinc-400 transition-colors hover:text-primary-300 focus-visible:outline-none focus-visible:underline"
                   aria-label="Page précédente"
                 >
-                  ← Précédent
+                  Précédent
                 </Link>
               ) : (
-                <span className="text-zinc-300 select-none">← Précédent</span>
+                <span className="select-none text-zinc-700">Précédent</span>
               )}
 
-              <span className="text-zinc-400" aria-current="page">
+              <span className="rounded-full bg-white/10 px-3 py-1 text-zinc-200" aria-current="page">
                 {page} / {totalPages}
               </span>
 
               {hasMore ? (
                 <Link
                   href={pageUrl(page + 1)}
-                  className="text-zinc-500 hover:text-zinc-900 transition-colors focus-visible:outline-none focus-visible:underline"
+                  className="text-zinc-400 transition-colors hover:text-primary-300 focus-visible:outline-none focus-visible:underline"
                   aria-label="Page suivante"
                 >
-                  Suivant →
+                  Suivant
                 </Link>
               ) : (
-                <span className="text-zinc-300 select-none">Suivant →</span>
+                <span className="select-none text-zinc-700">Suivant</span>
               )}
             </nav>
           )}

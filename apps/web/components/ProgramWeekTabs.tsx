@@ -23,7 +23,7 @@ export function ProgramWeekTabs({ weeks, programId }: ProgramWeekTabsProps) {
       <nav
         role="tablist"
         aria-label="Semaines du programme"
-        className="flex gap-1 border-b border-zinc-200 mb-6 overflow-x-auto"
+        className="mb-6 flex flex-wrap gap-2 rounded-lg border border-white/10 bg-zinc-950/70 p-1"
       >
         {weeks.map((week) => (
           <button
@@ -33,10 +33,10 @@ export function ProgramWeekTabs({ weeks, programId }: ProgramWeekTabsProps) {
             aria-controls={`week-panel-${week.week_number}`}
             id={`week-tab-${week.week_number}`}
             onClick={() => { setActiveWeek(week.week_number); }}
-            className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-1 ${
+            className={`whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-primary-300 ${
               activeWeek === week.week_number
-                ? 'border-zinc-900 text-zinc-900'
-                : 'border-transparent text-zinc-400 hover:text-zinc-700 hover:border-zinc-300'
+                ? 'bg-primary-300 text-zinc-950'
+                : 'text-zinc-400 hover:bg-white/[0.06] hover:text-white'
             }`}
           >
             Sem. {week.week_number}
@@ -51,29 +51,29 @@ export function ProgramWeekTabs({ weeks, programId }: ProgramWeekTabsProps) {
         aria-labelledby={`week-tab-${currentWeek.week_number}`}
       >
         <div className="mb-4">
-          <h2 className="text-base font-semibold text-zinc-900">
+          <h2 className="text-xl font-black text-white">
             {currentWeek.theme}
           </h2>
-          <p className="text-sm text-zinc-500 mt-0.5">{currentWeek.objective}</p>
+          <p className="mt-1 text-sm text-zinc-400">{currentWeek.objective}</p>
         </div>
 
-        <ul className="divide-y divide-zinc-100" aria-label={`Séances de la semaine ${currentWeek.week_number}`}>
+        <ul className="space-y-3" aria-label={`Séances de la semaine ${currentWeek.week_number}`}>
           {currentWeek.sessions.map((session) => {
             // sessionId : "[weekNumber]-[sessionNumber]" — parsé dans la page de détail
             const sessionId = `${currentWeek.week_number}-${session.session_number}`;
 
             return (
-              <li key={session.session_number} role="article" className="py-4">
-                <div className="flex items-center gap-4">
+              <li key={session.session_number} role="article" className="min-w-0 rounded-lg border border-white/10 bg-zinc-950/60 p-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-sm font-medium text-zinc-900">
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                      <span className="text-sm font-black text-white">
                         Séance {session.session_number}
                       </span>
-                      <span className="text-xs text-zinc-400">{session.focus}</span>
+                      <span className="min-w-0 break-words text-xs text-primary-300">{session.focus}</span>
                     </div>
-                    <p className="mt-0.5 text-sm text-zinc-700 truncate">{session.title}</p>
-                    <p className="mt-0.5 text-xs text-zinc-400">
+                    <p className="mt-0.5 break-words text-sm text-zinc-300">{session.title}</p>
+                    <p className="mt-0.5 break-words text-xs leading-5 text-zinc-400">
                       {session.duration_minutes} min · {session.exercises.length} exercice{session.exercises.length > 1 ? 's' : ''}
                       {session.warmup && session.warmup.length > 0 ? ' · échauffement' : ''}
                     </p>
@@ -82,7 +82,7 @@ export function ProgramWeekTabs({ weeks, programId }: ProgramWeekTabsProps) {
                   <Link
                     href={`/programs/${programId}/sessions/${sessionId}`}
                     aria-label={`Démarrer la séance ${session.session_number} : ${session.title}`}
-                    className="shrink-0 inline-flex items-center justify-center px-4 py-1.5 rounded-md bg-zinc-900 text-white text-xs font-medium hover:bg-zinc-700 transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2"
+                    className="inline-flex w-full shrink-0 items-center justify-center rounded-full bg-primary-300 px-4 py-1.5 text-xs font-black text-zinc-950 transition-colors hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-300 sm:w-auto"
                   >
                     Démarrer
                   </Link>
