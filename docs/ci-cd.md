@@ -69,7 +69,7 @@ Requis pour le workflow manuel DB:
 Secrets applicatifs a configurer dans Vercel, pas dans le code:
 
 - Web: `NEXT_PUBLIC_API_URL`, `SERVICE_SECRET`, `AUTH_SECRET`,
-  `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`, `NEXTAUTH_URL`
+  `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `NEXTAUTH_URL`
 - API: `DATABASE_URL`, `SERVICE_SECRET`, `MISTRAL_API_KEY`, `FRONTEND_URL`,
   `NODE_ENV`
 

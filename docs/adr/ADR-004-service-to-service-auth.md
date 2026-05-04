@@ -8,7 +8,7 @@
 
 ## Contexte
 
-Le frontend Next.js 14 et le backend Hono sont deux processus distincts (ports 3000 et 3001). L'utilisateur s'authentifie via Auth.js (GitHub OAuth) qui stocke la session dans un JWT signé dans un cookie HTTP-only. Ce cookie n'est pas accessible au JavaScript côté client, ce qui rend impossible la transmission directe du token de session dans les requêtes API client-side.
+Le frontend Next.js 14 et le backend Hono sont deux processus distincts (ports 3000 et 3001). L'utilisateur s'authentifie via Auth.js (Google OAuth) qui stocke la session dans un JWT signé dans un cookie HTTP-only. Ce cookie n'est pas accessible au JavaScript côté client, ce qui rend impossible la transmission directe du token de session dans les requêtes API client-side.
 
 ### Contraintes
 - Le cookie Auth.js (`authjs.session-token`) est HTTP-only — inaccessible depuis le navigateur

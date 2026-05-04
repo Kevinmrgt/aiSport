@@ -15,7 +15,7 @@ L'utilisateur sélectionne un sport, décrit ses objectifs et contraintes, et re
 | Frontend | Next.js 14 (App Router), TypeScript, Tailwind CSS |
 | Backend | Hono (TypeScript), architecture en couches |
 | Base de données | PostgreSQL 16 + Drizzle ORM |
-| Authentification | Auth.js (NextAuth v5) — OAuth GitHub |
+| Authentification | Auth.js (NextAuth v5) — OAuth Google |
 | IA | Mistral AI — JSON mode validé par Zod |
 | Tests | Vitest (unitaires), Playwright (E2E), axe-core (WCAG) |
 | CI/CD | GitHub Actions — CI, CD Vercel, migrations DB manuelles |

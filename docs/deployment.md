@@ -21,8 +21,8 @@ Projet Web:
 NEXT_PUBLIC_API_URL=https://ai-sport-api.vercel.app
 SERVICE_SECRET=<same value as API>
 AUTH_SECRET=<Auth.js secret>
-AUTH_GITHUB_ID=<GitHub OAuth client id>
-AUTH_GITHUB_SECRET=<GitHub OAuth client secret>
+AUTH_GOOGLE_ID=<Google OAuth client id>
+AUTH_GOOGLE_SECRET=<Google OAuth client secret>
 NEXTAUTH_URL=https://ai-sport-web.vercel.app
 ```
 
@@ -109,7 +109,7 @@ Checklist:
 - [ ] CI verte sur `main`
 - [ ] Migrations Drizzle appliquees si le schema a change
 - [ ] `SERVICE_SECRET` identique cote Web et API
-- [ ] OAuth GitHub callback: `https://ai-sport-web.vercel.app/api/auth/callback/github`
+- [ ] OAuth Google callback: `https://ai-sport-web.vercel.app/api/auth/callback/google`
 - [ ] API healthcheck HTTP 200
 - [ ] Web healthcheck HTTP 200
 - [ ] Generation d'un entrainement testee avec un compte authentifie

@@ -108,8 +108,8 @@ GitHub → Vercel (Next.js) ←→ Fly.io (Hono API) ←→ Neon (PostgreSQL ser
 | Variable | Source | Description |
 |---|---|---|
 | `AUTH_SECRET` | Vercel Secrets | Signe les sessions JWT Auth.js |
-| `AUTH_GITHUB_ID` | GitHub OAuth App | Client ID OAuth |
-| `AUTH_GITHUB_SECRET` | GitHub OAuth App | Client Secret OAuth |
+| `AUTH_GOOGLE_ID` | Google OAuth Client | Client ID OAuth |
+| `AUTH_GOOGLE_SECRET` | Google OAuth Client | Client Secret OAuth |
 | `NEXTAUTH_URL` | `https://sportcoach.vercel.app` | URL publique du frontend |
 | `NEXT_PUBLIC_API_URL` | `https://sportcoach-api.fly.dev` | URL publique de l'API |
 | `SERVICE_SECRET` | Partagé avec Fly.io | Secret interne service-to-service |
