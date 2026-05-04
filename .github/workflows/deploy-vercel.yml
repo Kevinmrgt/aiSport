@@ -16,6 +16,7 @@ concurrency:
 
 env:
   NODE_VERSION: "20"
+  VERCEL_TELEMETRY_DISABLED: "1"
 
 jobs:
   deploy-api:
@@ -52,35 +53,34 @@ jobs:
           done
 
       - name: Pull Vercel API environment
-        working-directory: apps/api
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
-        run: pnpm dlx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+        run: npx --yes vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
 
       - name: Build API with Vercel
-        working-directory: apps/api
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
-        run: pnpm dlx vercel@latest build --prod --token="$VERCEL_TOKEN"
+        run: npx --yes vercel@latest build --prod --token="$VERCEL_TOKEN"
 
       - name: Deploy API prebuilt output
         id: deploy-api
-        working-directory: apps/api
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
         run: |
-          url="$(pnpm dlx vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN")"
+          output="$(npx --yes vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN")"
+          echo "$output"
+          url="$(echo "$output" | tail -n 1)"
           echo "url=${url}" >> "$GITHUB_OUTPUT"
           echo "API deployed to ${url}"
 
       - name: Smoke test API
-        run: curl --fail --show-error --silent --max-time 30 https://ai-sport-api.vercel.app/health
+        run: curl --fail --show-error --silent --max-time 30 "${{ steps.deploy-api.outputs.url }}/health"
 
   deploy-web:
     name: Deploy Web to Vercel
@@ -117,32 +117,31 @@ jobs:
           done
 
       - name: Pull Vercel Web environment
-        working-directory: apps/web
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
-        run: pnpm dlx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+        run: npx --yes vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
 
       - name: Build Web with Vercel
-        working-directory: apps/web
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
-        run: pnpm dlx vercel@latest build --prod --token="$VERCEL_TOKEN"
+        run: npx --yes vercel@latest build --prod --token="$VERCEL_TOKEN"
 
       - name: Deploy Web prebuilt output
         id: deploy-web
-        working-directory: apps/web
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
         run: |
-          url="$(pnpm dlx vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN")"
+          output="$(npx --yes vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN")"
+          echo "$output"
+          url="$(echo "$output" | tail -n 1)"
           echo "url=${url}" >> "$GITHUB_OUTPUT"
           echo "Web deployed to ${url}"
 
       - name: Smoke test Web
-        run: curl --fail --show-error --silent --max-time 30 https://ai-sport-web.vercel.app/api/health
+        run: curl --fail --show-error --silent --max-time 30 "${{ steps.deploy-web.outputs.url }}/api/health"
