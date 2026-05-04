@@ -80,7 +80,7 @@ jobs:
           echo "API deployed to ${url}"
 
       - name: Smoke test API
-        run: curl --fail --show-error --silent --max-time 30 "${{ steps.deploy-api.outputs.url }}/health"
+        run: curl --fail --show-error --silent --max-time 30 https://ai-sport-api.vercel.app/health
 
   deploy-web:
     name: Deploy Web to Vercel
@@ -144,4 +144,4 @@ jobs:
           echo "Web deployed to ${url}"
 
       - name: Smoke test Web
-        run: curl --fail --show-error --silent --max-time 30 "${{ steps.deploy-web.outputs.url }}/api/health"
+        run: curl --fail --show-error --silent --max-time 30 https://ai-sport-web.vercel.app/api/health
