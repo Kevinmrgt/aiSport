@@ -7,17 +7,17 @@ test.describe('Page de connexion', () => {
     await page.goto('/login');
   });
 
-  test('affiche le bouton de connexion GitHub', async ({ page }) => {
+  test('affiche le bouton de connexion Google', async ({ page }) => {
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-    const githubBtn = page.getByRole('button', { name: /github/i })
-      .or(page.getByRole('link', { name: /github/i }));
-    await expect(githubBtn.first()).toBeVisible();
+    const googleBtn = page.getByRole('button', { name: /google/i })
+      .or(page.getByRole('link', { name: /google/i }));
+    await expect(googleBtn.first()).toBeVisible();
   });
 
-  test('RGAA 4.1 — le bouton GitHub a un aria-label ou texte explicite', async ({ page }) => {
-    const githubBtn = page.getByRole('button', { name: /github/i })
-      .or(page.getByRole('link', { name: /github/i }));
-    await expect(githubBtn.first()).toBeVisible();
+  test('RGAA 4.1 — le bouton Google a un aria-label ou texte explicite', async ({ page }) => {
+    const googleBtn = page.getByRole('button', { name: /google/i })
+      .or(page.getByRole('link', { name: /google/i }));
+    await expect(googleBtn.first()).toBeVisible();
   });
 });
 

@@ -1,12 +1,12 @@
 import NextAuth from 'next-auth';
-import GitHub from 'next-auth/providers/github';
+import Google from 'next-auth/providers/google';
 
 // OWASP A07: configuration Auth.js sécurisée
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
-    GitHub({
-      clientId: process.env['AUTH_GITHUB_ID'],
-      clientSecret: process.env['AUTH_GITHUB_SECRET'],
+    Google({
+      clientId: process.env['AUTH_GOOGLE_ID'],
+      clientSecret: process.env['AUTH_GOOGLE_SECRET'],
     }),
   ],
   // Requis sur Vercel — le host est derrière un proxy

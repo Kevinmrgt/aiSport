@@ -103,7 +103,7 @@
 **Contrôles en place :**
 | Contrôle | Détail |
 |---|---|
-| Auth.js OAuth | Pas de gestion de mots de passe — délégation à GitHub OAuth |
+| Auth.js OAuth | Pas de gestion de mots de passe — délégation à Google OAuth |
 | JWT signé | `AUTH_SECRET` fort (32 bytes hex), session strategy JWT |
 | Expiration | `maxAge: 30 * 24 * 60 * 60` (30 jours) |
 | Pages auth custom | `/login` et `/login` (erreur) — pas de pages Auth.js par défaut exposées |

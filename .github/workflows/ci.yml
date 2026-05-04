@@ -19,8 +19,8 @@ env:
   NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'http://localhost:3001' }}
   NEXTAUTH_URL: http://localhost:3000
   AUTH_SECRET: ci-auth-secret-change-only-in-ci
-  AUTH_GITHUB_ID: ci-github-client-id
-  AUTH_GITHUB_SECRET: ci-github-client-secret
+  AUTH_GOOGLE_ID: ci-google-client-id
+  AUTH_GOOGLE_SECRET: ci-google-client-secret
   SERVICE_SECRET: ${{ secrets.SERVICE_SECRET || 'ci-service-secret-change-only-in-ci' }}
 
 jobs:
@@ -175,8 +175,8 @@ jobs:
           NEXT_PUBLIC_API_URL: http://localhost:3001
           NEXTAUTH_URL: http://localhost:3000
           AUTH_SECRET: ci-auth-secret-change-only-in-ci
-          AUTH_GITHUB_ID: ci-github-client-id
-          AUTH_GITHUB_SECRET: ci-github-client-secret
+          AUTH_GOOGLE_ID: ci-google-client-id
+          AUTH_GOOGLE_SECRET: ci-google-client-secret
           SERVICE_SECRET: ci-service-secret-change-only-in-ci
 
   security-audit:

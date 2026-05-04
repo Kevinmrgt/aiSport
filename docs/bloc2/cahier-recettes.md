@@ -14,10 +14,10 @@
 
 | ID | Fonctionnalité | Préconditions | Actions | Résultat attendu | Résultat obtenu | Statut |
 |---|---|---|---|---|---|---|
-| CR-001 | Connexion OAuth GitHub | Aucune session active | 1. Aller sur `/login` 2. Cliquer "Continuer avec GitHub" 3. Autoriser l'application sur GitHub | Redirection vers `/generate`, session créée | Redirection correcte, navbar affiche le nom d'utilisateur | ✅ |
+| CR-001 | Connexion OAuth Google | Aucune session active | 1. Aller sur `/login` 2. Cliquer "Continuer avec Google" 3. Autoriser l'application sur Google | Redirection vers `/generate`, session créée | Redirection correcte, navbar affiche le nom d'utilisateur | ✅ |
 | CR-002 | Accès route protégée sans session | Aucune session active | 1. Aller directement sur `/generate` | Redirection automatique vers `/login` | Redirection immédiate vers `/login` | ✅ |
 | CR-003 | Déconnexion | Session active | 1. Cliquer "Déconnexion" dans la navbar | Session supprimée, redirection vers `/` | Session expirée, navbar affiche "Se connecter" | ✅ |
-| CR-004 | Navbar session-aware | Session active / inactive | 1. Observer la navbar connecté vs déconnecté | Affichage conditionnel nom utilisateur + liens | Nom GitHub visible quand connecté, "Se connecter" sinon | ✅ |
+| CR-004 | Navbar session-aware | Session active / inactive | 1. Observer la navbar connecté vs déconnecté | Affichage conditionnel nom utilisateur + liens | Nom Google visible quand connecté, "Se connecter" sinon | ✅ |
 
 ---
 
@@ -112,7 +112,7 @@
 | ValidateEnv | `validate-env.test.ts` | 4 tests — toutes vars OK, exit si SERVICE_SECRET/MISTRAL/DATABASE_URL manque | ✅ |
 | **Total unitaires** | — | **41 tests · >90% statements · 100% functions** | ✅ |
 | E2E home | `home.spec.ts` | 7 tests — titre, skip link, nav, footer, /login | ✅ |
-| E2E auth | `auth.spec.ts` | 6 tests — GitHub button, routes protégées, 404 | ✅ |
+| E2E auth | `auth.spec.ts` | 6 tests — Google button, routes protégées, 404 | ✅ |
 | E2E generate | `generate.spec.ts` | 4 tests — form labels, validation, aria-live (session mockée) | ✅ |
 | E2E accessibility | `accessibility.spec.ts` | 10 tests — RGAA 4.1 skip link, lang, sémantique, liens | ✅ |
 | E2E axe-core | `axe.spec.ts` | 2 tests — WCAG 2.1 A/AA violations / et /login | ✅ |

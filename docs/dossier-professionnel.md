@@ -26,7 +26,7 @@ Ce projet a été choisi comme support RNCP pour deux raisons :
 | Frontend | Next.js App Router | 14 | Server Components + Server Actions — zéro secret côté client |
 | Backend | Hono | 4.x | Ultra-léger, TypeScript natif, compatible Edge |
 | Base de données | PostgreSQL + Drizzle ORM | 16 / 0.38 | Requêtes paramétrées, schéma typé, migrations versionnées |
-| Authentification | Auth.js (NextAuth v5) | 5.x | OAuth GitHub, JWT HTTP-only, zéro gestion de mots de passe |
+| Authentification | Auth.js (NextAuth v5) | 5.x | OAuth Google, JWT HTTP-only, zéro gestion de mots de passe |
 | IA | Mistral AI | API v1 | JSON mode natif, coût maîtrisé, hébergement EU disponible |
 | Tests unitaires | Vitest | 3.x | Compatible ESM natif, coverage v8 intégré |
 | Tests E2E | Playwright | 1.x | Multi-navigateurs, trace viewer, webServer auto-start |
@@ -44,7 +44,7 @@ Ce projet a été choisi comme support RNCP pour deux raisons :
 
 L'interface a été conçue autour de 5 routes principales avec une hiérarchie claire :
 - `/` — Page d'accueil publique (hero, CTA, pitch)
-- `/login` — Connexion OAuth (bouton GitHub unique)
+- `/login` — Connexion OAuth (bouton Google unique)
 - `/generate` — Formulaire de génération multi-champs
 - `/workouts` — Liste des séances en grille responsive
 - `/workouts/[id]` — Détail avec timer interactif
