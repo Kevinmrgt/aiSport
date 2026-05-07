@@ -41,4 +41,4 @@ Chaque couche a une responsabilité unique et ne doit pas déborder sur les autr
 
 - Aucun accès BDD dans les controllers, aucune logique HTTP dans les services.
 - Middleware d'erreurs centralisé via `AppError` typé.
-- Déploiement sur Railway avec `@hono/node-server`.
+- Déploiement initialement envisagé sur Railway avec `@hono/node-server` ; la production canonique actuelle est Vercel API + Neon, voir ADR-007.

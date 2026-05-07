@@ -1,7 +1,7 @@
 # Guide de deploiement - SportCoach IA
 
-> Version: 0.13.0
-> Date: 2026-05-04
+> Version applicative de reference: 0.12.0
+> Date de verification documentaire: 2026-05-07
 
 ## Production canonique
 
@@ -31,7 +31,7 @@ Projet API:
 ```text
 DATABASE_URL=<Neon pooled PostgreSQL URL>
 SERVICE_SECRET=<same value as Web>
-MISTRAL_API_KEY=<Mistral API key>
+MISTRAL_API_KEY=<Mistral API key par defaut, optionnelle si les utilisateurs configurent leur propre cle IA>
 FRONTEND_URL=https://ai-sport-web.vercel.app
 NODE_ENV=production
 ```
