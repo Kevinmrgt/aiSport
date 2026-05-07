@@ -16,17 +16,18 @@ const LEVELS = [
 export default async function WorkoutsPage({
   searchParams,
 }: {
-  searchParams: { page?: string; sport?: string; level?: string };
+  searchParams: Promise<{ page?: string; sport?: string; level?: string }>;
 }) {
+  const query = await searchParams;
   const session = await auth();
 
   if (!session?.user) {
     redirect('/login');
   }
 
-  const page = Math.max(1, Number(searchParams.page) || 1);
-  const sport = searchParams.sport || undefined;
-  const level = searchParams.level || undefined;
+  const page = Math.max(1, Number(query.page) || 1);
+  const sport = query.sport || undefined;
+  const level = query.level || undefined;
 
   // Server Action : suppression avec ownership vérifié côté backend (OWASP A01)
   async function handleDelete(id: string) {
