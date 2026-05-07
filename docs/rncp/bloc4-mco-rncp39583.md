@@ -580,7 +580,32 @@ Exemple de réponse support simulée :
 
 ---
 
-## 15. Conclusion Bloc 4
+## 15. Mise en place outillage MCO du 2026-05-07
+
+Cette passe ajoute un niveau de preuve operationnelle immediatement exploitable pour le jury.
+
+| Element mis en place | Fichier ou outil | Apport Bloc 4 |
+|---|---|---|
+| Monitoring production horaire | [.github/workflows/production-health-monitor.yml](../../.github/workflows/production-health-monitor.yml) | Sondes Web/API, rapport artifact et issue automatique si echec |
+| Templates GitHub Issues | `.github/ISSUE_TEMPLATE/anomaly_report.yml`, `.github/ISSUE_TEMPLATE/support_case.yml` | Collecte structuree des anomalies et cas support |
+| Checklist PR MCO | [.github/PULL_REQUEST_TEMPLATE.md](../../.github/PULL_REQUEST_TEMPLATE.md) | Validation non-regression, changelog et preuve Bloc 4 avant merge |
+| Setup MCP local | [docs/mcp-setup.md](../mcp-setup.md), `.codex/config.toml` | Acces agent aux fichiers, tests navigateur et outillage Vercel |
+| Checklist preuves restantes | [bloc4-preuves-mco-a-completer.md](bloc4-preuves-mco-a-completer.md) | Liste concrete des captures a produire avant depot |
+| Healthchecks renforces | `apps/api/src/routes/health.routes.ts`, `apps/web/app/api/health/route.ts` | Reponses non cacheables et version applicative alignee |
+
+Le workflow GitHub Actions constitue une premiere modalite de signalement gratuite : en cas d'echec de `/health` API ou Web, le run echoue et ouvre ou commente une issue `Production healthcheck failed`. Pour une preuve plus forte de supervision externe, la recommandation reste de brancher Better Stack Free sur les deux memes endpoints et de capturer les alertes e-mail.
+
+Preuves a joindre avant depot :
+
+1. un run vert du workflow `Monitoring - Production health` ;
+2. l'artifact `production-health-report` ;
+3. une issue anomalie creee depuis le template Bloc 4 ;
+4. une issue support pilote creee depuis le template support ;
+5. si possible, deux monitors Better Stack actifs avec destinataire d'alerte.
+
+---
+
+## 16. Conclusion Bloc 4
 
 SportCoach IA dispose d'une base MCO crédible : application déployable, CI/CD, healthchecks, logs applicatifs, audit, migrations contrôlées, fiches bugs réelles, changelog et rollback Vercel. Les compétences éliminatoires sont adressées de la manière suivante :
 

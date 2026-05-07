@@ -1,0 +1,125 @@
+name: Anomalie Bloc 4
+description: Consigner une anomalie, un incident ou un bug pour le dossier MCO RNCP.
+title: '[BUG-XXX] '
+labels: ['rncp:bloc4', 'type:bug', 'status:triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Utilise ce ticket comme preuve de collecte et consignation des anomalies pour C4.2.1.
+  - type: input
+    id: detected_at
+    attributes:
+      label: Date de detection
+      placeholder: '2026-05-07'
+    validations:
+      required: true
+  - type: dropdown
+    id: source
+    attributes:
+      label: Source
+      options:
+        - Monitoring
+        - Utilisateur
+        - Support
+        - CI GitHub Actions
+        - CD Vercel
+        - Audit securite
+        - Test manuel
+        - Autre
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environnement
+      options:
+        - Production
+        - Preview
+        - CI
+        - Local
+        - Documentation
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Composant
+      options:
+        - Web
+        - API
+        - Base de donnees
+        - IA
+        - Auth
+        - CI/CD
+        - Documentation
+        - Securite
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Criticite
+      options:
+        - P0 Critique
+        - P1 Haute
+        - P2 Moyenne
+        - P3 Faible
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Resume clair du probleme observe.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Etapes de reproduction
+      description: Commandes, URL, donnees de test ou parcours utilisateur.
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Resultat attendu
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Resultat obtenu
+      description: Inclure le message d'erreur exact si disponible.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Utilisateur, securite, donnees, disponibilite, CI/CD ou demonstration RNCP.
+    validations:
+      required: true
+  - type: textarea
+    id: root_cause
+    attributes:
+      label: Cause racine pressentie ou confirmee
+  - type: textarea
+    id: fix
+    attributes:
+      label: Correctif ou contournement propose
+  - type: textarea
+    id: validation
+    attributes:
+      label: Tests et preuves de validation
+      placeholder: |
+        - [ ] pnpm lint
+        - [ ] pnpm typecheck
+        - [ ] pnpm test
+        - [ ] pnpm build
+        - [ ] Healthcheck production

@@ -46,7 +46,8 @@ Il complète :
 | Base de données | migration KO, connexion DB, requête en erreur | Neon, Drizzle, GitHub Actions |
 | Audit sécurité | vulnérabilité haute ou critique | `pnpm audit --audit-level=high`, Dependabot |
 | Test manuel | parcours login, génération, consultation, dashboard | cahier de recette, runbook |
-| Retour utilisateur/support | email, ticket, message commanditaire | à formaliser |
+| Retour utilisateur/support | email, ticket, message commanditaire | `.github/ISSUE_TEMPLATE/support_case.yml` |
+| Monitoring GitHub Actions | échec healthcheck production Web/API | `.github/workflows/production-health-monitor.yml`, issue `Production healthcheck failed` |
 
 ---
 
