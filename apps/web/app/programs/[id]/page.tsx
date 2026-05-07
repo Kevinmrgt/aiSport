@@ -7,7 +7,7 @@ import { ProgramWeekTabs } from '@/components/ProgramWeekTabs';
 import { DeleteProgramButton } from '@/components/DeleteProgramButton';
 
 interface ProgramDetailPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 const DIFFICULTY_LABELS = {
@@ -18,6 +18,7 @@ const DIFFICULTY_LABELS = {
 
 // OWASP A01: route protégée + ownership vérifié côté backend
 export default async function ProgramDetailPage({ params }: ProgramDetailPageProps) {
+  const { id } = await params;
   const session = await auth();
 
   if (!session?.user) {
@@ -26,7 +27,7 @@ export default async function ProgramDetailPage({ params }: ProgramDetailPagePro
 
   let program: Awaited<ReturnType<typeof serverApi.getProgram>>;
   try {
-    program = await serverApi.getProgram(params.id);
+    program = await serverApi.getProgram(id);
   } catch {
     notFound();
   }

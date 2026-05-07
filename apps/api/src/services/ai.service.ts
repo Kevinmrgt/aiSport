@@ -8,6 +8,12 @@ export interface AiConfig {
   model?: string;
 }
 
+interface AiCallOptions {
+  timeoutMs?: number;
+  maxTokens?: number;
+  temperature?: number;
+}
+
 // Modèles par défaut par provider
 const DEFAULT_MODELS: Record<AiProvider, string> = {
   mistral: 'mistral-small-latest',
@@ -53,19 +59,41 @@ interface AnthropicResponse {
   content: Array<{ type: string; text: string }>;
 }
 
-// OWASP A10: timeout strict sur tous les appels IA externes
-const TIMEOUT_MS = 20_000;
+// OWASP A10: timeout strict sur tous les appels IA externes.
+// Le default reste conservateur pour les generations multi-appels.
+const DEFAULT_TIMEOUT_MS = 20_000;
 
-export async function callAiProvider(config: AiConfig, prompt: string): Promise<string> {
+export class AiTimeoutError extends Error {
+  constructor(timeoutMs: number) {
+    super(`Appel IA interrompu apres ${timeoutMs}ms`);
+    this.name = 'AiTimeoutError';
+  }
+}
+
+export async function callAiProvider(
+  config: AiConfig,
+  prompt: string,
+  options: AiCallOptions = {},
+): Promise<string> {
   const model = config.model ?? DEFAULT_MODELS[config.provider];
+  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  let timedOut = false;
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
 
   try {
     if (config.provider === 'anthropic') {
-      return await callAnthropic(config.apiKey, model, prompt, controller.signal);
+      return await callAnthropic(config.apiKey, model, prompt, controller.signal, options);
     }
-    return await callOpenAiCompatible(config.provider, config.apiKey, model, prompt, controller.signal);
+    return await callOpenAiCompatible(config.provider, config.apiKey, model, prompt, controller.signal, options);
+  } catch (error) {
+    if (timedOut) {
+      throw new AiTimeoutError(timeoutMs);
+    }
+    throw error;
   } finally {
     clearTimeout(timeoutId);
   }
@@ -77,6 +105,7 @@ async function callOpenAiCompatible(
   model: string,
   prompt: string,
   signal: AbortSignal,
+  options: AiCallOptions,
 ): Promise<string> {
   const url =
     provider === 'mistral'
@@ -92,8 +121,8 @@ async function callOpenAiCompatible(
     body: JSON.stringify({
       model,
       messages: [{ role: 'user', content: prompt }],
-      temperature: 0.7,
-      max_tokens: 2048,
+      temperature: options.temperature ?? 0.7,
+      max_tokens: options.maxTokens ?? 2048,
       response_format: { type: 'json_object' },
     }),
     signal,
@@ -114,6 +143,7 @@ async function callAnthropic(
   model: string,
   prompt: string,
   signal: AbortSignal,
+  options: AiCallOptions,
 ): Promise<string> {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -124,7 +154,8 @@ async function callAnthropic(
     },
     body: JSON.stringify({
       model,
-      max_tokens: 4096,
+      max_tokens: options.maxTokens ?? 4096,
+      temperature: options.temperature ?? 0.7,
       messages: [{ role: 'user', content: prompt }],
     }),
     signal,
