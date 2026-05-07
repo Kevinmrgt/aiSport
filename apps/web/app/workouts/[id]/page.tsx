@@ -8,7 +8,7 @@ import { WorkoutTimeline } from '@/components/WorkoutTimeline';
 import type { CreateSessionLogInput } from '@sportcoach/shared';
 
 interface WorkoutPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 const DIFFICULTY_LABELS = {
@@ -19,6 +19,7 @@ const DIFFICULTY_LABELS = {
 
 // OWASP A01: route protégée + ownership vérifié côté backend
 export default async function WorkoutDetailPage({ params }: WorkoutPageProps) {
+  const { id } = await params;
   const session = await auth();
 
   if (!session?.user) {
@@ -27,7 +28,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutPageProps) {
 
   let workout;
   try {
-    workout = await serverApi.getWorkout(params.id);
+    workout = await serverApi.getWorkout(id);
   } catch {
     notFound();
   }
@@ -54,7 +55,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutPageProps) {
         ...(payload.notes ? { notes: payload.notes } : {}),
       });
       revalidatePath('/dashboard');
-      revalidatePath(`/workouts/${params.id}`);
+      revalidatePath(`/workouts/${id}`);
     } catch (error) {
       return {
         error: error instanceof Error ? error.message : "Impossible d'enregistrer la seance",
