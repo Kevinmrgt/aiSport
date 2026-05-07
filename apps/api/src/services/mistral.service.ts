@@ -1,8 +1,10 @@
 import { WorkoutSchema } from '@sportcoach/shared';
 import type { Workout, GenerateWorkoutInput } from '@sportcoach/shared';
 import { AppError } from '../types/app-error.js';
-import { callAiProvider } from './ai.service.js';
+import { AiTimeoutError, callAiProvider } from './ai.service.js';
 import type { AiConfig } from './ai.service.js';
+
+const WORKOUT_AI_TIMEOUT_MS = 45_000;
 
 // Log structuré pour OWASP A09
 function logAiCall(data: {
@@ -94,6 +96,7 @@ export async function generateWorkout(
         attempt === 2
           ? `${prompt}\n\nATTENTION: Réponds ABSOLUMENT avec du JSON valide et rien d'autre.`
           : prompt,
+        { timeoutMs: WORKOUT_AI_TIMEOUT_MS },
       );
 
       const jsonStr = extractJson(rawResponse);
@@ -127,6 +130,12 @@ export async function generateWorkout(
         provider: aiConfig.provider,
         error: message,
       });
+
+      if (error instanceof AiTimeoutError) {
+        throw AppError.serviceUnavailable(
+          "L'IA met trop de temps à répondre, veuillez réessayer dans quelques instants",
+        );
+      }
 
       if (attempt === 2) {
         throw AppError.serviceUnavailable(

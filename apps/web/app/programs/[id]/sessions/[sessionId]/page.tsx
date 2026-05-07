@@ -1,9 +1,11 @@
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
+import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { serverApi } from '@/lib/server-api';
 import { Timer } from '@/components/Timer';
 import { WorkoutTimeline } from '@/components/WorkoutTimeline';
+import type { CreateSessionLogInput } from '@sportcoach/shared';
 
 interface SessionPageProps {
   params: { id: string; sessionId: string };
@@ -38,6 +40,39 @@ export default async function ProgramSessionPage({ params }: SessionPageProps) {
 
   const trainingSession = week.sessions.find((s) => s.session_number === sessionNumber);
   if (!trainingSession) notFound();
+
+  const sessionMeta = {
+    sourceType: 'program_session',
+    programId: program.id,
+    programWeekNumber: weekNumber,
+    programSessionNumber: sessionNumber,
+    title: trainingSession.title,
+    sport: program.sport,
+    difficulty: program.difficulty,
+    plannedDurationMinutes: trainingSession.duration_minutes,
+  } as const;
+
+  async function completeProgramSession(payload: CreateSessionLogInput): Promise<{ error?: string } | void> {
+    'use server';
+    try {
+      await serverApi.createSessionLog({
+        ...sessionMeta,
+        durationSeconds: payload.durationSeconds,
+        perceivedEffort: payload.perceivedEffort,
+        feedback: payload.feedback,
+        completedAt: payload.completedAt,
+        ...(payload.painNotes ? { painNotes: payload.painNotes } : {}),
+        ...(payload.notes ? { notes: payload.notes } : {}),
+      });
+      revalidatePath('/dashboard');
+      revalidatePath(`/programs/${params.id}`);
+      revalidatePath(`/programs/${params.id}/sessions/${params.sessionId}`);
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : "Impossible d'enregistrer la seance",
+      };
+    }
+  }
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -89,9 +124,11 @@ export default async function ProgramSessionPage({ params }: SessionPageProps) {
           Timer
         </h2>
         <Timer
+          completeAction={completeProgramSession}
           exercises={trainingSession.exercises}
           warmup={trainingSession.warmup}
           cooldown={trainingSession.cooldown}
+          sessionMeta={sessionMeta}
         />
       </section>
     </div>

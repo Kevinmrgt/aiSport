@@ -2,6 +2,11 @@ import 'server-only';
 import { auth } from '@/lib/auth';
 import type { WorkoutDetail, WorkoutListResponse, WorkoutStats, GenerateWorkoutInput } from '@sportcoach/shared';
 import type { GenerateProgramInput, ProgramListResponse, TrainingProgramRecord, ProgramListItem } from '@sportcoach/shared';
+import type {
+  CreateSessionLogInput,
+  SessionLogListItem,
+  SessionLogStats,
+} from '@sportcoach/shared';
 
 export interface UserAiSettings {
   provider: 'mistral' | 'openai' | 'anthropic';
@@ -122,6 +127,18 @@ export const serverApi = {
     serverFetch<void>(`/programs/${id}`, { method: 'DELETE' }),
 
   // --- Paramètres IA ---
+
+  createSessionLog: (input: CreateSessionLogInput): Promise<SessionLogListItem> =>
+    serverFetch<SessionLogListItem>('/session-logs', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  getSessionLogStats: (): Promise<SessionLogStats> =>
+    serverFetch<SessionLogStats>('/session-logs/stats'),
+
+  getRecentSessionLogs: (limit = 5): Promise<{ sessionLogs: SessionLogListItem[] }> =>
+    serverFetch<{ sessionLogs: SessionLogListItem[] }>(`/session-logs/recent?limit=${limit}`),
 
   getAiSettings: (): Promise<UserAiSettings> =>
     serverFetch<UserAiSettings>('/settings'),

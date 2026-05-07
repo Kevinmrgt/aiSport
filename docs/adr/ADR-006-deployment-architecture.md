@@ -1,6 +1,8 @@
 # ADR-006 — Architecture de déploiement
 
-> Date : 2026-04-13 | Statut : **Accepté (mis à jour Sprint 11)** | Auteur : Kevin
+> Date : 2026-04-13 | Statut : **Historique — remplacé par ADR-007 pour la production canonique** | Auteur : Kevin
+
+> Note 2026-05-07 : cette ADR décrit l'arbitrage Vercel Web + Fly.io API + Neon retenu pendant le Sprint 11. La production canonique actuelle est Vercel Web/API + Neon, documentée dans `ADR-007-ci-cd-vercel-neon.md`, `docs/ci-cd.md` et `docs/deployment.md`. Fly.io reste une alternative de portabilité pour l'API.
 
 ---
 

@@ -3,11 +3,20 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Exercise, Phase } from '@sportcoach/shared';
 import { Button } from './ui/Button';
+import {
+  SessionCompletionForm,
+  type SessionCompletionPayload,
+  type TimerSessionMeta,
+} from './SessionCompletionForm';
 
-interface TimerProps {
+export type { SessionCompletionPayload, TimerSessionMeta } from './SessionCompletionForm';
+
+export interface TimerProps {
   exercises: Exercise[];
   warmup?: Phase[];
   cooldown?: Phase[];
+  completeAction?: (payload: SessionCompletionPayload) => Promise<{ error?: string } | void>;
+  sessionMeta?: TimerSessionMeta;
 }
 
 type TimerStepType = 'warmup' | 'exercise' | 'rest' | 'cooldown';
@@ -156,12 +165,14 @@ function getProgressLabel(step: TimerStep, exercisesCount: number): string {
 }
 
 // RGAA 4.1: timer accessible avec aria-live pour les annonces dynamiques
-export function Timer({ exercises, warmup, cooldown }: TimerProps) {
+export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta }: TimerProps) {
   const steps = useMemo(() => buildTimerSteps(exercises, warmup, cooldown), [exercises, warmup, cooldown]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(steps[0]?.durationSeconds ?? null);
   const [isRunning, setIsRunning] = useState(false);
   const [done, setDone] = useState(steps.length === 0);
+  const [completedDurationSeconds, setCompletedDurationSeconds] = useState<number | null>(null);
+  const sessionStartedAtRef = useRef<number | null>(null);
 
   const { playCountdown, playPhaseChange, playComplete } = useAudio();
   const currentStep = steps[currentIndex];
@@ -170,11 +181,20 @@ export function Timer({ exercises, warmup, cooldown }: TimerProps) {
     [steps],
   );
 
+  const markSessionStarted = useCallback(() => {
+    sessionStartedAtRef.current ??= Date.now();
+  }, []);
+
   const finish = useCallback(() => {
+    const elapsedSeconds =
+      sessionStartedAtRef.current !== null
+        ? Math.round((Date.now() - sessionStartedAtRef.current) / 1000)
+        : totalTimedSeconds;
+    setCompletedDurationSeconds(Math.max(1, elapsedSeconds || totalTimedSeconds || 1));
     playComplete();
     setIsRunning(false);
     setDone(true);
-  }, [playComplete]);
+  }, [playComplete, totalTimedSeconds]);
 
   const goToStep = useCallback(
     (nextIndex: number, keepRunning = false) => {
@@ -198,6 +218,8 @@ export function Timer({ exercises, warmup, cooldown }: TimerProps) {
     setSecondsLeft(steps[0]?.durationSeconds ?? null);
     setIsRunning(false);
     setDone(steps.length === 0);
+    setCompletedDurationSeconds(null);
+    sessionStartedAtRef.current = null;
   }, [steps]);
 
   // Décompte de l'étape chronométrée en cours.
@@ -223,6 +245,24 @@ export function Timer({ exercises, warmup, cooldown }: TimerProps) {
   }, [currentIndex, currentStep, done, finish, goToStep, isRunning, playCountdown, playPhaseChange, secondsLeft, steps.length]);
 
   if (done || !currentStep) {
+    if (completeAction && sessionMeta) {
+      return (
+        <section aria-labelledby="session-complete-title" className="surface-soft py-8 text-center">
+          <div role="status" aria-live="polite">
+            <p id="session-complete-title" className="text-2xl font-black text-primary-300">
+              Seance terminee !
+            </p>
+            <p className="mt-2 text-zinc-400">Bien joue - partagez votre ressenti pour ajuster la suite.</p>
+          </div>
+          <SessionCompletionForm
+            completeAction={completeAction}
+            durationSeconds={completedDurationSeconds ?? Math.max(1, totalTimedSeconds)}
+            sessionMeta={sessionMeta}
+          />
+        </section>
+      );
+    }
+
     return (
       // RGAA 4.1: message de fin avec aria-live
       <div role="status" aria-live="polite" className="surface-soft py-8 text-center">
@@ -347,6 +387,7 @@ export function Timer({ exercises, warmup, cooldown }: TimerProps) {
           size="lg"
           className="w-full sm:w-auto"
           onClick={() => {
+            markSessionStarted();
             if (hasStepTimer) {
               setIsRunning((r) => !r);
             } else {
@@ -363,7 +404,10 @@ export function Timer({ exercises, warmup, cooldown }: TimerProps) {
             variant="secondary"
             size="lg"
             className="w-full sm:w-auto"
-            onClick={() => goToStep(currentIndex + 1)}
+            onClick={() => {
+              markSessionStarted();
+              goToStep(currentIndex + 1);
+            }}
           >
             {secondaryButtonLabel}
           </Button>

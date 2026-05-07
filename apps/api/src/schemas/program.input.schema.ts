@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // Schéma de validation HTTP pour la génération d'un programme (OWASP A04)
-// Limites conservatrices : 4 sem max × 12s Mistral = 48s < 60s Vercel timeout
+// Limites conservatrices : 4 semaines max, generees en parallele sous le timeout Vercel.
 export const GenerateProgramRequestSchema = z.object({
   sport: z.string().min(1).max(100),
   level: z.enum(['beginner', 'intermediate', 'advanced']),

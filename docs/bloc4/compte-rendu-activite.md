@@ -1,13 +1,13 @@
 # Compte Rendu d'Activité — SportCoach IA
 
 > Bloc 4 RNCP 39583 — C4.3.1 Gérer son activité professionnelle
-> Candidat : Kevin | Période : 2026-03-01 → 2026-04-13
+> Candidat : Kevin | Période : 2026-03-01 → 2026-05-07
 
 ---
 
 ## Contexte de l'activité
 
-Dans le cadre de la certification RNCP 39583 Expert en développement logiciel, j'ai conçu et développé **SportCoach IA**, une application web de génération d'entraînements sportifs personnalisés par intelligence artificielle. Le projet a été conduit en autonomie complète sur 10 sprints de développement itératif.
+Dans le cadre de la certification RNCP 39583 Expert en développement logiciel, j'ai conçu et développé **SportCoach IA**, une application web de génération d'entraînements sportifs personnalisés par intelligence artificielle. Le projet a été conduit en autonomie complète sur 12 sprints de développement itératif.
 
 ---
 
@@ -69,7 +69,7 @@ Le développement a suivi une approche sprint-based inspirée de Scrum :
 | Next.js App Router / Server Actions | Intermédiaire | Avancé | `generate/page.tsx`, `workouts/page.tsx` |
 | Architecture monorepo TypeScript | Débutant | Intermédiaire | `pnpm-workspace.yaml`, `tsconfig.base.json` |
 | Sécurité OWASP Top 10 | Notions | Intermédiaire | `owasp-review.md`, ADR-004 |
-| Tests automatisés (Vitest + Playwright) | Débutant | Intermédiaire | 41 tests unitaires + 29 E2E |
+| Tests automatisés (Vitest + Playwright) | Débutant | Intermédiaire | 70 tests Vitest passés ; 56 exécutions E2E listées à relancer |
 | Conteneurisation Docker | Notions | Intermédiaire | Dockerfiles multi-stage, docker-compose |
 | Accessibilité RGAA 4.1 | Notions | Intermédiaire | Tests automatisés, aria-*, skip links |
 | Intégration LLM (Mistral AI) | Découverte | Intermédiaire | JSON mode, validation Zod, retry/backoff |
@@ -77,8 +77,8 @@ Le développement a suivi une approche sprint-based inspirée de Scrum :
 ### Transversales
 
 - **Autonomie** : projet conduit seul de la conception au déploiement
-- **Documentation** : 6 ADRs, 12 sprints, cahier de recettes 44 scénarios, veille technologique
-- **Rigueur** : 0 erreur TypeScript, 0 erreur ESLint, >90% coverage en CI
+- **Documentation** : 7 ADRs, 12 sprints, cahier de recettes 33 scénarios CR, veille technologique
+- **Rigueur** : 0 erreur TypeScript, 0 erreur ESLint, coverage API 81.57% statements au-dessus du seuil 70%
 - **Adaptabilité** : bugs CI résolus (coverage, secrets GitHub, ESLint), solutions documentées
 
 ---
@@ -118,19 +118,19 @@ Le développement a suivi une approche sprint-based inspirée de Scrum :
 | Catégorie | Quantité |
 |---|---|
 | Fichiers de code source | ~60 fichiers TypeScript/TSX |
-| Tests automatisés | 61 tests (32 unitaires + 29 E2E) |
-| ADRs | 6 décisions documentées |
-| Sprints documentés | 10 revues |
-| Scénarios cahier de recettes | 42 |
-| Environnements déployables | 3 (Vercel+Fly.io+Neon, Docker, local) |
+| Tests automatisés | 70 tests Vitest passés ; 56 exécutions E2E listées à relancer |
+| ADRs | 7 décisions documentées |
+| Sprints documentés | 12 revues |
+| Scénarios cahier de recettes | 33 scénarios CR |
+| Environnements déployables | 3 (Vercel Web/API + Neon, Docker, Fly.io en alternative API) |
 
 ### Métriques qualité
 
 | Métrique | Valeur |
 |---|---|
-| Coverage statements | 94.69% |
-| Coverage functions | 100% |
-| Vulnérabilités `high` | 0 |
+| Coverage statements API | 81.57% |
+| Coverage functions API | 89.23% |
+| Vulnérabilités `high` | 3 à traiter (`pnpm audit --audit-level=high`, 2026-05-07) |
 | Erreurs TypeScript | 0 |
 | Erreurs ESLint | 0 |
 | OWASP risques couverts | 10/10 |

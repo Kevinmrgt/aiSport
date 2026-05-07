@@ -1,9 +1,11 @@
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
+import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { serverApi } from '@/lib/server-api';
 import { Timer } from '@/components/Timer';
 import { WorkoutTimeline } from '@/components/WorkoutTimeline';
+import type { CreateSessionLogInput } from '@sportcoach/shared';
 
 interface WorkoutPageProps {
   params: { id: string };
@@ -28,6 +30,36 @@ export default async function WorkoutDetailPage({ params }: WorkoutPageProps) {
     workout = await serverApi.getWorkout(params.id);
   } catch {
     notFound();
+  }
+
+  const workoutSessionMeta = {
+    sourceType: 'workout',
+    workoutId: workout.id,
+    title: workout.title,
+    sport: workout.sport,
+    difficulty: workout.difficulty,
+    plannedDurationMinutes: workout.durationMinutes,
+  } as const;
+
+  async function completeWorkout(payload: CreateSessionLogInput): Promise<{ error?: string } | void> {
+    'use server';
+    try {
+      await serverApi.createSessionLog({
+        ...workoutSessionMeta,
+        durationSeconds: payload.durationSeconds,
+        perceivedEffort: payload.perceivedEffort,
+        feedback: payload.feedback,
+        completedAt: payload.completedAt,
+        ...(payload.painNotes ? { painNotes: payload.painNotes } : {}),
+        ...(payload.notes ? { notes: payload.notes } : {}),
+      });
+      revalidatePath('/dashboard');
+      revalidatePath(`/workouts/${params.id}`);
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : "Impossible d'enregistrer la seance",
+      };
+    }
   }
 
   return (
@@ -68,7 +100,13 @@ export default async function WorkoutDetailPage({ params }: WorkoutPageProps) {
         <h2 id="timer-title" className="section-kicker mb-4">
           Timer
         </h2>
-        <Timer exercises={workout.exercises} warmup={workout.warmup} cooldown={workout.cooldown} />
+        <Timer
+          completeAction={completeWorkout}
+          exercises={workout.exercises}
+          warmup={workout.warmup}
+          cooldown={workout.cooldown}
+          sessionMeta={workoutSessionMeta}
+        />
       </section>
     </div>
   );

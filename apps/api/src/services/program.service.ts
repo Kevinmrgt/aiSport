@@ -1,4 +1,5 @@
 import { generateProgram } from './mistral-program.service.js';
+import { normalizeTrainingProgramDurations } from './program-duration.service.js';
 import { resolveAiConfig } from '../controllers/settings.controller.js';
 import {
   createProgram,
@@ -17,7 +18,7 @@ export async function generateAndSaveProgram(
   // Résoudre la config IA : clé perso de l'utilisateur ou clé serveur Mistral
   const aiConfig = await resolveAiConfig(userId);
 
-  // Générer le programme via le provider IA configuré (appels séquentiels par semaine)
+  // Générer le programme via le provider IA configuré
   const program = await generateProgram(input, aiConfig);
 
   // Persister en base via le repository
@@ -36,7 +37,11 @@ export async function getProgramDetail(
   userId: string,
 ): Promise<TrainingProgramRecord> {
   // Le repository vérifie l'ownership (OWASP A01)
-  return findProgramById(programId, userId);
+  const program = await findProgramById(programId, userId);
+  return {
+    ...program,
+    data: normalizeTrainingProgramDurations(program.data),
+  };
 }
 
 export async function removeProgram(programId: string, userId: string): Promise<void> {

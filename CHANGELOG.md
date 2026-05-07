@@ -11,6 +11,11 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+### Changed
+- Documentation RNCP et projet harmonisée : version de référence `0.12.0`, métriques `pnpm test` / `pnpm test:coverage`, cible Vercel Web/API + Neon, cahier de recettes et preuves OWASP.
+- `apps/api/package.json` et `apps/web/package.json` alignés sur la version monorepo `0.12.0` pour éviter un `/health` API exposant `0.1.0` après déploiement.
+- `docs/rncp/audit-coherence-documentaire.md` ajouté pour tracer les incohérences corrigées et les points à valider avant dépôt.
+
 ---
 
 ## [0.12.0] — 2026-04-16

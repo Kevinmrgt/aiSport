@@ -65,6 +65,8 @@ API:
 
 - Ne jamais executer `db:migrate` pendant un build Vercel.
 - Les migrations Drizzle doivent etre versionnees sous `apps/api/drizzle/`.
+- A chaque fin de tache de code, deployer en production apres les verifications
+  locales necessaires; les tests utilisateur se font uniquement en production.
 - Tout changement CI/CD important doit etre documente dans `docs/ci-cd.md`
   ou un ADR.
 - Avant un deploy production, la CI doit etre verte.

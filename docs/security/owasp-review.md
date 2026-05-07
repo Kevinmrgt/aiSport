@@ -1,7 +1,7 @@
 # Revue de Sécurité OWASP Top 10 — SportCoach IA
 
 > Livrable RNCP Bloc 3 — Sécurité applicative
-> Date : 2026-04-13 | Version : 0.3.0
+> Date de vérification : 2026-05-07 | Version applicative : 0.12.0
 
 ---
 
@@ -29,7 +29,7 @@
 **Contrôles en place :**
 | Contrôle | Détail |
 |---|---|
-| Clé API Mistral | Lue depuis `process.env['MISTRAL_API_KEY']` à chaque appel, jamais au chargement du module |
+| Clés API IA | `MISTRAL_API_KEY` serveur utilisée par défaut ; clés utilisateur Mistral/OpenAI/Anthropic chiffrées côté API et jamais exposées au navigateur |
 | `SERVICE_SECRET` | Jamais dans `NEXT_PUBLIC_*`, jamais bundlé côté client |
 | `AUTH_SECRET` | Uniquement dans `.env` serveur, signé par Auth.js |
 | HTTPS en prod | Obligatoire — cookies Auth.js configurés `secure: true` en production |
@@ -61,8 +61,8 @@
 |---|---|
 | Validation à toutes les frontières | Zod côté client (WorkoutForm) + côté serveur (Controller) |
 | Architecture en couches | Routes → Controllers → Services → Repositories — pas d'accès DB direct depuis les routes |
-| Prompt Mistral strict | JSON mode forcé + validation Zod du résultat |
-| Retry limité | Maximum 2 tentatives Mistral avec backoff 1s |
+| Prompt IA strict | JSON demandé explicitement + validation Zod du résultat |
+| Retry limité | Maximum 2 tentatives par génération, avec budget de temps côté API |
 
 ---
 
@@ -77,7 +77,7 @@
 | CORS restrictif | `origin: process.env.FRONTEND_URL` uniquement, `credentials: true` | `apps/api/src/index.ts` |
 | Next.js CSP | `X-Frame-Options`, `X-Content-Type-Options` via `next.config` headers | `apps/web/next.config.mjs` |
 | Pas de stack trace client | `handleError` renvoie uniquement `error.code` + `message` sanitisé | `apps/api/src/middleware/error.middleware.ts` |
-| **Fail-fast env vars** | `validateEnv()` appelé au boot — `process.exit(1)` si `DATABASE_URL`, `SERVICE_SECRET` ou `MISTRAL_API_KEY` manquent. Principe de Fail-Safe Defaults : un serveur sans `SERVICE_SECRET` accepterait toutes les requêtes sans contrôle d'accès. | `apps/api/src/lib/validate-env.ts` |
+| **Fail-fast env vars** | `validateEnv()` appelé au boot — erreur si `DATABASE_URL` ou `SERVICE_SECRET` manquent. `MISTRAL_API_KEY` est optionnelle car un utilisateur peut configurer sa propre clé IA ; son absence produit un warning explicite. | `apps/api/src/lib/validate-env.ts` |
 
 ---
 
@@ -92,7 +92,7 @@
 | Versions verrouillées | `pnpm-lock.yaml` committé — builds reproductibles |
 | Dépendances minimales | Pas de dépendances inutiles, pas de `lodash` |
 
-**Résultat audit** : Uniquement des dépréciations sur ESLint v8 (non-bloquant, vulnérabilités à niveau `high` = 0)
+**Résultat audit 2026-05-07** : `pnpm audit --audit-level=high` échoue avec 3 vulnérabilités high à traiter : `glob` via `eslint-config-next`, et deux avis Next.js/React Server Components. Le workflow CI garde `security-audit` en `continue-on-error`, donc ce point doit être suivi manuellement avant dépôt.
 
 ---
 
@@ -134,7 +134,7 @@
 |---|---|---|
 | Tentative auth invalide | `console.warn('[Auth] Secret interne invalide')` + timestamp + path | `auth.middleware.ts` |
 | AppError (400-503) | `console.error('[AppError] CODE: message')` + statusCode + details | `error.middleware.ts` |
-| Appel Mistral | `console.info('[MistralService]')` + success/duration/attempt | `mistral.service.ts` |
+| Appel IA | `console.info('[AiService]')` / `[MistralProgramService]` + success/duration/attempt/provider | `ai.service.ts`, `mistral.service.ts`, `mistral-program.service.ts` |
 | Erreur inattendue | `console.error('[UnexpectedError]', error)` | `error.middleware.ts` |
 | Error boundary client | `console.error('[ErrorBoundary]', error.digest)` — digest uniquement | `error.tsx` |
 
@@ -149,8 +149,8 @@
 **Contrôles en place :**
 | Contrôle | Détail |
 |---|---|
-| URL Mistral fixe | `MISTRAL_API_URL` est une constante en dur — pas de URL dynamique depuis l'input | `mistral.service.ts:7` |
-| Timeout 30s | `AbortController` avec timeout strict sur l'appel Mistral | `mistral.service.ts:80` |
+| URL fournisseur bornée | L'URL d'appel est choisie par enum interne (`mistral`, `openai`, `anthropic`) — pas de URL dynamique depuis l'input utilisateur | `apps/api/src/services/ai.service.ts` |
+| Timeout strict | `AbortController` avec timeout strict : 45s pour une séance, budget global 55s pour un programme multi-semaines | `mistral.service.ts`, `mistral-program.service.ts` |
 | Pas de redirect externe | Aucun `fetch()` avec URL construite depuis l'input utilisateur |
 | `NEXT_PUBLIC_API_URL` validée | Seule URL permise pour les appels backend |
 
@@ -165,10 +165,10 @@
 | A03 — Injection | ✅ Contrôlé | `CR-030`, Zod + Drizzle |
 | A04 — Insecure Design | ✅ Contrôlé | Architecture en couches |
 | A05 — Security Misconfiguration | ✅ Contrôlé | `secureHeaders()`, CORS, `validateEnv()` fail-fast |
-| A06 — Vulnerable Components | ✅ Contrôlé | CI `pnpm audit` |
+| A06 — Vulnerable Components | ⚠️ À traiter | `pnpm audit --audit-level=high` signale 3 vulnérabilités high |
 | A07 — Auth Failures | ✅ Contrôlé | Auth.js, JWT signé |
 | A08 — Integrity Failures | ✅ Contrôlé | Lockfile, CI frozen |
 | A09 — Logging & Monitoring | ✅ Contrôlé | Logs structurés sur tous les événements |
 | A10 — SSRF | ✅ Contrôlé | URL fixe, timeout AbortController |
 
-**Tous les 10 risques OWASP sont couverts.**
+Les 10 risques OWASP sont couverts par des contrôles applicatifs, avec un point d'attention ouvert sur A06 tant que les vulnérabilités `pnpm audit` ne sont pas corrigées ou justifiées.
