@@ -4,20 +4,22 @@
 
 ## Etat mis en place
 
-| Outil                     | Statut                              | Usage                                                               |
-| ------------------------- | ----------------------------------- | ------------------------------------------------------------------- |
-| Filesystem MCP            | Configure dans `.codex/config.toml` | Lecture/ecriture limitee au repo `aiSport`                          |
-| Playwright MCP            | Configure dans `.codex/config.toml` | Verification navigateur et captures de preuves                      |
-| Vercel MCP                | Configure dans `.codex/config.toml` | Deploiement, inspection et aide Vercel                              |
-| GitHub CLI                | Authentifie localement              | Issues, labels, workflows, PR si besoin                             |
-| GitHub Actions monitoring | Ajoute                              | Healthchecks production horaires + issue automatique en cas d'echec |
-| GitHub issue templates    | Ajoutes                             | Anomalies Bloc 4 et cas support client                              |
+| Outil                     | Statut                                       | Usage                                                               |
+| ------------------------- | -------------------------------------------- | ------------------------------------------------------------------- |
+| Filesystem MCP            | Configure en local dans `.codex/config.toml` | Lecture/ecriture limitee au repo `aiSport`                          |
+| Playwright MCP            | Configure en local dans `.codex/config.toml` | Verification navigateur et captures de preuves                      |
+| Vercel MCP                | Configure en local dans `.codex/config.toml` | Deploiement, inspection et aide Vercel                              |
+| GitHub CLI                | Authentifie localement                       | Issues, labels, workflows, PR si besoin                             |
+| GitHub Actions monitoring | Ajoute                                       | Healthchecks production horaires + issue automatique en cas d'echec |
+| GitHub issue templates    | Ajoutes                                      | Anomalies Bloc 4 et cas support client                              |
 
 Redemarrer Codex apres modification de `.codex/config.toml` pour charger les nouveaux serveurs MCP locaux.
 
 ## Configuration active Codex
 
-Fichier : `.codex/config.toml`
+Fichier local : `.codex/config.toml`
+
+Exemple versionne : `docs/mcp/codex-config.example.toml`
 
 Serveurs actives :
 
@@ -29,7 +31,7 @@ Serveurs actives :
 
 Le repo est deja relie a GitHub avec `origin = https://github.com/Kevinmrgt/aiSport.git`, et le GitHub CLI est authentifie sur le compte `Kevinmrgt`.
 
-Pour un vrai GitHub MCP dans Codex, utiliser de preference le connecteur GitHub de Codex ou le serveur officiel GitHub MCP. Le fichier `.codex/mcp.github.example.toml` donne un exemple de configuration, mais il ne doit pas contenir de token en clair.
+Pour un vrai GitHub MCP dans Codex, utiliser de preference le connecteur GitHub de Codex ou le serveur officiel GitHub MCP. Le fichier `docs/mcp/codex-config.example.toml` donne un exemple de configuration, mais il ne doit pas contenir de token en clair.
 
 Variables a garder hors Git :
 
