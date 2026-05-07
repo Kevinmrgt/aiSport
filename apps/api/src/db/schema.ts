@@ -82,6 +82,37 @@ export const trainingPrograms = pgTable('training_programs', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+// Journal d'execution des seances terminees
+// OWASP A01: userId lie chaque log a son proprietaire
+export const sessionLogs = pgTable('session_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  sourceType: text('source_type', {
+    enum: ['workout', 'program_session'],
+  }).notNull(),
+  workoutId: uuid('workout_id').references(() => workouts.id, { onDelete: 'set null' }),
+  programId: uuid('program_id').references(() => trainingPrograms.id, { onDelete: 'set null' }),
+  programWeekNumber: integer('program_week_number'),
+  programSessionNumber: integer('program_session_number'),
+  title: text('title').notNull(),
+  sport: text('sport').notNull(),
+  difficulty: text('difficulty', {
+    enum: ['beginner', 'intermediate', 'advanced'],
+  }).notNull(),
+  plannedDurationMinutes: integer('planned_duration_minutes').notNull(),
+  completedAt: timestamp('completed_at', { withTimezone: true }).notNull(),
+  durationSeconds: integer('duration_seconds').notNull(),
+  perceivedEffort: integer('perceived_effort').notNull(),
+  feedback: text('feedback', {
+    enum: ['too_easy', 'good', 'too_hard'],
+  }).notNull(),
+  painNotes: text('pain_notes'),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 // Paramètres IA par utilisateur (clé API chiffrée AES-256-GCM, provider, modèle)
 // OWASP A02: clé API chiffrée côté serveur avant stockage
 export const userSettings = pgTable('user_settings', {
@@ -109,3 +140,5 @@ export type WorkoutRow = typeof workouts.$inferSelect;
 export type NewWorkoutRow = typeof workouts.$inferInsert;
 export type TrainingProgramRow = typeof trainingPrograms.$inferSelect;
 export type NewTrainingProgramRow = typeof trainingPrograms.$inferInsert;
+export type SessionLogRow = typeof sessionLogs.$inferSelect;
+export type NewSessionLogRow = typeof sessionLogs.$inferInsert;

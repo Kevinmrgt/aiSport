@@ -1,6 +1,7 @@
 # Cahier de Recettes — SportCoach IA
 
 > Livrable RNCP Bloc 2 — Compétence C2.3.1 (ÉLIMINATOIRE)
+> Vérification documentaire : 2026-05-07 — 33 scénarios CR documentés (numérotation discontinue de CR-001 à CR-044)
 
 ## Format
 
@@ -104,16 +105,22 @@
 | Suite | Fichier | Cas couverts | Statut CI |
 |---|---|---|---|
 | MistralService | `mistral.service.test.ts` | 6 tests — JSON valide, retry, timeout, 429 | ✅ |
+| MistralProgramService | `mistral-program.service.test.ts` | 7 tests — génération multi-semaines, retry, timeout, 429 | ✅ |
 | AuthMiddleware | `auth.middleware.test.ts` | 6 tests — secret invalide, userId manquant, logging A09 | ✅ |
-| WorkoutController | `workout.controller.test.ts` | 9 tests — tous les handlers, JSON malformé, 403/404 | ✅ |
-| WorkoutService | `workout.service.test.ts` | 10 tests — generate+save, liste paginée, filtres, détail, ownership | ✅ |
+| WorkoutController | `workout.controller.test.ts` | 8 tests — handlers principaux, JSON malformé, 403/404 | ✅ |
+| WorkoutService | `workout.service.test.ts` | 8 tests — generate+save, liste paginée, filtres, détail, ownership | ✅ |
+| ProgramController | `program.controller.test.ts` | 9 tests — génération programme, lecture, erreurs 400/403/404/503 | ✅ |
+| ProgramService | `program.service.test.ts` | 8 tests — génération, persistance, pagination, ownership | ✅ |
+| SessionLogController | `session-log.controller.test.ts` | 4 tests — création de journal, validation d'effort perçu | ✅ |
 | ErrorMiddleware | `error.middleware.test.ts` | 4 tests — AppError routing, erreur inattendue, logging | ✅ |
 | RateLimitMiddleware | `rate-limit.middleware.test.ts` | 5 tests — quota, 429, Retry-After, isolation userId, A09 | ✅ |
-| ValidateEnv | `validate-env.test.ts` | 4 tests — toutes vars OK, exit si SERVICE_SECRET/MISTRAL/DATABASE_URL manque | ✅ |
-| **Total unitaires** | — | **41 tests · >90% statements · 100% functions** | ✅ |
-| E2E home | `home.spec.ts` | 7 tests — titre, skip link, nav, footer, /login | ✅ |
-| E2E auth | `auth.spec.ts` | 6 tests — Google button, routes protégées, 404 | ✅ |
-| E2E generate | `generate.spec.ts` | 4 tests — form labels, validation, aria-live (session mockée) | ✅ |
-| E2E accessibility | `accessibility.spec.ts` | 10 tests — RGAA 4.1 skip link, lang, sémantique, liens | ✅ |
-| E2E axe-core | `axe.spec.ts` | 2 tests — WCAG 2.1 A/AA violations / et /login | ✅ |
-| **Total E2E** | — | **29 tests Playwright (Chromium + Firefox)** | ✅ |
+| ValidateEnv | `validate-env.test.ts` | 4 tests — variables obligatoires OK, erreur si SERVICE_SECRET ou DATABASE_URL manque, warning si MISTRAL_API_KEY absente | ✅ |
+| **Total API Vitest** | — | **69 tests · 81.57% statements · 89.23% functions** (`pnpm test:coverage`, 2026-05-07) | ✅ |
+| Web Vitest | `components/Timer.test.ts` | 1 test — timer | ✅ |
+| **Total `pnpm test`** | — | **70 tests passés** (69 API + 1 Web, 2026-05-07) | ✅ |
+| E2E home | `home.spec.ts` | 6 tests par navigateur — titre, skip link, nav, footer, /login | À relancer |
+| E2E auth | `auth.spec.ts` | 6 tests par navigateur — Google button, routes protégées, 404 | À relancer |
+| E2E generate | `generate.spec.ts` | 4 tests par navigateur — form labels, validation, aria-live (session mockée) | À relancer |
+| E2E accessibility | `accessibility.spec.ts` | 10 tests par navigateur — RGAA 4.1 skip link, lang, sémantique, liens | À relancer |
+| E2E axe-core | `axe.spec.ts` | 2 tests par navigateur — WCAG 2.1 A/AA violations / et /login | À relancer |
+| **Total E2E listé** | — | **56 exécutions Playwright** (28 cas × Chromium/Firefox, listées par `playwright test --list`) | À relancer avant dépôt |

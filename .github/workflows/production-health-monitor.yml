@@ -1,0 +1,177 @@
+name: Monitoring - Production health
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: production-health-monitor
+  cancel-in-progress: true
+
+env:
+  API_HEALTH_URL: ${{ vars.PROD_API_HEALTH_URL || 'https://ai-sport-api.vercel.app/health' }}
+  WEB_HEALTH_URL: ${{ vars.PROD_WEB_HEALTH_URL || 'https://ai-sport-web.vercel.app/api/health' }}
+
+jobs:
+  healthcheck:
+    name: Check production health endpoints
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check API and Web health
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p monitoring-report
+          report="monitoring-report/production-health.md"
+
+          {
+            echo "# Production health monitor"
+            echo
+            echo "- Checked at: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            echo "- API: ${API_HEALTH_URL}"
+            echo "- Web: ${WEB_HEALTH_URL}"
+            echo "- Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo
+          } > "$report"
+
+          check_endpoint() {
+            local name="$1"
+            local url="$2"
+            local output_file="monitoring-report/${name}.json"
+            local http_code
+
+            http_code="$(curl \
+              --location \
+              --silent \
+              --show-error \
+              --max-time 20 \
+              --retry 2 \
+              --retry-delay 5 \
+              --write-out "%{http_code}" \
+              --output "$output_file" \
+              "$url")"
+
+            {
+              echo "## ${name}"
+              echo
+              echo "- HTTP status: ${http_code}"
+            } >> "$report"
+
+            if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+              echo "- Result: failed HTTP check" >> "$report"
+              return 1
+            fi
+
+            if ! jq -e '.status == "ok"' "$output_file" >/dev/null; then
+              echo "- Result: failed JSON status check" >> "$report"
+              echo '```json' >> "$report"
+              cat "$output_file" >> "$report"
+              echo >> "$report"
+              echo '```' >> "$report"
+              return 1
+            fi
+
+            {
+              echo "- Result: ok"
+              echo "- Payload:"
+              echo '```json'
+              jq . "$output_file"
+              echo '```'
+              echo
+            } >> "$report"
+          }
+
+          status=0
+          check_endpoint api "$API_HEALTH_URL" || status=1
+          check_endpoint web "$WEB_HEALTH_URL" || status=1
+
+          exit "$status"
+
+      - name: Upload monitoring report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-health-report
+          path: monitoring-report/
+          if-no-files-found: error
+
+      - name: Open or update monitoring issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          title="Production healthcheck failed"
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+          gh label create monitoring \
+            --repo "$GITHUB_REPOSITORY" \
+            --color "0969DA" \
+            --description "Production health monitoring" 2>/dev/null || true
+
+          existing_issue="$(gh issue list \
+            --repo "$GITHUB_REPOSITORY" \
+            --state open \
+            --label monitoring \
+            --json number,title \
+            --jq ".[] | select(.title == \"${title}\") | .number" \
+            | head -n 1)"
+
+          {
+            echo "A production healthcheck failed."
+            echo
+            echo "- API: ${API_HEALTH_URL}"
+            echo "- Web: ${WEB_HEALTH_URL}"
+            echo "- Workflow run: ${run_url}"
+            echo
+            cat monitoring-report/production-health.md
+          } > monitoring-report/issue-body.md
+
+          if [ -z "$existing_issue" ]; then
+            gh issue create \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "$title" \
+              --label monitoring \
+              --body-file monitoring-report/issue-body.md
+          else
+            gh issue comment "$existing_issue" \
+              --repo "$GITHUB_REPOSITORY" \
+              --body-file monitoring-report/issue-body.md
+          fi
+
+      - name: Close recovered monitoring issue
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          title="Production healthcheck failed"
+
+          gh label create monitoring \
+            --repo "$GITHUB_REPOSITORY" \
+            --color "0969DA" \
+            --description "Production health monitoring" 2>/dev/null || true
+
+          issue_number="$(gh issue list \
+            --repo "$GITHUB_REPOSITORY" \
+            --state open \
+            --label monitoring \
+            --json number,title \
+            --jq ".[] | select(.title == \"${title}\") | .number" \
+            | head -n 1)"
+
+          if [ -n "$issue_number" ]; then
+            gh issue comment "$issue_number" \
+              --repo "$GITHUB_REPOSITORY" \
+              --body "Healthchecks recovered in ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
+            gh issue close "$issue_number" \
+              --repo "$GITHUB_REPOSITORY" \
+              --comment "Closing after successful production healthcheck."
+          fi

@@ -1,7 +1,9 @@
 # Dossier Professionnel — SportCoach IA
 
 > Certification RNCP 39583 — Expert en développement logiciel (Niv. 7, YNOV)
-> Candidat : Kevin | Date : 2026-04-13 | Version du projet : 0.10.0
+> Candidat : Kevin | Date de vérification : 2026-05-07 | Version du projet : 0.12.0
+
+> Note de cohérence : ce fichier est conservé comme synthèse technique historique. Le dossier RNCP de référence, aligné sur les intitulés officiels RNCP39583, est `docs/rncp/dossier-professionnel-rncp39583.md`.
 
 ---
 
@@ -15,7 +17,7 @@
 
 Ce projet a été choisi comme support RNCP pour deux raisons :
 
-1. **Couverture des 4 blocs** : le développement full-stack mobilise simultanément la conception d'interfaces (Bloc 1), la persistance sécurisée des données (Bloc 2), l'intégration de services IA avec contrôles de sécurité (Bloc 3), et le déploiement en infrastructure cloud avec CI/CD (Bloc 4).
+1. **Couverture des 4 blocs officiels** : le développement full-stack fournit des preuves pour le cadrage projet, la conception/développement logiciel, le pilotage projet et la maintenance en condition opérationnelle. Les sections historiques ci-dessous gardent une lecture technique ; le remapping officiel est documenté dans `docs/rncp/dossier-professionnel-rncp39583.md`.
 
 2. **Complexité technique réelle** : intégration d'une API LLM avec validation stricte des sorties, pattern service-to-service sécurisé, architecture monorepo multi-packages — des problèmes concrets qui ont nécessité des décisions architecturales documentées.
 
@@ -25,14 +27,14 @@ Ce projet a été choisi comme support RNCP pour deux raisons :
 |---|---|---|---|
 | Frontend | Next.js App Router | 14 | Server Components + Server Actions — zéro secret côté client |
 | Backend | Hono | 4.x | Ultra-léger, TypeScript natif, compatible Edge |
-| Base de données | PostgreSQL + Drizzle ORM | 16 / 0.38 | Requêtes paramétrées, schéma typé, migrations versionnées |
+| Base de données | PostgreSQL + Drizzle ORM | 16 / 0.45.x | Requêtes paramétrées, schéma typé, migrations versionnées |
 | Authentification | Auth.js (NextAuth v5) | 5.x | OAuth Google, JWT HTTP-only, zéro gestion de mots de passe |
-| IA | Mistral AI | API v1 | JSON mode natif, coût maîtrisé, hébergement EU disponible |
+| IA | Mistral AI par défaut, OpenAI/Anthropic via clé utilisateur | API providers | Contrat JSON validé par Zod, fournisseur par défaut maîtrisé, alternatives préparées |
 | Tests unitaires | Vitest | 3.x | Compatible ESM natif, coverage v8 intégré |
 | Tests E2E | Playwright | 1.x | Multi-navigateurs, trace viewer, webServer auto-start |
 | CI/CD | GitHub Actions | — | 5 jobs : lint, test, build, audit sécurité, E2E |
 | Conteneurisation | Docker (multi-stage) | — | Images < 200MB, utilisateurs non-root |
-| Déploiement | Vercel + Fly.io + Neon | — | CD automatique, PostgreSQL serverless (Neon), HTTPS auto |
+| Déploiement | Vercel Web/API + Neon | — | Production canonique ; Docker Compose et Fly.io restent des alternatives de portabilité |
 
 ---
 
@@ -136,7 +138,7 @@ Validation à double niveau :
 | Serveur | Zod (`GenerateWorkoutInputSchema`) | Controller avant traitement |
 | IA | Zod (`WorkoutDetailSchema`) | Après réponse Mistral |
 
-**Cahier de recettes** : 39 scénarios documentés (`docs/bloc2/cahier-recettes.md`), dont 5 dédiés à la sécurité des données, couvrant injection SQL, XSS, ownership et isolation des données.
+**Cahier de recettes** : 33 scénarios CR documentés (`docs/bloc2/cahier-recettes.md`), dont 5 dédiés à la sécurité des données, couvrant injection SQL, XSS, ownership et isolation des données. La numérotation va jusqu'à CR-044 mais elle est discontinue.
 
 ---
 
@@ -209,9 +211,9 @@ Dockerfiles multi-stage (Sprint 06) :
 - **Web** (`apps/web/Dockerfile`) : `deps` → `builder` (next build standalone) → `runner` (artefacts seuls, user `nextjs:1001`)
 - **docker-compose.yml** : orchestration postgres → api (healthcheck) → web (depends_on healthy)
 
-Architecture de déploiement cible (ADR-006) :
+Architecture de déploiement cible actuelle (ADR-007, `docs/deployment.md`) :
 ```
-GitHub → Vercel (Next.js, Edge Network) ←→ Railway (Hono + PostgreSQL managé)
+GitHub → Vercel Web/API ←→ Neon PostgreSQL
 ```
 
 **C4.3 — Assurer la qualité logicielle**
@@ -220,13 +222,13 @@ Métriques de qualité atteintes :
 
 | Métrique | Cible RNCP | Atteint |
 |---|---|---|
-| Coverage statements | ≥ 70% | **94.69%** |
-| Coverage functions | ≥ 70% | **100%** |
-| Tests unitaires | — | **28 tests** |
-| Tests E2E | — | **29 tests (Playwright + axe-core, Chromium + Firefox)** |
+| Coverage statements API | ≥ 70% | **81.57%** (`pnpm test:coverage`, 2026-05-07) |
+| Coverage functions API | ≥ 70% | **89.23%** (`pnpm test:coverage`, 2026-05-07) |
+| Tests Vitest | — | **70 tests passés** (69 API + 1 Web, `pnpm test`) |
+| Tests E2E | — | **56 exécutions listées** par Playwright (28 cas × Chromium/Firefox), à relancer via `pnpm test:e2e` avant dépôt |
 | Zéro erreur lint | Oui | **✅** |
 | Zéro erreur TypeScript | Oui | **✅** |
-| Vulnérabilités `high` | 0 | **0 (audit CI)** |
+| Vulnérabilités `high` | 0 | **À traiter** : `pnpm audit --audit-level=high` signale 3 vulnérabilités high le 2026-05-07 |
 
 **Décisions architecturales documentées** :
 
@@ -237,7 +239,8 @@ Métriques de qualité atteintes :
 | ADR-003 | Mistral AI + JSON mode + Zod | Accepté |
 | ADR-004 | Auth service-to-service (x-internal-secret) | Accepté |
 | ADR-005 | Pyramide de tests (unitaires + E2E) | Accepté |
-| ADR-006 | Déploiement Vercel + Fly.io + Neon | Accepté |
+| ADR-006 | Déploiement Vercel + Fly.io + Neon | Historique, remplacé pour la production canonique |
+| ADR-007 | CI/CD Vercel + Neon | Accepté |
 
 **Veille technologique** : `docs/bloc4/veille-technologique.md` — 6 domaines couverts (IA, frameworks, sécurité, tests, accessibilité, hébergement).
 
@@ -274,7 +277,7 @@ Métriques de qualité atteintes :
 | Code sécurisé | Aucun `eval()`, aucun SQL brut, secrets en env uniquement |
 | Tests lisibles | Nomenclature AAA (Arrange, Act, Assert), mocks explicites |
 | Accessibilité | ARIA sur chaque composant interactif, tests automatisés RGAA |
-| Documentation | 6 ADRs, CHANGELOG, 12 sprints, cahier de recettes 44 scénarios |
+| Documentation | 7 ADRs, CHANGELOG, 12 sprints, cahier de recettes 33 scénarios CR |
 
 ---
 
@@ -295,5 +298,5 @@ Métriques de qualité atteintes :
 1. **Intégration DB testée** — ajouter des tests d'intégration sur les repositories avec une DB de test (Testcontainers)
 2. **Redis rate limiting** — remplacer le store in-memory par Upstash Redis pour la persistence cross-instances
 3. **Monitoring** — intégrer Pino (logger structuré) + export vers un SIEM (Datadog, Grafana)
-4. **Pagination** — la liste des workouts n'est pas paginée côté serveur
+4. **Tests d'intégration et E2E complets** — relancer et stabiliser les flux Playwright complets avant dépôt
 5. **Progressive Web App** — mode offline avec Service Worker pour le Timer

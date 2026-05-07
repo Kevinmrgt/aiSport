@@ -1,0 +1,80 @@
+name: Cas support client Bloc 4
+description: Tracer un retour utilisateur ou support pour C4.3.3.
+title: '[SUPPORT] '
+labels: ['rncp:bloc4', 'type:support', 'status:triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ce ticket sert de preuve pour la collaboration support client. Ne colle pas de donnee personnelle sensible.
+  - type: input
+    id: received_at
+    attributes:
+      label: Date du retour
+      placeholder: '2026-05-07'
+    validations:
+      required: true
+  - type: dropdown
+    id: channel
+    attributes:
+      label: Canal
+      options:
+        - Email
+        - GitHub Issue
+        - Oral jury / commanditaire
+        - Test utilisateur
+        - Monitoring
+        - Autre
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexte du retour client
+      description: Qui remonte quoi, dans quel contexte, avec quel objectif metier.
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Probleme a resoudre
+    validations:
+      required: true
+  - type: textarea
+    id: support_diagnosis
+    attributes:
+      label: Diagnostic support
+      description: Informations collectees, logs consultes, environnement, reproduction.
+    validations:
+      required: true
+  - type: textarea
+    id: technical_contribution
+    attributes:
+      label: Contribution technique
+      description: Analyse, correctif, contournement, documentation ou communication.
+    validations:
+      required: true
+  - type: textarea
+    id: stakeholder_roles
+    attributes:
+      label: Contribution des parties prenantes
+      placeholder: |
+        - Utilisateur:
+        - Support:
+        - Mainteneur:
+        - Commanditaire:
+    validations:
+      required: true
+  - type: textarea
+    id: resolution
+    attributes:
+      label: Resolution apportee
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation et cloture
+      description: Retour utilisateur, test de non-regression, lien PR, version ou changelog.
+    validations:
+      required: true

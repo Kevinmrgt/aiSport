@@ -2,7 +2,7 @@
 
 Application web de génération d'entraînements sportifs personnalisés par intelligence artificielle.
 
-L'utilisateur sélectionne un sport, décrit ses objectifs et contraintes, et reçoit un programme sur mesure généré par **Mistral AI**. Les entraînements sont stockés en PostgreSQL et peuvent être exécutés avec un timer intégré.
+L'utilisateur sélectionne un sport, décrit ses objectifs et contraintes, et reçoit un programme sur mesure généré par IA. **Mistral AI** est le fournisseur par défaut ; OpenAI et Anthropic sont supportés via clé utilisateur. Les entraînements sont stockés en PostgreSQL et peuvent être exécutés avec un timer intégré.
 
 > Projet support à la certification RNCP 39583 — Expert en développement logiciel (Niv. 7, YNOV).
 
@@ -16,7 +16,7 @@ L'utilisateur sélectionne un sport, décrit ses objectifs et contraintes, et re
 | Backend | Hono (TypeScript), architecture en couches |
 | Base de données | PostgreSQL 16 + Drizzle ORM |
 | Authentification | Auth.js (NextAuth v5) — OAuth Google |
-| IA | Mistral AI — JSON mode validé par Zod |
+| IA | Mistral AI par défaut, OpenAI/Anthropic via paramètres utilisateur — sorties validées par Zod |
 | Tests | Vitest (unitaires), Playwright (E2E), axe-core (WCAG) |
 | CI/CD | GitHub Actions — CI, CD Vercel, migrations DB manuelles |
 | Deploy | Vercel (frontend + API) + Neon PostgreSQL |
@@ -79,7 +79,7 @@ aiSport/
 │   └── api/                    # Hono — backend
 │       ├── src/
 │       │   ├── controllers/    # Handlers HTTP
-│       │   ├── services/       # Logique métier + Mistral
+│       │   ├── services/       # Logique métier + providers IA
 │       │   ├── repositories/   # Accès base de données
 │       │   ├── middleware/      # Auth, rate-limit, error
 │       │   └── db/             # Schéma Drizzle + seed
@@ -87,11 +87,11 @@ aiSport/
 ├── packages/
 │   └── shared/                 # Types & schémas Zod partagés
 ├── docs/
-│   ├── adr/                    # Architecture Decision Records (×6)
-│   ├── bloc2/                  # Cahier de recettes (39 scénarios)
+│   ├── adr/                    # Architecture Decision Records (×7)
+│   ├── bloc2/                  # Cahier de recettes (33 scénarios CR)
 │   ├── bloc4/                  # Veille techno, CRA, rapports de bugs
 │   ├── security/               # Revue OWASP Top 10
-│   ├── sprints/                # Revues sprint 01 à 08
+│   ├── sprints/                # Revues sprint 01 à 12
 │   ├── deployment.md           # Guide déploiement (cloud, Docker, local)
 │   └── dossier-professionnel.md
 ├── .github/workflows/ci.yml    # Pipeline CI/CD 5 jobs
@@ -118,13 +118,14 @@ CI verte sur main → CD Vercel API → CD Vercel Web → smoke tests prod
 
 | Critère | Statut | Preuve |
 |---|---|---|
-| Sécurité OWASP Top 10 | ✅ A01–A10 couverts | docs/security/owasp-review.md |
+| Sécurité OWASP Top 10 | ⚠️ A01–A10 documentés, A06 dépendances à traiter | docs/security/owasp-review.md |
 | Accessibilité RGAA 4.1 | ✅ + axe-core WCAG 2.1 | tests/e2e/accessibility.spec.ts |
-| Tests automatisés ≥ 70% | ✅ 94.69% statements | Vitest coverage |
+| Tests automatisés | ✅ `pnpm test` : 70 tests passés | 69 API + 1 Web |
+| Couverture API ≥ 70% | ✅ 81.57% statements | `pnpm test:coverage`, `apps/api/coverage/index.html` |
 | Documentation ADRs | ✅ 7 décisions | docs/adr/ |
-| Cahier de recettes | ✅ 39 scénarios | docs/bloc2/cahier-recettes.md |
+| Cahier de recettes | ✅ 33 scénarios CR | docs/bloc2/cahier-recettes.md |
 | Déploiement conteneurisé | ✅ Dockerfiles multi-stage | apps/*/Dockerfile |
-| Dossier professionnel | ✅ | docs/dossier-professionnel.md |
+| Dossier professionnel RNCP | ✅ | docs/rncp/dossier-professionnel-rncp39583.md |
 
 ---
 

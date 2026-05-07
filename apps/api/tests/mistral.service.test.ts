@@ -132,5 +132,27 @@ describe('MistralService', () => {
         statusCode: 503,
       });
     });
+
+    it("ne retente pas quand l'appel IA atteint le timeout de séance", async () => {
+      vi.useFakeTimers();
+      try {
+        mockFetch.mockImplementation((_url: string, init?: RequestInit) => {
+          return new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => {
+              reject(new DOMException('This operation was aborted', 'AbortError'));
+            });
+          });
+        });
+
+        const generation = generateWorkout(defaultInput, mockAiConfig);
+        const assertion = expect(generation).rejects.toMatchObject({ statusCode: 503 });
+        await vi.advanceTimersByTimeAsync(45_000);
+
+        await assertion;
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 });

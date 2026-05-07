@@ -9,15 +9,16 @@ import { ProgramCard } from '@/components/ProgramCard';
 export default async function ProgramsPage({
   searchParams,
 }: {
-  searchParams: { page?: string };
+  searchParams: Promise<{ page?: string }>;
 }) {
+  const query = await searchParams;
   const session = await auth();
 
   if (!session?.user) {
     redirect('/login');
   }
 
-  const page = Math.max(1, Number(searchParams.page) || 1);
+  const page = Math.max(1, Number(query.page) || 1);
 
   // Server Action : suppression avec ownership vérifié côté backend (OWASP A01)
   async function handleDelete(id: string) {

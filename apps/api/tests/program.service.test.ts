@@ -5,6 +5,7 @@ import {
   getProgramDetail,
   removeProgram,
 } from '../src/services/program.service.js';
+import { getProgramSessionTimedSeconds } from '../src/services/program-duration.service.js';
 import { AppError } from '../src/types/app-error.js';
 
 // Mock du service Mistral
@@ -158,6 +159,7 @@ describe('ProgramService', () => {
 
       expect(findProgramById).toHaveBeenCalledWith('program-abc', 'user-123');
       expect(result.id).toBe('program-abc');
+      expect(getProgramSessionTimedSeconds(result.data.weeks[0]!.sessions[0]!)).toBe(30 * 60);
     });
 
     it('propage l\'erreur 403 si ownership invalide', async () => {
