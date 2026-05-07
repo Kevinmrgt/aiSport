@@ -223,8 +223,9 @@ Le projet ne contient pas de capture d'un outil Kanban externe. Le suivi est don
 | Suivi des anomalies | `docs/bloc4/bugs/BUG-001-coverage-threshold.md`, `BUG-002-readme-utf16.md` | Incidents, causes, corrections, validations |
 | Suivi qualité | `.github/workflows/ci.yml`, `docs/ci-cd.md` | Lint, typecheck, coverage, build, audit, E2E smoke |
 | Suivi déploiement | `.github/workflows/deploy-vercel.yml`, `db-migrate.yml` | Déploiement API/Web, smoke tests, migrations manuelles |
+| Suivi Kanban daté | `docs/rncp/preuve-suivi-projet-2026-05-07.md` | Export Kanban, tableau de pilotage, preuve de redeploiement API et `/health` en `0.12.0` |
 
-À présenter au jury : "L'outil de suivi principal est reconstitué dans le dépôt par des artefacts versionnés. Pour une équipe réelle, ce système serait complété par un tableau GitHub Projects ou Jira."
+À présenter au jury : "L'outil de suivi principal est reconstitué dans le dépôt par des artefacts versionnés. Une preuve datée de type export Kanban / tableau de pilotage a été ajoutée pour la soutenance ; pour une équipe réelle, ce système serait complété par un tableau GitHub Projects ou Jira."
 
 ### 5.2 Tableau de bord Bloc 3 consolidé
 
@@ -577,7 +578,7 @@ Le script détaillé est dans `docs/rncp/bloc3-script-demo-logiciel.md`.
 | Élément | Statut | Action recommandée |
 |---|---|---|
 | Planning prévisionnel original | Partiel / reconstitué | Assumer une consolidation Bloc 3 et, si possible, ajouter un board GitHub Projects exporté |
-| Outil de suivi Kanban | Non prouvé | Créer un tableau GitHub Projects avec backlog, statuts, priorités, échéances |
+| Outil de suivi Kanban | Prouvé par export daté | Utiliser `docs/rncp/preuve-suivi-projet-2026-05-07.md` ; créer un board GitHub Projects seulement si une capture externe est exigée |
 | Comptes rendus client réels | Non prouvés | Utiliser des CR reconstitués clairement étiquetés ou produire une validation commanditaire pédagogique |
 | Indicateurs satisfaction réels | Non prouvés | Préparer une grille de validation utilisateur/commanditaire pour la démo |
 | Grille compétences équipe | Créée dans ce document | La reprendre en slide et préciser le contexte solo |
