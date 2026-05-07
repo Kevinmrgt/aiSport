@@ -11,7 +11,16 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+### Added
+- Workflow GitHub Actions `Monitoring - Production health` : verification horaire des healthchecks API/Web, artifact de preuve et issue automatique en cas d'echec.
+- Templates GitHub Issues Bloc 4 : consignation d'anomalie et cas support client.
+- Pull request template avec checklist MCO/RNCP.
+- Setup MCP local documente : Filesystem, Playwright, Vercel et exemple GitHub MCP sans secret.
+- `docs/rncp/bloc4-preuves-mco-a-completer.md` : checklist des preuves restantes avant depot.
+- Test unitaire API pour le healthcheck.
+
 ### Changed
+- Healthchecks API/Web rendus non cacheables et alignes sur la version applicative `0.12.0`.
 - Documentation RNCP et projet harmonisée : version de référence `0.12.0`, métriques `pnpm test` / `pnpm test:coverage`, cible Vercel Web/API + Neon, cahier de recettes et preuves OWASP.
 - `apps/api/package.json` et `apps/web/package.json` alignés sur la version monorepo `0.12.0` pour éviter un `/health` API exposant `0.1.0` après déploiement.
 - `docs/rncp/audit-coherence-documentaire.md` ajouté pour tracer les incohérences corrigées et les points à valider avant dépôt.
