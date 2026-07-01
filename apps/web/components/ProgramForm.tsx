@@ -139,7 +139,7 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
         </div>
       )}
 
-      <GlassPanel variant="soft" className="grid gap-4 p-4 sm:grid-cols-2">
+      <GlassPanel variant="soft" className="grid gap-4 p-4 md:grid-cols-3">
         <Input
           label="Sport"
           name="sport"
@@ -164,6 +164,7 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
           options={LEVEL_OPTIONS}
           error={errors.level}
           required
+          hint="Experience actuelle"
         />
 
         <Select
@@ -176,6 +177,7 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
           options={WEEKS_OPTIONS}
           error={errors.weeks_count}
           required
+          hint="Longueur du cycle"
         />
 
         <Select
@@ -188,24 +190,24 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
           options={SESSIONS_OPTIONS}
           error={errors.sessions_per_week}
           required
+          hint="Rythme hebdomadaire"
         />
 
-        <div className="sm:col-span-2">
-          <Select
-            label="Duree par seance"
-            name="session_duration_minutes"
-            value={String(formData.session_duration_minutes)}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                session_duration_minutes: Number(e.target.value),
-              }))
-            }
-            options={DURATION_OPTIONS}
-            error={errors.session_duration_minutes}
-            required
-          />
-        </div>
+        <Select
+          label="Duree par seance"
+          name="session_duration_minutes"
+          value={String(formData.session_duration_minutes)}
+          onChange={(e) =>
+            setFormData((prev) => ({
+              ...prev,
+              session_duration_minutes: Number(e.target.value),
+            }))
+          }
+          options={DURATION_OPTIONS}
+          error={errors.session_duration_minutes}
+          required
+          hint="Temps disponible"
+        />
       </GlassPanel>
 
       <div className="grid gap-2 sm:grid-cols-3">

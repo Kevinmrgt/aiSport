@@ -4,6 +4,7 @@ import { Barlow_Condensed, Urbanist } from 'next/font/google';
 import './globals.css';
 import { auth, signOut } from '@/lib/auth';
 import { Icon, type IconName } from '@/components/ui/Icon';
+import { ActiveNavLink } from '@/components/ActiveNavLink';
 
 const bodyFont = Urbanist({
   subsets: ['latin'],
@@ -53,44 +54,6 @@ function BrandMark() {
   );
 }
 
-function NavLink({
-  href,
-  label,
-  icon,
-  compact = false,
-}: {
-  href: string;
-  label: string;
-  icon: IconName;
-  compact?: boolean;
-}) {
-  if (compact) {
-    return (
-      <Link
-        href={href}
-        className="group grid min-w-0 place-items-center gap-1 rounded-full px-2 py-1.5 text-[0.62rem] font-bold text-zinc-400 transition hover:text-white"
-      >
-        <span className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-zinc-200 shadow-lg shadow-black/20 transition group-hover:border-primary-300/[0.45] group-hover:bg-primary-300 group-hover:text-zinc-950">
-          <Icon name={icon} className="h-4 w-4" />
-        </span>
-        <span className="truncate">{label}</span>
-      </Link>
-    );
-  }
-
-  return (
-    <Link
-      href={href}
-      className="group flex items-center gap-3 rounded-full border border-transparent px-3 py-2 text-sm font-bold text-zinc-400 transition hover:border-white/10 hover:bg-white/[0.07] hover:text-white"
-    >
-      <span className="grid h-10 w-10 place-items-center rounded-full bg-white/[0.07] text-zinc-200 transition group-hover:bg-primary-300 group-hover:text-zinc-950">
-        <Icon name={icon} className="h-4 w-4" />
-      </span>
-      <span className="hidden xl:block">{label}</span>
-    </Link>
-  );
-}
-
 export default async function RootLayout({ children }: { readonly children: React.ReactNode }) {
   const session = await auth();
 
@@ -129,11 +92,11 @@ export default async function RootLayout({ children }: { readonly children: Reac
 
             <nav className="flex flex-col gap-2" aria-label="Navigation principale">
               {session?.user ? (
-                NAV_ITEMS.map((item) => <NavLink key={item.href} {...item} />)
+                NAV_ITEMS.map((item) => <ActiveNavLink key={item.href} {...item} />)
               ) : (
                 <>
-                  <NavLink href="/" label="Accueil" icon="home" />
-                  <NavLink href="/login" label="Connexion" icon="user" />
+                  <ActiveNavLink href="/" label="Accueil" icon="home" />
+                  <ActiveNavLink href="/login" label="Connexion" icon="user" />
                 </>
               )}
             </nav>
@@ -168,7 +131,7 @@ export default async function RootLayout({ children }: { readonly children: Reac
         {session?.user && (
           <nav className="bottom-dock" aria-label="Navigation mobile">
             {NAV_ITEMS.map((item) => (
-              <NavLink key={item.href} {...item} compact />
+              <ActiveNavLink key={item.href} {...item} compact />
             ))}
           </nav>
         )}
