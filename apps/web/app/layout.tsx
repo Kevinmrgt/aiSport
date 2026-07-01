@@ -60,13 +60,13 @@ export default async function RootLayout({ children }: { readonly children: Reac
   return (
     <html lang="fr">
       <body
-        className={`${bodyFont.variable} ${displayFont.variable} min-h-screen overflow-x-hidden bg-ink font-sans text-zinc-100 antialiased`}
+        className={`${bodyFont.variable} ${displayFont.variable} min-h-screen overflow-x-hidden bg-[#dfe8d2] font-sans text-zinc-100 antialiased`}
       >
         <a href="#main-content" className="skip-link">
           Aller au contenu principal
         </a>
 
-        <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.1] bg-zinc-950/[0.78] shadow-lg shadow-black/20 backdrop-blur-2xl">
+        <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.16] bg-[#10170f]/70 shadow-lg shadow-black/15 backdrop-blur-2xl">
           <nav
             className="mx-auto flex min-h-14 max-w-[112rem] items-center gap-4 px-4 py-2 sm:px-6 lg:px-8"
             aria-label="Navigation principale"
