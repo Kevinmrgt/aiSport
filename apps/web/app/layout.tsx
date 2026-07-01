@@ -41,7 +41,7 @@ function BrandMark() {
       className="group inline-flex items-center gap-3 text-sm font-black tracking-normal text-white transition-colors hover:text-primary-200"
       aria-label="Alcide - Accueil"
     >
-      <span className="grid h-11 w-11 place-items-center rounded-[1.2rem] bg-primary-300 text-base text-zinc-950 shadow-2xl shadow-primary-400/25">
+      <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary-300 text-sm text-zinc-950 shadow-lg shadow-primary-400/20">
         A
       </span>
       <span className="leading-tight">
@@ -66,14 +66,14 @@ export default async function RootLayout({ children }: { readonly children: Reac
           Aller au contenu principal
         </a>
 
-        <header className="fixed inset-x-3 top-3 z-50 rounded-[1.75rem] border border-white/[0.12] bg-zinc-950/[0.72] shadow-2xl shadow-black/30 backdrop-blur-2xl sm:inset-x-5">
+        <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.1] bg-zinc-950/[0.78] shadow-lg shadow-black/20 backdrop-blur-2xl">
           <nav
-            className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-3 py-3 sm:px-4"
+            className="mx-auto flex min-h-14 max-w-[112rem] items-center gap-4 px-4 py-2 sm:px-6 lg:px-8"
             aria-label="Navigation principale"
           >
             <BrandMark />
 
-            <div className="hidden min-w-0 flex-1 items-center justify-center gap-1 lg:flex xl:gap-2">
+            <div className="hidden min-w-0 flex-1 items-center justify-start gap-1 lg:flex xl:gap-2">
               {session?.user ? (
                 NAV_ITEMS.map((item) => <ActiveNavLink key={item.href} {...item} />)
               ) : (
@@ -86,6 +86,7 @@ export default async function RootLayout({ children }: { readonly children: Reac
 
             {session?.user ? (
               <form
+                className="ml-auto"
                 action={async () => {
                   'use server';
                   await signOut({ redirectTo: '/' });
@@ -94,16 +95,16 @@ export default async function RootLayout({ children }: { readonly children: Reac
                 <button
                   type="submit"
                   aria-label="Se deconnecter"
-                  className="group hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-sm font-bold text-zinc-400 transition hover:bg-white/[0.1] hover:text-white sm:flex"
+                  className="group hidden items-center gap-2 rounded-md px-2 py-1.5 text-sm font-bold text-zinc-400 transition hover:bg-white/[0.06] hover:text-white sm:flex"
                 >
-                  <span className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.07] text-zinc-200 transition group-hover:bg-sport-orange group-hover:text-zinc-950">
-                    <Icon name="log-out" className="h-4 w-4" />
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-white/[0.06] text-zinc-200 transition group-hover:bg-sport-orange group-hover:text-zinc-950">
+                    <Icon name="log-out" className="h-3.5 w-3.5" />
                   </span>
                   <span className="hidden xl:block">Sortir</span>
                 </button>
               </form>
             ) : (
-              <Link href="/login" className="action-primary min-h-10 px-4 py-2 text-xs">
+              <Link href="/login" className="action-primary ml-auto min-h-9 px-4 py-2 text-xs">
                 Se connecter
               </Link>
             )}
