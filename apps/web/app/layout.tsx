@@ -45,12 +45,12 @@ function BrandMark() {
       className="group inline-flex items-center gap-3 text-sm font-black tracking-normal text-white transition-colors hover:text-primary-200"
       aria-label="Alcide - Accueil"
     >
-      <span className="grid h-10 w-10 place-items-center rounded-xl border border-primary-300/[0.2] bg-zinc-950/[0.72] p-1.5 shadow-lg shadow-primary-400/20 transition group-hover:border-primary-300/[0.45] group-hover:bg-zinc-950/[0.9]">
+      <span className="grid h-11 w-11 place-items-center rounded-xl border border-primary-300/[0.2] bg-zinc-950/[0.72] p-1 shadow-lg shadow-primary-400/20 transition group-hover:border-primary-300/[0.45] group-hover:bg-zinc-950/[0.9]">
         <Image
           src="/visuals/alcide-logo-mark.svg"
           alt=""
-          width={28}
-          height={28}
+          width={36}
+          height={36}
           aria-hidden="true"
           className="h-full w-full"
         />
