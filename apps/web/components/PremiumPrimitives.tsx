@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Icon, type IconName } from './ui/Icon';
@@ -90,12 +91,35 @@ export function ProgressRing({ value, label, size = 'md' }: ProgressRingProps) {
 interface PhoneFrameProps {
   children: ReactNode;
   className?: string;
+  imageSrc?: string;
+  imageAlt?: string;
+  priority?: boolean;
 }
 
-export function PhoneFrame({ children, className = '' }: PhoneFrameProps) {
+export function PhoneFrame({
+  children,
+  className = '',
+  imageSrc,
+  imageAlt = '',
+  priority = false,
+}: PhoneFrameProps) {
   return (
     <div className={`phone-frame min-h-[34rem] ${className}`}>
-      <div className="abstract-frame-bg" aria-hidden="true" />
+      {imageSrc ? (
+        <>
+          <Image
+            src={imageSrc}
+            alt={imageAlt}
+            fill
+            priority={priority}
+            sizes="(max-width: 768px) 80vw, 360px"
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/5 via-zinc-950/[0.15] to-zinc-950/[0.88]" />
+        </>
+      ) : (
+        <div className="abstract-frame-bg" aria-hidden="true" />
+      )}
       <div className="relative z-10 flex min-h-[34rem] flex-col justify-end p-5 pt-16">{children}</div>
     </div>
   );
@@ -109,7 +133,7 @@ export function HeroVisual({ className = '' }: HeroVisualProps) {
   return (
     <div className={`relative min-h-[38rem] ${className}`}>
       <div className="absolute left-0 top-16 hidden w-[18rem] rotate-[-6deg] opacity-90 sm:block">
-        <PhoneFrame>
+        <PhoneFrame imageSrc="/visuals/login-athlete.webp">
           <div className="space-y-4">
             <p className="text-2xl font-black leading-tight text-white">
               Routine
@@ -129,7 +153,7 @@ export function HeroVisual({ className = '' }: HeroVisualProps) {
       </div>
 
       <div className="absolute left-1/2 top-0 w-[20rem] -translate-x-1/2 sm:w-[22rem]">
-        <PhoneFrame>
+        <PhoneFrame imageSrc="/visuals/hero-athlete-lime.webp" priority>
           <div className="space-y-4">
             <p className="section-kicker">Alcide Pulse</p>
             <h2 className="text-4xl font-black leading-none text-white">
@@ -152,7 +176,7 @@ export function HeroVisual({ className = '' }: HeroVisualProps) {
       </div>
 
       <div className="absolute right-0 top-28 hidden w-[18rem] rotate-[5deg] opacity-95 lg:block">
-        <PhoneFrame>
+        <PhoneFrame imageSrc="/visuals/workout-action.webp">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <IconBubble icon="arrow-left" />
@@ -185,7 +209,14 @@ interface EmptyStateProps {
 
 export function EmptyState({ title, description, href, cta }: EmptyStateProps) {
   return (
-    <GlassPanel className="abstract-surface mx-auto max-w-2xl p-8 text-center">
+    <GlassPanel className="relative mx-auto max-w-2xl overflow-hidden p-8 text-center">
+      <Image
+        src="/visuals/empty-state-glow.webp"
+        alt=""
+        fill
+        sizes="(max-width: 768px) 90vw, 640px"
+        className="-z-10 object-cover opacity-40"
+      />
       <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-full bg-primary-300 text-zinc-950 shadow-2xl shadow-primary-400/30">
         <Icon name="spark" className="h-6 w-6" />
       </div>
