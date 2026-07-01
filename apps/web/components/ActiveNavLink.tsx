@@ -54,7 +54,7 @@ export function ActiveNavLink({ href, label, icon, compact = false }: ActiveNavL
       }`}
     >
       {active && (
-        <span className="absolute -left-1 top-1/2 hidden h-8 w-1 -translate-y-1/2 rounded-full bg-primary-300 xl:block" />
+        <span className="absolute inset-x-5 -bottom-1 hidden h-1 rounded-full bg-primary-300 lg:block" />
       )}
       <span
         className={`grid h-10 w-10 place-items-center rounded-full transition ${
@@ -65,7 +65,7 @@ export function ActiveNavLink({ href, label, icon, compact = false }: ActiveNavL
       >
         <Icon name={icon} className="h-4 w-4" />
       </span>
-      <span className="hidden xl:block">{label}</span>
+      <span className="hidden lg:block">{label}</span>
     </Link>
   );
 }
