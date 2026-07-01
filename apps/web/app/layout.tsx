@@ -1,19 +1,21 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Bricolage_Grotesque, Manrope } from 'next/font/google';
+import { Barlow_Condensed, Urbanist } from 'next/font/google';
 import './globals.css';
 import { auth, signOut } from '@/lib/auth';
 import { Icon, type IconName } from '@/components/ui/Icon';
 
-const bodyFont = Manrope({
+const bodyFont = Urbanist({
   subsets: ['latin'],
   display: 'swap',
+  weight: ['400', '500', '600', '700', '800', '900'],
   variable: '--font-sans',
 });
 
-const displayFont = Bricolage_Grotesque({
+const displayFont = Barlow_Condensed({
   subsets: ['latin'],
   display: 'swap',
+  weight: ['600', '700', '800', '900'],
   variable: '--font-display',
 });
 
