@@ -59,6 +59,14 @@ body::after {
   outline: none;
 }
 
+h1,
+h2,
+h3,
+h4,
+.section-kicker {
+  font-family: var(--font-display), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
 .skip-link {
   position: absolute;
   top: -100%;
