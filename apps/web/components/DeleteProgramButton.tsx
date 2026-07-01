@@ -32,7 +32,7 @@ export function DeleteProgramButton({ programId, programTitle, onDelete }: Delet
         className="flex w-full max-w-full flex-col items-stretch gap-2 rounded-[1.2rem] border border-sport-orange/30 bg-sport-orange/10 p-2 sm:max-w-sm sm:flex-row sm:items-center"
       >
         <span id="confirm-program-title" className="min-w-0 flex-1 break-words text-xs text-sport-orange">
-          Supprimer "{programTitle}" ?
+          Supprimer &quot;{programTitle}&quot; ?
         </span>
         <button
           type="button"
