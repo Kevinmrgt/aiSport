@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
@@ -33,15 +32,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[0.85fr_1.15fr]">
-      <GlassPanel className="relative overflow-hidden p-5 sm:p-6">
-        <Image
-          src="/visuals/empty-state-glow.webp"
-          alt=""
-          fill
-          priority
-          sizes="(max-width: 1024px) 100vw, 420px"
-          className="-z-10 object-cover opacity-50"
-        />
+      <GlassPanel className="abstract-surface mobile-compact-header p-5 sm:p-6">
         <p className="section-kicker mb-3">Configuration</p>
         <h1 id="settings-title" className="page-title">
           Parametres Alcide
@@ -50,7 +41,7 @@ export default async function SettingsPage() {
           Une page volontairement plus calme : elle sert a piloter le moteur de generation sans
           transformer l interface en panneau technique.
         </p>
-        <div className="mt-6 grid gap-2">
+        <div className="mobile-header-metrics mt-6 grid gap-2">
           <MetricPill icon="spark" label="Provider" value="OpenAI" tone="lime" />
           <MetricPill icon="settings" label="Secret" value="Serveur" />
         </div>

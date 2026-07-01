@@ -176,6 +176,8 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
   const [isRunning, setIsRunning] = useState(false);
   const [done, setDone] = useState(steps.length === 0);
   const [completedDurationSeconds, setCompletedDurationSeconds] = useState<number | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const timerContainerRef = useRef<HTMLElement | null>(null);
   const sessionStartedAtRef = useRef<number | null>(null);
 
   const { playCountdown, playPhaseChange, playComplete } = useAudio();
@@ -189,6 +191,34 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
     sessionStartedAtRef.current ??= Date.now();
   }, []);
 
+  const enterFullscreen = useCallback(async () => {
+    const timerContainer = timerContainerRef.current;
+    setIsFullscreen(true);
+
+    if (!timerContainer || document.fullscreenElement === timerContainer || !timerContainer.requestFullscreen) {
+      return;
+    }
+
+    try {
+      await timerContainer.requestFullscreen();
+    } catch {
+      // Keep the viewport-covering presentation if native fullscreen is unavailable.
+    }
+  }, []);
+
+  const exitFullscreen = useCallback(async () => {
+    const timerContainer = timerContainerRef.current;
+    setIsFullscreen(false);
+
+    if (document.fullscreenElement === timerContainer && document.exitFullscreen) {
+      try {
+        await document.exitFullscreen();
+      } catch {
+        // The visual fullscreen state has already been cleared.
+      }
+    }
+  }, []);
+
   const finish = useCallback(() => {
     const elapsedSeconds =
       sessionStartedAtRef.current !== null
@@ -198,7 +228,8 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
     playComplete();
     setIsRunning(false);
     setDone(true);
-  }, [playComplete, totalTimedSeconds]);
+    void exitFullscreen();
+  }, [exitFullscreen, playComplete, totalTimedSeconds]);
 
   const goToStep = useCallback(
     (nextIndex: number, keepRunning = false) => {
@@ -222,8 +253,23 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
     setIsRunning(false);
     setDone(steps.length === 0);
     setCompletedDurationSeconds(null);
+    void exitFullscreen();
     sessionStartedAtRef.current = null;
-  }, [steps]);
+  }, [exitFullscreen, steps]);
+
+  useEffect(() => {
+    const syncFullscreenState = () => {
+      if (document.fullscreenElement === null) {
+        setIsFullscreen(false);
+        return;
+      }
+
+      setIsFullscreen(document.fullscreenElement === timerContainerRef.current);
+    };
+
+    document.addEventListener('fullscreenchange', syncFullscreenState);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
+  }, []);
 
   useEffect(() => {
     if (!currentStep || currentStep.durationSeconds === null || !isRunning || secondsLeft === null || done) return;
@@ -316,8 +362,29 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
       ? 'Passer le repos'
       : 'Passer';
 
+  const timerContainerClassName = isFullscreen
+    ? 'fixed inset-0 z-50 flex min-h-dvh w-full flex-col items-center gap-4 overflow-y-auto bg-zinc-950 px-4 py-5 sm:justify-center sm:px-8 sm:py-8'
+    : 'flex flex-col items-center gap-6';
+  const timerCardClassName = [
+    'relative w-full overflow-hidden rounded-[2rem] border border-white/[0.15] bg-zinc-950/60 text-center shadow-2xl shadow-black/30 backdrop-blur-2xl',
+    isFullscreen ? 'max-w-4xl p-6 sm:p-8' : 'max-w-xl p-5 sm:p-8',
+  ].join(' ');
+  const timerRingClassName = [
+    'grid place-items-center rounded-full border border-white/10 shadow-2xl shadow-black/30 transition-colors',
+    isFullscreen ? 'h-64 w-64' : 'h-52 w-52',
+    isCountingDown ? 'animate-pulse bg-sport-orange/[0.15] text-sport-orange' : 'bg-white/[0.06] text-white',
+  ].join(' ');
+  const timerRingInnerClassName = [
+    'grid place-items-center rounded-full bg-zinc-950/[0.85] font-mono font-black tabular-nums',
+    isFullscreen ? 'h-52 w-52 text-6xl' : 'h-44 w-44 text-6xl',
+  ].join(' ');
+  const titleClassName = [
+    'break-words font-black text-white',
+    isFullscreen ? 'text-4xl' : 'text-3xl',
+  ].join(' ');
+
   return (
-    <section aria-labelledby="timer-exercise-title" className="flex flex-col items-center gap-6">
+    <section ref={timerContainerRef} aria-labelledby="timer-exercise-title" className={timerContainerClassName}>
       {totalTimedSeconds > 0 && (
         <div className="w-full">
           <div className="mb-2 flex justify-between text-xs font-bold text-zinc-400">
@@ -343,7 +410,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
         {progressLabel}
       </p>
 
-      <div className="relative w-full max-w-xl overflow-hidden rounded-[2rem] border border-white/[0.15] bg-zinc-950/60 p-5 text-center shadow-2xl shadow-black/30 backdrop-blur-2xl sm:p-8">
+      <div className={timerCardClassName}>
         <div className="absolute inset-x-8 top-0 h-24 rounded-full bg-primary-300/[0.15] blur-3xl" />
         <div className="relative">
           <p
@@ -355,7 +422,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
             {getStepLabel(currentStep)}
           </p>
 
-          <h2 id="timer-exercise-title" className="break-words text-3xl font-black text-white">
+          <h2 id="timer-exercise-title" className={titleClassName}>
             {currentStep.title}
           </h2>
 
@@ -371,9 +438,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
                 role="timer"
                 aria-label={`Temps restant : ${timeDisplay}`}
                 aria-live="off"
-                className={`grid h-52 w-52 place-items-center rounded-full border border-white/10 shadow-2xl shadow-black/30 transition-colors ${
-                  isCountingDown ? 'animate-pulse bg-sport-orange/[0.15] text-sport-orange' : 'bg-white/[0.06] text-white'
-                }`}
+                className={timerRingClassName}
                 style={{
                   backgroundImage: `conic-gradient(#d9ff3f ${
                     currentStep.durationSeconds
@@ -384,9 +449,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
                   }deg, rgba(255,255,255,0.08) 0deg)`,
                 }}
               >
-                <span className="grid h-44 w-44 place-items-center rounded-full bg-zinc-950/[0.85] font-mono text-6xl font-black tabular-nums">
-                  {timeDisplay}
-                </span>
+                <span className={timerRingInnerClassName}>{timeDisplay}</span>
               </div>
             ) : (
               <ProgressRing value={100} label="manuel" size="lg" />
@@ -401,7 +464,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
         </div>
       </div>
 
-      <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2">
+      <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-center">
         <Button
           variant="primary"
           size="lg"
@@ -409,6 +472,9 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
           onClick={() => {
             markSessionStarted();
             if (hasStepTimer) {
+              if (!isRunning) {
+                void enterFullscreen();
+              }
               setIsRunning((r) => !r);
             } else {
               goToStep(currentIndex + 1);
@@ -432,6 +498,20 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
           >
             <Icon name="arrow-right" className="h-4 w-4" />
             {secondaryButtonLabel}
+          </Button>
+        )}
+
+        {isFullscreen && (
+          <Button
+            variant="secondary"
+            size="lg"
+            className="w-full sm:min-w-44"
+            onClick={() => {
+              void exitFullscreen();
+            }}
+          >
+            <Icon name="minimize" className="h-4 w-4" />
+            Quitter plein ecran
           </Button>
         )}
       </div>

@@ -5,6 +5,7 @@ import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { Button } from './ui/Button';
 import { Icon } from './ui/Icon';
+import { AlcideMascotPrompt } from './AlcideMascotPrompt';
 import { GlassPanel, MetricPill } from './PremiumPrimitives';
 import { GenerateProgramInputSchema } from '@alcide/shared';
 import type { GenerateProgramInput } from '@alcide/shared';
@@ -111,6 +112,12 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
           <Icon name="layers" className="h-4 w-4" />
         </span>
       </div>
+
+      <AlcideMascotPrompt
+        title="Je structure ton cycle."
+        description="Choisis le rythme et la duree. Je calibre les semaines pour garder une progression nette."
+        icon="layers"
+      />
 
       {isLoading && (
         <div

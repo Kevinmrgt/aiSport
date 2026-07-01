@@ -14,7 +14,7 @@ export default function WorkoutsLoading() {
               <div className="h-10 w-20 animate-pulse rounded-full bg-primary-300/25" />
             </div>
           </div>
-          <div className="hidden h-44 rounded-[1.75rem] bg-[url('/visuals/workout-action.webp')] bg-cover bg-center opacity-50 lg:block" aria-hidden="true" />
+          <div className="abstract-surface hidden h-44 rounded-[1.75rem] opacity-70 lg:block" aria-hidden="true" />
         </div>
       </div>
 

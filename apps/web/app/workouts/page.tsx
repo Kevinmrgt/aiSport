@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
@@ -49,15 +48,7 @@ export default async function WorkoutsPage({
 
   return (
     <section aria-labelledby="workouts-title" className="space-y-6">
-      <GlassPanel className="relative overflow-hidden p-5 sm:p-6">
-        <Image
-          src="/visuals/workout-action.webp"
-          alt=""
-          fill
-          priority
-          sizes="(max-width: 1024px) 100vw, 900px"
-          className="-z-10 object-cover opacity-40"
-        />
+      <GlassPanel className="abstract-surface mobile-compact-header p-5 sm:p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="section-kicker mb-3">Historique</p>
@@ -68,11 +59,11 @@ export default async function WorkoutsPage({
               Retrouvez vos routines, filtrez par contexte et relancez le timer quand vous etes pret.
             </p>
           </div>
-          <Link href="/generate" className="action-primary w-full sm:w-auto">
+          <Link href="/generate" className="action-primary mobile-header-action w-full sm:w-auto">
             Nouvelle seance
           </Link>
         </div>
-        <div className="mt-6 grid gap-2 sm:grid-cols-3">
+        <div className="mobile-header-metrics mt-6 grid gap-2 sm:grid-cols-3">
           <MetricPill icon="activity" label="Resultats" value={`${total}`} tone="lime" />
           <MetricPill icon="target" label="Sport" value={sport ?? 'Tous'} />
           <MetricPill icon="chart" label="Niveau" value={level ?? 'Tous'} tone="orange" />

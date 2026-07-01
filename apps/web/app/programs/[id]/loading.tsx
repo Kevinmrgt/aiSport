@@ -15,7 +15,7 @@ export default function ProgramDetailLoading() {
               <div className="h-14 animate-pulse rounded-full bg-primary-300/20" />
             </div>
           </div>
-          <div className="h-60 rounded-[1.75rem] bg-[url('/visuals/program-cycle.webp')] bg-cover bg-center opacity-50" />
+          <div className="abstract-surface h-60 rounded-[1.75rem] opacity-70" />
         </div>
       </div>
 
