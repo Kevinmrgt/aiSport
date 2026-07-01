@@ -18,13 +18,13 @@ export default function HomePage() {
           fill
           priority
           sizes="100vw"
-          className="object-cover"
+          className="object-cover opacity-75 brightness-[1.35] saturate-[0.82]"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#182214]/80 via-[#314028]/42 to-[#f1ffd8]/20" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#dfe8d2]/35 via-[#e9f2d8]/18 to-[#f7ffe8]/10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1c2817]/44 via-[#d9e8c5]/38 to-[#f1ffd8]/46" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#dfe8d2]/62 via-[#e9f2d8]/42 to-[#f7ffe8]/24" />
       </div>
 
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_72%_20%,rgba(217,255,63,0.32),transparent_30%),radial-gradient(circle_at_28%_68%,rgba(255,255,255,0.22),transparent_24%),linear-gradient(180deg,rgba(246,255,226,0.18),rgba(23,32,20,0.36))]" />
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_72%_20%,rgba(217,255,63,0.5),transparent_30%),radial-gradient(circle_at_28%_68%,rgba(255,255,255,0.42),transparent_24%),linear-gradient(180deg,rgba(246,255,226,0.42),rgba(23,32,20,0.22))]" />
 
       <div className="grid min-h-[calc(100vh-8rem)] items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[0.86fr_1.14fr] lg:px-8">
         <div className="max-w-2xl">
