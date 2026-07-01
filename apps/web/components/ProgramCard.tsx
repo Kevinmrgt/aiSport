@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import type { ProgramListItem } from '@sportcoach/shared';
+import type { ProgramListItem } from '@alcide/shared';
 import { DeleteProgramButton } from './DeleteProgramButton';
+import { Icon } from './ui/Icon';
 
 interface ProgramCardProps {
   program: ProgramListItem;
@@ -8,12 +9,11 @@ interface ProgramCardProps {
 }
 
 const DIFFICULTY_LABELS: Record<ProgramListItem['difficulty'], string> = {
-  beginner: 'Débutant',
-  intermediate: 'Intermédiaire',
-  advanced: 'Avancé',
+  beginner: 'Debutant',
+  intermediate: 'Intermediaire',
+  advanced: 'Avance',
 };
 
-// RGAA 4.1: role="article" sur chaque item, lien avec aria-label explicite
 export function ProgramCard({ program, onDelete }: ProgramCardProps) {
   const createdAt = new Date(program.createdAt).toLocaleDateString('fr-FR', {
     day: 'numeric',
@@ -22,32 +22,55 @@ export function ProgramCard({ program, onDelete }: ProgramCardProps) {
   });
 
   return (
-    <li role="article" className="surface-soft flex min-w-0 flex-col items-stretch gap-4 p-4 transition hover:border-primary-300/40 hover:bg-white/[0.08] sm:flex-row sm:items-center">
+    <li role="article" className="glass-soft group relative min-w-0 overflow-hidden p-4 transition hover:border-primary-300/[0.45] hover:bg-white/[0.08]">
       <Link
         href={`/programs/${program.id}`}
         aria-label={`Voir le programme : ${program.title}`}
-        className="w-full flex-1 min-w-0 group"
+        className="block min-w-0"
       >
-        <div className="mb-3 inline-flex rounded-full bg-primary-300 px-3 py-1 text-xs font-black text-zinc-950">
-          {DIFFICULTY_LABELS[program.difficulty]}
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="mb-3 flex flex-wrap gap-2">
+              <span className="premium-chip bg-primary-300 text-zinc-950">
+                {DIFFICULTY_LABELS[program.difficulty]}
+              </span>
+              <span className="premium-chip capitalize">{program.sport}</span>
+            </div>
+            <h2 className="truncate text-xl font-black text-white transition-colors group-hover:text-primary-200">
+              {program.title}
+            </h2>
+          </div>
+          <span aria-hidden="true" className="icon-bubble h-11 w-11 text-primary-300">
+            <Icon name="arrow-right" className="h-4 w-4" />
+          </span>
         </div>
-        <div className="flex items-baseline gap-2 min-w-0">
-          <h2 className="truncate text-lg font-black text-white transition-colors group-hover:text-primary-200">
-            {program.title}
-          </h2>
+
+        <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="rounded-full bg-white/[0.06] px-3 py-2">
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-zinc-500">Cycle</p>
+            <p className="text-sm font-black text-white">{program.weeksCount} sem.</p>
+          </div>
+          <div className="rounded-full bg-white/[0.06] px-3 py-2">
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-zinc-500">Rythme</p>
+            <p className="text-sm font-black text-white">{program.sessionsPerWeek}/sem.</p>
+          </div>
+          <div className="rounded-full bg-white/[0.06] px-3 py-2">
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-zinc-500">Seance</p>
+            <p className="text-sm font-black text-white">{program.sessionDurationMinutes} min</p>
+          </div>
+          <div className="rounded-full bg-primary-300/10 px-3 py-2">
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-zinc-500">Cree</p>
+            <p className="text-sm font-black text-primary-200">{createdAt}</p>
+          </div>
         </div>
-        <p className="mt-1 break-words text-sm leading-5 text-zinc-400">
-          <span className="capitalize">{program.sport}</span> · {program.weeksCount} sem · {program.sessionsPerWeek} séances/sem · {program.sessionDurationMinutes} min · {createdAt}
-        </p>
       </Link>
 
-      <div className="flex w-full shrink-0 flex-wrap items-center justify-between gap-3 sm:w-auto sm:flex-nowrap sm:justify-end">
+      <div className="mt-4 flex justify-end border-t border-white/10 pt-3">
         <DeleteProgramButton
           programId={program.id}
           programTitle={program.title}
           onDelete={onDelete}
         />
-        <span aria-hidden="true" className="select-none text-2xl text-primary-300">›</span>
       </div>
     </li>
   );

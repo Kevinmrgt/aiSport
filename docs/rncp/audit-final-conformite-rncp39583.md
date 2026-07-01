@@ -1,8 +1,8 @@
-# Audit final de conformité RNCP39583 - SportCoach IA / aiSport
+# Audit final de conformité RNCP39583 - Alcide / alcide
 
-> Date d'audit : 2026-05-07  
-> Projet : SportCoach IA / aiSport  
-> Répertoire audité : `C:\Users\kevin\OneDrive\Documents\Dev\aiSport`  
+> Date d'audit : 2026-05-07
+> Projet : Alcide / alcide
+> Répertoire audité : `C:\Users\kevin\OneDrive\Documents\Dev\alcide`
 > Périmètre : PDF officiels RNCP/YNOV, livrables `docs/rncp`, documents projet, code source, configuration CI/CD, tests et preuves de production disponibles.
 
 ## 1. Synthèse exécutive
@@ -280,8 +280,8 @@ Action administrative recommandée : générer les PDF finaux des dossiers écri
 
 | URL | Résultat au 2026-05-07 | Impact |
 |---|---|---|
-| `https://ai-sport-api.vercel.app/health` | HTTP 200, `{"status":"ok","timestamp":"2026-05-07T09:55:37.519Z","version":"0.1.0"}` | Contradiction forte avec version locale `0.12.0` |
-| `https://ai-sport-web.vercel.app/api/health` | HTTP 200, `X-Vercel-Cache: HIT`, timestamp `2026-05-04T14:12:15.247Z` | Healthcheck Web peu probant comme liveness runtime |
+| `https://alcide-api.vercel.app/health` | HTTP 200, `{"status":"ok","timestamp":"2026-05-07T09:55:37.519Z","version":"0.1.0"}` | Contradiction forte avec version locale `0.12.0` |
+| `https://alcide-web.vercel.app/api/health` | HTTP 200, `X-Vercel-Cache: HIT`, timestamp `2026-05-04T14:12:15.247Z` | Healthcheck Web peu probant comme liveness runtime |
 
 ### Nuance Agent 7
 
@@ -323,12 +323,12 @@ Uniquement les éléments pouvant faire échouer un bloc ou une compétence éli
 
 ### Quels blocs sont sécurisés ?
 
-**Bloc 1 est le plus sécurisé**, sous réserve d'assumer le caractère fictif du commanditaire et des coûts.  
+**Bloc 1 est le plus sécurisé**, sous réserve d'assumer le caractère fictif du commanditaire et des coûts.
 **Bloc 2 est techniquement solide**, mais il doit être présenté comme partiel tant que les recettes, la sécurité high, l'E2E authentifié et le manuel utilisateur ne sont pas consolidés.
 
 ### Quels blocs restent fragiles ?
 
-**Bloc 3 reste fragile** sur le pilotage réel : planning prévisionnel, outil de suivi, comptes rendus et satisfaction. La démo est aussi fragilisée par la version API live.  
+**Bloc 3 reste fragile** sur le pilotage réel : planning prévisionnel, outil de suivi, comptes rendus et satisfaction. La démo est aussi fragilisée par la version API live.
 **Bloc 4 reste fragile** sur l'alerting externe, le support client réel, le rollback DB et l'audit sécurité.
 
 ### Que faut-il corriger avant dépôt ou soutenance ?

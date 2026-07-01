@@ -3,21 +3,17 @@ import { authMiddleware } from '../middleware/auth.middleware.js';
 import {
   handleGetSettings,
   handleSaveSettings,
-  handleDeleteApiKey,
 } from '../controllers/settings.controller.js';
 
 const settingsRouter = new Hono();
 
-// OWASP A01: toutes les routes settings nécessitent une session valide
+// OWASP A01: toutes les routes settings necessitent une session valide
 settingsRouter.use('*', authMiddleware);
 
-// GET /settings — lire les paramètres IA de l'utilisateur
+// GET /settings - lire les parametres IA de l'utilisateur
 settingsRouter.get('/', handleGetSettings);
 
-// PUT /settings — enregistrer les paramètres IA
+// PUT /settings - enregistrer le modele OpenAI choisi
 settingsRouter.put('/', handleSaveSettings);
-
-// DELETE /settings/api-key — supprimer la clé API personnelle
-settingsRouter.delete('/api-key', handleDeleteApiKey);
 
 export { settingsRouter };

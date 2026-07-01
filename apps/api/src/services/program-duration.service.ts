@@ -1,4 +1,4 @@
-import type { Exercise, Phase, ProgramSession, TrainingProgram } from '@sportcoach/shared';
+import type { Exercise, Phase, ProgramSession, TrainingProgram } from '@alcide/shared';
 
 const MIN_EXERCISE_DURATION_SECONDS = 60;
 const MIN_PHASE_DURATION_SECONDS = 30;

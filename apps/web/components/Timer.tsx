@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import type { Exercise, Phase } from '@sportcoach/shared';
+import type { Exercise, Phase } from '@alcide/shared';
 import { Button } from './ui/Button';
+import { Icon } from './ui/Icon';
+import { ProgressRing } from './PremiumPrimitives';
 import {
   SessionCompletionForm,
   type SessionCompletionPayload,
@@ -36,7 +38,10 @@ function useAudio() {
 
   const getCtx = useCallback(() => {
     if (!ctxRef.current) {
-      ctxRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      ctxRef.current = new (
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+      )();
     }
     return ctxRef.current;
   }, []);
@@ -60,7 +65,7 @@ function useAudio() {
         if (delayMs > 0) setTimeout(play, delayMs);
         else play();
       } catch {
-        // Audio non disponible
+        // Audio unavailable in the current browser context.
       }
     },
     [getCtx],
@@ -114,7 +119,7 @@ export function buildTimerSteps(
       steps.push({
         id: `rest-${index}`,
         type: 'rest',
-        title: 'Récupération',
+        title: 'Recuperation',
         description:
           index < exercises.length - 1
             ? `Avant ${exercises[index + 1]?.name ?? "l'exercice suivant"}`
@@ -146,9 +151,9 @@ function formatTime(totalSeconds: number): string {
 }
 
 function getStepLabel(step: TimerStep): string {
-  if (step.type === 'warmup') return 'ÉCHAUFFEMENT';
+  if (step.type === 'warmup') return 'ECHAUFFEMENT';
   if (step.type === 'rest') return 'REPOS';
-  if (step.type === 'cooldown') return 'RÉCUPÉRATION';
+  if (step.type === 'cooldown') return 'RETOUR CALME';
   return 'EXERCICE';
 }
 
@@ -158,13 +163,12 @@ function getProgressLabel(step: TimerStep, exercisesCount: number): string {
   }
 
   if (step.type === 'rest' && step.exerciseIndex != null) {
-    return `Repos après l'exercice ${step.exerciseIndex + 1} sur ${exercisesCount}`;
+    return `Repos apres l'exercice ${step.exerciseIndex + 1} sur ${exercisesCount}`;
   }
 
-  return step.type === 'warmup' ? 'Échauffement' : 'Récupération';
+  return step.type === 'warmup' ? 'Echauffement' : 'Retour calme';
 }
 
-// RGAA 4.1: timer accessible avec aria-live pour les annonces dynamiques
 export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta }: TimerProps) {
   const steps = useMemo(() => buildTimerSteps(exercises, warmup, cooldown), [exercises, warmup, cooldown]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -212,7 +216,6 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
     [finish, steps],
   );
 
-  // Recaler l'état si une nouvelle séance est chargée.
   useEffect(() => {
     setCurrentIndex(0);
     setSecondsLeft(steps[0]?.durationSeconds ?? null);
@@ -222,7 +225,6 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
     sessionStartedAtRef.current = null;
   }, [steps]);
 
-  // Décompte de l'étape chronométrée en cours.
   useEffect(() => {
     if (!currentStep || currentStep.durationSeconds === null || !isRunning || secondsLeft === null || done) return;
 
@@ -242,17 +244,28 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
 
     const timer = setTimeout(() => setSecondsLeft((s) => (s !== null ? s - 1 : null)), 1000);
     return () => clearTimeout(timer);
-  }, [currentIndex, currentStep, done, finish, goToStep, isRunning, playCountdown, playPhaseChange, secondsLeft, steps.length]);
+  }, [
+    currentIndex,
+    currentStep,
+    done,
+    finish,
+    goToStep,
+    isRunning,
+    playCountdown,
+    playPhaseChange,
+    secondsLeft,
+    steps.length,
+  ]);
 
   if (done || !currentStep) {
     if (completeAction && sessionMeta) {
       return (
-        <section aria-labelledby="session-complete-title" className="surface-soft py-8 text-center">
+        <section aria-labelledby="session-complete-title" className="glass-soft p-6 text-center">
           <div role="status" aria-live="polite">
-            <p id="session-complete-title" className="text-2xl font-black text-primary-300">
-              Seance terminee !
+            <p id="session-complete-title" className="text-3xl font-black text-primary-300">
+              Seance terminee
             </p>
-            <p className="mt-2 text-zinc-400">Bien joue - partagez votre ressenti pour ajuster la suite.</p>
+            <p className="mt-2 text-zinc-300">Ajoutez votre ressenti pour ajuster la suite.</p>
           </div>
           <SessionCompletionForm
             completeAction={completeAction}
@@ -264,10 +277,9 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
     }
 
     return (
-      // RGAA 4.1: message de fin avec aria-live
-      <div role="status" aria-live="polite" className="surface-soft py-8 text-center">
-        <p className="text-2xl font-black text-primary-300">Séance terminée !</p>
-        <p className="mt-2 text-zinc-400">Bien joué — n&apos;oubliez pas de vous étirer.</p>
+      <div role="status" aria-live="polite" className="glass-soft p-8 text-center">
+        <p className="text-3xl font-black text-primary-300">Seance terminee</p>
+        <p className="mt-2 text-zinc-300">Bien joue. Prenez quelques minutes pour recuperer.</p>
       </div>
     );
   }
@@ -293,7 +305,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
     ? isRunning
       ? 'Pause'
       : secondsLeft === currentStep.durationSeconds
-        ? 'Démarrer'
+        ? 'Demarrer'
         : 'Reprendre'
     : currentStep.type === 'exercise'
       ? "Terminer l'exercice"
@@ -306,20 +318,15 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
 
   return (
     <section aria-labelledby="timer-exercise-title" className="flex flex-col items-center gap-6">
-      {/* Timer de séance global, dérivé des étapes chronométrées restantes. */}
       {totalTimedSeconds > 0 && (
-        <div className="w-full max-w-md">
-          <div className="mb-2 flex justify-between text-xs font-semibold text-zinc-400">
-            <span>Séance</span>
-            <span
-              role="timer"
-              aria-label={`Temps chronométré restant : ${sessionDisplay}`}
-              aria-live="off"
-            >
+        <div className="w-full">
+          <div className="mb-2 flex justify-between text-xs font-bold text-zinc-400">
+            <span>Session</span>
+            <span role="timer" aria-label={`Temps chronometre restant : ${sessionDisplay}`} aria-live="off">
               {sessionDisplay} restant
             </span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-white/10">
+          <div className="h-3 overflow-hidden rounded-full bg-white/10 p-1">
             <div
               className="h-full rounded-full bg-primary-300 transition-all duration-1000"
               style={{ width: `${sessionProgress ?? 0}%` }}
@@ -332,60 +339,73 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
         </div>
       )}
 
-      {/* RGAA 4.1: indication de progression */}
-      <p className="text-sm font-semibold text-primary-300" aria-live="polite">
+      <p className="premium-chip text-primary-200" aria-live="polite">
         {progressLabel}
       </p>
 
-      <div className="w-full max-w-md rounded-lg border border-white/10 bg-zinc-950/80 p-5 text-center shadow-2xl shadow-black/20 sm:p-8">
-        {/* Phase actuelle annoncée aux lecteurs d'écran */}
-        <p
-          aria-live="assertive"
-          className={`text-xs font-bold uppercase tracking-widest mb-2 ${
-            currentStep.type === 'exercise' ? 'text-primary-300' : 'text-sport-orange'
-          }`}
-        >
-          {getStepLabel(currentStep)}
-        </p>
-
-        <h2 id="timer-exercise-title" className="break-words text-2xl font-black text-white">
-          {currentStep.title}
-        </h2>
-
-        {currentStep.description && (
-          <p className="mt-2 text-sm text-zinc-400">{currentStep.description}</p>
-        )}
-
-        {hasStepTimer ? (
-          // Timer — rouge + clignotant sur les 3 dernières secondes
-          <div
-            role="timer"
-            aria-label={`Temps restant : ${timeDisplay}`}
-            aria-live="off"
-            className={`mt-6 text-6xl font-mono font-bold tabular-nums transition-colors sm:text-7xl ${
-              isCountingDown ? 'text-red-400 animate-pulse' : 'text-white'
+      <div className="relative w-full max-w-xl overflow-hidden rounded-[2rem] border border-white/[0.15] bg-zinc-950/60 p-5 text-center shadow-2xl shadow-black/30 backdrop-blur-2xl sm:p-8">
+        <div className="absolute inset-x-8 top-0 h-24 rounded-full bg-primary-300/[0.15] blur-3xl" />
+        <div className="relative">
+          <p
+            aria-live="assertive"
+            className={`mb-3 text-xs font-black uppercase tracking-[0.22em] ${
+              currentStep.type === 'exercise' ? 'text-primary-300' : 'text-sport-orange'
             }`}
           >
-            {timeDisplay}
-          </div>
-        ) : (
-          <div role="status" aria-live="polite" className="mt-6 text-2xl font-black text-white">
-            Sans chrono
-          </div>
-        )}
-
-        {currentStep.tips && currentStep.type === 'exercise' && (
-          <p className="mt-4 text-xs italic text-zinc-400">
-            <span aria-hidden="true">💡</span> {currentStep.tips}
+            {getStepLabel(currentStep)}
           </p>
-        )}
+
+          <h2 id="timer-exercise-title" className="break-words text-3xl font-black text-white">
+            {currentStep.title}
+          </h2>
+
+          {currentStep.description && (
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-300">
+              {currentStep.description}
+            </p>
+          )}
+
+          <div className="mt-7 grid place-items-center">
+            {hasStepTimer ? (
+              <div
+                role="timer"
+                aria-label={`Temps restant : ${timeDisplay}`}
+                aria-live="off"
+                className={`grid h-52 w-52 place-items-center rounded-full border border-white/10 shadow-2xl shadow-black/30 transition-colors ${
+                  isCountingDown ? 'animate-pulse bg-sport-orange/[0.15] text-sport-orange' : 'bg-white/[0.06] text-white'
+                }`}
+                style={{
+                  backgroundImage: `conic-gradient(#d9ff3f ${
+                    currentStep.durationSeconds
+                      ? ((currentStep.durationSeconds - currentStepRemaining) /
+                          currentStep.durationSeconds) *
+                        360
+                      : 0
+                  }deg, rgba(255,255,255,0.08) 0deg)`,
+                }}
+              >
+                <span className="grid h-44 w-44 place-items-center rounded-full bg-zinc-950/[0.85] font-mono text-6xl font-black tabular-nums">
+                  {timeDisplay}
+                </span>
+              </div>
+            ) : (
+              <ProgressRing value={100} label="manuel" size="lg" />
+            )}
+          </div>
+
+          {currentStep.tips && currentStep.type === 'exercise' && (
+            <p className="mx-auto mt-5 max-w-md rounded-[1.25rem] border border-white/10 bg-white/[0.06] p-3 text-xs italic text-zinc-300">
+              {currentStep.tips}
+            </p>
+          )}
+        </div>
       </div>
 
-      <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+      <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2">
         <Button
           variant="primary"
           size="lg"
-          className="w-full sm:w-auto"
+          className="w-full sm:min-w-44"
           onClick={() => {
             markSessionStarted();
             if (hasStepTimer) {
@@ -396,6 +416,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
           }}
           aria-pressed={hasStepTimer ? isRunning : undefined}
         >
+          <Icon name={isRunning ? 'timer' : 'zap'} className="h-4 w-4" />
           {primaryButtonLabel}
         </Button>
 
@@ -403,12 +424,13 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
           <Button
             variant="secondary"
             size="lg"
-            className="w-full sm:w-auto"
+            className="w-full sm:min-w-44"
             onClick={() => {
               markSessionStarted();
               goToStep(currentIndex + 1);
             }}
           >
+            <Icon name="arrow-right" className="h-4 w-4" />
             {secondaryButtonLabel}
           </Button>
         )}

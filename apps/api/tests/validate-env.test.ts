@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // OWASP A05: tests du fail-fast sur les variables d'environnement obligatoires
 describe('validateEnv', () => {
   const REQUIRED_VARS = ['DATABASE_URL', 'SERVICE_SECRET'];
-  const OPTIONAL_VARS = ['MISTRAL_API_KEY'];
+  const OPTIONAL_VARS = ['OPENAI_API_KEY'];
 
   beforeEach(() => {
     // Supprimer toutes les vars requises avant chaque test
@@ -23,7 +23,7 @@ describe('validateEnv', () => {
   it('ne lève pas process.exit si toutes les variables sont présentes', async () => {
     process.env['DATABASE_URL'] = 'postgres://localhost/test';
     process.env['SERVICE_SECRET'] = 'secret-test';
-    process.env['MISTRAL_API_KEY'] = 'key-test';
+    process.env['OPENAI_API_KEY'] = 'key-test';
 
     const { validateEnv } = await import('../src/lib/validate-env.js');
     expect(() => validateEnv()).not.toThrow();
@@ -31,17 +31,17 @@ describe('validateEnv', () => {
 
   it('lève une erreur si SERVICE_SECRET est absent', async () => {
     process.env['DATABASE_URL'] = 'postgres://localhost/test';
-    process.env['MISTRAL_API_KEY'] = 'key-test';
+    process.env['OPENAI_API_KEY'] = 'key-test';
     // SERVICE_SECRET absent
 
     const { validateEnv } = await import('../src/lib/validate-env.js');
     expect(() => validateEnv()).toThrow(/SERVICE_SECRET/);
   });
 
-  it('ne leve pas d\'erreur si MISTRAL_API_KEY est absente', async () => {
+  it('ne leve pas d\'erreur si OPENAI_API_KEY est absente', async () => {
     process.env['DATABASE_URL'] = 'postgres://localhost/test';
     process.env['SERVICE_SECRET'] = 'secret-test';
-    // MISTRAL_API_KEY absent
+    // OPENAI_API_KEY absent
 
     const { validateEnv } = await import('../src/lib/validate-env.js');
     expect(() => validateEnv()).not.toThrow();
@@ -49,7 +49,7 @@ describe('validateEnv', () => {
 
   it('lève une erreur si DATABASE_URL est absente', async () => {
     process.env['SERVICE_SECRET'] = 'secret-test';
-    process.env['MISTRAL_API_KEY'] = 'key-test';
+    process.env['OPENAI_API_KEY'] = 'key-test';
     // DATABASE_URL absent
 
     const { validateEnv } = await import('../src/lib/validate-env.js');

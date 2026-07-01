@@ -2,7 +2,7 @@ name: CD - Vercel
 
 on:
   workflow_run:
-    workflows: ["CI - SportCoach IA"]
+    workflows: ["CI - Alcide"]
     branches: [main]
     types: [completed]
   workflow_dispatch:
@@ -80,7 +80,7 @@ jobs:
           echo "API deployed to ${url}"
 
       - name: Smoke test API
-        run: curl --fail --show-error --silent --max-time 30 https://ai-sport-api.vercel.app/health
+        run: curl --fail --show-error --silent --max-time 30 https://alcide-api.vercel.app/health
 
   deploy-web:
     name: Deploy Web to Vercel
@@ -144,4 +144,4 @@ jobs:
           echo "Web deployed to ${url}"
 
       - name: Smoke test Web
-        run: curl --fail --show-error --silent --max-time 30 https://ai-sport-web.vercel.app/api/health
+        run: curl --fail --show-error --silent --max-time 30 https://alcide-web.vercel.app/api/health

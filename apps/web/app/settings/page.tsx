@@ -1,11 +1,12 @@
+import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { serverApi } from '@/lib/server-api';
 import type { SaveAiSettingsInput } from '@/lib/server-api';
 import { SettingsForm } from '@/components/SettingsForm';
+import { GlassPanel, MetricPill } from '@/components/PremiumPrimitives';
 
-// OWASP A01: route protégée
 export default async function SettingsPage() {
   const session = await auth();
 
@@ -14,7 +15,7 @@ export default async function SettingsPage() {
   }
 
   const aiSettings = await serverApi.getAiSettings().catch(() => ({
-    provider: 'mistral' as const,
+    provider: 'openai' as const,
     hasApiKey: false,
     model: null,
   }));
@@ -24,38 +25,38 @@ export default async function SettingsPage() {
     try {
       await serverApi.saveAiSettings(data);
       revalidatePath('/settings');
+      revalidatePath('/generate');
     } catch (err) {
       return { error: err instanceof Error ? err.message : 'Erreur lors de la sauvegarde' };
     }
   }
 
-  async function handleDeleteKey(): Promise<{ error?: string } | void> {
-    'use server';
-    try {
-      await serverApi.deleteAiKey();
-      revalidatePath('/settings');
-    } catch (err) {
-      return { error: err instanceof Error ? err.message : 'Erreur lors de la suppression' };
-    }
-  }
-
   return (
-    <div className="mx-auto max-w-3xl">
-      <header className="mb-8">
-        <p className="section-kicker mb-2">Configuration</p>
+    <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[0.85fr_1.15fr]">
+      <GlassPanel className="relative overflow-hidden p-5 sm:p-6">
+        <Image
+          src="/visuals/empty-state-glow.webp"
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 1024px) 100vw, 420px"
+          className="-z-10 object-cover opacity-50"
+        />
+        <p className="section-kicker mb-3">Configuration</p>
         <h1 id="settings-title" className="page-title">
-          Paramètres IA
+          Parametres Alcide
         </h1>
-        <p className="muted-copy mt-3">
-          Configurez votre fournisseur d&apos;IA et votre clé API personnelle.
+        <p className="muted-copy mt-4">
+          Une page volontairement plus calme : elle sert a piloter le moteur de generation sans
+          transformer l interface en panneau technique.
         </p>
-      </header>
+        <div className="mt-6 grid gap-2">
+          <MetricPill icon="spark" label="Provider" value="OpenAI" tone="lime" />
+          <MetricPill icon="settings" label="Secret" value="Serveur" />
+        </div>
+      </GlassPanel>
 
-      <SettingsForm
-        initial={aiSettings}
-        onSave={handleSave}
-        onDeleteKey={handleDeleteKey}
-      />
+      <SettingsForm initial={aiSettings} onSave={handleSave} />
     </div>
   );
 }

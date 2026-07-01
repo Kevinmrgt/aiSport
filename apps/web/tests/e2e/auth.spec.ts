@@ -44,6 +44,6 @@ test.describe('Page 404', () => {
     await page.goto('/cette-page-nexiste-pas');
     // Next.js not-found.tsx
     await expect(page.getByRole('heading', { name: /introuvable/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: "Retour à l'accueil" })).toBeVisible();
+    await expect(page.getByRole('link', { name: /retour a l'accueil/i })).toBeVisible();
   });
 });

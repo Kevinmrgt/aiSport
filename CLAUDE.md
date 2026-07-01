@@ -1,14 +1,14 @@
-# SportCoach IA - Claude project instructions
+# Alcide - Claude project instructions
 
 The canonical Claude configuration for this repository lives in
-`sportcoach-claude-config/`.
+`alcide-claude-config/`.
 
 Use these files as the project source of truth:
 
-- `sportcoach-claude-config/CLAUDE.md`
-- `sportcoach-claude-config/.claude/rules/`
-- `sportcoach-claude-config/.claude/agents/`
-- `sportcoach-claude-config/.claude/skills/`
+- `alcide-claude-config/CLAUDE.md`
+- `alcide-claude-config/.claude/rules/`
+- `alcide-claude-config/.claude/agents/`
+- `alcide-claude-config/.claude/skills/`
 
 Operational reminders:
 
@@ -17,5 +17,5 @@ Operational reminders:
   permission files.
 - Build order is `shared -> api -> web`.
 - Production URLs are:
-  - Web: `https://ai-sport-web.vercel.app`
-  - API: `https://ai-sport-api.vercel.app`
+  - Web: `https://alcide-web.vercel.app`
+  - API: `https://alcide-api.vercel.app`

@@ -6,7 +6,7 @@ const port = Number(process.env['PORT'] ?? 3001);
 
 // Démarrage du serveur (dev local et Docker uniquement — pas utilisé sur Vercel)
 serve({ fetch: app.fetch, port }, (info) => {
-  console.info(`[API] SportCoach IA démarré sur http://localhost:${info.port}`);
+  console.info(`[API] Alcide démarré sur http://localhost:${info.port}`);
 });
 
 // Fermeture propre (graceful shutdown)

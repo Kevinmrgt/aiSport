@@ -22,7 +22,7 @@
 
 ```typescript
 export function GET() {
-  return NextResponse.json({ status: 'ok', service: 'sportcoach-web', timestamp: ... });
+  return NextResponse.json({ status: 'ok', service: 'alcide-web', timestamp: ... });
 }
 ```
 

@@ -8,8 +8,8 @@
 
 The project already has live production URLs on Vercel:
 
-- Web: `https://ai-sport-web.vercel.app`
-- API: `https://ai-sport-api.vercel.app`
+- Web: `https://alcide-web.vercel.app`
+- API: `https://alcide-api.vercel.app`
 
 Previous documentation also mentioned Fly.io and Railway, which made the
 deployment target ambiguous.
@@ -19,7 +19,7 @@ deployment target ambiguous.
 The canonical production path is:
 
 ```text
-GitHub main -> CI - SportCoach IA -> CD - Vercel -> Web/API Vercel -> Neon
+GitHub main -> CI - Alcide -> CD - Vercel -> Web/API Vercel -> Neon
 ```
 
 Database migrations are not part of the Vercel build. They are handled by a

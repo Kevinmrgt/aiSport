@@ -1,4 +1,4 @@
-# Compte Rendu d'Activité — SportCoach IA
+# Compte Rendu d'Activité — Alcide
 
 > Bloc 4 RNCP 39583 — C4.3.1 Gérer son activité professionnelle
 > Candidat : Kevin | Période : 2026-03-01 → 2026-05-07
@@ -7,7 +7,7 @@
 
 ## Contexte de l'activité
 
-Dans le cadre de la certification RNCP 39583 Expert en développement logiciel, j'ai conçu et développé **SportCoach IA**, une application web de génération d'entraînements sportifs personnalisés par intelligence artificielle. Le projet a été conduit en autonomie complète sur 12 sprints de développement itératif.
+Dans le cadre de la certification RNCP 39583 Expert en développement logiciel, j'ai conçu et développé **Alcide**, une application web de génération d'entraînements sportifs personnalisés par intelligence artificielle. Le projet a été conduit en autonomie complète sur 12 sprints de développement itératif.
 
 ---
 

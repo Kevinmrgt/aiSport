@@ -1,47 +1,76 @@
+import Image from 'next/image';
 import { signIn } from '@/lib/auth';
+import { GlassPanel, IconBubble, MetricPill } from '@/components/PremiumPrimitives';
 
-// RGAA 4.1: page de connexion accessible — labels explicites, sémantique correcte
 export default function LoginPage() {
   return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <section className="surface w-full max-w-sm p-6 text-center" aria-labelledby="login-title">
-        <p className="section-kicker mb-2">Accès coach</p>
-        <h1 id="login-title" className="text-3xl font-black text-white mb-2">
-          Connexion
+    <div className="grid min-h-[72vh] items-center gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+      <section aria-labelledby="login-title" className="max-w-xl">
+        <p className="section-kicker mb-4">Acces Alcide</p>
+        <h1 id="login-title" className="page-title">
+          Reprendre votre entrainement.
         </h1>
-        <p className="muted-copy mb-8">
-          Connectez-vous pour accéder à vos entraînements.
+        <p className="muted-copy mt-4 max-w-md">
+          Connectez-vous pour retrouver vos seances, vos programmes et votre progression dans
+          l espace Alcide Pulse.
         </p>
 
-        {/* RGAA 4.1: formulaire avec action server-side */}
         <form
           action={async () => {
             'use server';
             await signIn('google', { redirectTo: '/generate' });
           }}
+          className="mt-8"
         >
-          {/* RGAA 4.1: bouton avec texte descriptif complet */}
           <button
             type="submit"
-            className="flex w-full items-center justify-center gap-3 rounded-full bg-primary-300 px-4 py-2.5 text-center text-sm font-black leading-tight text-zinc-950 transition-colors hover:bg-primary-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
+            className="action-primary w-full max-w-sm justify-between gap-4 pl-5 pr-3 sm:w-auto"
           >
-            {/* RGAA 4.1: SVG avec title pour lecteurs d'écran */}
-            <svg
-              role="img"
-              aria-label="Logo Google"
-              className="w-4 h-4"
-              viewBox="0 0 24 24"
-            >
-              <title>Logo Google</title>
-              <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47a5.53 5.53 0 0 1-2.4 3.63v2.96h3.89c2.27-2.09 3.53-5.17 3.53-8.83z" />
-              <path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.95-2.9l-3.89-2.96c-1.08.72-2.45 1.15-4.06 1.15-3.12 0-5.77-2.11-6.71-4.95H1.27v3.05A12 12 0 0 0 12 24z" />
-              <path fill="#FBBC05" d="M5.29 14.34a7.23 7.23 0 0 1 0-4.68V6.61H1.27a12 12 0 0 0 0 10.78l4.02-3.05z" />
-              <path fill="#EA4335" d="M12 4.71c1.76 0 3.34.6 4.58 1.79l3.45-3.45A11.56 11.56 0 0 0 12 0 12 12 0 0 0 1.27 6.61l4.02 3.05C6.23 6.82 8.88 4.71 12 4.71z" />
-            </svg>
-            Continuer avec Google
+            <span>Continuer avec Google</span>
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-zinc-950 text-white">
+              G
+            </span>
           </button>
         </form>
       </section>
+
+      <div className="relative mx-auto w-full max-w-[25rem]">
+        <div className="phone-frame min-h-[42rem]">
+          <Image
+            src="/visuals/login-athlete.webp"
+            alt=""
+            fill
+            priority
+            sizes="(max-width: 1024px) 90vw, 400px"
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/10 via-zinc-950/20 to-zinc-950/95" />
+          <div className="relative z-10 flex min-h-[42rem] flex-col justify-between p-5 pt-16">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-3xl font-black text-white">Alcide</p>
+                <p className="text-sm font-bold text-primary-300">Pulse access</p>
+              </div>
+              <IconBubble icon="home" />
+            </div>
+
+            <GlassPanel className="space-y-5 p-5">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-primary-300">
+                  Session
+                </p>
+                <h2 className="mt-2 text-3xl font-black leading-tight text-white">
+                  Votre espace training est pret.
+                </h2>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <MetricPill icon="activity" label="Seances" value="Perso" />
+                <MetricPill icon="chart" label="Suivi" value="Actif" tone="lime" />
+              </div>
+            </GlassPanel>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

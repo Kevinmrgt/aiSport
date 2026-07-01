@@ -1,4 +1,4 @@
-# CI/CD - SportCoach IA
+# CI/CD - Alcide
 
 > Date: 2026-05-04  
 > Scope: GitHub Actions, Vercel, Neon, Docker
@@ -9,8 +9,8 @@ Production actuelle:
 
 | Composant | Plateforme | URL |
 | --- | --- | --- |
-| Web Next.js | Vercel | `https://ai-sport-web.vercel.app` |
-| API Hono | Vercel | `https://ai-sport-api.vercel.app` |
+| Web Next.js | Vercel | `https://alcide-web.vercel.app` |
+| API Hono | Vercel | `https://alcide-api.vercel.app` |
 | PostgreSQL | Neon | configure via `DATABASE_URL` |
 
 Docker Compose et Fly.io restent supportes pour l'auto-hebergement ou une
@@ -44,7 +44,7 @@ doit etre traitee ou documentee.
 Deja utilises par la CI:
 
 - `SERVICE_SECRET`
-- `MISTRAL_API_KEY`
+- `OPENAI_API_KEY`
 - `NEXT_PUBLIC_API_URL`
 
 Requis pour la CD Vercel:
@@ -60,7 +60,7 @@ lançable manuellement sans provoquer de faux echecs apres chaque CI.
 
 Le token `VERCEL_TOKEN` doit avoir acces au scope Vercel
 `kevinmrgts-projects`. Un token personnel sans ce scope ne peut pas lire les
-environnements ni deployer les projets `ai-sport-api` / `ai-sport-web`.
+environnements ni deployer les projets `alcide-api` / `alcide-web`.
 
 Requis pour le workflow manuel DB:
 
@@ -70,7 +70,7 @@ Secrets applicatifs a configurer dans Vercel, pas dans le code:
 
 - Web: `NEXT_PUBLIC_API_URL`, `SERVICE_SECRET`, `AUTH_SECRET`,
   `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `NEXTAUTH_URL`
-- API: `DATABASE_URL`, `SERVICE_SECRET`, `MISTRAL_API_KEY`, `FRONTEND_URL`,
+- API: `DATABASE_URL`, `SERVICE_SECRET`, `OPENAI_API_KEY`, `FRONTEND_URL`,
   `NODE_ENV`
 
 `SERVICE_SECRET` doit etre strictement identique cote Web et API.
@@ -94,15 +94,15 @@ trace explicite.
 Le workflow CD verifie:
 
 ```bash
-curl --fail https://ai-sport-api.vercel.app/health
-curl --fail https://ai-sport-web.vercel.app/api/health
+curl --fail https://alcide-api.vercel.app/health
+curl --fail https://alcide-web.vercel.app/api/health
 ```
 
 Pour un controle manuel plus complet:
 
 ```bash
-curl -I https://ai-sport-web.vercel.app
-curl https://ai-sport-api.vercel.app/health
+curl -I https://alcide-web.vercel.app
+curl https://alcide-api.vercel.app/health
 ```
 
 ## Rollback

@@ -123,7 +123,7 @@ describe('ProgramController', () => {
       expect(body.weeksCount).toBe(2);
     });
 
-    it('retourne 503 si le service Mistral est indisponible', async () => {
+    it('retourne 503 si le service IA est indisponible', async () => {
       vi.mocked(generateAndSaveProgram).mockRejectedValue(
         AppError.serviceUnavailable("Impossible de générer le programme"),
       );

@@ -31,7 +31,7 @@ export function Select({
         {label}
         {props.required && (
           <>
-            <span aria-hidden="true" className="text-primary-300 ml-1">*</span>
+            <span aria-hidden="true" className="ml-1 text-primary-300">*</span>
             <span className="sr-only">(requis)</span>
           </>
         )}
@@ -44,7 +44,7 @@ export function Select({
         aria-invalid={error ? true : undefined}
         className={[
           'field-control',
-          error ? 'border-red-400' : 'border-white/10',
+          error ? 'border-sport-orange' : 'border-white/10',
           className,
         ].join(' ')}
       >
@@ -61,7 +61,7 @@ export function Select({
       </select>
 
       {error && (
-        <p id={errorId} role="alert" className="text-xs text-red-600">
+        <p id={errorId} role="alert" className="text-xs text-sport-orange">
           {error}
         </p>
       )}

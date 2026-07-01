@@ -1,9 +1,9 @@
 # Preuve de suivi projet datee - Bloc 3 RNCP39583
 
-> Projet : SportCoach IA / aiSport  
-> Type de preuve : export Kanban et tableau de pilotage  
-> Date locale : 2026-05-07, 13:22 CEST, Europe/Paris  
-> Version suivie : 0.12.0  
+> Projet : Alcide / alcide
+> Type de preuve : export Kanban et tableau de pilotage
+> Date locale : 2026-05-07, 13:22 CEST, Europe/Paris
+> Version suivie : 0.12.0
 > Responsable pilotage : Kevin
 
 ---
@@ -14,7 +14,7 @@
 |---|---|---:|---|
 | Version applicative | Validee | `0.12.0` | `package.json`, `apps/api/package.json`, `CHANGELOG.md` |
 | API production | Redeployee | `READY` | Vercel deployment `dpl_9nZvY94JBLsaLseM8gDCZtNQ4Z8k` |
-| Healthcheck API | Valide | HTTP 200, `version:"0.12.0"` | `curl https://ai-sport-api.vercel.app/health` |
+| Healthcheck API | Valide | HTTP 200, `version:"0.12.0"` | `curl https://alcide-api.vercel.app/health` |
 | Tests API | Valides | 70 tests passants | `pnpm --filter api test`, 2026-05-07 |
 | Suivi projet | Ajoute | 1 export Kanban date | Present document |
 
@@ -25,7 +25,7 @@
 | ID | Lot / tache | Priorite | Statut | Responsable | Echeance | Preuve / commentaire |
 |---|---|---|---|---|---|---|
 | B3-DEPLOY-API-012 | Redeployer l'API pour aligner `/health` avec la version courante | Haute | Termine | Kevin | 2026-05-07 | Deployment Vercel `dpl_9nZvY94JBLsaLseM8gDCZtNQ4Z8k` |
-| B3-HEALTH-012 | Verifier que `/health` ne renvoie plus `version:"0.1.0"` | Haute | Termine | Kevin | 2026-05-07 | Alias production `https://ai-sport-api.vercel.app/health` renvoie `version:"0.12.0"` |
+| B3-HEALTH-012 | Verifier que `/health` ne renvoie plus `version:"0.1.0"` | Haute | Termine | Kevin | 2026-05-07 | Alias production `https://alcide-api.vercel.app/health` renvoie `version:"0.12.0"` |
 | B3-TEST-API-012 | Securiser la non-regression API avant redeploiement | Haute | Termine | Kevin | 2026-05-07 | `pnpm --filter api test` : 70 tests passants |
 | B3-PILOTAGE-012 | Ajouter une preuve de suivi projet datee | Haute | Termine | Kevin | 2026-05-07 | Export Kanban et tableau de pilotage dans ce fichier |
 | B3-MONITORING-V2 | Ajouter une preuve de monitoring externe avec alerte | Moyenne | A faire | Kevin | V2 | Mentionne comme dette de pilotage dans Bloc 3 / Bloc 4 |
@@ -59,15 +59,15 @@ Resultat Vercel utile :
 Deployment ID: dpl_9nZvY94JBLsaLseM8gDCZtNQ4Z8k
 Target: production
 Status: READY
-Production URL: https://ai-sport-omx9ulhvv-kevinmrgts-projects.vercel.app
-Alias: https://ai-sport-api.vercel.app
+Production URL: https://alcide-omx9ulhvv-kevinmrgts-projects.vercel.app
+Alias: https://alcide-api.vercel.app
 Created: 2026-05-07 13:20:56 CEST
 ```
 
 Verification sur l'alias public :
 
 ```powershell
-curl.exe -s --max-time 30 https://ai-sport-api.vercel.app/health
+curl.exe -s --max-time 30 https://alcide-api.vercel.app/health
 ```
 
 Sortie constatee :

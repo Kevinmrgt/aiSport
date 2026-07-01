@@ -6,7 +6,7 @@
 
 ## Contexte
 
-Le backend de SportCoach IA expose une API REST appelée par le frontend Next.js. Il doit valider les inputs, appeler Mistral AI, et persister les entraînements en PostgreSQL. Le choix du framework HTTP TypeScript est déterminant pour la performance, la sécurité et la maintenabilité.
+Le backend de Alcide expose une API REST appelée par le frontend Next.js. Il doit valider les inputs, appeler Mistral AI, et persister les entraînements en PostgreSQL. Le choix du framework HTTP TypeScript est déterminant pour la performance, la sécurité et la maintenabilité.
 
 ## Options envisagées
 

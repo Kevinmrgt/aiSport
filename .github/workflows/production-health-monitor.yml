@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  API_HEALTH_URL: ${{ vars.PROD_API_HEALTH_URL || 'https://ai-sport-api.vercel.app/health' }}
-  WEB_HEALTH_URL: ${{ vars.PROD_WEB_HEALTH_URL || 'https://ai-sport-web.vercel.app/api/health' }}
+  API_HEALTH_URL: ${{ vars.PROD_API_HEALTH_URL || 'https://alcide-api.vercel.app/health' }}
+  WEB_HEALTH_URL: ${{ vars.PROD_WEB_HEALTH_URL || 'https://alcide-web.vercel.app/api/health' }}
 
 jobs:
   healthcheck:

@@ -1,10 +1,12 @@
+import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { WorkoutForm } from '@/components/WorkoutForm';
+import { GlassPanel, MetricPill, ProgressRing } from '@/components/PremiumPrimitives';
 import { serverApi } from '@/lib/server-api';
-import type { GenerateWorkoutInput } from '@sportcoach/shared';
+import { estimateWorkoutGenerationCost } from '@/lib/ai-pricing';
+import type { GenerateWorkoutInput } from '@alcide/shared';
 
-// OWASP A01: route protégée — redirection si pas de session
 export default async function GeneratePage() {
   const session = await auth();
 
@@ -12,11 +14,13 @@ export default async function GeneratePage() {
     redirect('/login');
   }
 
-  // Server Action : s'exécute côté serveur, pas d'exposition de token au client.
-  // Pattern : try-catch retourne l'erreur au lieu de throw — en production Next.js
-  // remplace le message de tout throw par un message générique, rendant l'erreur
-  // illisible côté client. On sépare la gestion d'erreur du redirect (qui utilise
-  // lui-même un throw interne Next.js et doit rester hors du try-catch).
+  const aiSettings = await serverApi.getAiSettings().catch(() => ({
+    provider: 'openai' as const,
+    hasApiKey: false,
+    model: null,
+  }));
+  const costEstimate = estimateWorkoutGenerationCost(aiSettings.model);
+
   async function handleGenerate(data: GenerateWorkoutInput): Promise<{ error?: string } | void> {
     'use server';
     let workoutId: string;
@@ -24,44 +28,61 @@ export default async function GeneratePage() {
       const workout = await serverApi.generateWorkout(data);
       workoutId = workout.id;
     } catch (error) {
-      // OWASP A09: logger l'erreur réelle côté serveur (visible dans les logs Vercel/Railway)
-      console.error('[GeneratePage] Erreur génération entraînement:', {
+      console.error('[GeneratePage] Erreur generation entrainement:', {
         error: error instanceof Error ? error.message : error,
         stack: error instanceof Error ? error.stack : undefined,
         timestamp: new Date().toISOString(),
       });
       const message =
-        error instanceof Error ? error.message : 'Erreur inattendue, veuillez réessayer';
+        error instanceof Error ? error.message : 'Erreur inattendue, veuillez reessayer';
       return { error: message };
     }
-    // redirect() est en dehors du try-catch — il throw une erreur interne Next.js
-    // (NEXT_REDIRECT) qui ne doit pas être interceptée par notre catch
     redirect(`/workouts/${workoutId}`);
   }
 
   return (
     <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-      <header className="lg:sticky lg:top-28">
-        <p className="section-kicker mb-2">Studio IA</p>
-        <h1 className="page-title">Générer un entraînement</h1>
-        <p className="muted-copy mt-4 max-w-md">
-          Choisissez le sport, le niveau et vos objectifs. Le coach prépare une séance claire,
-          chronométrée et prête à lancer.
-        </p>
+      <header className="relative overflow-hidden rounded-[2.4rem] border border-white/[0.15] bg-zinc-950/50 p-5 shadow-2xl shadow-black/30 backdrop-blur-2xl lg:sticky lg:top-8 lg:min-h-[42rem] lg:p-6">
+        <Image
+          src="/visuals/workout-action.webp"
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 1024px) 100vw, 520px"
+          className="-z-10 object-cover opacity-70"
+        />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-zinc-950/[0.15] via-zinc-950/40 to-zinc-950/95" />
 
-        <div className="mt-8 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-          {['Sport', 'Objectif', 'Timer'].map((label, index) => (
-            <div key={label} className="metric-card">
-              <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">
-                Étape {index + 1}
-              </p>
-              <p className="mt-2 break-words text-lg font-black text-white">{label}</p>
+        <div className="flex min-h-[32rem] flex-col justify-between">
+          <div>
+            <p className="section-kicker mb-4">Atelier seance</p>
+            <h1 className="page-title">Creer une seance sur mesure</h1>
+            <p className="muted-copy mt-4 max-w-md">
+              Renseignez le sport, le niveau, la duree et le contexte. Alcide transforme le brief
+              en routine executable avec timer.
+            </p>
+          </div>
+
+          <GlassPanel className="mt-8 space-y-5 p-5">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-400">
+                  Focus
+                </p>
+                <p className="mt-2 text-2xl font-black text-white">Session du jour</p>
+              </div>
+              <ProgressRing value={62} label="pret" />
             </div>
-          ))}
+            <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+              <MetricPill icon="activity" label="Sport" value="Libre" />
+              <MetricPill icon="target" label="Objectif" value="Precis" tone="lime" />
+              <MetricPill icon="timer" label="Timer" value="Inclus" tone="orange" />
+            </div>
+          </GlassPanel>
         </div>
       </header>
 
-      <WorkoutForm onSubmit={handleGenerate} />
+      <WorkoutForm onSubmit={handleGenerate} costEstimate={costEstimate} />
     </div>
   );
 }

@@ -4,21 +4,28 @@ import { useState } from 'react';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { Button } from './ui/Button';
-import { GenerateWorkoutInputSchema } from '@sportcoach/shared';
-import type { GenerateWorkoutInput } from '@sportcoach/shared';
+import { Icon } from './ui/Icon';
+import { GlassPanel, MetricPill } from './PremiumPrimitives';
+import { GenerateWorkoutInputSchema } from '@alcide/shared';
+import type { GenerateWorkoutInput } from '@alcide/shared';
 
 interface WorkoutFormProps {
   onSubmit: (data: GenerateWorkoutInput) => Promise<{ error?: string } | void>;
+  costEstimate: {
+    modelLabel: string;
+    inputTokens: number;
+    outputTokens: number;
+    totalUsdLabel: string;
+  };
 }
 
 const LEVEL_OPTIONS = [
-  { value: 'beginner', label: 'Débutant' },
-  { value: 'intermediate', label: 'Intermédiaire' },
-  { value: 'advanced', label: 'Avancé' },
+  { value: 'beginner', label: 'Debutant' },
+  { value: 'intermediate', label: 'Intermediaire' },
+  { value: 'advanced', label: 'Avance' },
 ];
 
-// RGAA 4.1: formulaire accessible — labels, erreurs, aria-live pour les messages
-export function WorkoutForm({ onSubmit }: WorkoutFormProps) {
+export function WorkoutForm({ onSubmit, costEstimate }: WorkoutFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof GenerateWorkoutInput, string>>>({});
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -36,7 +43,6 @@ export function WorkoutForm({ onSubmit }: WorkoutFormProps) {
     setErrors({});
     setGlobalError(null);
 
-    // Validation Zod côté client (même schéma que le backend — OWASP A04)
     const parsed = GenerateWorkoutInputSchema.safeParse({
       ...formData,
       duration_minutes: Number(formData.duration_minutes),
@@ -55,15 +61,12 @@ export function WorkoutForm({ onSubmit }: WorkoutFormProps) {
     setIsLoading(true);
     try {
       const result = await onSubmit(parsed.data);
-      // Le server action retourne { error } au lieu de throw pour conserver
-      // le message réel (Next.js remplace les throws par un message générique en prod)
       if (result?.error) {
         setGlobalError(result.error);
       }
     } catch (error) {
-      // Fallback pour les erreurs non interceptées par le server action
       setGlobalError(
-        error instanceof Error ? error.message : "Une erreur est survenue, veuillez réessayer",
+        error instanceof Error ? error.message : 'Une erreur est survenue, veuillez reessayer',
       );
     } finally {
       setIsLoading(false);
@@ -71,70 +74,93 @@ export function WorkoutForm({ onSubmit }: WorkoutFormProps) {
   };
 
   return (
-    // RGAA 4.1: formulaire avec aria-labelledby
     <form
-      onSubmit={(e) => { void handleSubmit(e); }}
+      onSubmit={(e) => {
+        void handleSubmit(e);
+      }}
       noValidate
       aria-labelledby="form-title"
-      className="surface flex w-full flex-col gap-5 p-5 sm:p-6"
+      className="glass-panel flex w-full flex-col gap-5 p-5 sm:p-6"
     >
-      <h1 id="form-title" className="break-words text-2xl font-black text-white">
-        Détails de la séance
-      </h1>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="section-kicker mb-3">Brief seance</p>
+          <h1 id="form-title" className="break-words text-3xl font-black text-white">
+            Construire le training
+          </h1>
+        </div>
+        <span className="icon-bubble bg-primary-300 text-zinc-950">
+          <Icon name="zap" className="h-4 w-4" />
+        </span>
+      </div>
 
-      {/* RGAA 4.1: message d'erreur global avec aria-live */}
+      <div className="grid gap-2 sm:grid-cols-3">
+        <MetricPill icon="target" label="Modele" value={costEstimate.modelLabel} tone="lime" />
+        <MetricPill icon="timer" label="Estime" value={costEstimate.totalUsdLabel} />
+        <MetricPill icon="spark" label="Sortie" value="Prete" tone="orange" />
+      </div>
+
       {globalError && (
-        <div role="alert" aria-live="assertive" className="rounded-lg border border-red-400/30 bg-red-500/10 p-4 text-sm text-red-200">
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="rounded-[1.25rem] border border-sport-orange/30 bg-sport-orange/10 p-4 text-sm text-sport-orange"
+        >
           <strong>Erreur :</strong> {globalError}
         </div>
       )}
 
-      <Input
-        label="Sport"
-        name="sport"
-        value={formData.sport}
-        onChange={(e) => setFormData((prev) => ({ ...prev, sport: e.target.value }))}
-        error={errors.sport}
-        placeholder="ex: course à pied, yoga, musculation..."
-        required
-        hint="Le sport pour lequel vous souhaitez un programme"
-      />
+      <GlassPanel variant="soft" className="grid gap-4 p-4 sm:grid-cols-2">
+        <Input
+          label="Sport"
+          name="sport"
+          value={formData.sport}
+          onChange={(e) => setFormData((prev) => ({ ...prev, sport: e.target.value }))}
+          error={errors.sport}
+          placeholder="ex: course a pied, yoga, musculation..."
+          required
+          hint="Discipline principale"
+        />
 
-      <Select
-        label="Niveau"
-        name="level"
-        value={formData.level}
-        onChange={(e) =>
-          setFormData((prev) => ({
-            ...prev,
-            level: e.target.value as GenerateWorkoutInput['level'],
-          }))
-        }
-        options={LEVEL_OPTIONS}
-        error={errors.level}
-        required
-      />
+        <Select
+          label="Niveau"
+          name="level"
+          value={formData.level}
+          onChange={(e) =>
+            setFormData((prev) => ({
+              ...prev,
+              level: e.target.value as GenerateWorkoutInput['level'],
+            }))
+          }
+          options={LEVEL_OPTIONS}
+          error={errors.level}
+          required
+        />
 
-      <Input
-        label="Durée (minutes)"
-        name="duration_minutes"
-        type="number"
-        min={15}
-        max={180}
-        value={formData.duration_minutes}
-        onChange={(e) =>
-          setFormData((prev) => ({ ...prev, duration_minutes: Number(e.target.value) }))
-        }
-        error={errors.duration_minutes}
-        required
-        hint="Entre 15 et 180 minutes"
-      />
+        <div className="sm:col-span-2">
+          <Input
+            label="Duree (minutes)"
+            name="duration_minutes"
+            type="number"
+            min={15}
+            max={180}
+            value={formData.duration_minutes}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, duration_minutes: Number(e.target.value) }))
+            }
+            error={errors.duration_minutes}
+            required
+            hint="Entre 15 et 180 minutes"
+          />
+        </div>
+      </GlassPanel>
 
       <div className="flex flex-col gap-1">
-        {/* RGAA 4.1: textarea avec label explicite */}
         <label htmlFor="goals" className="field-label">
           Objectifs{' '}
-          <span aria-hidden="true" className="text-primary-300">*</span>
+          <span aria-hidden="true" className="text-primary-300">
+            *
+          </span>
           <span className="sr-only">(requis)</span>
         </label>
         <textarea
@@ -144,14 +170,14 @@ export function WorkoutForm({ onSubmit }: WorkoutFormProps) {
           onChange={(e) => setFormData((prev) => ({ ...prev, goals: e.target.value }))}
           required
           rows={3}
-          placeholder="ex: améliorer mon endurance, perdre du poids, gagner en force..."
+          placeholder="ex: ameliorer mon endurance, perdre du poids, gagner en force..."
           aria-describedby={errors.goals ? 'goals-error' : undefined}
           aria-invalid={errors.goals ? true : undefined}
           className="field-control resize-y"
         />
         {errors.goals && (
-          <p id="goals-error" role="alert" className="text-xs text-red-300">
-            <span aria-hidden="true">⚠</span> {errors.goals}
+          <p id="goals-error" role="alert" className="text-xs text-sport-orange">
+            {errors.goals}
           </p>
         )}
       </div>
@@ -173,7 +199,7 @@ export function WorkoutForm({ onSubmit }: WorkoutFormProps) {
       </div>
 
       <Button type="submit" isLoading={isLoading} size="lg" className="mt-2 w-full">
-        {isLoading ? 'Génération en cours...' : "Générer l'entraînement"}
+        {isLoading ? 'Preparation en cours...' : 'Generer la seance'}
       </Button>
     </form>
   );

@@ -3,6 +3,8 @@ import { db } from '../db/index.js';
 import { userSettings } from '../db/schema.js';
 import type { AiProvider } from '../services/ai.service.js';
 
+const OPENAI_PROVIDER: AiProvider = 'openai';
+
 export interface SettingsRow {
   provider: AiProvider;
   aiApiKeyEncrypted: string | null;
@@ -20,8 +22,8 @@ export async function findSettingsByUser(userId: string): Promise<SettingsRow | 
   if (!row) return null;
 
   return {
-    provider: row.aiProvider as AiProvider,
-    aiApiKeyEncrypted: row.aiApiKeyEncrypted,
+    provider: OPENAI_PROVIDER,
+    aiApiKeyEncrypted: null,
     aiModel: row.aiModel,
   };
 }
@@ -29,8 +31,6 @@ export async function findSettingsByUser(userId: string): Promise<SettingsRow | 
 export async function upsertSettings(
   userId: string,
   data: {
-    provider: AiProvider;
-    aiApiKeyEncrypted?: string | null;
     aiModel?: string | null;
   },
 ): Promise<void> {
@@ -38,16 +38,16 @@ export async function upsertSettings(
     .insert(userSettings)
     .values({
       userId,
-      aiProvider: data.provider,
-      aiApiKeyEncrypted: data.aiApiKeyEncrypted ?? null,
+      aiProvider: OPENAI_PROVIDER,
+      aiApiKeyEncrypted: null,
       aiModel: data.aiModel ?? null,
       updatedAt: new Date(),
     })
     .onConflictDoUpdate({
       target: userSettings.userId,
       set: {
-        aiProvider: data.provider,
-        ...(data.aiApiKeyEncrypted !== undefined && { aiApiKeyEncrypted: data.aiApiKeyEncrypted }),
+        aiProvider: OPENAI_PROVIDER,
+        aiApiKeyEncrypted: null,
         ...(data.aiModel !== undefined && { aiModel: data.aiModel }),
         updatedAt: new Date(),
       },

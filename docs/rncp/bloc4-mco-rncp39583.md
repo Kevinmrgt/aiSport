@@ -1,16 +1,16 @@
-# Livrable Bloc 4 RNCP39583 - Maintien en condition opérationnelle de SportCoach IA
+# Livrable Bloc 4 RNCP39583 - Maintien en condition opérationnelle de Alcide
 
-> Bloc officiel : **Maintenir l'application logicielle en condition opérationnelle**  
-> Projet : **SportCoach IA / aiSport**  
-> Candidat : Kevin  
-> Version du livrable : 2026-05-07  
+> Bloc officiel : **Maintenir l'application logicielle en condition opérationnelle**
+> Projet : **Alcide / alcide**
+> Candidat : Kevin
+> Version du livrable : 2026-05-07
 > Format cible : dossier écrit exploitable pour le jury, 20 pages maximum hors annexes
 
 ---
 
 ## 0. Référentiel et périmètre du livrable
 
-Ce document consolide les preuves de maintenance en condition opérationnelle de SportCoach IA. Il ne réduit pas le Bloc 4 au déploiement : il couvre les mises à jour, la supervision, l'alerting, les anomalies, les correctifs, le support, le journal de versions, le rollback et les recommandations d'amélioration.
+Ce document consolide les preuves de maintenance en condition opérationnelle de Alcide. Il ne réduit pas le Bloc 4 au déploiement : il couvre les mises à jour, la supervision, l'alerting, les anomalies, les correctifs, le support, le journal de versions, le rollback et les recommandations d'amélioration.
 
 Sources RNCP locales consultées :
 
@@ -48,7 +48,7 @@ Statuts utilisés dans ce livrable :
 
 ### 1.1 Vue d'ensemble
 
-SportCoach IA est une application web full-stack qui génère des entraînements et programmes sportifs personnalisés par IA. L'utilisateur se connecte via Google OAuth, renseigne son sport, son niveau, ses objectifs et contraintes, puis obtient une séance ou un programme structuré. Les données sont persistées dans PostgreSQL et consultables dans l'espace utilisateur.
+Alcide est une application web full-stack qui génère des entraînements et programmes sportifs personnalisés par IA. L'utilisateur se connecte via Google OAuth, renseigne son sport, son niveau, ses objectifs et contraintes, puis obtient une séance ou un programme structuré. Les données sont persistées dans PostgreSQL et consultables dans l'espace utilisateur.
 
 | Élément | Description | Preuves |
 |---|---|---|
@@ -63,8 +63,8 @@ SportCoach IA est une application web full-stack qui génère des entraînements
 
 ```mermaid
 flowchart LR
-  U["Utilisateur authentifié"] --> W["Web Next.js<br/>ai-sport-web.vercel.app"]
-  W --> A["API Hono<br/>ai-sport-api.vercel.app"]
+  U["Utilisateur authentifié"] --> W["Web Next.js<br/>alcide-web.vercel.app"]
+  W --> A["API Hono<br/>alcide-api.vercel.app"]
   A --> DB["Neon PostgreSQL<br/>DATABASE_URL"]
   A --> IA["Mistral AI<br/>MISTRAL_API_KEY ou clé utilisateur"]
   W --> G["Google OAuth<br/>Auth.js"]
@@ -79,8 +79,8 @@ La cible officielle du dépôt est :
 
 | Composant | Plateforme | URL ou accès |
 |---|---|---|
-| Web | Vercel | `https://ai-sport-web.vercel.app` |
-| API | Vercel | `https://ai-sport-api.vercel.app` |
+| Web | Vercel | `https://alcide-web.vercel.app` |
+| API | Vercel | `https://alcide-api.vercel.app` |
 | Base de données | Neon PostgreSQL | via `DATABASE_URL` |
 | CI/CD | GitHub Actions | `.github/workflows/` |
 
@@ -217,15 +217,15 @@ Vérification 2026-05-07 : `pnpm audit --audit-level=high` échoue avec 3 vulné
 | Web `/api/health` | En place | JSON `status: ok`, service, timestamp | [route.ts](../../apps/web/app/api/health/route.ts) |
 | Docker PostgreSQL | En place | `pg_isready` OK | [docker-compose.yml](../../docker-compose.yml) |
 | Docker API | En place | `wget http://localhost:3001/health` OK | [docker-compose.yml](../../docker-compose.yml) |
-| CD API | En place | `curl --fail https://ai-sport-api.vercel.app/health` | [deploy-vercel.yml](../../.github/workflows/deploy-vercel.yml) |
-| CD Web | En place | `curl --fail https://ai-sport-web.vercel.app/api/health` | [deploy-vercel.yml](../../.github/workflows/deploy-vercel.yml) |
+| CD API | En place | `curl --fail https://alcide-api.vercel.app/health` | [deploy-vercel.yml](../../.github/workflows/deploy-vercel.yml) |
+| CD Web | En place | `curl --fail https://alcide-web.vercel.app/api/health` | [deploy-vercel.yml](../../.github/workflows/deploy-vercel.yml) |
 
 Commandes de vérification :
 
 ```bash
-curl https://ai-sport-api.vercel.app/health
-curl https://ai-sport-web.vercel.app/api/health
-curl -I https://ai-sport-web.vercel.app
+curl https://alcide-api.vercel.app/health
+curl https://alcide-web.vercel.app/api/health
+curl -I https://alcide-web.vercel.app
 ```
 
 ### 4.2 Périmètre à surveiller
@@ -372,7 +372,7 @@ Preuve : [BUG-002-readme-utf16.md](../bloc4/bugs/BUG-002-readme-utf16.md)
 | Impact | Mauvaise lisibilité du dépôt, mauvaise première impression pour le jury, indexation GitHub dégradée. |
 | Cause racine | Création ou redirection sous Windows avec encodage UTF-16 LE. |
 | Correctif | Réécriture en UTF-8 sans BOM et ajout de règles `.gitattributes`. |
-| Test de non-régression | Vérification hexadécimale du début de fichier, attendu `# SportCoach IA` en UTF-8. |
+| Test de non-régression | Vérification hexadécimale du début de fichier, attendu `# Alcide` en UTF-8. |
 | Statut | Résolu. |
 | Preuve associée | Fiche bug et changelog version `0.9.0`. |
 
@@ -488,8 +488,8 @@ Checklist post-déploiement :
 - Migrations Drizzle appliquées si le schéma a changé.
 - `SERVICE_SECRET` identique côté Web et API.
 - OAuth Google callback configuré.
-- `https://ai-sport-api.vercel.app/health` répond 200.
-- `https://ai-sport-web.vercel.app/api/health` répond 200.
+- `https://alcide-api.vercel.app/health` répond 200.
+- `https://alcide-web.vercel.app/api/health` répond 200.
 - Génération d'entraînement testée avec un compte authentifié.
 - Changelog mis à jour si le changement est notable.
 
@@ -607,7 +607,7 @@ Preuves a joindre avant depot :
 
 ## 16. Conclusion Bloc 4
 
-SportCoach IA dispose d'une base MCO crédible : application déployable, CI/CD, healthchecks, logs applicatifs, audit, migrations contrôlées, fiches bugs réelles, changelog et rollback Vercel. Les compétences éliminatoires sont adressées de la manière suivante :
+Alcide dispose d'une base MCO crédible : application déployable, CI/CD, healthchecks, logs applicatifs, audit, migrations contrôlées, fiches bugs réelles, changelog et rollback Vercel. Les compétences éliminatoires sont adressées de la manière suivante :
 
 - **C4.1.2** : sondes et indicateurs sont définis ; l'alerting externe reste à prouver.
 - **C4.2.1** : les anomalies sont consignées via fiches Markdown et un processus complet est formalisé.

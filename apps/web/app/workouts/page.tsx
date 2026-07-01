@@ -1,18 +1,19 @@
+import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { serverApi } from '@/lib/server-api';
 import { WorkoutCard } from '@/components/WorkoutCard';
+import { EmptyState, GlassPanel, MetricPill } from '@/components/PremiumPrimitives';
 
 const SPORTS = ['football', 'basketball', 'natation', 'course', 'cyclisme', 'musculation', 'yoga', 'tennis'];
 const LEVELS = [
-  { value: 'beginner', label: 'Débutant' },
-  { value: 'intermediate', label: 'Intermédiaire' },
-  { value: 'advanced', label: 'Avancé' },
+  { value: 'beginner', label: 'Debutant' },
+  { value: 'intermediate', label: 'Intermediaire' },
+  { value: 'advanced', label: 'Avance' },
 ];
 
-// OWASP A01: route protégée
 export default async function WorkoutsPage({
   searchParams,
 }: {
@@ -29,7 +30,6 @@ export default async function WorkoutsPage({
   const sport = query.sport || undefined;
   const level = query.level || undefined;
 
-  // Server Action : suppression avec ownership vérifié côté backend (OWASP A01)
   async function handleDelete(id: string) {
     'use server';
     await serverApi.deleteWorkout(id);
@@ -48,34 +48,43 @@ export default async function WorkoutsPage({
   }
 
   return (
-    <section aria-labelledby="workouts-title">
-      {/* En-tête */}
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="section-kicker mb-2">Historique</p>
-          <h1 id="workouts-title" className="page-title">
-            Mes séances
-          </h1>
-          <p className="muted-copy mt-2">
-            Retrouvez vos workouts générés et relancez le timer quand vous êtes prêt.
-          </p>
+    <section aria-labelledby="workouts-title" className="space-y-6">
+      <GlassPanel className="relative overflow-hidden p-5 sm:p-6">
+        <Image
+          src="/visuals/workout-action.webp"
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 1024px) 100vw, 900px"
+          className="-z-10 object-cover opacity-40"
+        />
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="section-kicker mb-3">Historique</p>
+            <h1 id="workouts-title" className="page-title">
+              Mes seances
+            </h1>
+            <p className="muted-copy mt-3 max-w-2xl">
+              Retrouvez vos routines, filtrez par contexte et relancez le timer quand vous etes pret.
+            </p>
+          </div>
+          <Link href="/generate" className="action-primary w-full sm:w-auto">
+            Nouvelle seance
+          </Link>
         </div>
-        <Link
-          href="/generate"
-          className="action-primary w-full sm:w-auto"
-        >
-          + Nouvelle séance
-        </Link>
-      </div>
+        <div className="mt-6 grid gap-2 sm:grid-cols-3">
+          <MetricPill icon="activity" label="Resultats" value={`${total}`} tone="lime" />
+          <MetricPill icon="target" label="Sport" value={sport ?? 'Tous'} />
+          <MetricPill icon="chart" label="Niveau" value={level ?? 'Tous'} tone="orange" />
+        </div>
+      </GlassPanel>
 
-      {/* Filtres — formulaire GET sans JavaScript requis (RGAA 4.1) */}
       <form
         method="GET"
         action="/workouts"
-        className="surface-soft mb-6 flex flex-wrap items-center gap-2 p-3"
-        aria-label="Filtrer les entraînements"
+        className="glass-soft flex flex-wrap items-center gap-2 p-3"
+        aria-label="Filtrer les entrainements"
       >
-        {/* RGAA 4.1: labels sr-only pour selects sans label visible */}
         <label htmlFor="filter-sport" className="sr-only">
           Sport
         </label>
@@ -83,7 +92,7 @@ export default async function WorkoutsPage({
           id="filter-sport"
           name="sport"
           defaultValue={sport ?? ''}
-          className="field-control py-1.5 sm:w-auto"
+          className="field-control py-2 sm:w-auto"
         >
           <option value="">Tous les sports</option>
           {SPORTS.map((s) => (
@@ -100,7 +109,7 @@ export default async function WorkoutsPage({
           id="filter-level"
           name="level"
           defaultValue={level ?? ''}
-          className="field-control py-1.5 sm:w-auto"
+          className="field-control py-2 sm:w-auto"
         >
           <option value="">Tous les niveaux</option>
           {LEVELS.map((l) => (
@@ -110,83 +119,58 @@ export default async function WorkoutsPage({
           ))}
         </select>
 
-        <button
-          type="submit"
-          className="w-full rounded-full bg-primary-300 px-4 py-1.5 text-sm font-black text-zinc-950 transition-colors hover:bg-primary-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 sm:w-auto"
-        >
+        <button type="submit" className="action-primary min-h-11 w-full px-5 py-2 text-sm sm:w-auto">
           Filtrer
         </button>
 
         {(sport || level) && (
-          <Link
-            href="/workouts"
-            className="w-full rounded-full px-3 py-1.5 text-center text-sm font-semibold text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-white sm:w-auto"
-          >
+          <Link href="/workouts" className="action-secondary min-h-11 w-full px-5 py-2 text-sm sm:w-auto">
             Effacer
           </Link>
         )}
-
-        <span className="w-full text-sm font-semibold text-primary-300 sm:ml-auto sm:w-auto">
-          {total} résultat{total !== 1 ? 's' : ''}
-        </span>
       </form>
 
       {workouts.length === 0 ? (
-        <div className="surface mx-auto max-w-xl p-8 text-center">
-          <h2 className="mb-2 text-xl font-black text-white">
-            {sport || level ? 'Aucun résultat' : 'Aucune séance pour l\'instant'}
-          </h2>
-          <p className="muted-copy mb-6">
-            {sport || level
-              ? 'Essayez d\'autres filtres ou générez une nouvelle séance.'
-              : 'Votre premier programme personnalisé est à un clic.'}
-          </p>
-          <Link
-            href="/generate"
-          className="action-primary w-full sm:w-auto"
-          >
-            Générer un entraînement
-          </Link>
-        </div>
+        <EmptyState
+          title={sport || level ? 'Aucun resultat' : 'Aucune seance pour l instant'}
+          description={
+            sport || level
+              ? 'Essayez d autres filtres ou creez une nouvelle routine.'
+              : 'Creez votre premiere seance pour remplir cet espace training.'
+          }
+          href="/generate"
+          cta="Creer une seance"
+        />
       ) : (
         <>
           <ul
-            className="grid gap-3 lg:grid-cols-2"
-            aria-label={`${workouts.length} entraînement${workouts.length > 1 ? 's' : ''} sur ${total}`}
+            className="grid gap-4 lg:grid-cols-2"
+            aria-label={`${workouts.length} entrainement${workouts.length > 1 ? 's' : ''} sur ${total}`}
           >
             {workouts.map((workout) => (
               <WorkoutCard key={workout.id} workout={workout} onDelete={handleDelete} />
             ))}
           </ul>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <nav
-              aria-label="Pagination des entraînements"
+              aria-label="Pagination des entrainements"
               className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm sm:gap-6"
             >
               {page > 1 ? (
-                <Link
-                  href={pageUrl(page - 1)}
-                  className="text-zinc-400 transition-colors hover:text-primary-300 focus-visible:outline-none focus-visible:underline"
-                  aria-label="Page précédente"
-                >
-                  Précédent
+                <Link href={pageUrl(page - 1)} className="action-secondary min-h-10 px-4 py-2">
+                  Precedent
                 </Link>
               ) : (
-                <span className="select-none text-zinc-700">Précédent</span>
+                <span className="select-none text-zinc-700">Precedent</span>
               )}
 
-              <span className="rounded-full bg-white/10 px-3 py-1 text-zinc-200" aria-current="page">
+              <span className="premium-chip" aria-current="page">
                 {page} / {totalPages}
               </span>
 
               {hasMore ? (
-                <Link
-                  href={pageUrl(page + 1)}
-                  className="text-zinc-400 transition-colors hover:text-primary-300 focus-visible:outline-none focus-visible:underline"
-                  aria-label="Page suivante"
-                >
+                <Link href={pageUrl(page + 1)} className="action-secondary min-h-10 px-4 py-2">
                   Suivant
                 </Link>
               ) : (

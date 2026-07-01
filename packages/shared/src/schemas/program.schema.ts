@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { ExerciseSchema, PhaseSchema } from './workout.schema.js';
 
-// Contrat JSON Mistral pour les programmes multi-semaines
-// Chaque semaine est générée par un appel Mistral indépendant (budget token)
+// Contrat JSON IA pour les programmes multi-semaines
+// Chaque semaine est générée par un appel IA indépendant (budget token)
 
 // Une séance dans un programme (même structure qu'un Workout, sans sport/difficulty redondants)
 export const ProgramSessionSchema = z.object({
@@ -15,7 +15,7 @@ export const ProgramSessionSchema = z.object({
   cooldown: z.array(PhaseSchema).optional(),
 });
 
-// Une semaine dans un programme (retournée par chaque appel Mistral)
+// Une semaine dans un programme (retournée par chaque appel IA)
 export const ProgramWeekSchema = z.object({
   week_number: z.number().int().min(1),
   theme: z.string().min(1),
@@ -23,7 +23,7 @@ export const ProgramWeekSchema = z.object({
   sessions: z.array(ProgramSessionSchema).min(1),
 });
 
-// Programme complet stocké en JSONB (assemblé par le service après tous les appels Mistral)
+// Programme complet stocké en JSONB (assemblé par le service après tous les appels IA)
 export const TrainingProgramSchema = z.object({
   title: z.string().min(1),
   sport: z.string().min(1),

@@ -1,7 +1,7 @@
-# Modèle de fiche anomalie Bloc 4 - SportCoach IA
+# Modèle de fiche anomalie Bloc 4 - Alcide
 
-> Projet : **SportCoach IA / aiSport**  
-> Bloc RNCP39583 : **Maintenir l'application logicielle en condition opérationnelle**  
+> Projet : **Alcide / alcide**
+> Bloc RNCP39583 : **Maintenir l'application logicielle en condition opérationnelle**
 > Usage : modèle réutilisable pour consigner une anomalie, un incident ou un bug.
 
 ---
@@ -49,10 +49,10 @@ Décrire ce qui ne fonctionne pas, où, depuis quand, et dans quel contexte.
 
 ## 3. Étapes de reproduction
 
-1. 
-2. 
-3. 
-4. 
+1.
+2.
+3.
+4.
 
 Commande si applicable :
 
@@ -175,8 +175,8 @@ Fichiers modifiés :
 | Coverage | `pnpm test:coverage` |  |
 | Build | `pnpm build` |  |
 | E2E smoke | `pnpm test:e2e:smoke` |  |
-| Healthcheck API | `curl https://ai-sport-api.vercel.app/health` |  |
-| Healthcheck Web | `curl https://ai-sport-web.vercel.app/api/health` |  |
+| Healthcheck API | `curl https://alcide-api.vercel.app/health` |  |
+| Healthcheck Web | `curl https://alcide-web.vercel.app/api/health` |  |
 | Test manuel |  |  |
 
 Test de non-régression spécifique :

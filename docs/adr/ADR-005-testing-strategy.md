@@ -6,7 +6,7 @@
 
 ## Contexte
 
-SportCoach IA est une application full-stack monorepo (Next.js + Hono + Mistral AI). Pour garantir la qualité et répondre aux exigences RNCP Bloc 2 (cahier de recettes), une stratégie de tests claire est nécessaire. La question centrale est : **quelle couche tester avec quel outil, et pourquoi ?**
+Alcide est une application full-stack monorepo (Next.js + Hono + Mistral AI). Pour garantir la qualité et répondre aux exigences RNCP Bloc 2 (cahier de recettes), une stratégie de tests claire est nécessaire. La question centrale est : **quelle couche tester avec quel outil, et pourquoi ?**
 
 ---
 
