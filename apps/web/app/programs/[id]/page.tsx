@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
@@ -52,19 +51,10 @@ export default async function ProgramDetailPage({ params }: ProgramDetailPagePro
         </Link>
       </nav>
 
-      <header className="relative overflow-hidden rounded-[2.4rem] border border-white/[0.15] bg-zinc-950/50 p-5 shadow-2xl shadow-black/30 backdrop-blur-2xl sm:p-6">
-        <Image
-          src="/visuals/program-cycle.webp"
-          alt=""
-          fill
-          priority
-          sizes="(max-width: 1024px) 100vw, 900px"
-          className="-z-10 object-cover opacity-60"
-        />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-zinc-950 via-zinc-950/[0.55] to-zinc-950/[0.15]" />
+      <header className="abstract-surface mobile-compact-header rounded-[2.4rem] border border-white/[0.15] bg-zinc-950/50 p-5 shadow-2xl shadow-black/30 backdrop-blur-2xl sm:p-6">
         <p className="section-kicker mb-4">Programme</p>
         <h1 className="page-title max-w-3xl">{program.title}</h1>
-        <div className="mt-6 grid gap-2 sm:grid-cols-4">
+        <div className="mobile-header-metrics mt-6 grid gap-2 sm:grid-cols-4">
           <MetricPill icon="activity" label="Sport" value={program.sport} tone="lime" />
           <MetricPill
             icon="target"

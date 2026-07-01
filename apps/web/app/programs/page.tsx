@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
@@ -36,15 +35,7 @@ export default async function ProgramsPage({
 
   return (
     <section aria-labelledby="programs-title" className="space-y-6">
-      <GlassPanel className="relative overflow-hidden p-5 sm:p-6">
-        <Image
-          src="/visuals/program-cycle.webp"
-          alt=""
-          fill
-          priority
-          sizes="(max-width: 1024px) 100vw, 900px"
-          className="-z-10 object-cover opacity-40"
-        />
+      <GlassPanel className="abstract-surface mobile-compact-header p-5 sm:p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="section-kicker mb-3">Cycles guides</p>
@@ -55,11 +46,11 @@ export default async function ProgramsPage({
               Des progressions multi-semaines pour structurer vos objectifs sans repartir de zero.
             </p>
           </div>
-          <Link href="/programs/generate" className="action-primary w-full sm:w-auto">
+          <Link href="/programs/generate" className="action-primary mobile-header-action w-full sm:w-auto">
             Nouveau programme
           </Link>
         </div>
-        <div className="mt-6 grid gap-2 sm:grid-cols-3">
+        <div className="mobile-header-metrics mt-6 grid gap-2 sm:grid-cols-3">
           <MetricPill icon="layers" label="Programmes" value={`${total}`} tone="lime" />
           <MetricPill icon="calendar" label="Format" value="2-4 sem." />
           <MetricPill icon="target" label="Objectif" value="Progression" tone="orange" />

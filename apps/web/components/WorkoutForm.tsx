@@ -5,6 +5,7 @@ import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { Button } from './ui/Button';
 import { Icon } from './ui/Icon';
+import { AlcideMascotPrompt } from './AlcideMascotPrompt';
 import { GlassPanel, MetricPill } from './PremiumPrimitives';
 import { GenerateWorkoutInputSchema } from '@alcide/shared';
 import type { GenerateWorkoutInput } from '@alcide/shared';
@@ -99,6 +100,12 @@ export function WorkoutForm({ onSubmit, costEstimate }: WorkoutFormProps) {
         <MetricPill icon="timer" label="Estime" value={costEstimate.totalUsdLabel} />
         <MetricPill icon="spark" label="Sortie" value="Prete" tone="orange" />
       </div>
+
+      <AlcideMascotPrompt
+        title="Je te prepare une seance calibree."
+        description="Donne-moi le sport, la duree et ton objectif. Je transforme le brief en training clair."
+        icon="zap"
+      />
 
       {globalError && (
         <div

@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { signIn } from '@/lib/auth';
 import { GlassPanel, IconBubble, MetricPill } from '@/components/PremiumPrimitives';
 
@@ -36,15 +35,7 @@ export default function LoginPage() {
 
       <div className="relative mx-auto w-full max-w-[25rem]">
         <div className="phone-frame min-h-[42rem]">
-          <Image
-            src="/visuals/login-athlete.webp"
-            alt=""
-            fill
-            priority
-            sizes="(max-width: 1024px) 90vw, 400px"
-            className="object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/10 via-zinc-950/20 to-zinc-950/95" />
+          <div className="abstract-frame-bg" aria-hidden="true" />
           <div className="relative z-10 flex min-h-[42rem] flex-col justify-between p-5 pt-16">
             <div className="flex items-center justify-between">
               <div>

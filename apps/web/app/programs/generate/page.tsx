@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { ProgramForm } from '@/components/ProgramForm';
@@ -34,18 +33,8 @@ export default async function GenerateProgramPage() {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-      <header className="relative overflow-hidden rounded-[2.4rem] border border-white/[0.15] bg-zinc-950/50 p-5 shadow-2xl shadow-black/30 backdrop-blur-2xl lg:sticky lg:top-8 lg:min-h-[42rem] lg:p-6">
-        <Image
-          src="/visuals/program-cycle.webp"
-          alt=""
-          fill
-          priority
-          sizes="(max-width: 1024px) 100vw, 520px"
-          className="-z-10 object-cover opacity-70"
-        />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-zinc-950/10 via-zinc-950/[0.45] to-zinc-950/95" />
-
-        <div className="flex min-h-[32rem] flex-col justify-between">
+      <header className="abstract-surface mobile-compact-header rounded-[2.4rem] border border-white/[0.15] bg-zinc-950/50 p-5 shadow-2xl shadow-black/30 backdrop-blur-2xl lg:sticky lg:top-8 lg:min-h-[42rem] lg:p-6">
+        <div className="flex flex-col gap-5 lg:min-h-[32rem] lg:justify-between">
           <div>
             <p className="section-kicker mb-4">Planification</p>
             <h1 className="page-title">Construire un cycle progressif</h1>
@@ -55,7 +44,7 @@ export default async function GenerateProgramPage() {
             </p>
           </div>
 
-          <GlassPanel className="mt-8 space-y-5 p-5">
+          <GlassPanel className="mobile-header-metrics mt-8 space-y-5 p-5">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-400">

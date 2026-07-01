@@ -105,6 +105,34 @@ h4,
     @apply glass-soft;
   }
 
+  .abstract-surface {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+
+  .abstract-surface::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(118deg, rgba(217, 255, 63, 0.18), transparent 34%),
+      linear-gradient(252deg, rgba(255, 138, 61, 0.14), transparent 42%),
+      repeating-linear-gradient(
+        112deg,
+        rgba(255, 255, 255, 0.08) 0 1px,
+        transparent 1px 34px
+      ),
+      linear-gradient(135deg, rgba(7, 10, 8, 0.98), rgba(21, 25, 18, 0.92) 54%, rgba(29, 19, 13, 0.86));
+  }
+
+  .abstract-surface > * {
+    position: relative;
+    z-index: 1;
+  }
+
   .page-title {
     @apply break-words font-display text-4xl font-black leading-[0.95] tracking-normal text-white sm:text-5xl;
   }
@@ -141,6 +169,22 @@ h4,
     @apply relative overflow-hidden rounded-[2.4rem] border border-white/[0.15] bg-zinc-950/70 shadow-2xl shadow-black/40 backdrop-blur-xl;
   }
 
+  .abstract-frame-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(130deg, rgba(217, 255, 63, 0.2), transparent 32%),
+      linear-gradient(245deg, rgba(255, 138, 61, 0.16), transparent 38%),
+      repeating-linear-gradient(
+        125deg,
+        rgba(255, 255, 255, 0.1) 0 1px,
+        transparent 1px 28px
+      ),
+      linear-gradient(160deg, rgba(8, 13, 10, 0.98), rgba(23, 25, 21, 0.9));
+  }
+
   .phone-frame::before {
     content: "";
     position: absolute;
@@ -173,5 +217,38 @@ h4,
 
   .app-container {
     @apply w-full px-4 pb-28 pt-6 sm:px-6 lg:ml-28 lg:max-w-[calc(100%-7rem)] lg:px-8 lg:pb-10 lg:pt-8 xl:ml-80 xl:max-w-[calc(100%-20rem)];
+  }
+
+  @media (max-width: 639px) {
+    .mobile-compact-header {
+      border-radius: 1.35rem;
+      padding: 1rem;
+    }
+
+    .mobile-compact-header .section-kicker {
+      min-height: 1.5rem;
+      margin-bottom: 0.5rem;
+      padding: 0.2rem 0.6rem;
+      font-size: 0.58rem;
+      letter-spacing: 0.12em;
+    }
+
+    .mobile-compact-header .page-title {
+      font-size: 2rem;
+      line-height: 0.95;
+    }
+
+    .mobile-compact-header .muted-copy,
+    .mobile-compact-header .mobile-header-metrics {
+      display: none;
+    }
+
+    .mobile-compact-header .mobile-header-action {
+      width: 100%;
+      min-height: 2.75rem;
+      margin-top: 0.85rem;
+      padding: 0.7rem 1rem;
+      font-size: 0.85rem;
+    }
   }
 }
