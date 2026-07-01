@@ -52,7 +52,7 @@ export function DeleteProgramButton({ programId, programTitle, onDelete }: Delet
           }}
           disabled={isPending}
           aria-label="Annuler la suppression"
-          className="rounded-full px-3 py-1.5 text-xs font-bold text-zinc-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-300"
+          className="rounded-full px-3 py-1.5 text-xs font-bold text-zinc-300 hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-300"
         >
           Annuler
         </button>
@@ -67,7 +67,7 @@ export function DeleteProgramButton({ programId, programTitle, onDelete }: Delet
         setShowConfirm(true);
       }}
       aria-label={`Supprimer le programme : ${programTitle}`}
-      className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold text-zinc-500 transition-colors hover:bg-sport-orange/10 hover:text-sport-orange focus:outline-none focus:ring-2 focus:ring-sport-orange"
+      className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold text-zinc-300 transition-colors hover:bg-sport-orange/15 hover:text-sport-orange focus:outline-none focus:ring-2 focus:ring-sport-orange"
     >
       <Icon name="trash" className="h-3.5 w-3.5" />
       Supprimer
