@@ -117,7 +117,7 @@ export function WorkoutForm({ onSubmit, costEstimate }: WorkoutFormProps) {
         </div>
       )}
 
-      <GlassPanel variant="soft" className="grid gap-4 p-4 sm:grid-cols-2">
+      <GlassPanel variant="soft" className="grid gap-4 p-4 md:grid-cols-3">
         <Input
           label="Sport"
           name="sport"
@@ -142,24 +142,23 @@ export function WorkoutForm({ onSubmit, costEstimate }: WorkoutFormProps) {
           options={LEVEL_OPTIONS}
           error={errors.level}
           required
+          hint="Experience actuelle"
         />
 
-        <div className="sm:col-span-2">
-          <Input
-            label="Duree (minutes)"
-            name="duration_minutes"
-            type="number"
-            min={15}
-            max={180}
-            value={formData.duration_minutes}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, duration_minutes: Number(e.target.value) }))
-            }
-            error={errors.duration_minutes}
-            required
-            hint="Entre 15 et 180 minutes"
-          />
-        </div>
+        <Input
+          label="Duree (minutes)"
+          name="duration_minutes"
+          type="number"
+          min={15}
+          max={180}
+          value={formData.duration_minutes}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, duration_minutes: Number(e.target.value) }))
+          }
+          error={errors.duration_minutes}
+          required
+          hint="Entre 15 et 180 minutes"
+        />
       </GlassPanel>
 
       <div className="flex flex-col gap-1">
