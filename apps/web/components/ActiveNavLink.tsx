@@ -47,23 +47,23 @@ export function ActiveNavLink({ href, label, icon, compact = false }: ActiveNavL
     <Link
       href={href}
       aria-current={active ? 'page' : undefined}
-      className={`group relative flex items-center gap-3 rounded-full border px-3 py-2 text-sm font-bold transition ${
+      className={`group relative flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-bold transition ${
         active
-          ? 'border-primary-300/30 bg-primary-300/[0.1] text-white shadow-lg shadow-primary-400/10'
-          : 'border-transparent text-zinc-400 hover:border-white/10 hover:bg-white/[0.07] hover:text-white'
+          ? 'text-primary-200'
+          : 'text-zinc-400 hover:bg-white/[0.06] hover:text-white'
       }`}
     >
       {active && (
-        <span className="absolute inset-x-5 -bottom-1 hidden h-1 rounded-full bg-primary-300 lg:block" />
+        <span className="absolute inset-x-2 -bottom-0.5 hidden h-0.5 rounded-full bg-primary-300 lg:block" />
       )}
       <span
-        className={`grid h-10 w-10 place-items-center rounded-full transition ${
+        className={`grid h-8 w-8 place-items-center rounded-full transition ${
           active
-            ? 'bg-primary-300 text-zinc-950 shadow-xl shadow-primary-400/20'
-            : 'bg-white/[0.07] text-zinc-200 group-hover:bg-primary-300 group-hover:text-zinc-950'
+            ? 'bg-primary-300 text-zinc-950'
+            : 'bg-white/[0.06] text-zinc-200 group-hover:bg-white/[0.1] group-hover:text-white'
         }`}
       >
-        <Icon name={icon} className="h-4 w-4" />
+        <Icon name={icon} className="h-3.5 w-3.5" />
       </span>
       <span className="hidden lg:block">{label}</span>
     </Link>
