@@ -9,6 +9,7 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label: string;
   options: SelectOption[];
   error?: string;
+  hint?: string;
   placeholder?: string;
 }
 
@@ -17,6 +18,7 @@ export function Select({
   label,
   options,
   error,
+  hint,
   placeholder,
   id,
   className = '',
@@ -24,6 +26,8 @@ export function Select({
 }: SelectProps) {
   const selectId = id ?? `select-${label.toLowerCase().replace(/\s+/g, '-')}`;
   const errorId = error ? `${selectId}-error` : undefined;
+  const hintId = hint ? `${selectId}-hint` : undefined;
+  const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined;
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -37,10 +41,16 @@ export function Select({
         )}
       </label>
 
+      {hint && (
+        <p id={hintId} className="text-xs text-zinc-400">
+          {hint}
+        </p>
+      )}
+
       <select
         {...props}
         id={selectId}
-        aria-describedby={errorId}
+        aria-describedby={describedBy}
         aria-invalid={error ? true : undefined}
         className={[
           'field-control',
