@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Barlow_Condensed, Urbanist } from 'next/font/google';
 import './globals.css';
@@ -24,6 +25,9 @@ export const metadata: Metadata = {
   title: 'Alcide - Coaching sportif premium',
   description:
     'Alcide prepare des seances et programmes sportifs personnalises avec une interface d entrainement immersive.',
+  icons: {
+    icon: '/visuals/alcide-logo-mark.svg',
+  },
 };
 
 const NAV_ITEMS: Array<{ href: string; label: string; icon: IconName }> = [
@@ -41,8 +45,15 @@ function BrandMark() {
       className="group inline-flex items-center gap-3 text-sm font-black tracking-normal text-white transition-colors hover:text-primary-200"
       aria-label="Alcide - Accueil"
     >
-      <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary-300 text-sm text-zinc-950 shadow-lg shadow-primary-400/20">
-        A
+      <span className="grid h-10 w-10 place-items-center rounded-xl border border-primary-300/[0.2] bg-zinc-950/[0.72] p-1.5 shadow-lg shadow-primary-400/20 transition group-hover:border-primary-300/[0.45] group-hover:bg-zinc-950/[0.9]">
+        <Image
+          src="/visuals/alcide-logo-mark.svg"
+          alt=""
+          width={28}
+          height={28}
+          aria-hidden="true"
+          className="h-full w-full"
+        />
       </span>
       <span className="leading-tight">
         Alcide

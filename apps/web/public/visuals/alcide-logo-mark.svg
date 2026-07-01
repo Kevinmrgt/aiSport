@@ -1,0 +1,11 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Logo Alcide</title>
+  <desc id="desc">Logo minimaliste en forme de A avec cornes et ligne de pulsation sportive.</desc>
+  <path d="M74 75C55 61 51 38 60 20C69 42 85 55 104 63L91 84L74 75Z" fill="#D9FF3F"/>
+  <path d="M182 75C201 61 205 38 196 20C187 42 171 55 152 63L165 84L182 75Z" fill="#D9FF3F"/>
+  <path d="M80 136L111 67C118 52 138 52 145 67L176 136H149L132 94C131 90 125 90 124 94L107 136H80Z" fill="#D9FF3F"/>
+  <path d="M49 180L73 139H108L90 174H55C50 174 47 184 49 180Z" fill="#D9FF3F"/>
+  <path d="M207 180L183 139H148L166 174H201C206 174 209 184 207 180Z" fill="#D9FF3F"/>
+  <path d="M40 145H103C111 145 116 141 119 134L126 116L144 176L155 150C158 143 163 140 171 140H216V156H175C172 156 170 157 169 160L150 204C147 211 137 211 135 203L122 161C118 169 111 174 101 174H40V145Z" fill="#070A08"/>
+  <path d="M128 166L141 190H115L128 166Z" fill="#FF8A3D"/>
+</svg>
