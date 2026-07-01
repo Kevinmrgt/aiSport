@@ -95,7 +95,7 @@ export default function HomePage() {
             </div>
             <div className="mt-6 space-y-3">
               {['Objectif', 'Structure', 'Timer'].map((label, index) => (
-                <div key={label} className="flex items-center gap-3 rounded-full bg-white/[0.07] p-2">
+                <div key={label} className="flex items-center gap-3 rounded-full bg-zinc-950/[0.42] p-2">
                   <span className="grid h-9 w-9 place-items-center rounded-full bg-zinc-950/60 text-xs font-black text-primary-300">
                     {index + 1}
                   </span>
@@ -125,7 +125,7 @@ export default function HomePage() {
             },
           ].map((item) => (
             <GlassPanel key={item.title} className="min-h-56 p-5 sm:p-6">
-              <IconBubble icon={item.icon} className="bg-white text-zinc-950" />
+              <IconBubble icon={item.icon} className="bg-zinc-950/[0.72] text-primary-200" />
               <h2 className="mt-5 text-2xl font-black text-white">{item.title}</h2>
               <p className="muted-copy mt-3">{item.text}</p>
             </GlassPanel>
