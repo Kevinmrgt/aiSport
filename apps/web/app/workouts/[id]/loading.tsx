@@ -14,7 +14,7 @@ export default function WorkoutDetailLoading() {
               <div className="h-10 w-24 animate-pulse rounded-full bg-white/[0.08]" />
             </div>
           </div>
-          <div className="h-60 rounded-[1.75rem] bg-[url('/visuals/workout-action.webp')] bg-cover bg-center opacity-50" />
+          <div className="abstract-surface h-60 rounded-[1.75rem] opacity-70" />
         </div>
       </div>
 

@@ -6,7 +6,7 @@ export default function GenerateLoading() {
       aria-label="Chargement du formulaire de generation"
     >
       <div className="glass-panel min-h-[30rem] overflow-hidden p-5" aria-hidden="true">
-        <div className="h-full rounded-[1.75rem] bg-[url('/visuals/workout-action.webp')] bg-cover bg-center opacity-45" />
+        <div className="abstract-surface h-full rounded-[1.75rem] opacity-70" />
       </div>
 
       <div className="glass-panel space-y-5 p-5 sm:p-6" aria-hidden="true">

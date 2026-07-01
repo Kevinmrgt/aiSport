@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
@@ -59,15 +58,7 @@ export default async function DashboardPage() {
 
   return (
     <section aria-labelledby="dashboard-title" className="space-y-6">
-      <GlassPanel className="relative overflow-hidden p-5 sm:p-6">
-        <Image
-          src="/visuals/dashboard-bg.webp"
-          alt=""
-          fill
-          priority
-          sizes="(max-width: 1024px) 100vw, 980px"
-          className="-z-10 object-cover opacity-45"
-        />
+      <GlassPanel className="abstract-surface mobile-compact-header p-5 sm:p-6">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="section-kicker mb-3">Dashboard</p>
@@ -80,8 +71,10 @@ export default async function DashboardPage() {
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <ProgressRing value={effortPercent} label="effort" size="lg" />
-            <Link href="/generate" className="action-primary">
+            <div className="mobile-header-metrics">
+              <ProgressRing value={effortPercent} label="effort" size="lg" />
+            </div>
+            <Link href="/generate" className="action-primary mobile-header-action">
               Nouvelle seance
             </Link>
           </div>

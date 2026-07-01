@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import {
   GlassPanel,
@@ -11,18 +10,7 @@ import {
 export default function HomePage() {
   return (
     <section aria-labelledby="hero-title" className="relative isolate overflow-hidden">
-      <div className="absolute inset-x-1/2 top-[-9rem] -z-10 h-[44rem] w-screen -translate-x-1/2 opacity-80">
-        <Image
-          src="/visuals/hero-athlete-lime.webp"
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/70 to-zinc-950/30" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#070a08] via-transparent to-[rgba(7,10,8,0.35)]" />
-      </div>
+      <div className="abstract-surface absolute inset-x-1/2 top-[-9rem] -z-10 h-[44rem] w-screen -translate-x-1/2 opacity-80" />
 
       <div className="grid min-h-[calc(100vh-8rem)] items-center gap-10 py-6 lg:grid-cols-[0.86fr_1.14fr]">
         <div className="max-w-2xl">
@@ -57,14 +45,7 @@ export default function HomePage() {
       </div>
 
       <div className="grid gap-4 pb-10 lg:grid-cols-[1.1fr_0.9fr]">
-        <GlassPanel className="relative overflow-hidden p-5 sm:p-6">
-          <Image
-            src="/visuals/dashboard-bg.webp"
-            alt=""
-            fill
-            sizes="(max-width: 1024px) 100vw, 680px"
-            className="-z-10 object-cover opacity-40"
-          />
+        <GlassPanel className="abstract-surface p-5 sm:p-6">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="section-kicker mb-3">Tableau de bord</p>
