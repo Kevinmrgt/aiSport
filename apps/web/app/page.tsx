@@ -20,11 +20,11 @@ export default function HomePage() {
           sizes="100vw"
           className="object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/75 to-zinc-950/35" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#070a08] via-[#070a08]/55 to-[#070a08]/20" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#182214]/80 via-[#314028]/42 to-[#f1ffd8]/20" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#dfe8d2]/35 via-[#e9f2d8]/18 to-[#f7ffe8]/10" />
       </div>
 
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_72%_20%,rgba(217,255,63,0.16),transparent_26%),linear-gradient(180deg,transparent,rgba(7,10,8,0.72))]" />
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_72%_20%,rgba(217,255,63,0.32),transparent_30%),radial-gradient(circle_at_28%_68%,rgba(255,255,255,0.22),transparent_24%),linear-gradient(180deg,rgba(246,255,226,0.18),rgba(23,32,20,0.36))]" />
 
       <div className="grid min-h-[calc(100vh-8rem)] items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[0.86fr_1.14fr] lg:px-8">
         <div className="max-w-2xl">
@@ -69,7 +69,7 @@ export default function HomePage() {
               sizes="(max-width: 1024px) 100vw, 680px"
               className="-z-10 object-cover opacity-45"
             />
-            <div className="absolute inset-0 -z-10 bg-zinc-950/45" />
+            <div className="absolute inset-0 -z-10 bg-[#10170f]/28" />
             <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="section-kicker mb-3">Presentation</p>
@@ -132,7 +132,7 @@ export default function HomePage() {
           ))}
         </div>
 
-        <div className="grid min-h-[70vh] items-center gap-6 rounded-[2rem] border border-white/10 bg-zinc-950/55 p-5 shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-8 lg:grid-cols-[0.78fr_1.22fr]">
+        <div className="grid min-h-[70vh] items-center gap-6 rounded-[2rem] border border-white/15 bg-[#14200f]/45 p-5 shadow-2xl shadow-black/25 backdrop-blur-xl sm:p-8 lg:grid-cols-[0.78fr_1.22fr]">
           <div>
             <p className="section-kicker mb-4">Scroll immersif</p>
             <h2 className="text-4xl font-black leading-none text-white sm:text-5xl">

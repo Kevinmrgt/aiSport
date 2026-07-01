@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import type { Exercise, Phase } from '@alcide/shared';
 import { Button } from './ui/Button';
 import { Icon } from './ui/Icon';
@@ -178,6 +179,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
   const [completedDurationSeconds, setCompletedDurationSeconds] = useState<number | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const timerContainerRef = useRef<HTMLElement | null>(null);
+  const nativeFullscreenActiveRef = useRef(false);
   const sessionStartedAtRef = useRef<number | null>(null);
 
   const { playCountdown, playPhaseChange, playComplete } = useAudio();
@@ -192,25 +194,25 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
   }, []);
 
   const enterFullscreen = useCallback(async () => {
-    const timerContainer = timerContainerRef.current;
     setIsFullscreen(true);
 
-    if (!timerContainer || document.fullscreenElement === timerContainer || !timerContainer.requestFullscreen) {
+    if (document.fullscreenElement || !document.documentElement.requestFullscreen) {
       return;
     }
 
     try {
-      await timerContainer.requestFullscreen();
+      await document.documentElement.requestFullscreen();
+      nativeFullscreenActiveRef.current = true;
     } catch {
-      // Keep the viewport-covering presentation if native fullscreen is unavailable.
+      // Keep the viewport-covering portal presentation if native fullscreen is unavailable.
     }
   }, []);
 
   const exitFullscreen = useCallback(async () => {
-    const timerContainer = timerContainerRef.current;
     setIsFullscreen(false);
+    nativeFullscreenActiveRef.current = false;
 
-    if (document.fullscreenElement === timerContainer && document.exitFullscreen) {
+    if (document.fullscreenElement && document.exitFullscreen) {
       try {
         await document.exitFullscreen();
       } catch {
@@ -259,17 +261,35 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
 
   useEffect(() => {
     const syncFullscreenState = () => {
-      if (document.fullscreenElement === null) {
-        setIsFullscreen(false);
+      if (document.fullscreenElement) {
+        nativeFullscreenActiveRef.current = true;
+        setIsFullscreen(true);
         return;
       }
 
-      setIsFullscreen(document.fullscreenElement === timerContainerRef.current);
+      if (nativeFullscreenActiveRef.current) {
+        nativeFullscreenActiveRef.current = false;
+        setIsFullscreen(false);
+      }
     };
 
     document.addEventListener('fullscreenchange', syncFullscreenState);
     return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
   }, []);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+
+    const bodyOverflow = document.body.style.overflow;
+    const htmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = bodyOverflow;
+      document.documentElement.style.overflow = htmlOverflow;
+    };
+  }, [isFullscreen]);
 
   useEffect(() => {
     if (!currentStep || currentStep.durationSeconds === null || !isRunning || secondsLeft === null || done) return;
@@ -363,7 +383,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
       : 'Passer';
 
   const timerContainerClassName = isFullscreen
-    ? 'fixed inset-0 z-50 flex min-h-dvh w-full flex-col items-center gap-4 overflow-y-auto bg-zinc-950 px-4 py-5 sm:justify-center sm:px-8 sm:py-8'
+    ? 'fixed inset-0 z-[9999] flex h-[100dvh] min-h-screen w-screen flex-col items-center gap-4 overflow-y-auto bg-zinc-950 px-4 py-5 sm:justify-center sm:px-8 sm:py-8'
     : 'flex flex-col items-center gap-6';
   const timerCardClassName = [
     'relative w-full overflow-hidden rounded-[2rem] border border-white/[0.15] bg-zinc-950/60 text-center shadow-2xl shadow-black/30 backdrop-blur-2xl',
@@ -383,7 +403,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
     isFullscreen ? 'text-4xl' : 'text-3xl',
   ].join(' ');
 
-  return (
+  const timerContent = (
     <section ref={timerContainerRef} aria-labelledby="timer-exercise-title" className={timerContainerClassName}>
       {totalTimedSeconds > 0 && (
         <div className="w-full">
@@ -517,4 +537,10 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
       </div>
     </section>
   );
+
+  if (isFullscreen && typeof document !== 'undefined') {
+    return createPortal(timerContent, document.body);
+  }
+
+  return timerContent;
 }
