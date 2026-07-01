@@ -216,7 +216,7 @@ h4,
   }
 
   .app-container {
-    @apply w-full px-4 pb-28 pt-6 sm:px-6 lg:ml-28 lg:max-w-[calc(100%-7rem)] lg:px-8 lg:pb-10 lg:pt-8 xl:ml-80 xl:max-w-[calc(100%-20rem)];
+    @apply mx-auto w-full max-w-[112rem] px-4 pb-28 pt-24 sm:px-6 lg:px-8 lg:pb-10 lg:pt-28;
   }
 
   @media (max-width: 639px) {
