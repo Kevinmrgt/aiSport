@@ -1,4 +1,4 @@
-# Audit de cohérence documentaire — SportCoach IA / aiSport
+# Audit de cohérence documentaire — Alcide / alcide
 
 > Date de vérification : 2026-05-07  
 > Version applicative de référence : `0.12.0`  
@@ -28,8 +28,8 @@ Les URLs de healthcheck production ont répondu le 2026-05-07 :
 
 | Endpoint | Résultat |
 |---|---|
-| `https://ai-sport-api.vercel.app/health` | HTTP 200, `status:"ok"`, mais version live encore `0.1.0` avant redéploiement |
-| `https://ai-sport-web.vercel.app/api/health` | HTTP 200, `status:"ok"` |
+| `https://alcide-api.vercel.app/health` | HTTP 200, `status:"ok"`, mais version live encore `0.1.0` avant redéploiement |
+| `https://alcide-web.vercel.app/api/health` | HTTP 200, `status:"ok"` |
 
 ## Tableau d'audit
 

@@ -6,7 +6,7 @@
 
 ## Contexte
 
-La fonctionnalité centrale de SportCoach IA est la génération de programmes d'entraînement personnalisés par IA. Il faut choisir un fournisseur d'API LLM qui permette de générer des réponses JSON structurées, fiables et validables.
+La fonctionnalité centrale de Alcide est la génération de programmes d'entraînement personnalisés par IA. Il faut choisir un fournisseur d'API LLM qui permette de générer des réponses JSON structurées, fiables et validables.
 
 ## Options envisagées
 

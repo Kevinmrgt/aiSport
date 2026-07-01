@@ -9,6 +9,7 @@ healthRouter.get('/', (ctx) => {
 
   return ctx.json({
     status: 'ok',
+    service: 'alcide-api',
     timestamp: new Date().toISOString(),
     version: appVersion,
   });

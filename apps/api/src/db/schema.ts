@@ -1,5 +1,5 @@
 import { pgTable, text, timestamp, jsonb, uuid, integer } from 'drizzle-orm/pg-core';
-import type { Workout, TrainingProgram } from '@sportcoach/shared';
+import type { Workout, TrainingProgram } from '@alcide/shared';
 
 // Table des utilisateurs — Auth.js compatible
 export const users = pgTable('users', {
@@ -121,9 +121,9 @@ export const userSettings = pgTable('user_settings', {
     .notNull()
     .unique()
     .references(() => users.id, { onDelete: 'cascade' }),
-  aiProvider: text('ai_provider', { enum: ['mistral', 'openai', 'anthropic'] })
+  aiProvider: text('ai_provider', { enum: ['openai'] })
     .notNull()
-    .default('mistral'),
+    .default('openai'),
   // Clé chiffrée AES-256-GCM : format "iv:authTag:ciphertext" en hex
   aiApiKeyEncrypted: text('ai_api_key_encrypted'),
   aiModel: text('ai_model'),

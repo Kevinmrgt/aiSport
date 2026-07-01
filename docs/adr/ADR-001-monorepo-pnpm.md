@@ -6,7 +6,7 @@
 
 ## Contexte
 
-Le projet SportCoach IA nécessite deux applications distinctes (frontend Next.js et backend Hono) qui partagent des types TypeScript et des schémas Zod (notamment le contrat JSON de réponse Mistral AI). Il faut décider de la stratégie de gestion des dépendances et du partage de code.
+Le projet Alcide nécessite deux applications distinctes (frontend Next.js et backend Hono) qui partagent des types TypeScript et des schémas Zod (notamment le contrat JSON de réponse Mistral AI). Il faut décider de la stratégie de gestion des dépendances et du partage de code.
 
 ## Options envisagées
 
@@ -25,7 +25,7 @@ Le projet SportCoach IA nécessite deux applications distinctes (frontend Next.j
 
 ## Justification
 
-1. **Partage de types sans duplication** : les schémas Zod du contrat Mistral sont définis une seule fois dans `@sportcoach/shared` et importés côté frontend (validation client) et backend (validation serveur).
+1. **Partage de types sans duplication** : les schémas Zod du contrat Mistral sont définis une seule fois dans `@alcide/shared` et importés côté frontend (validation client) et backend (validation serveur).
 2. **Cohérence** : un seul `pnpm install` installe tout le projet. Les scripts `pnpm dev`, `pnpm test`, `pnpm build` fonctionnent depuis la racine.
 3. **Performance pnpm** : stockage en hard-links, temps d'installation ~3x plus rapide que npm, lockfile déterministe.
 4. **Traçabilité RNCP** : un seul repository Git, donc un seul historique de commits lisible et auditable par le jury.

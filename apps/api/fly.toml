@@ -1,7 +1,7 @@
-# fly.toml — Configuration Fly.io pour l'API SportCoach IA (Hono)
+# fly.toml — Configuration Fly.io pour l'API Alcide (Hono)
 # Déployer avec : fly launch (première fois) ou fly deploy
 
-app = "sportcoach-api"
+app = "alcide-api"
 primary_region = "cdg"  # Paris
 
 [build]

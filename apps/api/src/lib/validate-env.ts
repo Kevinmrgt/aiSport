@@ -1,14 +1,13 @@
-// Validation des variables d'environnement obligatoires au démarrage
-// OWASP A05: fail-fast si la configuration est incomplète plutôt que de
-// démarrer dans un état non sécurisé (ex: SERVICE_SECRET manquant)
+// Validation des variables d'environnement obligatoires au demarrage.
+// OWASP A05: fail-fast si la configuration critique est incomplete.
 
 const REQUIRED_ENV_VARS = [
   'DATABASE_URL',
   'SERVICE_SECRET',
 ] as const;
 
-// Optional — only needed if no user has their own AI key configured
-const OPTIONAL_ENV_VARS = ['MISTRAL_API_KEY'] as const;
+// Optional au boot : la generation IA sera indisponible sans cle serveur.
+const OPTIONAL_ENV_VARS = ['OPENAI_API_KEY'] as const;
 
 export function validateEnv(): void {
   const missing: string[] = [];
@@ -21,15 +20,17 @@ export function validateEnv(): void {
 
   if (missing.length > 0) {
     console.error('[Startup] Variables d\'environnement manquantes :', missing);
-    console.error('[Startup] Vérifiez votre fichier .env ou les secrets CI/CD.');
+    console.error('[Startup] Verifiez votre fichier .env ou les secrets CI/CD.');
     throw new Error(`Variables d'environnement manquantes : ${missing.join(', ')}`);
   }
 
   for (const key of OPTIONAL_ENV_VARS) {
     if (!process.env[key]) {
-      console.warn(`[Startup] Variable optionnelle manquante : ${key} — les utilisateurs devront configurer leur propre clé IA.`);
+      console.warn(
+        `[Startup] Variable optionnelle manquante : ${key} - les generations IA echoueront tant que la cle serveur n'est pas configuree.`,
+      );
     }
   }
 
-  console.info('[Startup] Variables d\'environnement validées ✓');
+  console.info('[Startup] Variables d\'environnement validees');
 }

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// Contrat JSON Mistral — validé par Zod (mistral-contract.md)
+// Contrat JSON IA — validé par Zod
 
 export const ExerciseSchema = z.object({
   name: z.string().min(1),

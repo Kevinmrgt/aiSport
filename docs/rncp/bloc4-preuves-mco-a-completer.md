@@ -1,7 +1,7 @@
 # Preuves MCO Bloc 4 a completer
 
-> Projet : SportCoach IA / aiSport  
-> Bloc RNCP39583 : Maintenir l'application logicielle en condition operationnelle  
+> Projet : Alcide / alcide
+> Bloc RNCP39583 : Maintenir l'application logicielle en condition operationnelle
 > Date de mise en place : 2026-05-07
 
 ## Preuves deja mises en place dans le repo

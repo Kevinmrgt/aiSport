@@ -1,8 +1,8 @@
 {
-  "name": "sportcoach-ia",
+  "name": "alcide",
   "private": true,
   "version": "0.12.0",
-  "description": "Application web de génération d'entraînements sportifs personnalisés par IA",
+  "description": "Coach IA personnel qui prépare des entraînements sportifs personnalisés",
   "packageManager": "pnpm@9.15.9",
   "scripts": {
     "dev": "concurrently \"pnpm dev:api\" \"pnpm dev:web\"",
@@ -11,12 +11,12 @@
     "build": "pnpm --filter shared build && pnpm --filter api build && pnpm --filter web build",
     "build:web": "pnpm --filter web build",
     "build:api": "pnpm --filter api build",
-    "test": "pnpm --filter api test && pnpm --filter web test",
+    "test": "pnpm --filter shared build && pnpm --filter api test && pnpm --filter web test",
     "test:web": "pnpm --filter web test",
-    "test:api": "pnpm --filter api test",
-    "test:e2e": "pnpm --filter web test:e2e",
-    "test:e2e:smoke": "pnpm --filter web exec playwright test tests/e2e/home.spec.ts tests/e2e/auth.spec.ts tests/e2e/accessibility.spec.ts tests/e2e/axe.spec.ts",
-    "test:coverage": "pnpm --filter api test:coverage",
+    "test:api": "pnpm --filter shared build && pnpm --filter api test",
+    "test:e2e": "pnpm --filter shared build && pnpm --filter web test:e2e",
+    "test:e2e:smoke": "pnpm --filter shared build && pnpm --filter web exec playwright test tests/e2e/home.spec.ts tests/e2e/auth.spec.ts tests/e2e/accessibility.spec.ts tests/e2e/axe.spec.ts",
+    "test:coverage": "pnpm --filter shared build && pnpm --filter api test:coverage",
     "lint": "pnpm --recursive lint",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore",
     "typecheck": "pnpm --recursive typecheck",
@@ -36,8 +36,5 @@
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=9.0.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "unrs-resolver"]
   }
 }

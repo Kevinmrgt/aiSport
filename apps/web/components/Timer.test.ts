@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Exercise, Phase } from '@sportcoach/shared';
+import type { Exercise, Phase } from '@alcide/shared';
 import { buildTimerSteps } from './Timer';
 
 describe('buildTimerSteps', () => {

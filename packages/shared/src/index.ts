@@ -1,4 +1,4 @@
-// Schémas Zod — contrat JSON Mistral (séances simples)
+// Schémas Zod — contrat JSON IA (séances simples)
 export {
   ExerciseSchema,
   PhaseSchema,
@@ -6,7 +6,7 @@ export {
   GenerateWorkoutInputSchema,
 } from './schemas/workout.schema.js';
 
-// Schémas Zod — contrat JSON Mistral (programmes multi-semaines)
+// Schémas Zod — contrat JSON IA (programmes multi-semaines)
 export {
   ProgramSessionSchema,
   ProgramWeekSchema,

@@ -1,4 +1,4 @@
-# Script de démonstration logiciel Bloc 3 - SportCoach IA
+# Script de démonstration logiciel Bloc 3 - Alcide
 
 > Épreuve : **Bloc 3 RNCP39583 - Coordonner et piloter un projet de développement d'applications logicielles**  
 > Démonstration attendue : dernière version logicielle développée, avec vocabulaire adapté à une audience client/jury  
@@ -48,17 +48,17 @@ Ces URLs sont documentées dans `docs/ci-cd.md` et `docs/deployment.md`. Elles d
 
 | Service | URL |
 |---|---|
-| Web | `https://ai-sport-web.vercel.app` |
-| API | `https://ai-sport-api.vercel.app` |
-| Healthcheck API | `https://ai-sport-api.vercel.app/health` |
-| Healthcheck Web | `https://ai-sport-web.vercel.app/api/health` |
+| Web | `https://alcide-web.vercel.app` |
+| API | `https://alcide-api.vercel.app` |
+| Healthcheck API | `https://alcide-api.vercel.app/health` |
+| Healthcheck Web | `https://alcide-web.vercel.app/api/health` |
 
 Commandes de vérification :
 
 ```bash
-curl https://ai-sport-api.vercel.app/health
-curl https://ai-sport-web.vercel.app/api/health
-curl -I https://ai-sport-web.vercel.app
+curl https://alcide-api.vercel.app/health
+curl https://alcide-web.vercel.app/api/health
+curl -I https://alcide-web.vercel.app
 ```
 
 Vérification légère effectuée le 2026-05-07 :
@@ -211,7 +211,7 @@ Durée cible : 30 secondes.
 
 Action :
 
-1. Ouvrir `https://ai-sport-web.vercel.app` ou `http://localhost:3000`.
+1. Ouvrir `https://alcide-web.vercel.app` ou `http://localhost:3000`.
 2. Dans un second onglet, ouvrir `/api/health`.
 3. Ouvrir l'API `/health`.
 

@@ -1,4 +1,4 @@
-import { generateProgram } from './mistral-program.service.js';
+import { generateProgram } from './program-ai.service.js';
 import { normalizeTrainingProgramDurations } from './program-duration.service.js';
 import { resolveAiConfig } from '../controllers/settings.controller.js';
 import {
@@ -7,21 +7,15 @@ import {
   findProgramById,
   deleteProgram,
 } from '../repositories/program.repository.js';
-import type { GenerateProgramInput, TrainingProgramRecord, ProgramListResponse } from '@sportcoach/shared';
+import type { GenerateProgramInput, TrainingProgramRecord, ProgramListResponse } from '@alcide/shared';
 
-// Logique métier — ne connaît pas HTTP ni Drizzle (architecture.md)
-
+// Logique metier : ne connait pas HTTP ni Drizzle.
 export async function generateAndSaveProgram(
   userId: string,
   input: GenerateProgramInput,
 ): Promise<TrainingProgramRecord> {
-  // Résoudre la config IA : clé perso de l'utilisateur ou clé serveur Mistral
   const aiConfig = await resolveAiConfig(userId);
-
-  // Générer le programme via le provider IA configuré
   const program = await generateProgram(input, aiConfig);
-
-  // Persister en base via le repository
   return createProgram(userId, program);
 }
 
@@ -36,7 +30,6 @@ export async function getProgramDetail(
   programId: string,
   userId: string,
 ): Promise<TrainingProgramRecord> {
-  // Le repository vérifie l'ownership (OWASP A01)
   const program = await findProgramById(programId, userId);
   return {
     ...program,
@@ -45,6 +38,5 @@ export async function getProgramDetail(
 }
 
 export async function removeProgram(programId: string, userId: string): Promise<void> {
-  // Le repository vérifie l'ownership avant suppression (OWASP A01)
   return deleteProgram(programId, userId);
 }

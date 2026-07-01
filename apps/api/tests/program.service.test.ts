@@ -8,14 +8,14 @@ import {
 import { getProgramSessionTimedSeconds } from '../src/services/program-duration.service.js';
 import { AppError } from '../src/types/app-error.js';
 
-// Mock du service Mistral
-vi.mock('../src/services/mistral-program.service.js', () => ({
+// Mock du service IA
+vi.mock('../src/services/program-ai.service.js', () => ({
   generateProgram: vi.fn(),
 }));
 
 // Mock de resolveAiConfig pour éviter l'import de la BDD
 vi.mock('../src/controllers/settings.controller.js', () => ({
-  resolveAiConfig: vi.fn().mockResolvedValue({ provider: 'mistral', apiKey: 'test-key' }),
+  resolveAiConfig: vi.fn().mockResolvedValue({ provider: 'openai', apiKey: 'test-key' }),
 }));
 
 // Mock du repository (dépend de la BDD — testé en intégration)
@@ -26,7 +26,7 @@ vi.mock('../src/repositories/program.repository.js', () => ({
   deleteProgram: vi.fn(),
 }));
 
-import { generateProgram as generateWithMistral } from '../src/services/mistral-program.service.js';
+import { generateProgram as generateWithAi } from '../src/services/program-ai.service.js';
 import {
   createProgram,
   findProgramsByUser,
@@ -103,19 +103,19 @@ describe('ProgramService', () => {
   });
 
   describe('generateAndSaveProgram', () => {
-    it('génère via Mistral et persiste en BDD', async () => {
-      vi.mocked(generateWithMistral).mockResolvedValue(mockProgramData);
+    it('génère via le service IA et persiste en BDD', async () => {
+      vi.mocked(generateWithAi).mockResolvedValue(mockProgramData);
       vi.mocked(createProgram).mockResolvedValue(mockProgramRecord);
 
       const result = await generateAndSaveProgram('user-123', mockInput);
 
-      expect(generateWithMistral).toHaveBeenCalledWith(mockInput, expect.objectContaining({ provider: 'mistral' }));
+      expect(generateWithAi).toHaveBeenCalledWith(mockInput, expect.objectContaining({ provider: 'openai' }));
       expect(createProgram).toHaveBeenCalledWith('user-123', mockProgramData);
       expect(result.id).toBe('program-abc');
     });
 
-    it('propage les erreurs de Mistral sans appeler le repository', async () => {
-      vi.mocked(generateWithMistral).mockRejectedValue(
+    it('propage les erreurs du service IA sans appeler le repository', async () => {
+      vi.mocked(generateWithAi).mockRejectedValue(
         AppError.serviceUnavailable("Impossible de générer le programme"),
       );
 

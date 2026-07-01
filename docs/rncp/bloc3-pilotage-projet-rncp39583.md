@@ -1,16 +1,16 @@
-# Livrable Bloc 3 RNCP39583 - Pilotage du projet SportCoach IA
+# Livrable Bloc 3 RNCP39583 - Pilotage du projet Alcide
 
-> Bloc officiel : **Coordonner et piloter un projet de développement d'applications logicielles**  
-> Projet : **SportCoach IA / aiSport**  
-> Candidat : Kevin  
-> Version du livrable : 2026-05-07  
+> Bloc officiel : **Coordonner et piloter un projet de développement d'applications logicielles**
+> Projet : **Alcide / alcide**
+> Candidat : Kevin
+> Version du livrable : 2026-05-07
 > Objet : support de préparation à l'oral Bloc 3 de 45 minutes, incluant le pilotage projet et la démonstration de la dernière version logicielle.
 
 ---
 
 ## 0. Référentiel et périmètre du livrable
 
-Ce document consolide les preuves de pilotage du projet SportCoach IA selon les attendus officiels du Bloc 3 RNCP39583. Il ne vise pas à redémontrer le développement ou la sécurité en détail : ces éléments sont utilisés seulement comme **preuves de pilotage**, de suivi qualité, de gestion des risques, d'arbitrage, de validation et de démonstration.
+Ce document consolide les preuves de pilotage du projet Alcide selon les attendus officiels du Bloc 3 RNCP39583. Il ne vise pas à redémontrer le développement ou la sécurité en détail : ces éléments sont utilisés seulement comme **preuves de pilotage**, de suivi qualité, de gestion des risques, d'arbitrage, de validation et de démonstration.
 
 Sources RNCP locales consultées :
 
@@ -38,13 +38,13 @@ Important : plusieurs éléments de pilotage n'étaient pas formalisés comme li
 
 | Élément | Description |
 |---|---|
-| Nom du projet | **SportCoach IA / aiSport** |
+| Nom du projet | **Alcide / alcide** |
 | Objectif | Générer, sauvegarder, consulter et exécuter des entraînements ou programmes sportifs personnalisés par IA |
 | Nature | Application web full-stack |
 | Utilisateurs | Sportifs amateurs ou réguliers souhaitant structurer leur entraînement ; jury RNCP comme évaluateur du projet ; commanditaire simulé pour la validation pédagogique |
 | Livrable logiciel final | Version applicative `0.12.0` d'après `package.json` et `CHANGELOG.md` |
 | Stack | Next.js 14, Hono, TypeScript, PostgreSQL/Drizzle, Auth.js, Mistral AI par défaut, OpenAI/Anthropic via paramètres utilisateur, Zod, pnpm monorepo, Docker, GitHub Actions, Vercel/Neon |
-| Déploiement cible documenté | Web : `https://ai-sport-web.vercel.app` ; API : `https://ai-sport-api.vercel.app` ; DB : Neon PostgreSQL |
+| Déploiement cible documenté | Web : `https://alcide-web.vercel.app` ; API : `https://alcide-api.vercel.app` ; DB : Neon PostgreSQL |
 
 Périmètre fonctionnel démontrable :
 
@@ -142,7 +142,7 @@ Le dépôt contient surtout un **planning rétrospectif prouvé** par sprints, c
 
 ```mermaid
 gantt
-    title Planning consolide SportCoach IA - Bloc 3
+    title Planning consolide Alcide - Bloc 3
     dateFormat  YYYY-MM-DD
     axisFormat  %d/%m
 
@@ -241,9 +241,9 @@ Le projet ne contient pas de capture d'un outil Kanban externe. Le suivi est don
 | Smoke E2E Firefox | Non validé localement | Firefox Playwright absent, 2026-05-07 | Risque outillage à corriger avant soutenance |
 | Healthcheck API | Route présente | `apps/api/src/routes/health.routes.ts` | Validation disponibilité API |
 | Healthcheck Web | Route présente | `apps/web/app/api/health/route.ts` | Validation disponibilité Web |
-| Healthcheck API production | HTTP 200 | `curl https://ai-sport-api.vercel.app/health`, 2026-05-07 | Vérification disponibilité démo |
-| Healthcheck Web production | HTTP 200 | `curl https://ai-sport-web.vercel.app/api/health`, 2026-05-07 | Vérification disponibilité démo |
-| Racine Web production | HTTP 200 | `curl -I https://ai-sport-web.vercel.app`, 2026-05-07 | Vérification accès application |
+| Healthcheck API production | HTTP 200 | `curl https://alcide-api.vercel.app/health`, 2026-05-07 | Vérification disponibilité démo |
+| Healthcheck Web production | HTTP 200 | `curl https://alcide-web.vercel.app/api/health`, 2026-05-07 | Vérification disponibilité démo |
+| Racine Web production | HTTP 200 | `curl -I https://alcide-web.vercel.app`, 2026-05-07 | Vérification accès application |
 | Version de référence | 0.12.0 | `package.json`, `CHANGELOG.md` | Dernière version à démontrer |
 
 ### 5.3 Suivi des coûts
@@ -592,6 +592,6 @@ Le script détaillé est dans `docs/rncp/bloc3-script-demo-logiciel.md`.
 
 ## Conclusion Bloc 3
 
-SportCoach IA démontre un pilotage réel par incréments : sprints documentés, changelog, ADR, bugs, CI/CD, tests, healthchecks, déploiement et version de démonstration. Le principal enjeu Bloc 3 n'est pas le code, mais la **formalisation du pilotage** : planning consolidé, tableau de bord, RACI, arbitrages, communication, compétences, validations et indicateurs de satisfaction.
+Alcide démontre un pilotage réel par incréments : sprints documentés, changelog, ADR, bugs, CI/CD, tests, healthchecks, déploiement et version de démonstration. Le principal enjeu Bloc 3 n'est pas le code, mais la **formalisation du pilotage** : planning consolidé, tableau de bord, RACI, arbitrages, communication, compétences, validations et indicateurs de satisfaction.
 
 Le discours à tenir devant le jury est donc : le projet a été conduit en autonomie, mais avec une logique professionnelle de coordination. Les rôles d'équipe ont été assumés par le candidat et sont explicités sans inventer une équipe réelle. Les preuves techniques sont utilisées comme indicateurs de pilotage, et la démonstration finale permet d'obtenir une validation commanditaire simulée avant livraison.

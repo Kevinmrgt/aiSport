@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
@@ -5,13 +6,14 @@ import { auth } from '@/lib/auth';
 import { serverApi } from '@/lib/server-api';
 import { Timer } from '@/components/Timer';
 import { WorkoutTimeline } from '@/components/WorkoutTimeline';
-import type { CreateSessionLogInput } from '@sportcoach/shared';
+import { GlassPanel, MetricPill } from '@/components/PremiumPrimitives';
+import { Icon } from '@/components/ui/Icon';
+import type { CreateSessionLogInput } from '@alcide/shared';
 
 interface SessionPageProps {
   params: Promise<{ id: string; sessionId: string }>;
 }
 
-// OWASP A01: route protégée + ownership vérifié côté backend
 export default async function ProgramSessionPage({ params }: SessionPageProps) {
   const { id, sessionId } = await params;
   const session = await auth();
@@ -20,7 +22,6 @@ export default async function ProgramSessionPage({ params }: SessionPageProps) {
     redirect('/login');
   }
 
-  // Parse sessionId : "${weekNumber}-${sessionNumber}" (ex: "2-1")
   const parts = sessionId.split('-');
   const weekNumber = parseInt(parts[0] ?? '', 10);
   const sessionNumber = parseInt(parts[1] ?? '', 10);
@@ -76,61 +77,68 @@ export default async function ProgramSessionPage({ params }: SessionPageProps) {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
-      {/* RGAA 4.1: lien de retour */}
-      <nav aria-label="Retour" className="mb-8">
-        <Link
-          href={`/programs/${id}`}
-          className="text-sm font-semibold text-zinc-400 transition-colors hover:text-primary-300 focus-visible:outline-none focus-visible:underline"
-        >
+    <div className="mx-auto max-w-5xl space-y-6">
+      <nav aria-label="Retour">
+        <Link href={`/programs/${id}`} className="premium-chip">
+          <Icon name="arrow-left" className="h-4 w-4" />
           {program.title}
         </Link>
       </nav>
 
-      {/* En-tête */}
-      <header className="surface mb-6 p-5 sm:p-6">
-        <p className="section-kicker mb-2">
-          Semaine {weekNumber} · {week.theme}
+      <header className="relative overflow-hidden rounded-[2.4rem] border border-white/[0.15] bg-zinc-950/50 p-5 shadow-2xl shadow-black/30 backdrop-blur-2xl sm:p-6">
+        <Image
+          src="/visuals/workout-action.webp"
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 1024px) 100vw, 900px"
+          className="-z-10 object-cover opacity-60"
+        />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-zinc-950 via-zinc-950/[0.55] to-zinc-950/[0.15]" />
+        <p className="section-kicker mb-4">
+          Semaine {weekNumber} - {week.theme}
         </p>
-        <h1 className="page-title">
-          Séance {sessionNumber} — {trainingSession.title}
+        <h1 className="page-title max-w-3xl">
+          Seance {sessionNumber} - {trainingSession.title}
         </h1>
-        <p className="mt-3 break-words text-sm leading-5 text-zinc-400">
-          {trainingSession.focus} · {trainingSession.duration_minutes} min ·{' '}
-          {trainingSession.exercises.length} exercice{trainingSession.exercises.length > 1 ? 's' : ''}
-        </p>
+        <div className="mt-6 grid gap-2 sm:grid-cols-3">
+          <MetricPill icon="target" label="Focus" value={trainingSession.focus} tone="lime" />
+          <MetricPill icon="timer" label="Duree" value={`${trainingSession.duration_minutes} min`} />
+          <MetricPill
+            icon="activity"
+            label="Exercices"
+            value={`${trainingSession.exercises.length}`}
+            tone="orange"
+          />
+        </div>
       </header>
 
-      {/* Timeline visuelle (échauffement + exercices + récupération) */}
-      <section aria-labelledby="timeline-title" className="surface mb-6 p-5 sm:p-6">
-        <h2
-          id="timeline-title"
-          className="section-kicker mb-6"
-        >
-          Programme
-        </h2>
-        <WorkoutTimeline
-          exercises={trainingSession.exercises}
-          warmup={trainingSession.warmup}
-          cooldown={trainingSession.cooldown}
-        />
+      <section aria-labelledby="timeline-title">
+        <GlassPanel className="p-5 sm:p-6">
+          <h2 id="timeline-title" className="section-kicker mb-6">
+            Programme
+          </h2>
+          <WorkoutTimeline
+            exercises={trainingSession.exercises}
+            warmup={trainingSession.warmup}
+            cooldown={trainingSession.cooldown}
+          />
+        </GlassPanel>
       </section>
 
-      {/* Timer interactif */}
-      <section aria-labelledby="timer-title" className="surface p-5 sm:p-6">
-        <h2
-          id="timer-title"
-          className="section-kicker mb-4"
-        >
-          Timer
-        </h2>
-        <Timer
-          completeAction={completeProgramSession}
-          exercises={trainingSession.exercises}
-          warmup={trainingSession.warmup}
-          cooldown={trainingSession.cooldown}
-          sessionMeta={sessionMeta}
-        />
+      <section aria-labelledby="timer-title">
+        <GlassPanel className="p-5 sm:p-6">
+          <h2 id="timer-title" className="section-kicker mb-6">
+            Timer
+          </h2>
+          <Timer
+            completeAction={completeProgramSession}
+            exercises={trainingSession.exercises}
+            warmup={trainingSession.warmup}
+            cooldown={trainingSession.cooldown}
+            sessionMeta={sessionMeta}
+          />
+        </GlassPanel>
       </section>
     </div>
   );

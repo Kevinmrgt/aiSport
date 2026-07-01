@@ -1,15 +1,15 @@
-# Runbook de maintenance Bloc 4 - SportCoach IA
+# Runbook de maintenance Bloc 4 - Alcide
 
-> Projet : **SportCoach IA / aiSport**  
-> Bloc RNCP39583 : **Maintenir l'application logicielle en condition opérationnelle**  
-> Version : 2026-05-07  
+> Projet : **Alcide / alcide**
+> Bloc RNCP39583 : **Maintenir l'application logicielle en condition opérationnelle**
+> Version : 2026-05-07
 > Objet : procédures opérationnelles pour démarrer, tester, déployer, surveiller, corriger et restaurer l'application.
 
 ---
 
 ## 1. Périmètre
 
-Ce runbook décrit les gestes de maintenance nécessaires pour exploiter SportCoach IA en local, en CI/CD et en production Vercel/Neon.
+Ce runbook décrit les gestes de maintenance nécessaires pour exploiter Alcide en local, en CI/CD et en production Vercel/Neon.
 
 Composants couverts :
 
@@ -221,14 +221,14 @@ curl http://localhost:3000/api/health
 Réponses attendues :
 
 - API : JSON avec `status: ok`, `timestamp`, `version`.
-- Web : JSON avec `status: ok`, `service: sportcoach-web`, `timestamp`.
+- Web : JSON avec `status: ok`, `service: alcide-web`, `timestamp`.
 
 ### 7.2 Production
 
 ```bash
-curl https://ai-sport-api.vercel.app/health
-curl https://ai-sport-web.vercel.app/api/health
-curl -I https://ai-sport-web.vercel.app
+curl https://alcide-api.vercel.app/health
+curl https://alcide-web.vercel.app/api/health
+curl -I https://alcide-web.vercel.app
 ```
 
 Critère : HTTP 200 ou 2xx pour les healthchecks.
@@ -282,7 +282,7 @@ Ne pas lancer une migration production depuis un terminal local sans validation 
 Flux canonique :
 
 ```text
-main -> CI - SportCoach IA -> CD - Vercel -> API -> Web -> smoke tests
+main -> CI - Alcide -> CD - Vercel -> API -> Web -> smoke tests
 ```
 
 Conditions :
@@ -337,9 +337,9 @@ Checklist :
 Commandes :
 
 ```bash
-curl --fail https://ai-sport-api.vercel.app/health
-curl --fail https://ai-sport-web.vercel.app/api/health
-curl -I https://ai-sport-web.vercel.app
+curl --fail https://alcide-api.vercel.app/health
+curl --fail https://alcide-web.vercel.app/api/health
+curl -I https://alcide-web.vercel.app
 ```
 
 ---
@@ -377,8 +377,8 @@ git status --short
 git log --oneline -5
 pnpm test
 pnpm build
-curl https://ai-sport-api.vercel.app/health
-curl https://ai-sport-web.vercel.app/api/health
+curl https://alcide-api.vercel.app/health
+curl https://alcide-web.vercel.app/api/health
 ```
 
 Diagnostic production :
@@ -415,7 +415,7 @@ Mettre à jour :
 ### 12.1 Rollback Web ou API sur Vercel
 
 1. Ouvrir Vercel.
-2. Sélectionner le projet `ai-sport-web` ou `ai-sport-api`.
+2. Sélectionner le projet `alcide-web` ou `alcide-api`.
 3. Aller dans `Deployments`.
 4. Identifier le dernier déploiement sain.
 5. Cliquer `Promote to Production`.
@@ -491,8 +491,8 @@ docker compose logs web
 docker compose down
 curl http://localhost:3001/health
 curl http://localhost:3000/api/health
-curl https://ai-sport-api.vercel.app/health
-curl https://ai-sport-web.vercel.app/api/health
+curl https://alcide-api.vercel.app/health
+curl https://alcide-web.vercel.app/api/health
 ```
 
 ---

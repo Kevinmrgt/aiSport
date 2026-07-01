@@ -10,15 +10,18 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 // - État loading annoncé aux lecteurs d'écran via aria-busy
 // - Désactivé correctement avec aria-disabled
 const variantClasses: Record<NonNullable<ButtonProps['variant']>, string> = {
-  primary:   'bg-primary-300 text-zinc-950 hover:bg-primary-200 focus-visible:ring-primary-300 shadow-lg shadow-primary-400/15',
-  secondary: 'border border-white/10 bg-white/[0.06] text-zinc-100 hover:bg-white/[0.1] focus-visible:ring-primary-300',
-  danger:    'bg-red-500 text-white hover:bg-red-400 focus-visible:ring-red-400',
+  primary:
+    'bg-primary-300 text-zinc-950 shadow-2xl shadow-primary-400/25 hover:bg-primary-200 focus-visible:ring-primary-300',
+  secondary:
+    'border border-white/[0.15] bg-white/[0.08] text-zinc-100 shadow-xl shadow-black/20 backdrop-blur-xl hover:bg-white/[0.13] focus-visible:ring-primary-300',
+  danger:
+    'bg-sport-orange text-zinc-950 shadow-xl shadow-black/30 hover:bg-primary-300 focus-visible:ring-sport-orange',
 };
 
 const sizeClasses: Record<NonNullable<ButtonProps['size']>, string> = {
   sm: 'px-3 py-1.5 text-sm',
-  md: 'px-4 py-2 text-sm',
-  lg: 'px-6 py-2.5 text-base',
+  md: 'px-5 py-2.5 text-sm',
+  lg: 'px-6 py-3 text-base',
 };
 
 export function Button({
@@ -39,9 +42,9 @@ export function Button({
       aria-busy={isLoading}
       aria-disabled={isDisabled}
       className={[
-        'inline-flex min-h-10 items-center justify-center gap-2 rounded-full text-center font-bold leading-tight transition-colors',
+        'inline-flex min-h-11 items-center justify-center gap-2 rounded-full text-center font-black leading-tight transition-colors',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-ink',
-        'disabled:opacity-50 disabled:cursor-not-allowed',
+        'disabled:cursor-not-allowed disabled:opacity-50',
         variantClasses[variant],
         sizeClasses[size],
         className,

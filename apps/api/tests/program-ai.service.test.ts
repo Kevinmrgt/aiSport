@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { generateProgram } from '../src/services/mistral-program.service.js';
+import { generateProgram } from '../src/services/program-ai.service.js';
 import { getProgramSessionTimedSeconds } from '../src/services/program-duration.service.js';
 import { AppError } from '../src/types/app-error.js';
-import type { GenerateProgramInput } from '@sportcoach/shared';
+import type { GenerateProgramInput } from '@alcide/shared';
 import type { AiConfig } from '../src/services/ai.service.js';
 
 // Mock fetch global (OWASP A10: pas d'appels réels à l'IA en test)
@@ -10,7 +10,7 @@ const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
 const mockAiConfig: AiConfig = {
-  provider: 'mistral',
+  provider: 'openai',
   apiKey: 'test-key',
 };
 
@@ -120,14 +120,14 @@ function expectProgramSessionsToMatchDuration(
   });
 }
 
-describe('MistralProgramService', () => {
+describe('ProgramAiService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   afterEach(() => {
     vi.useRealTimers();
-    delete process.env['MISTRAL_API_KEY'];
+    delete process.env['OPENAI_API_KEY'];
   });
 
   describe('generateProgram', () => {

@@ -60,7 +60,7 @@ Stratégie : `vi.spyOn(process, 'exit').mockImplementation(...)` pour intercepte
 ### IaC Déploiement (Fly.io + Neon + Vercel)
 
 **`apps/api/fly.toml`** :
-- App : `sportcoach-api`, région `cdg` (Paris)
+- App : `alcide-api`, région `cdg` (Paris)
 - VM : `shared-cpu-1x` 256 MB — free tier Fly.io
 - Healthcheck : `GET /health` port 3001, intervalle 30s
 - `auto_stop_machines = false` — service toujours actif
@@ -110,7 +110,7 @@ Stratégie : `vi.spyOn(process, 'exit').mockImplementation(...)` pour intercepte
 
 ## Actions utilisateur requises (déploiement live)
 
-1. **Neon** → neon.tech → Créer projet `sportcoach` → Copier DATABASE_URL
+1. **Neon** → neon.tech → Créer projet `alcide` → Copier DATABASE_URL
 2. **Fly.io** → fly.io → `fly auth login` → `cd apps/api && fly launch`
 3. **Fly.io secrets** → `fly secrets set DATABASE_URL=... MISTRAL_API_KEY=... SERVICE_SECRET=... FRONTEND_URL=...`
 4. **Migration** → `export DATABASE_URL=<neon_url> && pnpm db:migrate`

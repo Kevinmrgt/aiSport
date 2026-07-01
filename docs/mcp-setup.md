@@ -1,4 +1,4 @@
-# Setup MCP et outillage agent - SportCoach IA
+# Setup MCP et outillage agent - Alcide
 
 > Objectif : donner a Codex les outils gratuits necessaires pour gerer le repo, les preuves RNCP Bloc 4, les tests et la supervision sans disperser les informations.
 
@@ -6,7 +6,7 @@
 
 | Outil                     | Statut                                       | Usage                                                               |
 | ------------------------- | -------------------------------------------- | ------------------------------------------------------------------- |
-| Filesystem MCP            | Configure en local dans `.codex/config.toml` | Lecture/ecriture limitee au repo `aiSport`                          |
+| Filesystem MCP            | Configure en local dans `.codex/config.toml` | Lecture/ecriture limitee au repo `alcide`                          |
 | Playwright MCP            | Configure en local dans `.codex/config.toml` | Verification navigateur et captures de preuves                      |
 | Vercel MCP                | Configure en local dans `.codex/config.toml` | Deploiement, inspection et aide Vercel                              |
 | GitHub CLI                | Authentifie localement                       | Issues, labels, workflows, PR si besoin                             |
@@ -23,13 +23,13 @@ Exemple versionne : `docs/mcp/codex-config.example.toml`
 
 Serveurs actives :
 
-- `filesystem` : acces au dossier `C:\Users\kevin\OneDrive\Documents\Dev\aiSport`.
+- `filesystem` : acces au dossier `C:\Users\kevin\OneDrive\Documents\Dev\alcide`.
 - `playwright` : pilotage navigateur via `@playwright/mcp@latest`.
 - `vercel` : outillage Vercel via `@vercel/mcp-server`.
 
 ## GitHub MCP
 
-Le repo est deja relie a GitHub avec `origin = https://github.com/Kevinmrgt/aiSport.git`, et le GitHub CLI est authentifie sur le compte `Kevinmrgt`.
+Le repo est deja relie a GitHub avec `origin = https://github.com/Kevinmrgt/alcide.git`, et le GitHub CLI est authentifie sur le compte `Kevinmrgt`.
 
 Pour un vrai GitHub MCP dans Codex, utiliser de preference le connecteur GitHub de Codex ou le serveur officiel GitHub MCP. Le fichier `docs/mcp/codex-config.example.toml` donne un exemple de configuration, mais il ne doit pas contenir de token en clair.
 
@@ -48,8 +48,8 @@ Permissions minimales recommandees pour un PAT :
 
 Le workflow `.github/workflows/production-health-monitor.yml` tourne toutes les heures et verifie :
 
-- `https://ai-sport-api.vercel.app/health`
-- `https://ai-sport-web.vercel.app/api/health`
+- `https://alcide-api.vercel.app/health`
+- `https://alcide-web.vercel.app/api/health`
 
 Il produit un artifact `production-health-report`. En cas d'echec, il ouvre ou commente une issue GitHub `Production healthcheck failed` avec le rapport et le lien du run.
 
@@ -57,8 +57,8 @@ Variables GitHub optionnelles :
 
 | Variable              | Valeur par defaut                            |
 | --------------------- | -------------------------------------------- |
-| `PROD_API_HEALTH_URL` | `https://ai-sport-api.vercel.app/health`     |
-| `PROD_WEB_HEALTH_URL` | `https://ai-sport-web.vercel.app/api/health` |
+| `PROD_API_HEALTH_URL` | `https://alcide-api.vercel.app/health`     |
+| `PROD_WEB_HEALTH_URL` | `https://alcide-web.vercel.app/api/health` |
 
 ## Monitoring Better Stack a brancher
 

@@ -7,14 +7,14 @@ import {
 } from '../src/services/workout.service.js';
 import { AppError } from '../src/types/app-error.js';
 
-// Mock du service Mistral
-vi.mock('../src/services/mistral.service.js', () => ({
+// Mock du service IA
+vi.mock('../src/services/workout-ai.service.js', () => ({
   generateWorkout: vi.fn(),
 }));
 
 // Mock de resolveAiConfig pour éviter l'import de la BDD
 vi.mock('../src/controllers/settings.controller.js', () => ({
-  resolveAiConfig: vi.fn().mockResolvedValue({ provider: 'mistral', apiKey: 'test-key' }),
+  resolveAiConfig: vi.fn().mockResolvedValue({ provider: 'openai', apiKey: 'test-key' }),
 }));
 
 // Mock du repository (dépend de la BDD — testé en intégration)
@@ -26,7 +26,7 @@ vi.mock('../src/repositories/workout.repository.js', () => ({
   getWorkoutStatsByUser: vi.fn(),
 }));
 
-import { generateWorkout as generateWithMistral } from '../src/services/mistral.service.js';
+import { generateWorkout as generateWithAi } from '../src/services/workout-ai.service.js';
 import {
   createWorkout,
   findWorkoutsByUser,
@@ -67,20 +67,20 @@ describe('WorkoutService', () => {
   });
 
   describe('generateAndSaveWorkout', () => {
-    it('génère via Mistral et persiste en BDD', async () => {
-      vi.mocked(generateWithMistral).mockResolvedValue(mockWorkoutData);
+    it('génère via le service IA et persiste en BDD', async () => {
+      vi.mocked(generateWithAi).mockResolvedValue(mockWorkoutData);
       vi.mocked(createWorkout).mockResolvedValue(mockWorkoutRecord);
 
       const result = await generateAndSaveWorkout('user-123', mockInput);
 
-      expect(generateWithMistral).toHaveBeenCalledWith(mockInput, expect.objectContaining({ provider: 'mistral' }));
+      expect(generateWithAi).toHaveBeenCalledWith(mockInput, expect.objectContaining({ provider: 'openai' }));
       expect(createWorkout).toHaveBeenCalledWith('user-123', mockWorkoutData);
       expect(result.id).toBe('workout-abc');
     });
 
-    it('propage les erreurs de Mistral', async () => {
-      vi.mocked(generateWithMistral).mockRejectedValue(
-        AppError.serviceUnavailable('Mistral indisponible'),
+    it('propage les erreurs du service IA', async () => {
+      vi.mocked(generateWithAi).mockRejectedValue(
+        AppError.serviceUnavailable('OpenAI indisponible'),
       );
 
       await expect(generateAndSaveWorkout('user-123', mockInput)).rejects.toThrow(AppError);

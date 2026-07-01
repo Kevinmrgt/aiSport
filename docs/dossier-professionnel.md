@@ -1,4 +1,4 @@
-# Dossier Professionnel — SportCoach IA
+# Dossier Professionnel — Alcide
 
 > Certification RNCP 39583 — Expert en développement logiciel (Niv. 7, YNOV)
 > Candidat : Kevin | Date de vérification : 2026-05-07 | Version du projet : 0.12.0
@@ -11,7 +11,7 @@
 
 ### Contexte et problématique
 
-**SportCoach IA** est une application web full-stack permettant à des sportifs de générer des programmes d'entraînement personnalisés par intelligence artificielle. L'utilisateur sélectionne son sport, son niveau, ses objectifs et ses contraintes, puis reçoit un plan complet (exercices, séries, récupérations) généré par **Mistral AI** et stocké en base de données pour consultation ultérieure avec un timer intégré.
+**Alcide** est une application web full-stack permettant à des sportifs de générer des programmes d'entraînement personnalisés par intelligence artificielle. L'utilisateur sélectionne son sport, son niveau, ses objectifs et ses contraintes, puis reçoit un plan complet (exercices, séries, récupérations) généré par **Mistral AI** et stocké en base de données pour consultation ultérieure avec un timer intégré.
 
 ### Choix du projet support
 

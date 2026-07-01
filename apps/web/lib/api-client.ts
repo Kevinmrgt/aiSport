@@ -1,5 +1,5 @@
-import type { WorkoutDetail, WorkoutListItem } from '@sportcoach/shared';
-import type { GenerateWorkoutInput } from '@sportcoach/shared';
+import type { WorkoutDetail, WorkoutListItem } from '@alcide/shared';
+import type { GenerateWorkoutInput } from '@alcide/shared';
 
 // OWASP A02: l'URL du backend vient d'une variable d'env
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001';

@@ -2,8 +2,9 @@
 
 import { useId, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { CreateSessionLogInput } from '@sportcoach/shared';
+import type { CreateSessionLogInput } from '@alcide/shared';
 import { Button } from './ui/Button';
+import { Icon } from './ui/Icon';
 
 export type SessionCompletionFeedback = 'too_easy' | 'good' | 'too_hard';
 
@@ -74,19 +75,28 @@ export function SessionCompletionForm({
 
   return (
     <form
-      className="mx-auto mt-6 flex w-full max-w-xl flex-col gap-5 rounded-lg border border-white/10 bg-zinc-950/80 p-5 text-left shadow-2xl shadow-black/20 sm:p-6"
+      className="mx-auto mt-6 flex w-full max-w-2xl flex-col gap-5 rounded-[1.8rem] border border-white/10 bg-zinc-950/[0.55] p-5 text-left shadow-2xl shadow-black/30 backdrop-blur-2xl sm:p-6"
       onSubmit={(event) => {
         void handleSubmit(event);
       }}
       aria-describedby={`${formId}-status`}
     >
+      <div className="flex items-start gap-3">
+        <span className="icon-bubble bg-primary-300 text-zinc-950">
+          <Icon name="check" className="h-4 w-4" />
+        </span>
+        <p className="text-sm leading-6 text-zinc-300">
+          Votre retour alimente le suivi : effort, dosage et notes utiles pour la prochaine seance.
+        </p>
+      </div>
+
       <fieldset className="space-y-3" disabled={isSaving}>
-        <legend className="text-sm font-bold text-white">Effort percu</legend>
+        <legend className="text-sm font-black text-white">Effort percu</legend>
         <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
           {Array.from({ length: 10 }, (_, index) => index + 1).map((value) => (
             <label
               key={value}
-              className={`flex min-h-10 cursor-pointer items-center justify-center rounded-md border text-sm font-bold transition-colors ${
+              className={`flex min-h-11 cursor-pointer items-center justify-center rounded-full border text-sm font-black transition-colors ${
                 perceivedEffort === value
                   ? 'border-primary-300 bg-primary-300 text-zinc-950'
                   : 'border-white/10 bg-white/[0.06] text-zinc-100 hover:bg-white/[0.1]'
@@ -107,12 +117,12 @@ export function SessionCompletionForm({
       </fieldset>
 
       <fieldset className="space-y-3" disabled={isSaving}>
-        <legend className="text-sm font-bold text-white">Ressenti global</legend>
+        <legend className="text-sm font-black text-white">Ressenti global</legend>
         <div className="grid gap-2 sm:grid-cols-3">
           {feedbackOptions.map((option) => (
             <label
               key={option.value}
-              className={`flex min-h-10 cursor-pointer items-center justify-center rounded-md border px-3 text-center text-sm font-bold transition-colors ${
+              className={`flex min-h-11 cursor-pointer items-center justify-center rounded-full border px-3 text-center text-sm font-black transition-colors ${
                 feedback === option.value
                   ? 'border-primary-300 bg-primary-300 text-zinc-950'
                   : 'border-white/10 bg-white/[0.06] text-zinc-100 hover:bg-white/[0.1]'
@@ -134,12 +144,12 @@ export function SessionCompletionForm({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-2 block text-sm font-bold text-white" htmlFor={`${formId}-pain`}>
+          <label className="mb-2 block text-sm font-black text-white" htmlFor={`${formId}-pain`}>
             Douleur eventuelle
           </label>
           <textarea
             id={`${formId}-pain`}
-            className="min-h-24 w-full rounded-md border border-white/10 bg-white/[0.06] px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-zinc-500 focus:border-primary-300 focus:ring-2 focus:ring-primary-300/30"
+            className="field-control min-h-24 resize-y"
             value={painNotes}
             onChange={(event) => setPainNotes(event.target.value)}
             placeholder="Zone, intensite, gene..."
@@ -149,12 +159,12 @@ export function SessionCompletionForm({
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-bold text-white" htmlFor={`${formId}-notes`}>
+          <label className="mb-2 block text-sm font-black text-white" htmlFor={`${formId}-notes`}>
             Notes
           </label>
           <textarea
             id={`${formId}-notes`}
-            className="min-h-24 w-full rounded-md border border-white/10 bg-white/[0.06] px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-zinc-500 focus:border-primary-300 focus:ring-2 focus:ring-primary-300/30"
+            className="field-control min-h-24 resize-y"
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             placeholder="Energie, technique, adaptation..."
@@ -166,12 +176,12 @@ export function SessionCompletionForm({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p id={`${formId}-status`} role="status" aria-live="polite" className="min-h-5 text-sm text-zinc-300">
-          {error && <span className="font-semibold text-red-300">{error}</span>}
+          {error && <span className="font-semibold text-sport-orange">{error}</span>}
           {isSaved && !error && <span className="font-semibold text-primary-300">Retour enregistre.</span>}
         </p>
 
         <Button type="submit" variant="primary" size="lg" isLoading={isSaving} disabled={isSaving || isSaved}>
-          {isSaved ? 'Sauvegarde' : 'Sauvegarder'}
+          {isSaved ? 'Sauvegarde' : 'Enregistrer le retour'}
         </Button>
       </div>
     </form>

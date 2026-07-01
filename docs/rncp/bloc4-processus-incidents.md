@@ -1,15 +1,15 @@
-# Processus de gestion des incidents et anomalies Bloc 4 - SportCoach IA
+# Processus de gestion des incidents et anomalies Bloc 4 - Alcide
 
-> Projet : **SportCoach IA / aiSport**  
-> Bloc RNCP39583 : **Maintenir l'application logicielle en condition opérationnelle**  
-> Version : 2026-05-07  
+> Projet : **Alcide / alcide**
+> Bloc RNCP39583 : **Maintenir l'application logicielle en condition opérationnelle**
+> Version : 2026-05-07
 > Objet : processus de collecte, qualification, correction, validation et clôture des anomalies.
 
 ---
 
 ## 1. Objectif
 
-Ce document formalise le processus de gestion des anomalies de SportCoach IA. Il répond directement à la compétence éliminatoire **C4.2.1** : consigner les anomalies détectées en élaborant un processus de collecte et consignation, en utilisant des outils de collecte et en intégrant toutes les informations pertinentes afin de déterminer le correctif à mettre en place.
+Ce document formalise le processus de gestion des anomalies de Alcide. Il répond directement à la compétence éliminatoire **C4.2.1** : consigner les anomalies détectées en élaborant un processus de collecte et consignation, en utilisant des outils de collecte et en intégrant toutes les informations pertinentes afin de déterminer le correctif à mettre en place.
 
 Il complète :
 
@@ -53,7 +53,7 @@ Il complète :
 
 ## 4. Niveaux de criticité
 
-| Niveau | Nom | Définition | Délai cible de première analyse | Exemple SportCoach IA |
+| Niveau | Nom | Définition | Délai cible de première analyse | Exemple Alcide |
 |---|---|---|---:|---|
 | P0 | Critique | Indisponibilité production, perte de données, faille sécurité exploitable, authentification cassée pour tous | 1 h | API ou Web inaccessible, migration destructive, secret exposé |
 | P1 | Haute | Fonction majeure indisponible sans contournement, CI bloquante sur `main`, génération IA impossible pour une majorité d'utilisateurs | 4 h | `pnpm test:coverage` bloque tout déploiement, 5xx sur génération |
@@ -170,7 +170,7 @@ Exemples :
 
 - `ERROR: Coverage for statements (54.21%) does not meet global threshold (70%)`
 - HTTP 500 sur `/workouts/generate`
-- `curl https://ai-sport-api.vercel.app/health` échoue
+- `curl https://alcide-api.vercel.app/health` échoue
 - retour utilisateur "la génération tourne puis échoue"
 
 ### 8.2 Qualification

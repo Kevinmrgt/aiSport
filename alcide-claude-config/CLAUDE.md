@@ -1,8 +1,8 @@
-# SportCoach IA
+# Alcide
 
 ## Projet
 
-SportCoach IA est une application web de génération d'entraînements sportifs personnalisés par intelligence artificielle. L'utilisateur sélectionne un sport, décrit ses objectifs et contraintes, et reçoit un programme sur mesure (séance, semaine, mois) généré par Mistral AI. Les entraînements sont stockés en base PostgreSQL. L'utilisateur peut exécuter une séance avec un timer intégré affichant titre, description et durée de chaque exercice.
+Alcide est un coach IA personnel intégré à une application web d'entraînements sportifs personnalisés. L'utilisateur sélectionne un sport, décrit ses objectifs et contraintes, puis Alcide prépare une séance ou un programme sur mesure avec le fournisseur IA configuré. Les entraînements sont stockés en base PostgreSQL. L'utilisateur peut exécuter une séance avec un timer intégré affichant titre, description et durée de chaque exercice.
 
 Phase actuelle : MVP — génération d'entraînements personnalisés avec IA (pas encore de social ni gamification).
 
@@ -26,7 +26,7 @@ Ce projet sert de support à la certification RNCP 39583 « Expert en développe
 ## Structure du projet
 
 ```
-sportcoach-ia/
+alcide/
 ├── apps/
 │   ├── web/                    # Next.js frontend
 │   │   ├── app/                # App Router pages
@@ -102,8 +102,8 @@ Voir `rules/ci.md` et `docs/ci-cd.md` pour le détail complet (pipeline, rollbac
 
 | App | URL |
 |---|---|
-| **Web** | `https://ai-sport-web.vercel.app` |
-| **API** | `https://ai-sport-api.vercel.app` |
+| **Web** | `https://alcide-web.vercel.app` |
+| **API** | `https://alcide-api.vercel.app` |
 
 ### Variables d'env critiques (Vercel)
 
@@ -115,7 +115,7 @@ Voir `rules/ci.md` et `docs/ci-cd.md` pour le détail complet (pipeline, rollbac
 
 ```bash
 # Santé de l'API
-curl https://ai-sport-api.vercel.app/health
+curl https://alcide-api.vercel.app/health
 
 # Logs CI
 gh run list --workflow=ci.yml --limit=5

@@ -61,7 +61,7 @@ Le paramètre `$false` dans `UTF8Encoding` supprime le BOM (Byte Order Mark `EF 
 
 ```bash
 xxd README.md | head -1
-# Attendu : 2320 5370 6f72 7443 6f61 6368 2049 41 (# SportCoach IA en ASCII pur)
+# Attendu : 2320 5370 6f72 7443 6f61 6368 2049 41 (# Alcide en ASCII pur)
 # Obtenu  : 2320 5370 6f72 7443 6f61 6368 2049 410a ✅
 ```
 

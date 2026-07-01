@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Configuration Playwright pour les tests E2E SportCoach IA
+ * Configuration Playwright pour les tests E2E Alcide
  * Docs: https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
@@ -34,6 +34,19 @@ export default defineConfig({
   // Démarrage automatique du serveur Next.js pour les tests locaux
   webServer: {
     command: 'pnpm dev',
+    env: {
+      ...process.env,
+      AUTH_SECRET:
+        process.env['AUTH_SECRET'] ?? 'test-auth-secret-for-playwright-32chars',
+      AUTH_GOOGLE_ID: process.env['AUTH_GOOGLE_ID'] ?? 'test-google-client-id',
+      AUTH_GOOGLE_SECRET:
+        process.env['AUTH_GOOGLE_SECRET'] ?? 'test-google-client-secret',
+      NEXTAUTH_URL: process.env['NEXTAUTH_URL'] ?? 'http://localhost:3000',
+      NEXT_PUBLIC_API_URL:
+        process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001',
+      SERVICE_SECRET:
+        process.env['SERVICE_SECRET'] ?? 'test-service-secret-for-playwright',
+    },
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env['CI'],
     timeout: 120_000,

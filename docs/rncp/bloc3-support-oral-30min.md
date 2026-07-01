@@ -1,4 +1,4 @@
-# Plan de support oral Bloc 3 RNCP39583 - SportCoach IA
+# Plan de support oral Bloc 3 RNCP39583 - Alcide
 
 > Épreuve : **Bloc 3 - Coordonner et piloter un projet de développement d'applications logicielles**  
 > Format officiel : **45 minutes**, dont **30 minutes de présentation** et **15 minutes d'échange avec le jury**  
@@ -10,7 +10,7 @@
 
 Message central à faire passer :
 
-> SportCoach IA n'est pas seulement une application développée : c'est un projet logiciel piloté par incréments, avec méthode, planning, suivi, arbitrages, indicateurs, gestion des risques, validations et version démontrable.
+> Alcide n'est pas seulement une application développée : c'est un projet logiciel piloté par incréments, avec méthode, planning, suivi, arbitrages, indicateurs, gestion des risques, validations et version démontrable.
 
 Angle recommandé :
 
@@ -35,7 +35,7 @@ Découpage recommandé :
 | Temps | Slide | Titre | Message clé | Preuves à afficher ou citer |
 |---:|---:|---|---|---|
 | 0:00-1:00 | 1 | Contexte Bloc 3 | L'épreuve évalue le pilotage et la démonstration, pas uniquement le développement | PDF règlement spécial, `docs/rncp/matrice-conformite-rncp39583.md` |
-| 1:00-2:30 | 2 | Projet en une minute | SportCoach IA génère et suit des entraînements personnalisés par IA | `README.md`, `package.json`, URL Vercel |
+| 1:00-2:30 | 2 | Projet en une minute | Alcide génère et suit des entraînements personnalisés par IA | `README.md`, `package.json`, URL Vercel |
 | 2:30-4:30 | 3 | Méthode projet | Approche itérative inspirée Scrum, adaptée à un projet individuel | `docs/sprints/`, `CHANGELOG.md` |
 | 4:30-7:00 | 4 | Planning et jalons | Le projet est structuré en phases : fondations, MVP, qualité, déploiement, démo | Tableau planning Bloc 3, `docs/sprints/sprint-01.md` à `sprint-12.md` |
 | 7:00-8:30 | 5 | Ressources | Les ressources humaines, techniques et cloud sont identifiées | `package.json`, `docker-compose.yml`, `.github/workflows/`, `docs/deployment.md` |
@@ -71,7 +71,7 @@ Message clé : "Je présente le pilotage du projet et je termine par une démons
 
 ### Slide 2 - Projet en une minute
 
-Message clé : "SportCoach IA aide un utilisateur à générer, sauvegarder, exécuter et suivre des entraînements personnalisés."
+Message clé : "Alcide aide un utilisateur à générer, sauvegarder, exécuter et suivre des entraînements personnalisés."
 
 À dire :
 

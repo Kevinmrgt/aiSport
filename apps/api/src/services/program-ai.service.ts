@@ -1,22 +1,21 @@
-import { ProgramWeekSchema, TrainingProgramSchema } from '@sportcoach/shared';
-import type { ProgramWeek, TrainingProgram, GenerateProgramInput } from '@sportcoach/shared';
+import { ProgramWeekSchema, TrainingProgramSchema } from '@alcide/shared';
+import type { ProgramWeek, TrainingProgram, GenerateProgramInput } from '@alcide/shared';
 import { AppError } from '../types/app-error.js';
 import { AiTimeoutError, callAiProvider } from './ai.service.js';
 import type { AiConfig } from './ai.service.js';
 import { normalizeTrainingProgramDurations } from './program-duration.service.js';
 
-// Phases de progression selon la position dans le programme
 function getProgressionPhase(weekNumber: number, totalWeeks: number): string {
-  if (weekNumber === 1) return 'Adaptation — charges légères, apprentissage des mouvements';
-  if (weekNumber === totalWeeks) return 'Pic de forme — maintien de l\'intensité, objectif final';
-  if (weekNumber === totalWeeks - 1) return 'Intensification — charges maximales, volume élevé';
-  return 'Construction — progression des charges et du volume';
+  if (weekNumber === 1) return 'Adaptation - charges legeres, apprentissage des mouvements';
+  if (weekNumber === totalWeeks) return "Pic de forme - maintien de l'intensite, objectif final";
+  if (weekNumber === totalWeeks - 1) return 'Intensification - charges maximales, volume eleve';
+  return 'Construction - progression des charges et du volume';
 }
 
-// Message système constant (court pour économiser les tokens)
 const SYSTEM_MESSAGE =
-  'Tu es un coach sportif expert en planification de programmes progressifs. ' +
-  'Réponds UNIQUEMENT avec un JSON valide, sans texte avant ou après.';
+  'Tu es Alcide, un coach IA sportif expert en planification de programmes progressifs. ' +
+  "Tu prepares chaque semaine comme un accompagnement personnalise pour l'utilisateur. " +
+  'Reponds UNIQUEMENT avec un JSON valide, sans texte avant ou apres.';
 
 // Chaque semaine est generee en parallele. Le budget global evite les 504 Vercel
 // quand une tentative lente revient invalide puis declenche un retry.
@@ -35,26 +34,25 @@ function buildWeekPrompt(
     ? `Contraintes : ${input.constraints}`
     : 'Aucune contrainte.';
 
-  // Prompt compact pour limiter les reponses longues qui finissent en JSON invalide.
-  return `Génère les séances de la semaine ${weekNumber} sur ${input.weeks_count} d'un programme de ${input.sport}.
+  return `Genere les seances de la semaine ${weekNumber} sur ${input.weeks_count} d'un programme de ${input.sport}.
 
 Niveau : ${input.level}
-Durée par séance : ${input.session_duration_minutes} minutes
-Nombre de séances : ${input.sessions_per_week}
+Duree par seance : ${input.session_duration_minutes} minutes
+Nombre de seances : ${input.sessions_per_week}
 Phase : ${phaseLabel}
 Objectifs : ${input.goals}
 ${constraints}
 
 Contraintes de sortie :
-- exactement ${input.sessions_per_week} séances
-- 2 exercices par séance, pas plus
+- exactement ${input.sessions_per_week} seances
+- 2 exercices par seance, pas plus
 - chaque exercice a duration_seconds
-- total warmup + duration_seconds + rest_seconds + cooldown = ${input.session_duration_minutes * 60} secondes par séance
-- descriptions et conseils en moins de 90 caractères
-- warmup et cooldown optionnels, maximum 1 élément chacun
+- total warmup + duration_seconds + rest_seconds + cooldown = ${input.session_duration_minutes * 60} secondes par seance
+- descriptions et conseils en moins de 90 caracteres
+- warmup et cooldown optionnels, maximum 1 element chacun
 - JSON compact, sans markdown
 
-Réponds UNIQUEMENT avec ce JSON (et rien d'autre) :
+Reponds UNIQUEMENT avec ce JSON (et rien d'autre) :
 {
   "week_number": ${weekNumber},
   "theme": "string (ex: Adaptation, Construction...)",
@@ -73,15 +71,14 @@ Réponds UNIQUEMENT avec ce JSON (et rien d'autre) :
 }`;
 }
 
-// OWASP A09: log structuré de chaque appel Mistral
-function logMistralProgramCall(data: {
+function logAiProgramCall(data: {
   success: boolean;
   weekNumber: number;
   attempt: number;
   durationMs: number;
   error?: string;
 }): void {
-  console.info('[MistralProgramService]', {
+  console.info('[AiProgramService]', {
     ...data,
     timestamp: new Date().toISOString(),
   });
@@ -94,7 +91,6 @@ async function callAiForWeek(
   timeoutMs: number,
 ): Promise<ProgramWeek> {
   const phaseLabel = getProgressionPhase(weekNumber, input.weeks_count);
-  // Fusionner le message système dans le prompt pour la compatibilité multi-providers
   const prompt = `${SYSTEM_MESSAGE}\n\n${buildWeekPrompt(input, weekNumber, phaseLabel)}`;
 
   const content = await callAiProvider(aiConfig, prompt, {
@@ -103,12 +99,12 @@ async function callAiForWeek(
   });
 
   const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch?.[0]) throw new Error('Aucun JSON trouvé dans la réponse IA');
+  if (!jsonMatch?.[0]) throw new Error('Aucun JSON trouve dans la reponse IA');
 
   const parsed = JSON.parse(jsonMatch[0]) as unknown;
   const validated = ProgramWeekSchema.safeParse(parsed);
   if (!validated.success) {
-    throw new Error(`Schéma semaine invalide: ${validated.error.message}`);
+    throw new Error(`Schema semaine invalide: ${validated.error.message}`);
   }
 
   return validated.data;
@@ -127,12 +123,12 @@ async function generateWeekWithRetry(
       const timeoutMs = getWeekTimeoutMs(requestDeadline);
       if (timeoutMs < PROGRAM_WEEK_MIN_TIMEOUT_MS) {
         throw AppError.serviceUnavailable(
-          "L'IA met trop de temps à générer le programme, veuillez réessayer dans quelques instants",
+          'Alcide met trop de temps a generer le programme, veuillez reessayer dans quelques instants',
         );
       }
 
       const week = await callAiForWeek(input, weekNumber, aiConfig, timeoutMs);
-      logMistralProgramCall({
+      logAiProgramCall({
         success: true,
         weekNumber,
         attempt,
@@ -141,7 +137,7 @@ async function generateWeekWithRetry(
       return week;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      logMistralProgramCall({
+      logAiProgramCall({
         success: false,
         weekNumber,
         attempt,
@@ -151,13 +147,13 @@ async function generateWeekWithRetry(
 
       if (error instanceof AiTimeoutError) {
         throw AppError.serviceUnavailable(
-          "L'IA met trop de temps à générer une semaine du programme, veuillez réessayer dans quelques instants",
+          'Alcide met trop de temps a generer une semaine du programme, veuillez reessayer dans quelques instants',
         );
       }
 
       if (attempt === 2 || !hasRetryBudget(requestDeadline)) {
         throw AppError.serviceUnavailable(
-          "Impossible de générer le programme d'entraînement, veuillez réessayer",
+          "Alcide n'a pas pu generer le programme d'entrainement, veuillez reessayer",
         );
       }
     }
@@ -190,30 +186,29 @@ export async function generateProgram(
   weeks.sort((a, b) => a.week_number - b.week_number);
 
   const levelLabel =
-    input.level === 'beginner' ? 'Débutant' : input.level === 'intermediate' ? 'Intermédiaire' : 'Avancé';
+    input.level === 'beginner' ? 'Debutant' : input.level === 'intermediate' ? 'Intermediaire' : 'Avance';
 
   const program: TrainingProgram = normalizeTrainingProgramDurations({
-    title: `Programme ${input.sport} — ${input.weeks_count} semaines (${levelLabel})`,
+    title: `Programme Alcide ${input.sport} - ${input.weeks_count} semaines (${levelLabel})`,
     sport: input.sport,
     difficulty: input.level,
     weeks_count: input.weeks_count,
     sessions_per_week: input.sessions_per_week,
     session_duration_minutes: input.session_duration_minutes,
     progression_summary:
-      `Programme progressif de ${input.weeks_count} semaines en ${input.sport} pour un niveau ${levelLabel}. ` +
-      `${input.sessions_per_week} séances de ${input.session_duration_minutes} minutes par semaine. ` +
+      `Alcide planifie ${input.weeks_count} semaines progressives en ${input.sport} pour un niveau ${levelLabel}. ` +
+      `${input.sessions_per_week} seances de ${input.session_duration_minutes} minutes par semaine. ` +
       `Objectifs : ${input.goals}`,
     weeks,
   });
 
-  // Validation finale du programme assemblé
   const validated = TrainingProgramSchema.safeParse(program);
   if (!validated.success) {
-    console.error('[MistralProgramService] Validation finale échouée:', validated.error.errors);
-    throw AppError.internal('Erreur lors de la validation du programme généré');
+    console.error('[AiProgramService] Validation finale echouee:', validated.error.errors);
+    throw AppError.internal('Erreur lors de la validation du programme genere');
   }
 
-  console.info('[MistralProgramService] Programme généré avec succès', {
+  console.info('[AiProgramService] Programme genere avec succes', {
     weeksCount: input.weeks_count,
     totalDurationMs: Date.now() - globalStart,
     timestamp: new Date().toISOString(),
