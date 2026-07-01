@@ -1,8 +1,21 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Bricolage_Grotesque, Manrope } from 'next/font/google';
 import './globals.css';
 import { auth, signOut } from '@/lib/auth';
 import { Icon, type IconName } from '@/components/ui/Icon';
+
+const bodyFont = Manrope({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-sans',
+});
+
+const displayFont = Bricolage_Grotesque({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-display',
+});
 
 export const metadata: Metadata = {
   title: 'Alcide - Coaching sportif premium',
@@ -81,7 +94,9 @@ export default async function RootLayout({ children }: { readonly children: Reac
 
   return (
     <html lang="fr">
-      <body className="min-h-screen overflow-x-hidden bg-ink text-zinc-100 antialiased">
+      <body
+        className={`${bodyFont.variable} ${displayFont.variable} min-h-screen overflow-x-hidden bg-ink font-sans text-zinc-100 antialiased`}
+      >
         <a href="#main-content" className="skip-link">
           Aller au contenu principal
         </a>
