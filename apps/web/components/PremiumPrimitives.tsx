@@ -40,10 +40,10 @@ interface MetricPillProps {
 export function MetricPill({ icon, label, value, tone = 'neutral' }: MetricPillProps) {
   const toneClass =
     tone === 'lime'
-      ? 'border-primary-300/[0.35] bg-primary-300/[0.12] text-primary-100'
+      ? 'border-primary-300/[0.45] bg-zinc-950/[0.58] text-primary-100'
       : tone === 'orange'
-        ? 'border-sport-orange/[0.35] bg-sport-orange/[0.12] text-sport-orange'
-        : 'border-white/[0.12] bg-white/[0.08] text-zinc-100';
+        ? 'border-sport-orange/[0.42] bg-zinc-950/[0.58] text-sport-orange'
+        : 'border-white/[0.14] bg-zinc-950/[0.58] text-zinc-100';
 
   return (
     <div className={`rounded-full border px-3 py-2 shadow-lg shadow-black/20 backdrop-blur-xl ${toneClass}`}>
