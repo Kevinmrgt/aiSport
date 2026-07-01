@@ -2,15 +2,15 @@
  * Script de seed — données de démonstration pour la soutenance RNCP
  * Usage: pnpm --filter api db:seed
  *
- * Crée un utilisateur de démo et 3 workouts variés sans nécessiter Mistral AI.
+ * Cree un utilisateur de demo et 3 workouts varies sans necessiter d'appel IA externe.
  */
 import 'dotenv/config';
 import { db } from './index.js';
 import { users, workouts } from './schema.js';
-import type { Workout } from '@sportcoach/shared';
+import type { Workout } from '@alcide/shared';
 
 const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001';
-const DEMO_EMAIL = 'demo@sportcoach.ia';
+const DEMO_EMAIL = 'demo@alcide.app';
 
 const demoWorkouts: Array<{
   title: string;

@@ -1,8 +1,8 @@
-# SportCoach IA
+# Alcide
 
-Application web de génération d'entraînements sportifs personnalisés par intelligence artificielle.
+Alcide est un coach IA personnel qui prépare des entraînements sportifs personnalisés.
 
-L'utilisateur sélectionne un sport, décrit ses objectifs et contraintes, et reçoit un programme sur mesure généré par IA. **Mistral AI** est le fournisseur par défaut ; OpenAI et Anthropic sont supportés via clé utilisateur. Les entraînements sont stockés en PostgreSQL et peuvent être exécutés avec un timer intégré.
+L'utilisateur sélectionne un sport, décrit ses objectifs et contraintes, puis Alcide construit une séance ou un programme sur mesure. **OpenAI API** est le fournisseur par défaut côté serveur : l'utilisateur ne fournit plus de clé API personnelle. Les entraînements sont stockés en PostgreSQL et peuvent être exécutés avec un timer intégré.
 
 > Projet support à la certification RNCP 39583 — Expert en développement logiciel (Niv. 7, YNOV).
 
@@ -12,11 +12,11 @@ L'utilisateur sélectionne un sport, décrit ses objectifs et contraintes, et re
 
 | Couche | Technologie |
 |---|---|
-| Frontend | Next.js 14 (App Router), TypeScript, Tailwind CSS |
+| Frontend | Next.js 15 (App Router), TypeScript, Tailwind CSS |
 | Backend | Hono (TypeScript), architecture en couches |
 | Base de données | PostgreSQL 16 + Drizzle ORM |
 | Authentification | Auth.js (NextAuth v5) — OAuth Google |
-| IA | Mistral AI par défaut, OpenAI/Anthropic via paramètres utilisateur — sorties validées par Zod |
+| IA | OpenAI API côté serveur, modèle configurable, estimation de coût affichée, sorties validées par Zod |
 | Tests | Vitest (unitaires), Playwright (E2E), axe-core (WCAG) |
 | CI/CD | GitHub Actions — CI, CD Vercel, migrations DB manuelles |
 | Deploy | Vercel (frontend + API) + Neon PostgreSQL |
@@ -69,7 +69,7 @@ pnpm db:studio        # Interface Drizzle Studio
 ## Structure du projet
 
 ```
-aiSport/
+alcide/
 ├── apps/
 │   ├── web/                    # Next.js 14 — frontend
 │   │   ├── app/                # App Router (pages, layouts, loading)
@@ -120,8 +120,8 @@ CI verte sur main → CD Vercel API → CD Vercel Web → smoke tests prod
 |---|---|---|
 | Sécurité OWASP Top 10 | ⚠️ A01–A10 documentés, A06 dépendances à traiter | docs/security/owasp-review.md |
 | Accessibilité RGAA 4.1 | ✅ + axe-core WCAG 2.1 | tests/e2e/accessibility.spec.ts |
-| Tests automatisés | ✅ `pnpm test` : 70 tests passés | 69 API + 1 Web |
-| Couverture API ≥ 70% | ✅ 81.57% statements | `pnpm test:coverage`, `apps/api/coverage/index.html` |
+| Tests automatisés | ✅ `pnpm test` : 71 tests passés | 70 API + 1 Web |
+| Couverture API ≥ 70% | ✅ 82.33% statements | `pnpm test:coverage`, `apps/api/coverage/index.html` |
 | Documentation ADRs | ✅ 7 décisions | docs/adr/ |
 | Cahier de recettes | ✅ 33 scénarios CR | docs/bloc2/cahier-recettes.md |
 | Déploiement conteneurisé | ✅ Dockerfiles multi-stage | apps/*/Dockerfile |

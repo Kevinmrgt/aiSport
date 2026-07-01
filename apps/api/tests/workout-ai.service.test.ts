@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { generateWorkout } from '../src/services/mistral.service.js';
+import { generateWorkout } from '../src/services/workout-ai.service.js';
 import { AppError } from '../src/types/app-error.js';
-import type { GenerateWorkoutInput } from '@sportcoach/shared';
+import type { GenerateWorkoutInput } from '@alcide/shared';
 import type { AiConfig } from '../src/services/ai.service.js';
 
 // Mock fetch global (OWASP A10: pas d'appels réels à l'IA en test)
@@ -9,7 +9,7 @@ const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
 const mockAiConfig: AiConfig = {
-  provider: 'mistral',
+  provider: 'openai',
   apiKey: 'test-key',
 };
 
@@ -47,13 +47,13 @@ const defaultInput: GenerateWorkoutInput = {
   goals: 'Améliorer mon endurance',
 };
 
-describe('MistralService', () => {
+describe('WorkoutAiService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   afterEach(() => {
-    delete process.env['MISTRAL_API_KEY'];
+    delete process.env['OPENAI_API_KEY'];
   });
 
   describe('generateWorkout', () => {

@@ -4,17 +4,19 @@ import { useState } from 'react';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { Button } from './ui/Button';
-import { GenerateProgramInputSchema } from '@sportcoach/shared';
-import type { GenerateProgramInput } from '@sportcoach/shared';
+import { Icon } from './ui/Icon';
+import { GlassPanel, MetricPill } from './PremiumPrimitives';
+import { GenerateProgramInputSchema } from '@alcide/shared';
+import type { GenerateProgramInput } from '@alcide/shared';
 
 interface ProgramFormProps {
   onSubmit: (data: GenerateProgramInput) => Promise<{ error?: string } | void>;
 }
 
 const LEVEL_OPTIONS = [
-  { value: 'beginner', label: 'Débutant' },
-  { value: 'intermediate', label: 'Intermédiaire' },
-  { value: 'advanced', label: 'Avancé' },
+  { value: 'beginner', label: 'Debutant' },
+  { value: 'intermediate', label: 'Intermediaire' },
+  { value: 'advanced', label: 'Avance' },
 ];
 
 const WEEKS_OPTIONS = [
@@ -24,10 +26,10 @@ const WEEKS_OPTIONS = [
 ];
 
 const SESSIONS_OPTIONS = [
-  { value: '2', label: '2 séances / semaine' },
-  { value: '3', label: '3 séances / semaine' },
-  { value: '4', label: '4 séances / semaine' },
-  { value: '5', label: '5 séances / semaine' },
+  { value: '2', label: '2 seances / semaine' },
+  { value: '3', label: '3 seances / semaine' },
+  { value: '4', label: '4 seances / semaine' },
+  { value: '5', label: '5 seances / semaine' },
 ];
 
 const DURATION_OPTIONS = [
@@ -37,7 +39,6 @@ const DURATION_OPTIONS = [
   { value: '60', label: '60 minutes' },
 ];
 
-// RGAA 4.1: formulaire accessible — labels, erreurs, aria-live pour les messages
 export function ProgramForm({ onSubmit }: ProgramFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof GenerateProgramInput, string>>>({});
@@ -58,7 +59,6 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
     setErrors({});
     setGlobalError(null);
 
-    // Validation Zod côté client (même schéma que le backend — OWASP A04)
     const parsed = GenerateProgramInputSchema.safeParse({
       ...formData,
       weeks_count: Number(formData.weeks_count),
@@ -84,7 +84,7 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
       }
     } catch (error) {
       setGlobalError(
-        error instanceof Error ? error.message : "Une erreur est survenue, veuillez réessayer",
+        error instanceof Error ? error.message : 'Une erreur est survenue, veuillez reessayer',
       );
     } finally {
       setIsLoading(false);
@@ -93,98 +93,131 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
 
   return (
     <form
-      onSubmit={(e) => { void handleSubmit(e); }}
+      onSubmit={(e) => {
+        void handleSubmit(e);
+      }}
       noValidate
       aria-labelledby="program-form-title"
-      className="surface flex w-full flex-col gap-5 p-5 sm:p-6"
+      className="glass-panel flex w-full flex-col gap-5 p-5 sm:p-6"
     >
-      <h1 id="program-form-title" className="break-words text-2xl font-black text-white">
-        Détails du programme
-      </h1>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="section-kicker mb-3">Cycle training</p>
+          <h1 id="program-form-title" className="break-words text-3xl font-black text-white">
+            Construire la progression
+          </h1>
+        </div>
+        <span className="icon-bubble bg-primary-300 text-zinc-950">
+          <Icon name="layers" className="h-4 w-4" />
+        </span>
+      </div>
 
-      {/* Note de durée — RGAA 4.1: info utile avant le formulaire */}
       {isLoading && (
-        <div role="status" aria-live="polite" className="rounded-lg border border-primary-300/25 bg-primary-300/10 p-4 text-sm text-primary-100">
-          <strong>Génération en cours…</strong> Mistral AI génère chaque semaine de votre programme.
-          Cela peut prendre 20 à 40 secondes selon le nombre de semaines.
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-[1.25rem] border border-primary-300/25 bg-primary-300/10 p-4 text-sm text-primary-100"
+        >
+          <strong>Programme en preparation.</strong> Chaque semaine est calibree separement.
         </div>
       )}
 
-      {/* RGAA 4.1: message d'erreur global avec aria-live */}
       {globalError && (
-        <div role="alert" aria-live="assertive" className="rounded-lg border border-red-400/30 bg-red-500/10 p-4 text-sm text-red-200">
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="rounded-[1.25rem] border border-sport-orange/30 bg-sport-orange/10 p-4 text-sm text-sport-orange"
+        >
           <strong>Erreur :</strong> {globalError}
         </div>
       )}
 
-      <Input
-        label="Sport"
-        name="sport"
-        value={formData.sport}
-        onChange={(e) => setFormData((prev) => ({ ...prev, sport: e.target.value }))}
-        error={errors.sport}
-        placeholder="ex: course à pied, natation, musculation..."
-        required
-        hint="Le sport pour lequel vous souhaitez un programme"
-      />
+      <GlassPanel variant="soft" className="grid gap-4 p-4 sm:grid-cols-2">
+        <Input
+          label="Sport"
+          name="sport"
+          value={formData.sport}
+          onChange={(e) => setFormData((prev) => ({ ...prev, sport: e.target.value }))}
+          error={errors.sport}
+          placeholder="ex: course a pied, natation, musculation..."
+          required
+          hint="Discipline du cycle"
+        />
 
-      <Select
-        label="Niveau"
-        name="level"
-        value={formData.level}
-        onChange={(e) =>
-          setFormData((prev) => ({
-            ...prev,
-            level: e.target.value as GenerateProgramInput['level'],
-          }))
-        }
-        options={LEVEL_OPTIONS}
-        error={errors.level}
-        required
-      />
+        <Select
+          label="Niveau"
+          name="level"
+          value={formData.level}
+          onChange={(e) =>
+            setFormData((prev) => ({
+              ...prev,
+              level: e.target.value as GenerateProgramInput['level'],
+            }))
+          }
+          options={LEVEL_OPTIONS}
+          error={errors.level}
+          required
+        />
 
-      <Select
-        label="Durée du programme"
-        name="weeks_count"
-        value={String(formData.weeks_count)}
-        onChange={(e) => setFormData((prev) => ({ ...prev, weeks_count: Number(e.target.value) }))}
-        options={WEEKS_OPTIONS}
-        error={errors.weeks_count}
-        required
-      />
+        <Select
+          label="Duree du programme"
+          name="weeks_count"
+          value={String(formData.weeks_count)}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, weeks_count: Number(e.target.value) }))
+          }
+          options={WEEKS_OPTIONS}
+          error={errors.weeks_count}
+          required
+        />
 
-      <Select
-        label="Séances par semaine"
-        name="sessions_per_week"
-        value={String(formData.sessions_per_week)}
-        onChange={(e) =>
-          setFormData((prev) => ({ ...prev, sessions_per_week: Number(e.target.value) }))
-        }
-        options={SESSIONS_OPTIONS}
-        error={errors.sessions_per_week}
-        required
-      />
+        <Select
+          label="Seances par semaine"
+          name="sessions_per_week"
+          value={String(formData.sessions_per_week)}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, sessions_per_week: Number(e.target.value) }))
+          }
+          options={SESSIONS_OPTIONS}
+          error={errors.sessions_per_week}
+          required
+        />
 
-      <Select
-        label="Durée par séance"
-        name="session_duration_minutes"
-        value={String(formData.session_duration_minutes)}
-        onChange={(e) =>
-          setFormData((prev) => ({
-            ...prev,
-            session_duration_minutes: Number(e.target.value),
-          }))
-        }
-        options={DURATION_OPTIONS}
-        error={errors.session_duration_minutes}
-        required
-      />
+        <div className="sm:col-span-2">
+          <Select
+            label="Duree par seance"
+            name="session_duration_minutes"
+            value={String(formData.session_duration_minutes)}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                session_duration_minutes: Number(e.target.value),
+              }))
+            }
+            options={DURATION_OPTIONS}
+            error={errors.session_duration_minutes}
+            required
+          />
+        </div>
+      </GlassPanel>
+
+      <div className="grid gap-2 sm:grid-cols-3">
+        <MetricPill icon="calendar" label="Cycle" value={`${formData.weeks_count} sem.`} />
+        <MetricPill icon="activity" label="Rythme" value={`${formData.sessions_per_week}/sem.`} tone="lime" />
+        <MetricPill
+          icon="timer"
+          label="Seance"
+          value={`${formData.session_duration_minutes} min`}
+          tone="orange"
+        />
+      </div>
 
       <div className="flex flex-col gap-1">
-        {/* RGAA 4.1: textarea avec label explicite */}
         <label htmlFor="program-goals" className="field-label">
           Objectifs{' '}
-          <span aria-hidden="true" className="text-primary-300">*</span>
+          <span aria-hidden="true" className="text-primary-300">
+            *
+          </span>
           <span className="sr-only">(requis)</span>
         </label>
         <textarea
@@ -200,8 +233,8 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
           className="field-control resize-y"
         />
         {errors.goals && (
-          <p id="goals-error" role="alert" className="text-xs text-red-300">
-            <span aria-hidden="true">⚠</span> {errors.goals}
+          <p id="goals-error" role="alert" className="text-xs text-sport-orange">
+            {errors.goals}
           </p>
         )}
       </div>
@@ -223,7 +256,7 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
       </div>
 
       <Button type="submit" isLoading={isLoading} size="lg" className="mt-2 w-full" disabled={isLoading}>
-        {isLoading ? 'Génération en cours…' : 'Générer le programme'}
+        {isLoading ? 'Preparation du programme...' : 'Generer le programme'}
       </Button>
     </form>
   );

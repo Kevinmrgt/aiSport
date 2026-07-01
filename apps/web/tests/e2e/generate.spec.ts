@@ -5,7 +5,7 @@ import path from 'path';
 // Le fichier session.json est créé via le script setup/auth-setup.ts
 const SESSION_FILE = path.join(__dirname, '../fixtures/session.json');
 
-// Tests E2E avec session mockée — flux de génération de workout
+// Tests E2E avec session mockée — flux de création de séance avec Alcide
 test.describe('Formulaire de génération (avec session)', () => {
   test.use({ storageState: SESSION_FILE });
 
@@ -13,7 +13,7 @@ test.describe('Formulaire de génération (avec session)', () => {
     await page.goto('/generate');
     // Doit rester sur /generate (pas de redirect)
     await expect(page).toHaveURL('/generate');
-    await expect(page.getByRole('heading', { name: /générer/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /creer une seance/i })).toBeVisible();
   });
 
   test('RGAA 4.1 — tous les champs ont un label associé', async ({ page }) => {
@@ -37,7 +37,7 @@ test.describe('Formulaire de génération (avec session)', () => {
     await page.goto('/generate');
 
     // Soumettre sans remplir sport
-    await page.getByRole('button', { name: /générer/i }).click();
+    await page.getByRole('button', { name: /generer la seance/i }).click();
 
     // Message d'erreur visible
     const error = page.getByRole('alert');

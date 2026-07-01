@@ -8,7 +8,7 @@
 
 ## Contexte
 
-SportCoach IA est un monorepo avec trois composants déployables :
+Alcide est un monorepo avec trois composants déployables :
 - **Frontend** : Next.js 14 (App Router, Server Components, Server Actions)
 - **API** : Hono sur Node.js 20
 - **Base de données** : PostgreSQL 16
@@ -98,7 +98,7 @@ GitHub → Vercel (Next.js) ←→ Fly.io (Hono API) ←→ Neon (PostgreSQL ser
 ```
 
 **Communication web → API :**
-- En production : `NEXT_PUBLIC_API_URL=https://sportcoach-api.fly.dev`
+- En production : `NEXT_PUBLIC_API_URL=https://alcide-api.fly.dev`
 - Header `x-internal-secret` : variable d'env Fly.io (jamais exposée côté client)
 
 ---
@@ -112,18 +112,18 @@ GitHub → Vercel (Next.js) ←→ Fly.io (Hono API) ←→ Neon (PostgreSQL ser
 | `AUTH_SECRET` | Vercel Secrets | Signe les sessions JWT Auth.js |
 | `AUTH_GOOGLE_ID` | Google OAuth Client | Client ID OAuth |
 | `AUTH_GOOGLE_SECRET` | Google OAuth Client | Client Secret OAuth |
-| `NEXTAUTH_URL` | `https://sportcoach.vercel.app` | URL publique du frontend |
-| `NEXT_PUBLIC_API_URL` | `https://sportcoach-api.fly.dev` | URL publique de l'API |
+| `NEXTAUTH_URL` | `https://alcide.vercel.app` | URL publique du frontend |
+| `NEXT_PUBLIC_API_URL` | `https://alcide-api.fly.dev` | URL publique de l'API |
 | `SERVICE_SECRET` | Partagé avec Fly.io | Secret interne service-to-service |
 
 ### Fly.io (API Hono)
 
 | Variable | Source | Description |
 |---|---|---|
-| `DATABASE_URL` | Neon Dashboard | URL PostgreSQL poolée (`postgres://...@ep-xxx.neon.tech/sportcoach?sslmode=require`) |
+| `DATABASE_URL` | Neon Dashboard | URL PostgreSQL poolée (`postgres://...@ep-xxx.neon.tech/alcide?sslmode=require`) |
 | `MISTRAL_API_KEY` | Mistral Console | Clé API Mistral |
 | `SERVICE_SECRET` | Partagé avec Vercel | Secret interne service-to-service |
-| `FRONTEND_URL` | `https://sportcoach.vercel.app` | CORS — seule origine autorisée |
+| `FRONTEND_URL` | `https://alcide.vercel.app` | CORS — seule origine autorisée |
 | `NODE_ENV` | `production` | Mode production |
 
 ---
@@ -134,7 +134,7 @@ La migration Drizzle doit être exécutée une fois après la création de la DB
 
 ```bash
 # Pointer DATABASE_URL vers Neon
-export DATABASE_URL="postgres://...@ep-xxx.neon.tech/sportcoach?sslmode=require"
+export DATABASE_URL="postgres://...@ep-xxx.neon.tech/alcide?sslmode=require"
 pnpm db:migrate
 ```
 

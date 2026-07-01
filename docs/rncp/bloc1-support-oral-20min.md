@@ -1,4 +1,4 @@
-# Plan de support oral Bloc 1 RNCP39583 - SportCoach IA
+# Plan de support oral Bloc 1 RNCP39583 - Alcide
 
 > Épreuve : **Bloc 1 - Cadrer un projet de développement d'applications logicielles**  
 > Format officiel : **30 minutes**, dont **20 minutes de présentation** et **10 minutes d'échange avec le jury**  
@@ -10,7 +10,7 @@
 
 Message central à faire passer :
 
-> SportCoach IA est un projet de développement logiciel faisable, utile et maîtrisé, car le besoin est cadré, les parties prenantes sont identifiées, les risques et coûts sont anticipés, et l'architecture retenue est justifiée par une comparaison technique, sécurité et budget.
+> Alcide est un projet de développement logiciel faisable, utile et maîtrisé, car le besoin est cadré, les parties prenantes sont identifiées, les risques et coûts sont anticipés, et l'architecture retenue est justifiée par une comparaison technique, sécurité et budget.
 
 Angle recommandé :
 
@@ -28,7 +28,7 @@ Nombre conseillé de slides : **12 slides**.
 | Temps | Slide | Titre | Message clé | Preuves à afficher ou citer |
 |---:|---:|---|---|---|
 | 0:00-1:00 | 1 | Contexte Bloc 1 | L'épreuve porte sur le cadrage amont, pas seulement sur l'application développée | `docs/rncp/matrice-conformite-rncp39583.md`, PDF règlement spécial |
-| 1:00-2:30 | 2 | Projet et problématique | SportCoach IA répond au besoin d'entraînements personnalisés accessibles et rapides | `README.md`, `docs/rncp/dossier-professionnel-rncp39583.md` |
+| 1:00-2:30 | 2 | Projet et problématique | Alcide répond au besoin d'entraînements personnalisés accessibles et rapides | `README.md`, `docs/rncp/dossier-professionnel-rncp39583.md` |
 | 2:30-4:00 | 3 | Analyse de la demande | Le besoin est transformé en objectifs métier, contraintes et valeur utilisateur | `apps/web/app/generate/page.tsx`, `apps/web/app/programs/generate/page.tsx` |
 | 4:00-5:30 | 4 | Parties prenantes | Le périmètre projet est cadré par acteurs, rôles, attentes et implication | Section parties prenantes du livrable Bloc 1 |
 | 5:30-7:00 | 5 | Diagnostic et opportunités | Le projet se justifie face aux solutions génériques, apps fermées et prompts IA non structurés | `docs/bloc4/veille-technologique.md`, `docs/adr/` |
@@ -61,7 +61,7 @@ Message clé : "Je présente ici le cadrage du projet, conformément au Bloc 1 R
 
 ### Slide 2 - Projet et problématique
 
-Message clé : "SportCoach IA aide un sportif non expert à obtenir une séance ou un programme personnalisé."
+Message clé : "Alcide aide un sportif non expert à obtenir une séance ou un programme personnalisé."
 
 À dire :
 
@@ -243,7 +243,7 @@ Message clé : "Je recommande de lancer un MVP pilote sous conditions."
 
 Décision proposée :
 
-> Valider le cadrage du MVP SportCoach IA pour un pilote limité, avec budget mensuel plafonné, périmètre centré sur génération / persistance / timer / suivi, et sécurisation progressive avant production commerciale.
+> Valider le cadrage du MVP Alcide pour un pilote limité, avec budget mensuel plafonné, périmètre centré sur génération / persistance / timer / suivi, et sécurisation progressive avant production commerciale.
 
 Conditions :
 

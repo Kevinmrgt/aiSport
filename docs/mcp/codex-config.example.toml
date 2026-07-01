@@ -14,7 +14,7 @@ args = [
     "npx",
     "-y",
     "@modelcontextprotocol/server-filesystem",
-    "C:\\Users\\kevin\\OneDrive\\Documents\\Dev\\aiSport",
+    "C:\\Users\\kevin\\OneDrive\\Documents\\Dev\\alcide",
 ]
 
 [mcp_servers.playwright]

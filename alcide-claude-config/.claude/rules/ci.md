@@ -20,8 +20,8 @@ lint-typecheck -> test-unit -> build -> docker-build
 
 | App | URL |
 |---|---|
-| Web | `https://ai-sport-web.vercel.app` |
-| API | `https://ai-sport-api.vercel.app` |
+| Web | `https://alcide-web.vercel.app` |
+| API | `https://alcide-api.vercel.app` |
 
 ## Secrets GitHub
 
@@ -46,19 +46,19 @@ DB:
 
 Web:
 
-- `NEXT_PUBLIC_API_URL=https://ai-sport-api.vercel.app`
+- `NEXT_PUBLIC_API_URL=https://alcide-api.vercel.app`
 - `SERVICE_SECRET` identique a l'API
 - `AUTH_SECRET`
 - `AUTH_GITHUB_ID`
 - `AUTH_GITHUB_SECRET`
-- `NEXTAUTH_URL=https://ai-sport-web.vercel.app`
+- `NEXTAUTH_URL=https://alcide-web.vercel.app`
 
 API:
 
 - `DATABASE_URL`
 - `MISTRAL_API_KEY`
 - `SERVICE_SECRET` identique au Web
-- `FRONTEND_URL=https://ai-sport-web.vercel.app`
+- `FRONTEND_URL=https://alcide-web.vercel.app`
 - `NODE_ENV=production`
 
 ## Regles

@@ -34,7 +34,7 @@ const nextConfig = {
     ];
   },
   // Transpiler le package shared du monorepo
-  transpilePackages: ['@sportcoach/shared'],
+  transpilePackages: ['@alcide/shared'],
   // Output standalone pour le déploiement Docker uniquement (incompatible Vercel)
   ...(process.env.BUILD_STANDALONE === 'true' && { output: 'standalone' }),
 };

@@ -1,6 +1,6 @@
 {
-  "name": "@sportcoach/shared",
-  "version": "0.1.0",
+  "name": "@alcide/shared",
+  "version": "0.12.0",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",

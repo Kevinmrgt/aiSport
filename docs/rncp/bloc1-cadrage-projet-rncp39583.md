@@ -1,16 +1,16 @@
-# Livrable Bloc 1 RNCP39583 - Cadrage du projet SportCoach IA
+# Livrable Bloc 1 RNCP39583 - Cadrage du projet Alcide
 
-> Bloc officiel : **Cadrer un projet de développement d'applications logicielles**  
-> Projet : **SportCoach IA / aiSport**  
-> Candidat : Kevin  
-> Version du livrable : 2026-05-07  
+> Bloc officiel : **Cadrer un projet de développement d'applications logicielles**
+> Projet : **Alcide / alcide**
+> Candidat : Kevin
+> Version du livrable : 2026-05-07
 > Statut : livrable de cadrage projet exploitable pour la soutenance Bloc 1
 
 ---
 
 ## 0. Référentiel et périmètre du livrable
 
-Ce document consolide le cadrage amont du projet SportCoach IA selon les attendus officiels du Bloc 1 RNCP39583. Il ne remplace pas le code ni le dossier professionnel général : il sert à démontrer que le projet a été cadré comme un projet logiciel réel, avec besoin, parties prenantes, risques, faisabilité, choix d'architecture, charge, budget et argumentaire client.
+Ce document consolide le cadrage amont du projet Alcide selon les attendus officiels du Bloc 1 RNCP39583. Il ne remplace pas le code ni le dossier professionnel général : il sert à démontrer que le projet a été cadré comme un projet logiciel réel, avec besoin, parties prenantes, risques, faisabilité, choix d'architecture, charge, budget et argumentaire client.
 
 Sources RNCP locales utilisées :
 
@@ -40,7 +40,7 @@ Les estimations de charge et de budget sont des **hypothèses de cadrage**. Elle
 
 | Élément | Description |
 |---|---|
-| Nom du projet | **SportCoach IA / aiSport** |
+| Nom du projet | **Alcide / alcide** |
 | Nature | Application web full-stack de génération d'entraînements sportifs personnalisés par IA |
 | Contexte | Projet support à la certification RNCP39583 Expert en développement logiciel, conduit en autonomie et documenté par sprints, ADR, tests, sécurité, CI/CD et déploiement |
 | Problématique | Un sportif non expert a besoin d'obtenir rapidement une séance ou un programme adapté à son sport, son niveau, ses objectifs et ses contraintes, sans disposer nécessairement d'un coach personnel ou de compétences de planification sportive |
@@ -267,7 +267,7 @@ Cette section couvre **C1.2.1** : opportunités, menaces, adhérences et impacts
 
 ### 6.1 Situation avant projet
 
-Avant SportCoach IA, l'existant projet était nul : aucun outil local ne permettait de générer, stocker, exécuter et suivre des entraînements personnalisés. L'utilisateur devait s'appuyer sur :
+Avant Alcide, l'existant projet était nul : aucun outil local ne permettait de générer, stocker, exécuter et suivre des entraînements personnalisés. L'utilisateur devait s'appuyer sur :
 
 - des programmes génériques trouvés en ligne ;
 - des applications sportives fermées ;
@@ -292,9 +292,9 @@ Avant SportCoach IA, l'existant projet était nul : aucun outil local ne permett
 | Application no-code | Livraison rapide | Limites sur sécurité, IA, tests, architecture RNCP |
 | Application mobile native | Très adaptée au sport | Coût initial plus élevé et complexité multiplateforme |
 
-### 6.4 Justification de la création de SportCoach IA
+### 6.4 Justification de la création de Alcide
 
-SportCoach IA est justifié car il combine :
+Alcide est justifié car il combine :
 
 - une personnalisation par IA ;
 - une validation technique stricte des entrées et sorties ;
@@ -668,7 +668,7 @@ Cette section sécurise la compétence éliminatoire **C1.6**.
 
 ### 14.1 Solution recommandée
 
-Je recommande de valider le lancement d'un MVP SportCoach IA basé sur :
+Je recommande de valider le lancement d'un MVP Alcide basé sur :
 
 - Next.js 14 pour l'interface et les Server Actions ;
 - Hono pour une API TypeScript légère et maintenable ;
@@ -713,7 +713,7 @@ Je recommande de valider le lancement d'un MVP SportCoach IA basé sur :
 
 Décision proposée :
 
-> Valider le cadrage du MVP SportCoach IA pour un pilote limité, avec budget mensuel plafonné, périmètre fonctionnel centré sur génération / persistance / timer / suivi, et sécurisation progressive avant production commerciale.
+> Valider le cadrage du MVP Alcide pour un pilote limité, avec budget mensuel plafonné, périmètre fonctionnel centré sur génération / persistance / timer / suivi, et sécurisation progressive avant production commerciale.
 
 Conditions de validation :
 
@@ -768,6 +768,6 @@ Conditions de validation :
 
 ## Conclusion Bloc 1
 
-SportCoach IA est un projet logiciel cadré autour d'un besoin clair : aider un sportif à générer et suivre des entraînements personnalisés via une application web sécurisée. Le projet est faisable techniquement avec la stack retenue, sous réserve de maintenir le contrôle des coûts IA, de formaliser les limites d'usage sportif et de renforcer le monitoring avant une ouverture réelle.
+Alcide est un projet logiciel cadré autour d'un besoin clair : aider un sportif à générer et suivre des entraînements personnalisés via une application web sécurisée. Le projet est faisable techniquement avec la stack retenue, sous réserve de maintenir le contrôle des coûts IA, de formaliser les limites d'usage sportif et de renforcer le monitoring avant une ouverture réelle.
 
 La recommandation client est de valider un MVP pilote, car les preuves techniques sont déjà nombreuses, les risques sont identifiés, l'architecture est défendable et le budget de fonctionnement peut rester limité pendant la phase d'expérimentation.

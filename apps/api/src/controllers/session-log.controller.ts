@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import { z } from 'zod';
-import { CreateSessionLogInputSchema } from '@sportcoach/shared';
+import { CreateSessionLogInputSchema } from '@alcide/shared';
 import {
   createSessionLog,
   findRecentSessionLogsByUser,

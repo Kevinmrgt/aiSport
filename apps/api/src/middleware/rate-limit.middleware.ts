@@ -1,7 +1,7 @@
 import type { Context, Next } from 'hono';
 import { AppError } from '../types/app-error.js';
 
-// OWASP A04 — Insecure Design : limiter les appels Mistral AI par utilisateur
+// OWASP A04 - Insecure Design : limiter les appels IA par utilisateur
 // Fenêtre glissante par userId. Store in-memory — remplacer par Redis en production.
 
 interface RateWindow {

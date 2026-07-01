@@ -74,7 +74,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
 ```
 ✓ migrations applied successfully!
-✓ Utilisateur démo : demo@sportcoach.ia
+✓ Utilisateur démo : demo@alcide.app
 ✓ 3 workouts seed : Cardio Débutant, Force Intermédiaire, HIIT Avancé
 ```
 

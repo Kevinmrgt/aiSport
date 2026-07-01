@@ -1,38 +1,36 @@
 import 'server-only';
 import { auth } from '@/lib/auth';
-import type { WorkoutDetail, WorkoutListResponse, WorkoutStats, GenerateWorkoutInput } from '@sportcoach/shared';
-import type { GenerateProgramInput, ProgramListResponse, TrainingProgramRecord, ProgramListItem } from '@sportcoach/shared';
+import type { WorkoutDetail, WorkoutListResponse, WorkoutStats, GenerateWorkoutInput } from '@alcide/shared';
+import type { GenerateProgramInput, ProgramListResponse, TrainingProgramRecord, ProgramListItem } from '@alcide/shared';
 import type {
   CreateSessionLogInput,
   SessionLogListItem,
   SessionLogStats,
-} from '@sportcoach/shared';
+} from '@alcide/shared';
 
 export interface UserAiSettings {
-  provider: 'mistral' | 'openai' | 'anthropic';
+  provider: 'openai';
   hasApiKey: boolean;
   model: string | null;
 }
 
 export interface SaveAiSettingsInput {
-  provider: 'mistral' | 'openai' | 'anthropic';
-  apiKey?: string;
   model?: string;
 }
 
 // OWASP A02: URL backend depuis variable d'env uniquement
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001';
 
-// Helper interne — appel Hono avec auth service-to-service (OWASP A01)
-// Le secret n'est jamais exposé côté client : ce module est server-only
+// Helper interne - appel Hono avec auth service-to-service (OWASP A01)
+// Le secret n'est jamais expose cote client : ce module est server-only
 async function serverFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const session = await auth();
 
   if (!session?.user?.id) {
-    throw new Error('Non authentifié');
+    throw new Error('Non authentifie');
   }
 
-  // OWASP A09: trace structurée de chaque appel API côté Next.js server
+  // OWASP A09: trace structuree de chaque appel API cote Next.js server
   console.info('[ServerAPI] Appel:', {
     method: options?.method ?? 'GET',
     path,
@@ -45,7 +43,7 @@ async function serverFetch<T>(path: string, options?: RequestInit): Promise<T> {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      // OWASP A01: secret partagé validé par le middleware Hono
+      // OWASP A01: secret partage valide par le middleware Hono
       'x-internal-secret': process.env['SERVICE_SECRET'] ?? '',
       'x-user-id': session.user.id,
       'x-user-email': session.user.email ?? '',
@@ -60,8 +58,8 @@ async function serverFetch<T>(path: string, options?: RequestInit): Promise<T> {
       error?: string;
       statusCode?: number;
     };
-    // OWASP A09: logger l'erreur API complète côté Next.js server (visible dans les logs Vercel)
-    console.error('[ServerAPI] Erreur réponse API:', {
+    // OWASP A09: logger l'erreur API complete cote Next.js server (visible dans les logs Vercel)
+    console.error('[ServerAPI] Erreur reponse API:', {
       url: `${API_URL}${path}`,
       status: response.status,
       statusText: response.statusText,
@@ -126,7 +124,7 @@ export const serverApi = {
   deleteProgram: (id: string): Promise<void> =>
     serverFetch<void>(`/programs/${id}`, { method: 'DELETE' }),
 
-  // --- Paramètres IA ---
+  // --- Suivi de seance ---
 
   createSessionLog: (input: CreateSessionLogInput): Promise<SessionLogListItem> =>
     serverFetch<SessionLogListItem>('/session-logs', {
@@ -140,6 +138,8 @@ export const serverApi = {
   getRecentSessionLogs: (limit = 5): Promise<{ sessionLogs: SessionLogListItem[] }> =>
     serverFetch<{ sessionLogs: SessionLogListItem[] }>(`/session-logs/recent?limit=${limit}`),
 
+  // --- Parametres IA ---
+
   getAiSettings: (): Promise<UserAiSettings> =>
     serverFetch<UserAiSettings>('/settings'),
 
@@ -148,7 +148,4 @@ export const serverApi = {
       method: 'PUT',
       body: JSON.stringify(input),
     }),
-
-  deleteAiKey: (): Promise<{ ok: boolean }> =>
-    serverFetch<{ ok: boolean }>('/settings/api-key', { method: 'DELETE' }),
 };

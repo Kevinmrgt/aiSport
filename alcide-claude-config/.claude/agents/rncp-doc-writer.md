@@ -43,7 +43,7 @@ Sections attendues :
 ## Style de rédaction
 
 - Professionnel mais accessible
-- Illustrer avec des exemples concrets du projet SportCoach IA
+- Illustrer avec des exemples concrets du projet Alcide
 - Utiliser des schémas et diagrammes quand pertinent
 - Référencer les fichiers du code source
 - Rester factuel et précis

@@ -2,8 +2,8 @@ import { eq, desc, and, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { workouts } from '../db/schema.js';
 import type { WorkoutRow } from '../db/schema.js';
-import type { Workout } from '@sportcoach/shared';
-import type { WorkoutRecord, WorkoutListResponse, WorkoutStats } from '@sportcoach/shared';
+import type { Workout } from '@alcide/shared';
+import type { WorkoutRecord, WorkoutListResponse, WorkoutStats } from '@alcide/shared';
 import { AppError } from '../types/app-error.js';
 
 // Seul endroit qui touche la BDD (architecture.md — repository layer)

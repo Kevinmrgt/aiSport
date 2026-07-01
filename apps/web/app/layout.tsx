@@ -2,113 +2,167 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import './globals.css';
 import { auth, signOut } from '@/lib/auth';
+import { Icon, type IconName } from '@/components/ui/Icon';
 
 export const metadata: Metadata = {
-  title: 'SportCoach IA — Entraînements personnalisés par IA',
+  title: 'Alcide - Coaching sportif premium',
   description:
-    "Générez des entraînements sportifs sur mesure grâce à l'intelligence artificielle Mistral AI",
+    'Alcide prepare des seances et programmes sportifs personnalises avec une interface d entrainement immersive.',
 };
+
+const NAV_ITEMS: Array<{ href: string; label: string; icon: IconName }> = [
+  { href: '/dashboard', label: 'Progression', icon: 'chart' },
+  { href: '/generate', label: 'Seance', icon: 'zap' },
+  { href: '/programs', label: 'Programmes', icon: 'layers' },
+  { href: '/workouts', label: 'Historique', icon: 'activity' },
+  { href: '/settings', label: 'Coach', icon: 'settings' },
+];
+
+function BrandMark() {
+  return (
+    <Link
+      href="/"
+      className="group inline-flex items-center gap-3 text-sm font-black tracking-normal text-white transition-colors hover:text-primary-200"
+      aria-label="Alcide - Accueil"
+    >
+      <span className="grid h-11 w-11 place-items-center rounded-[1.2rem] bg-primary-300 text-base text-zinc-950 shadow-2xl shadow-primary-400/25">
+        A
+      </span>
+      <span className="leading-tight lg:hidden xl:inline">
+        Alcide
+        <span className="block text-xs font-bold uppercase tracking-[0.22em] text-primary-300">
+          Pulse
+        </span>
+      </span>
+    </Link>
+  );
+}
+
+function NavLink({
+  href,
+  label,
+  icon,
+  compact = false,
+}: {
+  href: string;
+  label: string;
+  icon: IconName;
+  compact?: boolean;
+}) {
+  if (compact) {
+    return (
+      <Link
+        href={href}
+        className="group grid min-w-0 place-items-center gap-1 rounded-full px-2 py-1.5 text-[0.62rem] font-bold text-zinc-400 transition hover:text-white"
+      >
+        <span className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-zinc-200 shadow-lg shadow-black/20 transition group-hover:border-primary-300/[0.45] group-hover:bg-primary-300 group-hover:text-zinc-950">
+          <Icon name={icon} className="h-4 w-4" />
+        </span>
+        <span className="truncate">{label}</span>
+      </Link>
+    );
+  }
+
+  return (
+    <Link
+      href={href}
+      className="group flex items-center gap-3 rounded-full border border-transparent px-3 py-2 text-sm font-bold text-zinc-400 transition hover:border-white/10 hover:bg-white/[0.07] hover:text-white"
+    >
+      <span className="grid h-10 w-10 place-items-center rounded-full bg-white/[0.07] text-zinc-200 transition group-hover:bg-primary-300 group-hover:text-zinc-950">
+        <Icon name={icon} className="h-4 w-4" />
+      </span>
+      <span className="hidden xl:block">{label}</span>
+    </Link>
+  );
+}
 
 export default async function RootLayout({ children }: { readonly children: React.ReactNode }) {
   const session = await auth();
 
-  const navLink =
-    'whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-zinc-300 transition hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300';
-
   return (
     <html lang="fr">
       <body className="min-h-screen overflow-x-hidden bg-ink text-zinc-100 antialiased">
-        {/* RGAA 4.1: lien d'évitement */}
         <a href="#main-content" className="skip-link">
           Aller au contenu principal
         </a>
 
-        {/* RGAA 4.1: header sémantique */}
-        <header className="sticky top-0 z-50 border-b border-white/10 bg-ink/80 backdrop-blur-xl">
+        <div className="sticky top-0 z-50 border-b border-white/10 bg-zinc-950/[0.55] backdrop-blur-2xl lg:hidden">
           <nav
-            className="mx-auto flex min-h-16 max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 lg:px-6"
+            className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 py-3"
             aria-label="Navigation principale"
           >
-            <Link
-              href="/"
-              className="group inline-flex items-center gap-2 text-sm font-black tracking-tight text-white transition-colors hover:text-primary-300"
-              aria-label="SportCoach IA — Accueil"
-            >
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary-300 text-sm text-zinc-950 shadow-lg shadow-primary-400/20">
-                SC
-              </span>
-              <span>SportCoach IA</span>
-            </Link>
-
-            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
-              {session?.user ? (
-                <>
-                  <Link
-                    href="/dashboard"
-                    className={navLink}
-                  >
-                    Dashboard
-                  </Link>
-                  <Link
-                    href="/generate"
-                    className={navLink}
-                  >
-                    Générer
-                  </Link>
-                  <Link
-                    href="/programs"
-                    className={navLink}
-                  >
-                    Programmes
-                  </Link>
-                  <Link
-                    href="/workouts"
-                    className={navLink}
-                  >
-                    Séances
-                  </Link>
-                  <Link
-                    href="/settings"
-                    className={navLink}
-                  >
-                    IA
-                  </Link>
-                  <form
-                    action={async () => {
-                      'use server';
-                      await signOut({ redirectTo: '/' });
-                    }}
-                  >
-                    <button
-                      type="submit"
-                      aria-label="Se déconnecter"
-                      className="whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-zinc-400 transition hover:bg-white/[0.06] hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
-                    >
-                      Déconnexion
-                    </button>
-                  </form>
-                </>
-              ) : (
-                <Link
-                  href="/login"
-                  className="action-primary"
-                >
-                  Se connecter
-                </Link>
-              )}
-            </div>
+            <BrandMark />
+            {session?.user ? (
+              <Link href="/generate" className="action-primary min-h-10 px-4 py-2 text-xs">
+                Nouvelle seance
+              </Link>
+            ) : (
+              <Link href="/login" className="action-primary min-h-10 px-4 py-2 text-xs">
+                Se connecter
+              </Link>
+            )}
           </nav>
+        </div>
+
+        <header className="fixed left-5 top-5 z-50 hidden h-[calc(100vh-2.5rem)] w-20 flex-col items-center justify-between rounded-[2rem] border border-white/[0.12] bg-zinc-950/[0.55] p-3 shadow-2xl shadow-black/30 backdrop-blur-2xl lg:flex xl:w-64 xl:items-stretch">
+          <div className="space-y-8">
+            <div className="flex justify-center xl:justify-start">
+              <BrandMark />
+            </div>
+
+            <nav className="flex flex-col gap-2" aria-label="Navigation principale">
+              {session?.user ? (
+                NAV_ITEMS.map((item) => <NavLink key={item.href} {...item} />)
+              ) : (
+                <>
+                  <NavLink href="/" label="Accueil" icon="home" />
+                  <NavLink href="/login" label="Connexion" icon="user" />
+                </>
+              )}
+            </nav>
+          </div>
+
+          {session?.user ? (
+            <form
+              action={async () => {
+                'use server';
+                await signOut({ redirectTo: '/' });
+              }}
+              className="flex justify-center xl:justify-start"
+            >
+              <button
+                type="submit"
+                aria-label="Se deconnecter"
+                className="group flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-sm font-bold text-zinc-400 transition hover:bg-white/[0.1] hover:text-white"
+              >
+                <span className="grid h-10 w-10 place-items-center rounded-full bg-white/[0.07] text-zinc-200 transition group-hover:bg-sport-orange group-hover:text-zinc-950">
+                  <Icon name="log-out" className="h-4 w-4" />
+                </span>
+                <span className="hidden xl:block">Sortir</span>
+              </button>
+            </form>
+          ) : (
+            <Link href="/login" className="action-primary hidden xl:flex">
+              Se connecter
+            </Link>
+          )}
         </header>
 
-        {/* RGAA 4.1: main sémantique avec id pour le skip link */}
-        <main id="main-content" className="mx-auto w-full max-w-6xl px-5 py-10 sm:py-12 lg:px-6">
+        {session?.user && (
+          <nav className="bottom-dock" aria-label="Navigation mobile">
+            {NAV_ITEMS.map((item) => (
+              <NavLink key={item.href} {...item} compact />
+            ))}
+          </nav>
+        )}
+
+        <main id="main-content" className="app-container">
           {children}
         </main>
 
-        {/* RGAA 4.1: footer sémantique */}
-        <footer className="mt-24 border-t border-white/10">
-          <div className="mx-auto max-w-6xl px-5 py-6 text-center text-xs text-zinc-400 lg:px-6">
-            <p>SportCoach IA — Projet RNCP 39583</p>
+        <footer className="relative z-10 border-t border-white/10 lg:ml-28 xl:ml-80">
+          <div className="mx-auto max-w-7xl px-5 py-6 text-center text-xs text-zinc-500 lg:px-8">
+            <p>Alcide - Projet RNCP 39583</p>
           </div>
         </footer>
       </body>

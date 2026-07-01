@@ -2,8 +2,8 @@ import { eq, desc, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { trainingPrograms } from '../db/schema.js';
 import type { TrainingProgramRow } from '../db/schema.js';
-import type { TrainingProgram } from '@sportcoach/shared';
-import type { TrainingProgramRecord, ProgramListResponse } from '@sportcoach/shared';
+import type { TrainingProgram } from '@alcide/shared';
+import type { TrainingProgramRecord, ProgramListResponse } from '@alcide/shared';
 import { AppError } from '../types/app-error.js';
 
 // Seul endroit qui touche la BDD pour les programmes (architecture.md — repository layer)

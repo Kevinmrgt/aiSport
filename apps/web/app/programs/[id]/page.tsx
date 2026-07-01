@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
@@ -5,18 +6,19 @@ import { auth } from '@/lib/auth';
 import { serverApi } from '@/lib/server-api';
 import { ProgramWeekTabs } from '@/components/ProgramWeekTabs';
 import { DeleteProgramButton } from '@/components/DeleteProgramButton';
+import { GlassPanel, MetricPill } from '@/components/PremiumPrimitives';
+import { Icon } from '@/components/ui/Icon';
 
 interface ProgramDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
 const DIFFICULTY_LABELS = {
-  beginner: 'Débutant',
-  intermediate: 'Intermédiaire',
-  advanced: 'Avancé',
+  beginner: 'Debutant',
+  intermediate: 'Intermediaire',
+  advanced: 'Avance',
 };
 
-// OWASP A01: route protégée + ownership vérifié côté backend
 export default async function ProgramDetailPage({ params }: ProgramDetailPageProps) {
   const { id } = await params;
   const session = await auth();
@@ -32,7 +34,6 @@ export default async function ProgramDetailPage({ params }: ProgramDetailPagePro
     notFound();
   }
 
-  // Server Action : suppression avec ownership vérifié côté backend (OWASP A01)
   async function handleDelete(id: string) {
     'use server';
     await serverApi.deleteProgram(id);
@@ -40,54 +41,57 @@ export default async function ProgramDetailPage({ params }: ProgramDetailPagePro
     redirect('/programs');
   }
 
-  const totalSessions = program.data.weeks.reduce(
-    (sum, week) => sum + week.sessions.length,
-    0,
-  );
+  const totalSessions = program.data.weeks.reduce((sum, week) => sum + week.sessions.length, 0);
 
   return (
-    <div className="mx-auto max-w-3xl">
-      {/* RGAA 4.1: lien de retour */}
-      <nav aria-label="Retour" className="mb-8">
-        <Link
-          href="/programs"
-          className="text-sm font-semibold text-zinc-400 transition-colors hover:text-primary-300 focus-visible:outline-none focus-visible:underline"
-        >
+    <div className="mx-auto max-w-5xl space-y-6">
+      <nav aria-label="Retour">
+        <Link href="/programs" className="premium-chip">
+          <Icon name="arrow-left" className="h-4 w-4" />
           Mes programmes
         </Link>
       </nav>
 
-      {/* En-tête */}
-      <header className="surface mb-6 p-5 sm:p-6">
-        <p className="section-kicker mb-2">Programme</p>
-        <h1 className="page-title">{program.title}</h1>
-        <p className="mt-3 break-words text-sm leading-5 text-zinc-400">
-          {program.sport} · {DIFFICULTY_LABELS[program.difficulty]} ·{' '}
-          {program.weeksCount} semaines · {program.sessionsPerWeek} séances/sem ·{' '}
-          {program.sessionDurationMinutes} min/séance
-        </p>
+      <header className="relative overflow-hidden rounded-[2.4rem] border border-white/[0.15] bg-zinc-950/50 p-5 shadow-2xl shadow-black/30 backdrop-blur-2xl sm:p-6">
+        <Image
+          src="/visuals/program-cycle.webp"
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 1024px) 100vw, 900px"
+          className="-z-10 object-cover opacity-60"
+        />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-zinc-950 via-zinc-950/[0.55] to-zinc-950/[0.15]" />
+        <p className="section-kicker mb-4">Programme</p>
+        <h1 className="page-title max-w-3xl">{program.title}</h1>
+        <div className="mt-6 grid gap-2 sm:grid-cols-4">
+          <MetricPill icon="activity" label="Sport" value={program.sport} tone="lime" />
+          <MetricPill
+            icon="target"
+            label="Niveau"
+            value={DIFFICULTY_LABELS[program.difficulty]}
+          />
+          <MetricPill icon="calendar" label="Cycle" value={`${program.weeksCount} sem.`} tone="orange" />
+          <MetricPill icon="timer" label="Seance" value={`${program.sessionDurationMinutes} min`} />
+        </div>
       </header>
 
-      {/* Résumé de progression */}
       {program.data.progression_summary && (
-        <section className="surface-soft mb-8 p-4">
-          <p className="text-sm leading-6 text-zinc-300">{program.data.progression_summary}</p>
-        </section>
+        <GlassPanel variant="soft" className="p-5">
+          <p className="text-sm leading-6 text-zinc-200">{program.data.progression_summary}</p>
+        </GlassPanel>
       )}
 
-      {/* Navigation par semaine avec séances */}
-      <section aria-labelledby="program-weeks-title" className="surface p-5 sm:p-6">
-        <h2
-          id="program-weeks-title"
-          className="section-kicker mb-4"
-        >
-          Programme — {totalSessions} séance{totalSessions > 1 ? 's' : ''}
-        </h2>
-        <ProgramWeekTabs weeks={program.data.weeks} programId={program.id} />
+      <section aria-labelledby="program-weeks-title">
+        <GlassPanel className="p-5 sm:p-6">
+          <h2 id="program-weeks-title" className="section-kicker mb-6">
+            {totalSessions} seance{totalSessions > 1 ? 's' : ''} planifiee{totalSessions > 1 ? 's' : ''}
+          </h2>
+          <ProgramWeekTabs weeks={program.data.weeks} programId={program.id} />
+        </GlassPanel>
       </section>
 
-      {/* Suppression */}
-      <div className="mt-6 border-t border-white/10 pt-6">
+      <div className="border-t border-white/10 pt-6">
         <DeleteProgramButton
           programId={program.id}
           programTitle={program.title}

@@ -2,18 +2,18 @@ services:
   # ─── Base de données PostgreSQL ───────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
-    container_name: sportcoach-db
+    container_name: alcide-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: sportcoach
-      POSTGRES_PASSWORD: sportcoach_dev
-      POSTGRES_DB: sportcoach_ia
+      POSTGRES_USER: alcide
+      POSTGRES_PASSWORD: alcide_dev
+      POSTGRES_DB: alcide
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sportcoach -d sportcoach_ia"]
+      test: ["CMD-SHELL", "pg_isready -U alcide -d alcide"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -23,7 +23,7 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    container_name: sportcoach-api
+    container_name: alcide-api
     restart: unless-stopped
     depends_on:
       postgres:
@@ -31,9 +31,9 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
-      DATABASE_URL: postgresql://sportcoach:sportcoach_dev@postgres:5432/sportcoach_ia
+      DATABASE_URL: postgresql://alcide:alcide_dev@postgres:5432/alcide
       # OWASP A02: les secrets sensibles viennent du fichier .env (non commité)
-      MISTRAL_API_KEY: ${MISTRAL_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
       SERVICE_SECRET: ${SERVICE_SECRET}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
     ports:
@@ -52,7 +52,7 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://api:3001}
-    container_name: sportcoach-web
+    container_name: alcide-web
     restart: unless-stopped
     depends_on:
       api:

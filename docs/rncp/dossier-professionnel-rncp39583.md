@@ -1,8 +1,8 @@
-# Dossier professionnel RNCP39583 — SportCoach IA / aiSport
+# Dossier professionnel RNCP39583 — Alcide / alcide
 
-> Certification visée : RNCP39583 — Expert en développement logiciel  
-> Projet support : SportCoach IA / aiSport  
-> Date de consolidation : 2026-05-07  
+> Certification visée : RNCP39583 — Expert en développement logiciel
+> Projet support : Alcide / alcide
+> Date de consolidation : 2026-05-07
 > Version applicative de référence constatée : `package.json` indique `0.12.0`
 
 ## Sources utilisées
@@ -50,7 +50,7 @@ Les preuves ne sont pas inventées. Lorsqu'un élément attendu par le RNCP n'es
 
 ## Contexte
 
-SportCoach IA est une application web full-stack permettant de générer des entraînements sportifs personnalisés par intelligence artificielle. L'utilisateur sélectionne un sport, décrit son niveau, ses objectifs et ses contraintes, puis reçoit un entraînement ou un programme structuré, sauvegardé en base PostgreSQL et consultable dans l'application.
+Alcide est une application web full-stack permettant de générer des entraînements sportifs personnalisés par intelligence artificielle. L'utilisateur sélectionne un sport, décrit son niveau, ses objectifs et ses contraintes, puis reçoit un entraînement ou un programme structuré, sauvegardé en base PostgreSQL et consultable dans l'application.
 
 Le projet est développé en monorepo pnpm avec :
 
@@ -384,6 +384,14 @@ Les preuves techniques sont solides, mais le cadrage officiel reste incomplet. L
 
 Le Bloc 2 repose sur un rendu écrit individuel avec code source et documentation associée, limité à 30 pages hors annexes. Le dossier doit démontrer la conception, le développement, la qualité, les tests, la sécurité, l'accessibilité, la CI/CD, le cahier de recettes, le plan de correction des bogues et les manuels de déploiement, utilisation et mise à jour.
 
+Livrables Bloc 2 consolidés :
+
+- dossier dédié : [bloc2-dossier-conception-developpement-rncp39583.md](bloc2-dossier-conception-developpement-rncp39583.md)
+- plan de correction des bogues : [bloc2-plan-correction-bogues-rncp39583.md](bloc2-plan-correction-bogues-rncp39583.md)
+- manuel utilisateur : [bloc2-manuel-utilisateur-alcide.md](bloc2-manuel-utilisateur-alcide.md)
+- manuel de mise à jour : [bloc2-manuel-mise-a-jour.md](bloc2-manuel-mise-a-jour.md)
+- annexes de preuves : [bloc2-annexes/index.md](bloc2-annexes/index.md)
+
 ## Architecture logicielle
 
 Architecture prouvée :
@@ -554,7 +562,7 @@ Preuves existantes :
 - cahier de recettes CR-025 et tests associés : [cahier de recettes](../bloc2/cahier-recettes.md)
 - composants avec labels, `aria-live`, `aria-busy`, skip link et états de focus
 
-Écart / preuve à produire : une annexe de captures ou rapport d'exécution axe-core serait utile pour la soutenance.
+Preuve produite : l'annexe Bloc 2 `B2-A10-playwright-smoke-2026-06-30.md` consigne le smoke Playwright/axe avec 48 exécutions passées. Une capture du rapport HTML Playwright reste utile pour la soutenance.
 
 ## Tests unitaires
 
@@ -566,9 +574,9 @@ Preuves :
 - scripts : [package.json](../../package.json)
 - cahier de recettes : [tests automatisés](../bloc2/cahier-recettes.md)
 
-Référence vérifiée le 2026-05-07 : `pnpm test` passe avec 70 tests Vitest (69 API + 1 Web). `pnpm test:coverage` couvre l'API avec 81.57% statements, 78.6% branches, 89.23% functions et 81.57% lines.
+Référence vérifiée le 2026-06-30 : `pnpm test` passe avec 71 tests Vitest (70 API + 1 Web). `pnpm test:coverage` couvre l'API avec 82.33% statements, 78.6% branches, 89.23% functions et 82.33% lines.
 
-Les tests E2E n'ont pas été exécutés pendant cet audit documentaire. `pnpm --filter web exec playwright test --list` liste 56 exécutions Playwright, soit 28 cas par navigateur sur Chromium et Firefox. Ils doivent être relancés avant dépôt si un chiffre de réussite E2E est annoncé.
+Les tests E2E smoke ont été exécutés le 2026-06-30 : `pnpm test:e2e:smoke` passe avec 48 exécutions Playwright sur Chromium et Firefox. Le fichier `generate.spec.ts` représente 8 exécutions supplémentaires à relancer si le dossier annonce le total E2E complet de 56.
 
 ## Tests E2E
 
@@ -590,7 +598,7 @@ Couverture attendue :
 - accessibilité RGAA/WCAG
 - smoke tests CI
 
-Écart / preuve à produire : conserver une capture ou un export du dernier rapport Playwright pour annexe jury.
+Preuve produite : le rapport smoke est consigné dans `docs/rncp/bloc2-annexes/B2-A10-playwright-smoke-2026-06-30.md`. Conserver une capture du rapport HTML reste un plus pour l'annexe jury.
 
 ## CI/CD
 
@@ -630,7 +638,7 @@ Le cahier de recettes couvre notamment :
 
 Preuve : [cahier de recettes](../bloc2/cahier-recettes.md)
 
-Écart / preuve à produire : le scénario CR-013 "Erreur API Mistral" reste marqué "À tester en conditions réelles".
+Écart / preuve à produire : le scénario CR-013 "Erreur API Mistral" est maintenant clarifié dans le cahier de recettes. Il est couvert partiellement par tests unitaires, mais la coupure IA réelle reste à relancer si elle doit être présentée comme preuve manuelle.
 
 ## Plan de correction des bugs
 
@@ -640,7 +648,7 @@ Preuves de bugs traités :
 - [BUG-002 — README UTF-16](../bloc4/bugs/BUG-002-readme-utf16.md)
 - [CHANGELOG](../../CHANGELOG.md)
 
-Écart / preuve à produire : un plan générique de correction des bogues pour le Bloc 2 doit être rédigé : détection, qualification, reproduction, correction, tests, validation, déploiement et clôture.
+Preuve créée : le plan global de correction des bogues Bloc 2 est disponible dans [bloc2-plan-correction-bogues-rncp39583.md](bloc2-plan-correction-bogues-rncp39583.md). Il relie anomalie, source, priorité, correction et test de non-régression.
 
 ## Manuels de déploiement, utilisation et mise à jour
 
@@ -651,16 +659,16 @@ Preuves existantes :
 - commandes utilisateur/développeur : [README](../../README.md)
 - journal de version : [CHANGELOG](../../CHANGELOG.md)
 
-Écarts / preuves à produire :
+Preuves créées :
 
-- manuel utilisateur final à créer ou extraire : login, génération, consultation, dashboard, timer, suppression
-- manuel de mise à jour applicative à consolider : dépendances, migrations, release, rollback, smoke tests
+- manuel utilisateur final : [bloc2-manuel-utilisateur-alcide.md](bloc2-manuel-utilisateur-alcide.md)
+- manuel de mise à jour applicative : [bloc2-manuel-mise-a-jour.md](bloc2-manuel-mise-a-jour.md)
 
 ## Synthèse Bloc 2
 
 Statut : OK avec harmonisation documentaire nécessaire.
 
-Le Bloc 2 est le bloc le plus solidement couvert par le code et les preuves existantes. Les risques principaux ne sont pas techniques mais documentaires : harmonisation des chiffres de tests et de versions, plan de correction des bugs, manuel utilisateur et manuel de mise à jour.
+Le Bloc 2 est le bloc le plus solidement couvert par le code et les preuves existantes. Les principaux livrables documentaires manquants ont été consolidés : dossier dédié, plan de correction des bogues, manuel utilisateur, manuel de mise à jour et index d'annexes. Les contrôles récents sont passés : tests unitaires, coverage, build, lint, typecheck, audit high et smoke E2E. Les risques restants portent surtout sur les captures CI, captures prototype, healthchecks datés, CR-013 en coupure IA réelle et `generate.spec.ts` hors smoke.
 
 ---
 
@@ -868,10 +876,10 @@ Points de validation existants ou implicites :
 
 Éléments démontrables :
 
-- Web production : `https://ai-sport-web.vercel.app`
-- API production : `https://ai-sport-api.vercel.app`
-- healthcheck API : `https://ai-sport-api.vercel.app/health`
-- healthcheck Web : `https://ai-sport-web.vercel.app/api/health`
+- Web production : `https://alcide-web.vercel.app`
+- API production : `https://alcide-api.vercel.app`
+- healthcheck API : `https://alcide-api.vercel.app/health`
+- healthcheck Web : `https://alcide-web.vercel.app/api/health`
 
 Scénario recommandé :
 
@@ -919,7 +927,7 @@ Processus actuellement déductible :
 - tests, typecheck, lint et build avant livraison
 - consignation dans changelog si modification notable
 
-Écart / preuve à produire : le processus complet de mise à jour dépendances doit être rédigé : veille, branche, lecture changelog, audit, tests, migration éventuelle, déploiement, rollback et journalisation.
+Preuve créée : le processus complet de mise à jour est formalisé dans [bloc2-manuel-mise-a-jour.md](bloc2-manuel-mise-a-jour.md) : branche, dépendances, lecture changelog, audit, tests, migration éventuelle, déploiement, rollback et journalisation. Le contrôle `pnpm audit --audit-level=high` a été relancé le 2026-06-30 : 0 vulnérabilité high/critical, 2 low et 4 moderate restantes à suivre.
 
 ## CI/CD et audit
 
@@ -1053,7 +1061,7 @@ Le Bloc 4 dispose de preuves solides sur les bugs, les correctifs, la CI/CD, le 
 | Bloc officiel RNCP39583 | Couverture actuelle | Justification |
 |---|---|---|
 | Bloc 1 — Cadrer un projet de développement d'applications logicielles | À renforcer | Les preuves techniques existent, mais le cadrage client, le budget, la charge, les risques et les préconisations ne sont pas encore formalisés. |
-| Bloc 2 — Concevoir et développer des applications logicielles | OK | Code, architecture, tests, CI/CD, sécurité, accessibilité, cahier de recettes et déploiement sont prouvés ; il reste surtout une harmonisation documentaire. |
+| Bloc 2 — Concevoir et développer des applications logicielles | OK | Code, architecture, tests, CI/CD, sécurité, accessibilité, cahier de recettes et déploiement sont prouvés ; les contrôles locaux du 2026-06-30 sont verts, hors `generate.spec.ts` E2E complet et CR-013 en coupure IA réelle. |
 | Bloc 3 — Coordonner et piloter un projet de développement d'applications logicielles | À renforcer | La conduite itérative est réelle, mais le pilotage officiel, les outils de suivi, l'équipe, les comptes rendus client et les indicateurs de satisfaction sont insuffisamment prouvés. |
 | Bloc 4 — Maintenir l'application logicielle en condition opérationnelle | Partiel | Bugs, changelog, correctifs et CI/CD sont solides ; supervision/alerting, processus anomalies et support client doivent être renforcés. |
 
@@ -1074,7 +1082,7 @@ Le Bloc 4 dispose de preuves solides sur les bugs, les correctifs, la CI/CD, le 
 
 - Version projet : `package.json`, [deployment.md](../deployment.md) et `CHANGELOG` sont alignés sur `0.12.0`.
 - Nombre de sprints : certains documents mentionnent 10 sprints ; les preuves actuelles vont jusqu'au sprint 12.
-- Nombre de tests : la référence vérifiée est `pnpm test` = 70 tests Vitest passés ; les chiffres 28, 32 ou 41 sont historiques.
+- Nombre de tests : la référence vérifiée est `pnpm test` = 71 tests Vitest passés ; les chiffres 28, 32, 41 ou 70 sont historiques.
 - Nombre de scénarios de recette : 33 scénarios CR documentés ; la numérotation va jusqu'à CR-044 mais reste discontinue.
 - Déploiement cible : [ADR-006](../adr/ADR-006-deployment-architecture.md) est désormais marquée historique ; [ADR-007](../adr/ADR-007-ci-cd-vercel-neon.md), [ci-cd.md](../ci-cd.md) et [deployment.md](../deployment.md) définissent Vercel Web/API + Neon comme production canonique.
 
@@ -1099,4 +1107,4 @@ pnpm build
 
 ## Conclusion
 
-Le projet SportCoach IA dispose d'une base technique solide et de nombreuses preuves exploitables : architecture, code, sécurité, accessibilité, tests, CI/CD, déploiement, changelog et anomalies réelles. Le principal travail restant n'est pas de réécrire le code, mais de présenter le projet selon la logique officielle RNCP39583. Le présent dossier constitue une base réalignée pour construire les supports finaux de dépôt et de soutenance.
+Le projet Alcide dispose d'une base technique solide et de nombreuses preuves exploitables : architecture, code, sécurité, accessibilité, tests, CI/CD, déploiement, changelog et anomalies réelles. Le principal travail restant n'est pas de réécrire le code, mais de présenter le projet selon la logique officielle RNCP39583. Le présent dossier constitue une base réalignée pour construire les supports finaux de dépôt et de soutenance.

@@ -1,4 +1,4 @@
-# Veille Technologique — SportCoach IA
+# Veille Technologique — Alcide
 
 > Bloc 4 RNCP 39583 — Expert en développement logiciel
 > Date : 2026-04-13 | Auteur : Kevin
@@ -7,7 +7,7 @@
 
 ## Périmètre
 
-Cette veille couvre les technologies utilisées dans SportCoach IA et leur écosystème : IA générative pour le coaching sportif, frameworks web full-stack, sécurité applicative, et testing moderne.
+Cette veille couvre les technologies utilisées dans Alcide et leur écosystème : IA générative pour le coaching sportif, frameworks web full-stack, sécurité applicative, et testing moderne.
 
 ---
 
@@ -19,7 +19,7 @@ Le coaching sportif assisté par IA connaît une croissance rapide. Les grandes 
 
 ### Mistral AI vs alternatives
 
-| Modèle | Points forts | Limites | Adapté pour SportCoach IA |
+| Modèle | Points forts | Limites | Adapté pour Alcide |
 |---|---|---|---|
 | **Mistral 7B / Mixtral** | Open-source, JSON mode natif, latence faible, hébergeable | Moins performant que GPT-4o sur le raisonnement complexe | ✅ Idéal : JSON strict, coût maîtrisé |
 | **GPT-4o (OpenAI)** | Excellente compréhension, multimodal | Coût élevé, dépendance US | Possible mais sur-dimensionné |
@@ -47,13 +47,13 @@ Next.js 14/15 (App Router) a marqué un tournant architectural avec :
 - **Streaming + Suspense** : affichage progressif pendant le fetch (utilisé dans Sprint 05 via `loading.tsx`)
 - **Partial Prerendering (PPR)** : hybride statique/dynamique au niveau du composant (Next.js 15 expérimental)
 
-**Impact sur SportCoach IA** : l'architecture Server Actions a permis d'éviter une API Next.js dédiée et de garder les secrets serveur (`SERVICE_SECRET`) hors du bundle client.
+**Impact sur Alcide** : l'architecture Server Actions a permis d'éviter une API Next.js dédiée et de garder les secrets serveur (`SERVICE_SECRET`) hors du bundle client.
 
 ### Hono vs alternatives
 
 | Framework | Runtime | Avantages | Usage |
 |---|---|---|---|
-| **Hono** | Node, Bun, Deno, Edge | Ultra-léger, TypeScript natif, middleware composable | ✅ Backend SportCoach IA |
+| **Hono** | Node, Bun, Deno, Edge | Ultra-léger, TypeScript natif, middleware composable | ✅ Backend Alcide |
 | **Express** | Node | Mature, écosystème riche | Lourd, pas de types natifs |
 | **Fastify** | Node | Très performant, schemas JSON | Plus complexe à setup |
 | **Elysia** | Bun | Très rapide, TypeScript end-to-end | Jeune, Bun only |
@@ -70,7 +70,7 @@ L'OWASP Top 10 2025 (en cours de publication) renforce l'importance de :
 - **A10 SSRF** : devenu critique avec l'essor des microservices et des appels LLM (un LLM peut être manipulé pour effectuer des requêtes internes)
 - **LLM Top 10** : OWASP a publié un Top 10 spécifique aux applications LLM — **prompt injection** (A01 LLM) est le risque #1
 
-**Pertinence pour SportCoach IA** :
+**Pertinence pour Alcide** :
 - Prompt injection mitigé par le JSON mode Mistral + validation Zod stricte du résultat
 - SSRF mitigé par l'URL Mistral fixe (pas de redirection dynamique depuis l'input)
 
@@ -116,7 +116,7 @@ Le RGAA 4.2 (publication prévue 2025) aligne la France sur WCAG 2.2 :
 - **2.4.11** : composants UI visibles au focus
 - **3.2.6** : liens d'évitement cohérents entre pages
 
-**Impact** : SportCoach IA implémente déjà ces critères (`skip-link`, `aria-label` consistants, focus visible).
+**Impact** : Alcide implémente déjà ces critères (`skip-link`, `aria-label` consistants, focus visible).
 
 ### Outils de test automatisé
 
@@ -130,7 +130,7 @@ Le RGAA 4.2 (publication prévue 2025) aligne la France sur WCAG 2.2 :
 
 ## 6. Hébergement et déploiement
 
-### Options pour SportCoach IA
+### Options pour Alcide
 
 | Option | Avantages | Limites |
 |---|---|---|

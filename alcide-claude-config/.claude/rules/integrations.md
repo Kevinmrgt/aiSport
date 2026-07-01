@@ -30,8 +30,8 @@ gh issue create --title "..." --body "..."
 L'agent a accès à l'API Vercel via token Bearer.
 
 **IDs projet :**
-- **API** : `prj_xLHwTV68FV3gH9OyeqmAThhWZoxL` → `ai-sport-api.vercel.app`
-- **Web** : `prj_HFyrBgWVUn5aGqYXcfoAfW51FNZC` → `ai-sport-web.vercel.app`
+- **API** : `prj_xLHwTV68FV3gH9OyeqmAThhWZoxL` → `alcide-api.vercel.app`
+- **Web** : `prj_HFyrBgWVUn5aGqYXcfoAfW51FNZC` → `alcide-web.vercel.app`
 - **Team** : `team_oTjY1aWeytiIR4kzRyTuGugU`
 
 **Capacités :**
@@ -39,7 +39,7 @@ L'agent a accès à l'API Vercel via token Bearer.
 - Lire et modifier les variables d'environnement (`/v10/projects/:id/env`)
 - Consulter les logs de déploiement (`/v2/deployments/:id/events`)
 - Redéclencher un déploiement via push git ou CLI `vercel --prod`
-- Vérifier la santé des services déployés (`curl https://ai-sport-api.vercel.app/health`)
+- Vérifier la santé des services déployés (`curl https://alcide-api.vercel.app/health`)
 
 **Token :** Disponible dans `settings.local.json` (permissions Bash curl).
 

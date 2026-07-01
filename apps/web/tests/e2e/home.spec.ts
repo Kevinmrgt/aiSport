@@ -9,7 +9,7 @@ test.describe('Page d\'accueil', () => {
   });
 
   test('affiche le titre principal et la description', async ({ page }) => {
-    await expect(page).toHaveTitle(/SportCoach IA/);
+    await expect(page).toHaveTitle(/Alcide/);
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   });
 

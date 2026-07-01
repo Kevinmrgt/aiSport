@@ -1,7 +1,9 @@
+import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { serverApi } from '@/lib/server-api';
+import { EmptyState, GlassPanel, MetricPill, ProgressRing } from '@/components/PremiumPrimitives';
 
 const LEVEL_LABELS: Record<string, string> = {
   beginner: 'Debutant',
@@ -25,7 +27,6 @@ function formatDuration(seconds: number): string {
   return remainingMinutes > 0 ? `${hours} h ${remainingMinutes}` : `${hours} h`;
 }
 
-// OWASP A01: route protegee
 export default async function DashboardPage() {
   const session = await auth();
 
@@ -53,62 +54,70 @@ export default async function DashboardPage() {
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5);
 
+  const effortPercent =
+    sessionStats.averageEffort !== null ? Math.round((sessionStats.averageEffort / 10) * 100) : 0;
+
   return (
-    <section aria-labelledby="dashboard-title">
-      <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="section-kicker mb-2">Rapport quotidien</p>
-          <h1 id="dashboard-title" className="page-title">
-            Dashboard
-          </h1>
-          <p className="muted-copy mt-2">
-            Une vue rapide sur vos seances generees, terminees et votre ressenti.
-          </p>
+    <section aria-labelledby="dashboard-title" className="space-y-6">
+      <GlassPanel className="relative overflow-hidden p-5 sm:p-6">
+        <Image
+          src="/visuals/dashboard-bg.webp"
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 1024px) 100vw, 980px"
+          className="-z-10 object-cover opacity-45"
+        />
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="section-kicker mb-3">Dashboard</p>
+            <h1 id="dashboard-title" className="page-title">
+              Votre progression
+            </h1>
+            <p className="muted-copy mt-3 max-w-2xl">
+              Synthese de vos seances creees, terminees et ressenties pour piloter le prochain
+              entrainement.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <ProgressRing value={effortPercent} label="effort" size="lg" />
+            <Link href="/generate" className="action-primary">
+              Nouvelle seance
+            </Link>
+          </div>
         </div>
-        <Link href="/generate" className="action-primary w-full sm:w-auto">
-          + Nouvelle seance
-        </Link>
-      </div>
+      </GlassPanel>
 
       {stats.total === 0 && sessionStats.totalCompleted === 0 ? (
-        <div className="surface mx-auto max-w-xl p-8 text-center">
-          <h2 className="mb-2 text-xl font-black text-white">Aucune seance encore</h2>
-          <p className="muted-copy mb-6">
-            Generez votre premier programme pour voir vos statistiques ici.
-          </p>
-          <Link href="/generate" className="action-primary w-full sm:w-auto">
-            Commencer
-          </Link>
-        </div>
+        <EmptyState
+          title="Aucune activite encore"
+          description="Creez une premiere seance pour activer le dashboard et commencer le suivi."
+          href="/generate"
+          cta="Commencer"
+        />
       ) : (
         <div className="space-y-6">
-          <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <div className="metric-card">
-              <dt className="text-xs font-bold uppercase tracking-widest text-zinc-400">
+              <dt className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-400">
                 Seances creees
               </dt>
-              <dd
-                className="mt-3 text-5xl font-black tabular-nums text-primary-300"
-                aria-label={`${stats.total} seances generees au total`}
-              >
+              <dd className="mt-3 text-5xl font-black tabular-nums text-primary-300">
                 {stats.total}
               </dd>
             </div>
 
             <div className="metric-card">
-              <dt className="text-xs font-bold uppercase tracking-widest text-zinc-400">
+              <dt className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-400">
                 Termine
               </dt>
-              <dd
-                className="mt-3 text-5xl font-black tabular-nums text-white"
-                aria-label={`${sessionStats.totalCompleted} seances terminees`}
-              >
+              <dd className="mt-3 text-5xl font-black tabular-nums text-white">
                 {sessionStats.totalCompleted}
               </dd>
             </div>
 
             <div className="metric-card">
-              <dt className="text-xs font-bold uppercase tracking-widest text-zinc-400">
+              <dt className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-400">
                 Temps realise
               </dt>
               <dd className="mt-3 text-3xl font-black text-white">
@@ -117,7 +126,7 @@ export default async function DashboardPage() {
             </div>
 
             <div className="metric-card">
-              <dt className="text-xs font-bold uppercase tracking-widest text-zinc-400">
+              <dt className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-400">
                 Effort moyen
               </dt>
               <dd className="mt-3 text-3xl font-black tabular-nums text-white">
@@ -128,88 +137,56 @@ export default async function DashboardPage() {
           </dl>
 
           <div className="grid gap-4 lg:grid-cols-3">
-            <section className="surface p-5" aria-labelledby="execution-title">
-              <h2 id="execution-title" className="section-kicker mb-5">
-                Execution
-              </h2>
-              <dl className="space-y-3" aria-label="Synthese des seances terminees">
+            <GlassPanel className="p-5" variant="soft">
+              <h2 className="section-kicker mb-5">Execution</h2>
+              <dl className="space-y-3">
                 <div className="flex items-start justify-between gap-4">
-                  <dt className="min-w-0 break-words text-sm text-zinc-300">Derniere terminee</dt>
+                  <dt className="text-sm text-zinc-300">Derniere terminee</dt>
                   <dd className="text-right text-sm font-bold text-white">
                     {sessionStats.lastCompletedAt ? formatDate(sessionStats.lastCompletedAt) : '--'}
                   </dd>
                 </div>
-                <div className="flex items-start justify-between gap-4">
-                  <dt className="min-w-0 break-words text-sm text-zinc-300">Trop facile</dt>
-                  <dd className="rounded-full bg-white/10 px-3 py-1 text-xs font-black tabular-nums text-primary-300">
-                    {sessionStats.feedbackCounts.too_easy}
-                  </dd>
-                </div>
-                <div className="flex items-start justify-between gap-4">
-                  <dt className="min-w-0 break-words text-sm text-zinc-300">Bien dose</dt>
-                  <dd className="rounded-full bg-primary-300 px-3 py-1 text-xs font-black tabular-nums text-zinc-950">
-                    {sessionStats.feedbackCounts.good}
-                  </dd>
-                </div>
-                <div className="flex items-start justify-between gap-4">
-                  <dt className="min-w-0 break-words text-sm text-zinc-300">Trop dur</dt>
-                  <dd className="rounded-full bg-white/10 px-3 py-1 text-xs font-black tabular-nums text-red-200">
-                    {sessionStats.feedbackCounts.too_hard}
-                  </dd>
+                <div className="grid grid-cols-3 gap-2">
+                  <MetricPill icon="check" label="Facile" value={`${sessionStats.feedbackCounts.too_easy}`} />
+                  <MetricPill icon="target" label="Dose" value={`${sessionStats.feedbackCounts.good}`} tone="lime" />
+                  <MetricPill icon="flame" label="Dur" value={`${sessionStats.feedbackCounts.too_hard}`} tone="orange" />
                 </div>
               </dl>
-            </section>
+            </GlassPanel>
 
-            <section className="surface p-5" aria-labelledby="level-title">
-              <h2 id="level-title" className="section-kicker mb-5">
-                Par niveau
-              </h2>
-              <dl className="space-y-3" aria-label="Repartition par niveau">
-                <div className="flex items-start justify-between gap-4">
-                  <dt className="min-w-0 break-words text-sm text-zinc-300">Niveau principal</dt>
-                  <dd className="text-right text-sm font-bold text-white">{topLevel}</dd>
-                </div>
+            <GlassPanel className="p-5" variant="soft">
+              <h2 className="section-kicker mb-5">Niveau</h2>
+              <div className="mb-4 rounded-[1.4rem] bg-primary-300/10 p-4">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-400">
+                  Principal
+                </p>
+                <p className="mt-2 text-2xl font-black text-white">{topLevel}</p>
+              </div>
+              <dl className="space-y-2">
                 {Object.entries(stats.byLevel).map(([level, count]) => (
-                  <div key={level} className="flex items-start justify-between gap-4">
-                    <dt className="min-w-0 break-words text-sm text-zinc-300">
-                      {LEVEL_LABELS[level] ?? level}
-                    </dt>
-                    <dd className="rounded-full bg-primary-300 px-3 py-1 text-xs font-black tabular-nums text-zinc-950">
-                      {count}
-                    </dd>
+                  <div key={level} className="flex items-center justify-between gap-4 rounded-full bg-white/[0.06] px-3 py-2">
+                    <dt className="text-sm text-zinc-300">{LEVEL_LABELS[level] ?? level}</dt>
+                    <dd className="text-sm font-black tabular-nums text-primary-300">{count}</dd>
                   </div>
                 ))}
               </dl>
-            </section>
+            </GlassPanel>
 
-            <section className="surface p-5" aria-labelledby="sports-title">
-              <h2 id="sports-title" className="section-kicker mb-5">
-                Sports pratiques
-              </h2>
-              <dl className="space-y-3" aria-label="Sports pratiques">
+            <GlassPanel className="p-5" variant="soft">
+              <h2 className="section-kicker mb-5">Sports</h2>
+              <dl className="space-y-2">
                 {topSports.length > 0 ? (
                   topSports.map(([sport, count]) => (
-                    <div key={sport} className="flex items-start justify-between gap-4">
-                      <dt className="min-w-0 break-words text-sm capitalize text-zinc-300">{sport}</dt>
-                      <dd className="rounded-full bg-white/10 px-3 py-1 text-xs font-black tabular-nums text-primary-300">
-                        {count}
-                      </dd>
+                    <div key={sport} className="flex items-center justify-between gap-4 rounded-full bg-white/[0.06] px-3 py-2">
+                      <dt className="text-sm capitalize text-zinc-300">{sport}</dt>
+                      <dd className="text-sm font-black tabular-nums text-primary-300">{count}</dd>
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-zinc-400">Aucun sport genere pour le moment.</p>
+                  <p className="text-sm text-zinc-400">Aucun sport pour le moment.</p>
                 )}
               </dl>
-            </section>
-          </div>
-
-          <div className="pt-2">
-            <Link
-              href="/workouts"
-              className="text-sm font-semibold text-primary-300 transition hover:text-primary-100 focus-visible:outline-none focus-visible:underline"
-            >
-              Voir toutes mes seances
-            </Link>
+            </GlassPanel>
           </div>
         </div>
       )}

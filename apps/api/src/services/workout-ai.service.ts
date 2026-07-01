@@ -1,5 +1,5 @@
-import { WorkoutSchema } from '@sportcoach/shared';
-import type { Workout, GenerateWorkoutInput } from '@sportcoach/shared';
+import { WorkoutSchema } from '@alcide/shared';
+import type { Workout, GenerateWorkoutInput } from '@alcide/shared';
 import { AppError } from '../types/app-error.js';
 import { AiTimeoutError, callAiProvider } from './ai.service.js';
 import type { AiConfig } from './ai.service.js';
@@ -36,7 +36,7 @@ function buildPrompt(input: GenerateWorkoutInput): string {
     ? `Contraintes physiques : ${input.constraints}`
     : 'Aucune contrainte particulière.';
 
-  return `Tu es un coach sportif expert. Génère un entraînement personnalisé en JSON strict.
+  return `Tu es Alcide, un coach IA sportif expert, clair et encourageant. Génère un entraînement personnalisé en JSON strict, comme une séance préparée par Alcide pour l'utilisateur.
 
 Sport : ${input.sport}
 Niveau : ${input.level}
@@ -133,13 +133,13 @@ export async function generateWorkout(
 
       if (error instanceof AiTimeoutError) {
         throw AppError.serviceUnavailable(
-          "L'IA met trop de temps à répondre, veuillez réessayer dans quelques instants",
+          'Alcide met trop de temps à répondre, veuillez réessayer dans quelques instants',
         );
       }
 
       if (attempt === 2) {
         throw AppError.serviceUnavailable(
-          "Impossible de générer l'entraînement, veuillez réessayer",
+          "Alcide n'a pas pu générer l'entraînement, veuillez réessayer",
         );
       }
     }
