@@ -149,15 +149,15 @@ export default async function DashboardPage() {
 
             <GlassPanel className="p-5" variant="soft">
               <h2 className="section-kicker mb-5">Niveau</h2>
-              <div className="mb-4 rounded-[1.4rem] bg-primary-300/10 p-4">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-400">
+              <div className="mb-4 rounded-[1.4rem] border border-primary-300/[0.16] bg-zinc-950/[0.46] p-4">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-300">
                   Principal
                 </p>
                 <p className="mt-2 text-2xl font-black text-white">{topLevel}</p>
               </div>
               <dl className="space-y-2">
                 {Object.entries(stats.byLevel).map(([level, count]) => (
-                  <div key={level} className="flex items-center justify-between gap-4 rounded-full bg-white/[0.06] px-3 py-2">
+                  <div key={level} className="flex items-center justify-between gap-4 rounded-full bg-zinc-950/[0.42] px-3 py-2">
                     <dt className="text-sm text-zinc-300">{LEVEL_LABELS[level] ?? level}</dt>
                     <dd className="text-sm font-black tabular-nums text-primary-300">{count}</dd>
                   </div>
@@ -170,13 +170,13 @@ export default async function DashboardPage() {
               <dl className="space-y-2">
                 {topSports.length > 0 ? (
                   topSports.map(([sport, count]) => (
-                    <div key={sport} className="flex items-center justify-between gap-4 rounded-full bg-white/[0.06] px-3 py-2">
+                    <div key={sport} className="flex items-center justify-between gap-4 rounded-full bg-zinc-950/[0.42] px-3 py-2">
                       <dt className="text-sm capitalize text-zinc-300">{sport}</dt>
                       <dd className="text-sm font-black tabular-nums text-primary-300">{count}</dd>
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-zinc-400">Aucun sport pour le moment.</p>
+                  <p className="text-sm text-zinc-300">Aucun sport pour le moment.</p>
                 )}
               </dl>
             </GlassPanel>

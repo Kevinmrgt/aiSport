@@ -94,7 +94,7 @@ h4,
   }
 
   .glass-soft {
-    @apply rounded-[1.65rem] border border-white/10 bg-zinc-950/[0.56] shadow-xl shadow-black/30 backdrop-blur-xl;
+    @apply rounded-[1.65rem] border border-white/10 bg-zinc-950/[0.66] shadow-xl shadow-black/30 backdrop-blur-xl;
   }
 
   .glass-strong {

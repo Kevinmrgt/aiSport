@@ -99,7 +99,7 @@ export function SessionCompletionForm({
               className={`flex min-h-11 cursor-pointer items-center justify-center rounded-full border text-sm font-black transition-colors ${
                 perceivedEffort === value
                   ? 'border-primary-300 bg-primary-300 text-zinc-950'
-                  : 'border-white/10 bg-white/[0.06] text-zinc-100 hover:bg-white/[0.1]'
+                  : 'border-white/10 bg-zinc-950/[0.46] text-zinc-100 hover:bg-zinc-950/[0.6]'
               }`}
             >
               <input
@@ -125,7 +125,7 @@ export function SessionCompletionForm({
               className={`flex min-h-11 cursor-pointer items-center justify-center rounded-full border px-3 text-center text-sm font-black transition-colors ${
                 feedback === option.value
                   ? 'border-primary-300 bg-primary-300 text-zinc-950'
-                  : 'border-white/10 bg-white/[0.06] text-zinc-100 hover:bg-white/[0.1]'
+                  : 'border-white/10 bg-zinc-950/[0.46] text-zinc-100 hover:bg-zinc-950/[0.6]'
               }`}
             >
               <input
