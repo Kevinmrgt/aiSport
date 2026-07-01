@@ -44,7 +44,7 @@ function BrandMark() {
       <span className="grid h-11 w-11 place-items-center rounded-[1.2rem] bg-primary-300 text-base text-zinc-950 shadow-2xl shadow-primary-400/25">
         A
       </span>
-      <span className="leading-tight lg:hidden xl:inline">
+      <span className="leading-tight">
         Alcide
         <span className="block text-xs font-bold uppercase tracking-[0.22em] text-primary-300">
           Pulse
@@ -66,31 +66,14 @@ export default async function RootLayout({ children }: { readonly children: Reac
           Aller au contenu principal
         </a>
 
-        <div className="sticky top-0 z-50 border-b border-white/10 bg-zinc-950/[0.55] backdrop-blur-2xl lg:hidden">
+        <header className="fixed inset-x-3 top-3 z-50 rounded-[1.75rem] border border-white/[0.12] bg-zinc-950/[0.72] shadow-2xl shadow-black/30 backdrop-blur-2xl sm:inset-x-5">
           <nav
-            className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 py-3"
+            className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-3 py-3 sm:px-4"
             aria-label="Navigation principale"
           >
             <BrandMark />
-            {session?.user ? (
-              <Link href="/generate" className="action-primary min-h-10 px-4 py-2 text-xs">
-                Nouvelle seance
-              </Link>
-            ) : (
-              <Link href="/login" className="action-primary min-h-10 px-4 py-2 text-xs">
-                Se connecter
-              </Link>
-            )}
-          </nav>
-        </div>
 
-        <header className="fixed left-5 top-5 z-50 hidden h-[calc(100vh-2.5rem)] w-20 flex-col items-center justify-between rounded-[2rem] border border-white/[0.12] bg-zinc-950/[0.55] p-3 shadow-2xl shadow-black/30 backdrop-blur-2xl lg:flex xl:w-64 xl:items-stretch">
-          <div className="space-y-8">
-            <div className="flex justify-center xl:justify-start">
-              <BrandMark />
-            </div>
-
-            <nav className="flex flex-col gap-2" aria-label="Navigation principale">
+            <div className="hidden min-w-0 flex-1 items-center justify-center gap-1 lg:flex xl:gap-2">
               {session?.user ? (
                 NAV_ITEMS.map((item) => <ActiveNavLink key={item.href} {...item} />)
               ) : (
@@ -99,33 +82,32 @@ export default async function RootLayout({ children }: { readonly children: Reac
                   <ActiveNavLink href="/login" label="Connexion" icon="user" />
                 </>
               )}
-            </nav>
-          </div>
+            </div>
 
-          {session?.user ? (
-            <form
-              action={async () => {
-                'use server';
-                await signOut({ redirectTo: '/' });
-              }}
-              className="flex justify-center xl:justify-start"
-            >
-              <button
-                type="submit"
-                aria-label="Se deconnecter"
-                className="group flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-sm font-bold text-zinc-400 transition hover:bg-white/[0.1] hover:text-white"
+            {session?.user ? (
+              <form
+                action={async () => {
+                  'use server';
+                  await signOut({ redirectTo: '/' });
+                }}
               >
-                <span className="grid h-10 w-10 place-items-center rounded-full bg-white/[0.07] text-zinc-200 transition group-hover:bg-sport-orange group-hover:text-zinc-950">
-                  <Icon name="log-out" className="h-4 w-4" />
-                </span>
-                <span className="hidden xl:block">Sortir</span>
-              </button>
-            </form>
-          ) : (
-            <Link href="/login" className="action-primary hidden xl:flex">
-              Se connecter
-            </Link>
-          )}
+                <button
+                  type="submit"
+                  aria-label="Se deconnecter"
+                  className="group hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-sm font-bold text-zinc-400 transition hover:bg-white/[0.1] hover:text-white sm:flex"
+                >
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.07] text-zinc-200 transition group-hover:bg-sport-orange group-hover:text-zinc-950">
+                    <Icon name="log-out" className="h-4 w-4" />
+                  </span>
+                  <span className="hidden xl:block">Sortir</span>
+                </button>
+              </form>
+            ) : (
+              <Link href="/login" className="action-primary min-h-10 px-4 py-2 text-xs">
+                Se connecter
+              </Link>
+            )}
+          </nav>
         </header>
 
         {session?.user && (
@@ -140,7 +122,7 @@ export default async function RootLayout({ children }: { readonly children: Reac
           {children}
         </main>
 
-        <footer className="relative z-10 border-t border-white/10 lg:ml-28 xl:ml-80">
+        <footer className="relative z-10 border-t border-white/10">
           <div className="mx-auto max-w-7xl px-5 py-6 text-center text-xs text-zinc-500 lg:px-8">
             <p>Alcide - Projet RNCP 39583</p>
           </div>
