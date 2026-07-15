@@ -72,7 +72,7 @@ async function callOpenAi(
       model,
       messages: [{ role: 'user', content: prompt }],
       temperature: options.temperature ?? 0.7,
-      max_tokens: options.maxTokens ?? 2048,
+      max_completion_tokens: options.maxTokens ?? 2048,
       response_format: { type: 'json_object' },
     }),
     signal,
