@@ -36,6 +36,21 @@ Jobs CI valides dans le run `29489995458` :
 
 Conclusion CI/CD : la chaine qualite est verte sur `main`. Le workflow CD GitHub custom reste a relancer apres regeneration du secret `VERCEL_TOKEN`, mais la production Vercel via Git integration et les healthchecks sont operationnels.
 
+## 2.1 Synchronisation configuration Vercel API
+
+Controle complementaire realise le 2026-07-16 apres preparation du paquet jury :
+
+```text
+vercel project inspect ai-sport-api
+=> Root Directory: apps/api
+=> Framework Preset: Other
+=> Build Command: cd ../.. && pnpm --filter shared build && pnpm --filter api build
+=> Output Directory: public
+=> Install Command: cd ../.. && pnpm install --frozen-lockfile --prod=false
+```
+
+Decision : les reglages dashboard Vercel API sont alignes avec `apps/api/vercel.json`. Les previews documentaires peuvent etre ignorees par `scripts/vercel-ignore-build.mjs`, tandis que les builds production continuent obligatoirement.
+
 ## 3. Healthchecks production
 
 Commandes executees depuis le poste local :
