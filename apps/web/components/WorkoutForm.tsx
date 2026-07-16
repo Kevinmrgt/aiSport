@@ -51,7 +51,7 @@ export function WorkoutForm({ onSubmit, costEstimate }: WorkoutFormProps) {
 
     if (!parsed.success) {
       const fieldErrors: typeof errors = {};
-      for (const err of parsed.error.errors) {
+      for (const err of parsed.error.issues) {
         const field = err.path[0] as keyof GenerateWorkoutInput;
         if (field) fieldErrors[field] = err.message;
       }

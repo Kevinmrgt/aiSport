@@ -1,12 +1,6 @@
-import { handle } from '@hono/node-server/vercel';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { app } from '../src/app.js';
 
-// Pre-read the request body as a Buffer before handing off to Hono.
-// @hono/node-server/vercel checks for `rawBody` first and uses a simple
-// buffered ReadableStream when present. Without this, Readable.toWeb(incoming)
-// hangs in Vercel's Lambda environment because the body stream is paused
-// and never emits data through the Web API ReadableStream adapter.
 function readRawBody(req: IncomingMessage): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
@@ -16,14 +10,61 @@ function readRawBody(req: IncomingMessage): Promise<Buffer> {
   });
 }
 
-const honoHandler = handle(app);
+function getFirstHeader(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function createRequestHeaders(req: IncomingMessage): Headers {
+  const headers = new Headers();
+
+  for (const [name, value] of Object.entries(req.headers)) {
+    if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      for (const item of value) headers.append(name, item);
+    } else {
+      headers.set(name, value);
+    }
+  }
+
+  return headers;
+}
+
+function createRequestUrl(req: IncomingMessage): string {
+  const protocol = getFirstHeader(req.headers['x-forwarded-proto']) ?? 'https';
+  const host =
+    getFirstHeader(req.headers['x-forwarded-host']) ?? getFirstHeader(req.headers['host']) ?? 'localhost';
+
+  return new URL(req.url ?? '/', `${protocol}://${host}`).toString();
+}
+
+async function writeResponse(response: Response, res: ServerResponse): Promise<void> {
+  res.statusCode = response.status;
+  response.headers.forEach((value, key) => {
+    res.setHeader(key, value);
+  });
+
+  if (!response.body) {
+    res.end();
+    return;
+  }
+
+  res.end(Buffer.from(await response.arrayBuffer()));
+}
 
 export default async function handler(
-  req: IncomingMessage & { rawBody?: Buffer },
+  req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  if (req.method !== 'GET' && req.method !== 'HEAD' && req.rawBody === undefined) {
-    req.rawBody = await readRawBody(req);
+  const method = req.method ?? 'GET';
+  const requestInit: RequestInit = {
+    method,
+    headers: createRequestHeaders(req),
+  };
+
+  if (method !== 'GET' && method !== 'HEAD') {
+    requestInit.body = (await readRawBody(req)) as unknown as BodyInit;
   }
-  return honoHandler(req, res);
+
+  const response = await app.fetch(new Request(createRequestUrl(req), requestInit));
+  await writeResponse(response, res);
 }

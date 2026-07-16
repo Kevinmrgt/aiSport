@@ -204,7 +204,7 @@ export async function generateProgram(
 
   const validated = TrainingProgramSchema.safeParse(program);
   if (!validated.success) {
-    console.error('[AiProgramService] Validation finale echouee:', validated.error.errors);
+    console.error('[AiProgramService] Validation finale echouee:', validated.error.issues);
     throw AppError.internal('Erreur lors de la validation du programme genere');
   }
 
