@@ -69,6 +69,7 @@ Etat Bloc 2 au 2026-07-16 :
 - `Monitoring - Production health` est vert, run `29496100988`.
 - `CD - Vercel` custom echoue encore au run `29490217892` car le token fourni a `vercel pull` est invalide. La production reste disponible et surveillee ; l'action restante est de regenerer `VERCEL_TOKEN` si le workflow CD GitHub doit etre utilise.
 - Le projet Vercel `ai-sport-api` est synchronise cote dashboard avec le repo : root `apps/api`, build `cd ../.. && pnpm --filter shared build && pnpm --filter api build`, install `cd ../.. && pnpm install --frozen-lockfile --prod=false`, output `public`.
+- Les projets Vercel `ai-sport-api` et `ai-sport-web` declarent `commandForIgnoringBuildStep` vers `scripts/vercel-ignore-build.mjs` pour ignorer les previews purement documentaires.
 
 Requis pour le workflow manuel DB:
 
