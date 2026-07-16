@@ -114,7 +114,7 @@ export async function generateWorkout(
       }
 
       console.warn(`[AiService] Validation Zod échouée (tentative ${attempt})`, {
-        errors: validated.error.errors,
+        errors: validated.error.issues,
       });
 
       if (attempt === 2) {
