@@ -25,3 +25,7 @@ updates:
       day: "monday"
       time: "06:15"
       timezone: "Europe/Paris"
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
