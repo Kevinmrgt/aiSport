@@ -50,9 +50,10 @@ vercel project inspect ai-sport-api
 PATCH Vercel API
 => ai-sport-api.commandForIgnoringBuildStep = node ../../scripts/vercel-ignore-build.mjs api
 => ai-sport-web.commandForIgnoringBuildStep = node ../../scripts/vercel-ignore-build.mjs web
+=> ai-sport-api.previewDeploymentsDisabled = true
 ```
 
-Decision : les reglages dashboard Vercel API sont alignes avec `apps/api/vercel.json`, et les deux projets Vercel utilisent le meme ignored build step que le repo. Les previews documentaires peuvent etre ignorees par `scripts/vercel-ignore-build.mjs`, tandis que les builds production continuent obligatoirement.
+Decision : les reglages dashboard Vercel API sont alignes avec `apps/api/vercel.json`, et les deux projets Vercel utilisent le meme ignored build step que le repo. Les previews API automatiques sont desactivees pour eviter un provisioning Neon preview non necessaire sur les PR documentaires ; la production API et la CI restent les controles de reference. Les builds production continuent obligatoirement.
 
 ## 3. Healthchecks production
 
@@ -109,6 +110,7 @@ Decision : le Bloc 2 doit presenter OpenAI comme fournisseur unique gere cote se
 | Point | Impact Bloc 2 | Decision |
 |---|---|---|
 | `CD - Vercel` GitHub custom rouge | Non bloquant produit : production et monitoring OK | Regenerer `VERCEL_TOKEN` si le workflow custom doit etre vert |
+| Provisioning Neon sur previews API | Non bloquant apres desactivation des previews API automatiques ; CI et production restent controlees | Revoir les branches/quotas Neon avant de reactiver les previews API |
 | CR-013 coupure IA reelle | Non bloquant : erreurs IA couvertes par tests unitaires | Rejouer en preview si le jury exige une panne reelle |
 | E2E complet `generate.spec.ts` | Non bloquant : smoke/accessibilite CI verts et parcours reel navigateur valide | Relancer quand l'environnement local Node/pnpm est repare |
 | Warning SSL PostgreSQL | Durcissement configuration | Mettre explicitement `sslmode=verify-full` dans `DATABASE_URL` |
