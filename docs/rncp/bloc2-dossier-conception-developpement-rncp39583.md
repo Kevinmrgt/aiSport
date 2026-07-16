@@ -20,17 +20,39 @@ Les compétences éliminatoires couvertes sont :
 
 | Compétence | Statut | Preuves principales |
 |---|---|---|
-| C2.2.1 - Prototype logiciel ergonomique et sécurisé | Couvert, captures à annexer | `apps/web/app/`, `apps/web/components/`, `docs/bloc2/cahier-recettes.md` |
+| C2.2.1 - Prototype logiciel ergonomique et sécurisé | Couvert, captures annexées | `apps/web/app/`, `apps/web/components/`, `docs/bloc2/cahier-recettes.md`, B2-A18 |
 | C2.2.2 - Harnais de tests unitaires | Couvert | `apps/api/tests/`, `apps/web/components/Timer.test.ts`, `pnpm test` |
 | C2.2.3 - Développement évolutif, sécurisé et accessible | Couvert, E2E smoke validé | `apps/api/src/`, `apps/web/app/`, `packages/shared/src/`, `docs/security/owasp-review.md` |
 | C2.3.1 - Cahier de recettes | Couvert, scénarios corrigés dans le cahier | `docs/bloc2/cahier-recettes.md` |
 
 Limites assumées :
 
-- les tests E2E smoke publics/accessibilité sont passés ; le scénario E2E `generate.spec.ts` reste à relancer avant d'annoncer le total complet ;
+- les tests E2E smoke publics/accessibilité sont passés ; le scénario E2E automatisé `generate.spec.ts` reste à relancer avant d'annoncer le total complet, mais les parcours réels `/generate` et `/programs/generate` ont été rejoués en production le 2026-07-16 ;
 - la couverture chiffrée disponible concerne principalement l'API ;
 - les tests d'intégration DB directs restent limités, les repositories étant surtout validés par tests de services et recettes ;
-- les captures de CI, Playwright et prototype doivent être annexées au pack final.
+- les captures prototype et les preuves post-fix sont annexées dans B2-A17/B2-A18.
+
+## Validation finale et addendum post-fix 2026-07-16
+
+La validation finale initiale du Bloc 2 est consolidée dans B2-A17. L'état final à présenter au jury est l'addendum B2-A18, produit le 2026-07-16 après correction des erreurs de build Vercel.
+
+Points validés au 2026-07-16 :
+
+| Axe | Résultat | Preuve |
+|---|---|---|
+| Etat Git | `main` alignée sur `origin/main`, commit `533f17b` | B2-A18 |
+| CI GitHub | `CI - Alcide` verte sur `main` | Run `29489995458`, B2-A18 |
+| Monitoring production | `Monitoring - Production health` vert | Run `29496100988`, B2-A18 |
+| Healthcheck API | HTTP 200, `status:"ok"`, version `0.12.0` | `GET https://ai-sport-api.vercel.app/health`, B2-A18 |
+| Healthcheck Web | HTTP 200, `status:"ok"`, version `0.12.0` | `GET https://ai-sport-web.vercel.app/api/health`, B2-A18 |
+| Fournisseur IA | OpenAI uniquement, clé côté serveur, aucune clé utilisateur | Logs Vercel `provider: 'openai'`, aucun `OPENAI_API_KEY` exposé |
+| Génération séance | Parcours réel réussi en production | `/workouts/f1d03237-7987-4fef-b8b8-145edc26ec61`, B2-A18 |
+| Génération programme | Parcours réel réussi en production | `/programs/e818c9a6-f09c-4387-972f-b8d2fc59327b`, B2-A18 |
+| Prototype UI | Accueil, génération séance, détail/timer, dashboard, settings, historique et programme capturés | Captures `docs/rncp/bloc2-annexes/screenshots/` |
+| Tests unitaires et coverage | Jobs CI verts ; dernière mesure locale API à 88.1% statements, 95.08% functions | B2-A17/B2-A18 |
+| Typecheck/build/Docker | Jobs CI verts sur `main` | Run `29489995458` |
+
+Décision : le Bloc 2 est validable techniquement au 2026-07-16. Les points restants sont non bloquants : secret GitHub `VERCEL_TOKEN` à renouveler si le workflow CD custom doit être vert, CR-013 à rejouer en coupure IA réelle si le jury exige cette preuve, warning SSL PostgreSQL à durcir en `sslmode=verify-full`, favicon à ajouter, E2E automatisé `generate.spec.ts` à relancer si une preuve Playwright exhaustive est exigée.
 
 ## 2. Environnements de déploiement et de test - C2.1.1
 
@@ -48,13 +70,15 @@ Critères qualité et performance retenus :
 
 | Critère | Cible | Mesure | Statut |
 |---|---:|---|---|
-| Tests Vitest | Succès | `pnpm test` | 71 tests passés le 2026-06-30 |
-| Couverture API statements | >= 70% | `pnpm test:coverage` | 82.33% le 2026-06-30 |
-| Build applicatif | Succès | `pnpm build` | Validé le 2026-06-30 |
-| Healthcheck API | HTTP 200, JSON `status: ok` | `GET /health` | Route présente |
-| Healthcheck Web | HTTP 200, JSON `status: ok` | `GET /api/health` | Route présente |
-| Temps génération IA | < 30 s en conditions normales | recette CR-010 | À mesurer en démonstration réelle |
-| E2E smoke publics/accessibilité | Succès | `pnpm test:e2e:smoke` | 48 tests passés le 2026-06-30 |
+| Tests Vitest | Succès | CI `Unit tests and coverage` | Job vert le 2026-07-16 |
+| Couverture API statements | >= 70% | Dernière mesure locale `pnpm test:coverage` | 88.1% le 2026-07-15 |
+| Build applicatif | Succès | CI `Build packages` | Job vert le 2026-07-16 |
+| Build Docker | Succès | CI `Docker image build` | Job vert le 2026-07-16 |
+| Healthcheck API | HTTP 200, JSON `status: ok` | `GET /health` | OK le 2026-07-16 |
+| Healthcheck Web | HTTP 200, JSON `status: ok` | `GET /api/health` | OK le 2026-07-16 |
+| Génération IA séance | Parcours réel production | recette CR-010 | OK le 2026-07-16 |
+| Génération IA programme | Parcours réel production | B2-A18 | OK le 2026-07-16 |
+| E2E smoke publics/accessibilité | Succès | CI `E2E smoke and accessibility` | Job vert le 2026-07-16 |
 
 ## 3. Protocole d'intégration continue - C2.1.2
 
@@ -84,7 +108,7 @@ Preuves :
 - `docs/ci-cd.md`
 - `package.json`
 
-Preuve à annexer : capture ou export d'une exécution CI verte récente. Sans cette capture, le dossier doit rester formulé comme "pipeline configuré" et non "dernière CI verte annexée".
+Preuve annexée : exécution `CI - Alcide` verte du 2026-07-16, run `29489995458`, commit `533f17b`, consolidée dans B2-A18.
 
 ## 4. Architecture logicielle maintenable
 
@@ -154,7 +178,7 @@ Routes et composants de preuve :
 - `apps/web/components/ProgramForm.tsx`
 - `apps/web/components/Timer.tsx`
 
-Captures à annexer :
+Captures annexées :
 
 | Capture | Objectif |
 |---|---|
@@ -162,7 +186,7 @@ Captures à annexer :
 | Génération d'entraînement | Montrer le formulaire, les validations et le parcours coeur |
 | Détail/timer | Montrer la valeur utilisateur et l'accessibilité dynamique |
 | Dashboard | Montrer les indicateurs utilisateur |
-| Mobile | Montrer l'adaptation responsive |
+| Génération programme | Montrer le cycle multi-semaines généré en production |
 
 ## 6. Frameworks et paradigmes
 
@@ -185,8 +209,8 @@ Le harnais de test unitaire couvre l'API et un composant Web critique.
 Référence documentaire actuelle :
 
 - `pnpm test` : 71 tests Vitest passés, dont 70 API et 1 Web ;
-- `pnpm test:coverage` : 82.33% statements API, 78.6% branches, 89.23% functions, 82.33% lines ;
-- `pnpm test:e2e:smoke` : 48 exécutions Playwright passées sur Chromium et Firefox ;
+- `pnpm test:coverage` : dernière mesure locale à 88.1% statements API, 79.34% branches, 95.08% functions, 88.1% lines ;
+- `pnpm test:e2e:smoke` : job CI `E2E smoke and accessibility` vert le 2026-07-16 ;
 - E2E complet : 56 exécutions listées, dont 8 exécutions `generate.spec.ts` encore à relancer si le total complet est annoncé.
 
 Suites principales :
@@ -206,7 +230,7 @@ Limites :
 
 - la couverture publiée est principalement API ;
 - les repositories DB ne sont pas tous couverts par des tests d'intégration dédiés ;
-- les E2E du parcours `generate.spec.ts` doivent encore être relancés si la preuve E2E complète est présentée.
+- les E2E automatisés du parcours `generate.spec.ts` doivent encore être relancés si la preuve E2E complète est présentée, même si les générations réelles séance/programme ont été validées en production.
 
 ## 8. Sécurité - C2.2.3
 
@@ -345,6 +369,6 @@ Annexes recommandées :
 
 ## 15. Conclusion Bloc 2
 
-Le Bloc 2 est techniquement solide : l'application existe, le code est structuré, les tests unitaires sont présents, la sécurité et l'accessibilité sont documentées, et le cahier de recettes couvre les principaux parcours. Les derniers risques portent surtout sur les preuves visuelles ou externes : capture CI, captures prototype, healthchecks datés, CR-013 en coupure IA réelle et E2E complet `generate.spec.ts`.
+Le Bloc 2 est techniquement solide : l'application existe, le code est structuré, les tests unitaires sont présents, la sécurité et l'accessibilité sont documentées, le cahier de recettes couvre les principaux parcours, et la production Vercel a été contrôlée le 2026-07-16 après correction des erreurs de build.
 
-Décision de préparation : le Bloc 2 peut être présenté comme prêt sur le fond avec les preuves d'exécution locales du 2026-06-30. Ne pas annoncer comme validés les éléments encore hors preuve : captures CI/prototype/healthchecks, CR-013 en coupure IA réelle et E2E complet `generate.spec.ts`.
+Décision finale : le Bloc 2 peut être présenté comme validable techniquement avec les preuves d'exécution locales, CI, production et visuelles consolidées dans B2-A17/B2-A18. Ne pas sur-vendre les points non rejoués : coupure IA réelle CR-013, E2E automatisé complet `generate.spec.ts` et CD GitHub custom tant que `VERCEL_TOKEN` n'est pas renouvelé. Ces points sont transparents, suivis et non bloquants pour la conformité fonctionnelle du Bloc 2.

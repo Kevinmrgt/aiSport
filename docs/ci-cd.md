@@ -1,6 +1,7 @@
 # CI/CD - Alcide
 
-> Date: 2026-05-04  
+> Date de vérification documentaire initiale : 2026-05-04
+> Dernière vérification opérationnelle Bloc 2 : 2026-07-16
 > Scope: GitHub Actions, Vercel, Neon, Docker
 
 ## Architecture retenue
@@ -9,8 +10,8 @@ Production actuelle:
 
 | Composant | Plateforme | URL |
 | --- | --- | --- |
-| Web Next.js | Vercel | `https://alcide-web.vercel.app` |
-| API Hono | Vercel | `https://alcide-api.vercel.app` |
+| Web Next.js | Vercel | `https://ai-sport-web.vercel.app` |
+| API Hono | Vercel | `https://ai-sport-api.vercel.app` |
 | PostgreSQL | Neon | configure via `DATABASE_URL` |
 
 Docker Compose et Fly.io restent supportes pour l'auto-hebergement ou une
@@ -60,7 +61,13 @@ lançable manuellement sans provoquer de faux echecs apres chaque CI.
 
 Le token `VERCEL_TOKEN` doit avoir acces au scope Vercel
 `kevinmrgts-projects`. Un token personnel sans ce scope ne peut pas lire les
-environnements ni deployer les projets `alcide-api` / `alcide-web`.
+environnements ni deployer les projets `ai-sport-api` / `ai-sport-web`.
+
+Etat Bloc 2 au 2026-07-16 :
+
+- `CI - Alcide` est verte sur `main`, run `29489995458`, commit `533f17b`.
+- `Monitoring - Production health` est vert, run `29496100988`.
+- `CD - Vercel` custom echoue encore au run `29490217892` car le token fourni a `vercel pull` est invalide. La production reste disponible et surveillee ; l'action restante est de regenerer `VERCEL_TOKEN` si le workflow CD GitHub doit etre utilise.
 
 Requis pour le workflow manuel DB:
 
@@ -94,16 +101,18 @@ trace explicite.
 Le workflow CD verifie:
 
 ```bash
-curl --fail https://alcide-api.vercel.app/health
-curl --fail https://alcide-web.vercel.app/api/health
+curl --fail https://ai-sport-api.vercel.app/health
+curl --fail https://ai-sport-web.vercel.app/api/health
 ```
 
 Pour un controle manuel plus complet:
 
 ```bash
-curl -I https://alcide-web.vercel.app
-curl https://alcide-api.vercel.app/health
+curl -I https://ai-sport-web.vercel.app
+curl https://ai-sport-api.vercel.app/health
 ```
+
+Preuve Bloc 2 finale : B2-A18 documente les healthchecks du 2026-07-16, la CI verte et les generations reelles seance/programme en production.
 
 ## Rollback
 

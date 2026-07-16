@@ -11,6 +11,7 @@
 *.sql text eol=lf encoding=utf-8
 
 # Fichiers binaires — pas de conversion
+*.pdf binary
 *.png binary
 *.jpg binary
 *.ico binary
