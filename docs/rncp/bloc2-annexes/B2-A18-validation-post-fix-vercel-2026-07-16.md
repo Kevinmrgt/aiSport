@@ -47,9 +47,12 @@ vercel project inspect ai-sport-api
 => Build Command: cd ../.. && pnpm --filter shared build && pnpm --filter api build
 => Output Directory: public
 => Install Command: cd ../.. && pnpm install --frozen-lockfile --prod=false
+PATCH Vercel API
+=> ai-sport-api.commandForIgnoringBuildStep = node ../../scripts/vercel-ignore-build.mjs api
+=> ai-sport-web.commandForIgnoringBuildStep = node ../../scripts/vercel-ignore-build.mjs web
 ```
 
-Decision : les reglages dashboard Vercel API sont alignes avec `apps/api/vercel.json`. Les previews documentaires peuvent etre ignorees par `scripts/vercel-ignore-build.mjs`, tandis que les builds production continuent obligatoirement.
+Decision : les reglages dashboard Vercel API sont alignes avec `apps/api/vercel.json`, et les deux projets Vercel utilisent le meme ignored build step que le repo. Les previews documentaires peuvent etre ignorees par `scripts/vercel-ignore-build.mjs`, tandis que les builds production continuent obligatoirement.
 
 ## 3. Healthchecks production
 
