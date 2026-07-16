@@ -2,7 +2,7 @@
 
 > Livrable RNCP Bloc 2 — Compétence C2.3.1 (ÉLIMINATOIRE)
 > Vérification documentaire initiale : 2026-05-07 — 33 scénarios CR documentés (numérotation discontinue de CR-001 à CR-044)
-> Dernier contrôle d'exécution : 2026-06-30
+> Dernier contrôle d'exécution : 2026-07-16
 
 ## Synthèse de verrouillage Bloc 2
 
@@ -12,8 +12,23 @@
 | Scénarios validés fonctionnellement ou par test automatisé | 32 |
 | Scénarios à relancer en condition réelle | 1 : CR-013 |
 | Tests Vitest de référence | 71 tests passés : 70 API + 1 Web |
-| Couverture API de référence | 82.33% statements, 89.23% functions |
-| E2E Playwright | 48 exécutions smoke passées ; le scénario `generate.spec.ts` reste à relancer pour annoncer le total complet de 56 |
+| Couverture API de référence | 88.1% statements, 95.08% functions ; historique 2026-06-30 à 82.33% statements |
+| E2E Playwright | Smoke/accessibilité vert en CI le 2026-07-16 ; le scénario automatisé `generate.spec.ts` reste à relancer pour annoncer le total complet de 56 |
+
+## Addendum de validation production - 2026-07-16
+
+| Point contrôlé | Résultat | Preuve |
+|---|---|---|
+| Healthcheck API production | OK : 200, `status:"ok"`, version `0.12.0` | `https://ai-sport-api.vercel.app/health` |
+| Healthcheck Web production | OK : 200, `status:"ok"`, version `0.12.0` | `https://ai-sport-web.vercel.app/api/health` |
+| CI GitHub main | OK : `CI - Alcide` verte sur commit `533f17b` | Annexe B2-A18, run `29489995458` |
+| Monitoring production | OK : healthchecks surveillés par GitHub Actions | Annexe B2-A18, run `29496100988` |
+| Génération d'entraînement OpenAI | OK : génération réelle en production, détail + timer affichés | Annexe B2-A18, `/workouts/f1d03237-7987-4fef-b8b8-145edc26ec61` |
+| Génération programme OpenAI | OK : programme 3 semaines et 9 séances planifiées | Annexe B2-A18, `/programs/e818c9a6-f09c-4387-972f-b8d2fc59327b` |
+| Clé OpenAI | OK : clé côté serveur uniquement, aucune clé utilisateur à saisir | Annexe B2-A17, absence de secret dans HTML/logs |
+| Tests unitaires et coverage | OK : jobs CI verts, dernière mesure API à 88.1% statements, 95.08% functions | Annexes B2-A17/B2-A18 |
+
+Conclusion recette : les scénarios Bloc 2 sont validables. Les relances restantes sont transparentes et non bloquantes : CR-013 en coupure IA réelle et E2E automatisé complet `generate.spec.ts` quand l'environnement local Node/pnpm est réparé.
 
 ## Format
 
@@ -128,12 +143,12 @@
 | RateLimitMiddleware | `rate-limit.middleware.test.ts` | 5 tests — quota, 429, Retry-After, isolation userId, A09 | ✅ |
 | ValidateEnv | `validate-env.test.ts` | 4 tests — variables obligatoires OK, erreur si SERVICE_SECRET ou DATABASE_URL manque, warning si OPENAI_API_KEY absente | ✅ |
 | HealthRoutes | `health.routes.test.ts` | 1 test — JSON healthcheck, version et cache-control | ✅ |
-| **Total API Vitest** | — | **70 tests · 82.33% statements · 89.23% functions** (`pnpm test:coverage`, 2026-06-30) | ✅ |
+| **Total API Vitest** | — | **70 tests · 88.1% statements · 95.08% functions** (dernière relance locale 2026-07-15 ; historique 2026-06-30 à 82.33%) | ✅ |
 | Web Vitest | `components/Timer.test.ts` | 1 test — timer | ✅ |
 | **Total `pnpm test`** | — | **71 tests passés** (70 API + 1 Web, 2026-06-30) | ✅ |
 | E2E home | `home.spec.ts` | 6 tests par navigateur — titre, skip link, nav, footer, /login | ✅ smoke 2026-06-30 |
 | E2E auth | `auth.spec.ts` | 6 tests par navigateur — Google button, routes protégées, 404 | ✅ smoke 2026-06-30 |
-| E2E generate | `generate.spec.ts` | 4 tests par navigateur — form labels, validation, aria-live (session mockée) | À relancer |
+| E2E generate | `generate.spec.ts` | 4 tests par navigateur — form labels, validation, aria-live (session mockée) | À relancer côté automatisation ; parcours réel production validé le 2026-07-16 |
 | E2E accessibility | `accessibility.spec.ts` | 10 tests par navigateur — RGAA 4.1 skip link, lang, sémantique, liens | ✅ smoke 2026-06-30 |
 | E2E axe-core | `axe.spec.ts` | 2 tests par navigateur — WCAG 2.1 A/AA violations / et /login | ✅ smoke 2026-06-30 |
 | **Total E2E smoke** | — | **48 exécutions Playwright passées** (24 cas × Chromium/Firefox, `pnpm test:e2e:smoke`, 2026-06-30) | ✅ |
