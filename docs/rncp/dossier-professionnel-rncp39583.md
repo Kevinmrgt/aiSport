@@ -123,17 +123,17 @@ Hors périmètre ou à renforcer :
 
 ## Stack technique
 
-| Couche | Technologie | Preuve |
-|---|---|---|
-| Frontend | Next.js 14, React, TypeScript, Tailwind CSS | [apps/web](../../apps/web/) |
-| Backend | Hono, TypeScript, architecture en couches | [apps/api/src](../../apps/api/src/) |
-| Base de données | PostgreSQL, Drizzle ORM | [schema.ts](../../apps/api/src/db/schema.ts) |
-| Authentification | Auth.js / NextAuth v5, OAuth Google | [auth.ts](../../apps/web/lib/auth.ts) |
-| IA | Mistral AI par défaut, OpenAI/Anthropic via clé utilisateur, validation Zod | [ADR-003](../adr/ADR-003-mistral-ai.md), `apps/api/src/services/ai.service.ts` |
-| Validation | Zod côté client, serveur et sortie IA | [packages/shared/src](../../packages/shared/src/) |
-| Tests | Vitest, Playwright, axe-core | [cahier de recettes](../bloc2/cahier-recettes.md) |
-| CI/CD | GitHub Actions, Vercel, Neon | [ci-cd.md](../ci-cd.md) |
-| Déploiement | Vercel Web/API, Neon PostgreSQL, Docker supporté | [deployment.md](../deployment.md) |
+| Couche           | Technologie                                                                 | Preuve                                                                         |
+| ---------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Frontend         | Next.js 14, React, TypeScript, Tailwind CSS                                 | [apps/web](../../apps/web/)                                                    |
+| Backend          | Hono, TypeScript, architecture en couches                                   | [apps/api/src](../../apps/api/src/)                                            |
+| Base de données  | PostgreSQL, Drizzle ORM                                                     | [schema.ts](../../apps/api/src/db/schema.ts)                                   |
+| Authentification | Auth.js / NextAuth v5, OAuth Google                                         | [auth.ts](../../apps/web/lib/auth.ts)                                          |
+| IA               | Mistral AI par défaut, OpenAI/Anthropic via clé utilisateur, validation Zod | [ADR-003](../adr/ADR-003-mistral-ai.md), `apps/api/src/services/ai.service.ts` |
+| Validation       | Zod côté client, serveur et sortie IA                                       | [packages/shared/src](../../packages/shared/src/)                              |
+| Tests            | Vitest, Playwright, axe-core                                                | [cahier de recettes](../bloc2/cahier-recettes.md)                              |
+| CI/CD            | GitHub Actions, Vercel, Neon                                                | [ci-cd.md](../ci-cd.md)                                                        |
+| Déploiement      | Vercel Web/API, Neon PostgreSQL, Docker supporté                            | [deployment.md](../deployment.md)                                              |
 
 ## Synthèse de l'architecture
 
@@ -181,14 +181,14 @@ Preuves existantes :
 
 Cartographie de travail à formaliser :
 
-| Partie prenante | Rôle dans le projet | Niveau d'implication constaté | Preuve existante |
-|---|---|---|---|
-| Utilisateur sportif | Utilise l'application pour générer et consulter des entraînements | Cible fonctionnelle | [README](../../README.md), [cahier de recettes](../bloc2/cahier-recettes.md) |
-| Candidat développeur | Analyse, conçoit, développe, teste, déploie et documente | Forte | [compte rendu d'activité](../bloc4/compte-rendu-activite.md) |
-| Jury RNCP | Évalue la conformité du projet | À préparer | [matrice RNCP](./matrice-conformite-rncp39583.md) |
-| Fournisseur IA Mistral | Génération des contenus sportifs | Dépendance technique | [ADR-003](../adr/ADR-003-mistral-ai.md) |
-| Google OAuth / Auth.js | Authentification utilisateur | Dépendance technique | [auth.ts](../../apps/web/lib/auth.ts) |
-| Vercel / Neon | Hébergement applicatif et base de données | Dépendance technique | [ci-cd.md](../ci-cd.md), [deployment.md](../deployment.md) |
+| Partie prenante        | Rôle dans le projet                                               | Niveau d'implication constaté | Preuve existante                                                             |
+| ---------------------- | ----------------------------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------- |
+| Utilisateur sportif    | Utilise l'application pour générer et consulter des entraînements | Cible fonctionnelle           | [README](../../README.md), [cahier de recettes](../bloc2/cahier-recettes.md) |
+| Candidat développeur   | Analyse, conçoit, développe, teste, déploie et documente          | Forte                         | [compte rendu d'activité](../bloc4/compte-rendu-activite.md)                 |
+| Jury RNCP              | Évalue la conformité du projet                                    | À préparer                    | [matrice RNCP](./matrice-conformite-rncp39583.md)                            |
+| Fournisseur IA Mistral | Génération des contenus sportifs                                  | Dépendance technique          | [ADR-003](../adr/ADR-003-mistral-ai.md)                                      |
+| Google OAuth / Auth.js | Authentification utilisateur                                      | Dépendance technique          | [auth.ts](../../apps/web/lib/auth.ts)                                        |
+| Vercel / Neon          | Hébergement applicatif et base de données                         | Dépendance technique          | [ci-cd.md](../ci-cd.md), [deployment.md](../deployment.md)                   |
 
 Écart / preuve à produire : il manque une cartographie officielle avec commanditaire réel ou fictif, niveau d'influence, attentes, contraintes, responsabilité et modalités de validation.
 
@@ -219,15 +219,15 @@ Preuves :
 
 Synthèse issue de la veille, des ADR et de la revue sécurité :
 
-| Type | Élément | Impact projet | Preuve |
-|---|---|---|---|
-| Opportunité | IA générative avec JSON mode | Personnalisation rapide des entraînements | [veille technologique](../bloc4/veille-technologique.md), [ADR-003](../adr/ADR-003-mistral-ai.md) |
-| Opportunité | Next.js App Router | Protection des secrets via Server Actions | [ADR-004](../adr/ADR-004-service-to-service-auth.md) |
-| Opportunité | Monorepo TypeScript | Contrats partagés, moins de désynchronisation | [ADR-001](../adr/ADR-001-monorepo-pnpm.md) |
-| Menace | Coût ou indisponibilité API IA | Dégradation de la génération | [ADR-003](../adr/ADR-003-mistral-ai.md) |
-| Menace | Prompt injection / sortie IA invalide | Données incohérentes ou risquées | [owasp-review.md](../security/owasp-review.md) |
-| Menace | Vendor lock-in Vercel/Neon | Risque de migration | [ADR-007](../adr/ADR-007-ci-cd-vercel-neon.md) |
-| Menace | Données utilisateur mal isolées | Risque OWASP A01 | [owasp-review.md](../security/owasp-review.md) |
+| Type        | Élément                               | Impact projet                                 | Preuve                                                                                            |
+| ----------- | ------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Opportunité | IA générative avec JSON mode          | Personnalisation rapide des entraînements     | [veille technologique](../bloc4/veille-technologique.md), [ADR-003](../adr/ADR-003-mistral-ai.md) |
+| Opportunité | Next.js App Router                    | Protection des secrets via Server Actions     | [ADR-004](../adr/ADR-004-service-to-service-auth.md)                                              |
+| Opportunité | Monorepo TypeScript                   | Contrats partagés, moins de désynchronisation | [ADR-001](../adr/ADR-001-monorepo-pnpm.md)                                                        |
+| Menace      | Coût ou indisponibilité API IA        | Dégradation de la génération                  | [ADR-003](../adr/ADR-003-mistral-ai.md)                                                           |
+| Menace      | Prompt injection / sortie IA invalide | Données incohérentes ou risquées              | [owasp-review.md](../security/owasp-review.md)                                                    |
+| Menace      | Vendor lock-in Vercel/Neon            | Risque de migration                           | [ADR-007](../adr/ADR-007-ci-cd-vercel-neon.md)                                                    |
+| Menace      | Données utilisateur mal isolées       | Risque OWASP A01                              | [owasp-review.md](../security/owasp-review.md)                                                    |
 
 Écart / preuve à produire : la SWOT officielle n'existe pas encore sous forme de matrice complète. Elle doit intégrer opportunités, menaces, adhérences, impact environnemental, sécurité, RGPD, coûts IA et sobriété.
 
@@ -259,14 +259,14 @@ Preuves :
 
 Risques déjà couverts par des preuves :
 
-| Risque | Mesure existante | Preuve |
-|---|---|---|
+| Risque                                   | Mesure existante                        | Preuve                                                                                       |
+| ---------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------- |
 | Accès aux données d'un autre utilisateur | ownership via `userId`, middleware auth | [owasp-review.md](../security/owasp-review.md), [schema.ts](../../apps/api/src/db/schema.ts) |
-| Sortie IA invalide | JSON mode + Zod + retry | [ADR-003](../adr/ADR-003-mistral-ai.md) |
-| Régression logicielle | tests unitaires, E2E, CI | [ci-cd.md](../ci-cd.md), [cahier de recettes](../bloc2/cahier-recettes.md) |
-| Déploiement non reproductible | Vercel prebuilt, Docker, docs | [deployment.md](../deployment.md), [ADR-007](../adr/ADR-007-ci-cd-vercel-neon.md) |
-| Bug bloquant CI | fiche anomalie et correction | [BUG-001](../bloc4/bugs/BUG-001-coverage-threshold.md) |
-| Encodage documentaire incorrect | fiche anomalie et `.gitattributes` | [BUG-002](../bloc4/bugs/BUG-002-readme-utf16.md) |
+| Sortie IA invalide                       | JSON mode + Zod + retry                 | [ADR-003](../adr/ADR-003-mistral-ai.md)                                                      |
+| Régression logicielle                    | tests unitaires, E2E, CI                | [ci-cd.md](../ci-cd.md), [cahier de recettes](../bloc2/cahier-recettes.md)                   |
+| Déploiement non reproductible            | Vercel prebuilt, Docker, docs           | [deployment.md](../deployment.md), [ADR-007](../adr/ADR-007-ci-cd-vercel-neon.md)            |
+| Bug bloquant CI                          | fiche anomalie et correction            | [BUG-001](../bloc4/bugs/BUG-001-coverage-threshold.md)                                       |
+| Encodage documentaire incorrect          | fiche anomalie et `.gitattributes`      | [BUG-002](../bloc4/bugs/BUG-002-readme-utf16.md)                                             |
 
 Écart / preuve à produire : il manque un registre unique des risques avec probabilité, impact, criticité, responsable, indicateur et plan de mitigation.
 
@@ -931,7 +931,7 @@ Processus actuellement déductible :
 - tests, typecheck, lint et build avant livraison
 - consignation dans changelog si modification notable
 
-Preuve créée : le processus complet de mise à jour est formalisé dans [bloc2-manuel-mise-a-jour.md](bloc2-manuel-mise-a-jour.md) : branche, dépendances, lecture changelog, audit, tests, migration éventuelle, déploiement, rollback et journalisation. Le contrôle `pnpm audit --audit-level=high` a été relancé le 2026-06-30 : 0 vulnérabilité high/critical, 2 low et 4 moderate restantes à suivre.
+Preuve créée : le processus complet de mise à jour est formalisé dans [bloc2-manuel-mise-a-jour.md](bloc2-manuel-mise-a-jour.md) : branche, dépendances, lecture changelog, audit, tests, migration éventuelle, déploiement, rollback et journalisation. Le contrôle historique du 2026-06-30 comptait 2 alertes low et 4 moderate ; le contrôle local du 2026-07-20 sur la candidate `0.13.0-rc.2`, exécuté avec `pnpm audit --audit-level=low`, ne remonte plus aucune vulnérabilité connue. La CI du SHA final doit confirmer ce résultat.
 
 ## CI/CD et audit
 
@@ -987,10 +987,10 @@ Les fiches existantes contiennent description, contexte, cause racine, reproduct
 
 Anomalies prouvées :
 
-| Anomalie | Sévérité | Statut | Preuve |
-|---|---|---|---|
+| Anomalie                         | Sévérité    | Statut | Preuve                                                 |
+| -------------------------------- | ----------- | ------ | ------------------------------------------------------ |
 | Coverage CI à 54% sous seuil 70% | Bloquant CI | Résolu | [BUG-001](../bloc4/bugs/BUG-001-coverage-threshold.md) |
-| README encodé en UTF-16 LE | Modéré | Résolu | [BUG-002](../bloc4/bugs/BUG-002-readme-utf16.md) |
+| README encodé en UTF-16 LE       | Modéré      | Résolu | [BUG-002](../bloc4/bugs/BUG-002-readme-utf16.md)       |
 
 Point fort : BUG-001 est un excellent cas Bloc 4 car il relie incident, CI, cause racine, correction et validation.
 
@@ -1062,25 +1062,25 @@ Le Bloc 4 dispose de preuves solides sur les bugs, les correctifs, la CI/CD, le 
 
 ## Niveau de couverture par bloc
 
-| Bloc officiel RNCP39583 | Couverture actuelle | Justification |
-|---|---|---|
-| Bloc 1 — Cadrer un projet de développement d'applications logicielles | À renforcer | Les preuves techniques existent, mais le cadrage client, le budget, la charge, les risques et les préconisations ne sont pas encore formalisés. |
-| Bloc 2 — Concevoir et développer des applications logicielles | OK | Code, architecture, tests, CI/CD, sécurité, accessibilité, cahier de recettes et déploiement sont prouvés ; les contrôles locaux du 2026-06-30 sont verts, hors `generate.spec.ts` E2E complet et CR-013 en coupure IA réelle. |
-| Bloc 3 — Coordonner et piloter un projet de développement d'applications logicielles | À renforcer | La conduite itérative est réelle, mais le pilotage officiel, les outils de suivi, l'équipe, les comptes rendus client et les indicateurs de satisfaction sont insuffisamment prouvés. |
-| Bloc 4 — Maintenir l'application logicielle en condition opérationnelle | Partiel | Bugs, changelog, correctifs et CI/CD sont solides ; supervision/alerting, processus anomalies et support client doivent être renforcés. |
+| Bloc officiel RNCP39583                                                              | Couverture actuelle | Justification                                                                                                                                                                                                                  |
+| ------------------------------------------------------------------------------------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Bloc 1 — Cadrer un projet de développement d'applications logicielles                | À renforcer         | Les preuves techniques existent, mais le cadrage client, le budget, la charge, les risques et les préconisations ne sont pas encore formalisés.                                                                                |
+| Bloc 2 — Concevoir et développer des applications logicielles                        | OK                  | Code, architecture, tests, CI/CD, sécurité, accessibilité, cahier de recettes et déploiement sont prouvés ; les contrôles locaux du 2026-06-30 sont verts, hors `generate.spec.ts` E2E complet et CR-013 en coupure IA réelle. |
+| Bloc 3 — Coordonner et piloter un projet de développement d'applications logicielles | À renforcer         | La conduite itérative est réelle, mais le pilotage officiel, les outils de suivi, l'équipe, les comptes rendus client et les indicateurs de satisfaction sont insuffisamment prouvés.                                          |
+| Bloc 4 — Maintenir l'application logicielle en condition opérationnelle              | Partiel             | Bugs, changelog, correctifs et CI/CD sont solides ; supervision/alerting, processus anomalies et support client doivent être renforcés.                                                                                        |
 
 ## Risques restants
 
-| Risque | Bloc concerné | Niveau | Action attendue |
-|---|---|---|---|
-| Compétences éliminatoires Bloc 1 insuffisamment formalisées | Bloc 1 | Élevé | Produire support cadrage complet |
-| Budget et charge absents | Bloc 1 | Élevé | Créer estimation prévisionnelle et budget |
-| Pilotage projet trop rétrospectif | Bloc 3 | Élevé | Créer planning prévu/réel et tableau de bord |
-| Équipe et compétences non démontrées | Bloc 3 | Élevé | Produire RACI, grille compétences et plan de montée en compétences |
-| Alerting externe absent | Bloc 4 | Moyen à élevé | Formaliser ou mettre en place une supervision |
-| Support client absent | Bloc 4 | Moyen | Produire un cas support traçable |
-| Chiffres et versions incohérents | Tous | Moyen | Harmoniser README, dossier, CRA, changelog, deployment |
-| Tests DB non automatisés | Bloc 2 / Bloc 4 | Moyen | Documenter limite ou ajouter tests d'intégration |
+| Risque                                                      | Bloc concerné   | Niveau        | Action attendue                                                    |
+| ----------------------------------------------------------- | --------------- | ------------- | ------------------------------------------------------------------ |
+| Compétences éliminatoires Bloc 1 insuffisamment formalisées | Bloc 1          | Élevé         | Produire support cadrage complet                                   |
+| Budget et charge absents                                    | Bloc 1          | Élevé         | Créer estimation prévisionnelle et budget                          |
+| Pilotage projet trop rétrospectif                           | Bloc 3          | Élevé         | Créer planning prévu/réel et tableau de bord                       |
+| Équipe et compétences non démontrées                        | Bloc 3          | Élevé         | Produire RACI, grille compétences et plan de montée en compétences |
+| Alerting externe absent                                     | Bloc 4          | Moyen à élevé | Formaliser ou mettre en place une supervision                      |
+| Support client absent                                       | Bloc 4          | Moyen         | Produire un cas support traçable                                   |
+| Chiffres et versions incohérents                            | Tous            | Moyen         | Harmoniser README, dossier, CRA, changelog, deployment             |
+| Tests DB non automatisés                                    | Bloc 2 / Bloc 4 | Moyen         | Documenter limite ou ajouter tests d'intégration                   |
 
 ## Incohérences à corriger avant dépôt
 

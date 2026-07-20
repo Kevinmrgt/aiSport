@@ -1,7 +1,7 @@
 {
   "name": "alcide",
   "private": true,
-  "version": "0.13.0-rc.1",
+  "version": "0.13.0-rc.2",
   "description": "Coach IA personnel qui prépare des entraînements sportifs personnalisés",
   "packageManager": "pnpm@11.9.0",
   "scripts": {
@@ -17,6 +17,7 @@
     "test:e2e": "pnpm --filter shared build && pnpm --filter web test:e2e",
     "test:e2e:smoke": "pnpm --filter shared build && pnpm --filter web exec playwright test tests/e2e/home.spec.ts tests/e2e/auth.spec.ts tests/e2e/accessibility.spec.ts tests/e2e/axe.spec.ts",
     "test:e2e:evidence": "pnpm --filter shared build && pnpm --filter web test:e2e:evidence",
+    "test:vercel-ignore": "node --test scripts/vercel-ignore-policy.test.mjs",
     "test:coverage": "pnpm --filter shared build && pnpm --filter api test:coverage && pnpm --filter web test:coverage",
     "lint": "pnpm --recursive lint",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore",
