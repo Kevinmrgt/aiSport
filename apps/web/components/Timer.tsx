@@ -222,6 +222,19 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
     }
   }, []);
 
+  const restoreFullscreenTriggerFocus = useCallback(() => {
+    const originalTrigger = fullscreenTriggerRef.current;
+    const currentTrigger = timerContainerRef.current?.querySelector<HTMLElement>(
+      '[data-timer-fullscreen-trigger]',
+    );
+
+    // Switching between the inline render and the portal replaces the original
+    // button. Prefer it when it still exists, otherwise focus its live counterpart.
+    const focusTarget = originalTrigger?.isConnected ? originalTrigger : currentTrigger;
+    focusTarget?.focus();
+    fullscreenTriggerRef.current = null;
+  }, []);
+
   const exitFullscreen = useCallback(async () => {
     setIsFullscreen(false);
     nativeFullscreenActiveRef.current = false;
@@ -356,10 +369,9 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      fullscreenTriggerRef.current?.focus();
-      fullscreenTriggerRef.current = null;
+      restoreFullscreenTriggerFocus();
     };
-  }, [exitFullscreen, isFullscreen]);
+  }, [exitFullscreen, isFullscreen, restoreFullscreenTriggerFocus]);
 
   useEffect(() => {
     if (!currentStep || currentStep.durationSeconds === null || !isRunning || done) return;
@@ -611,6 +623,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
         <Button
           variant="primary"
           size="lg"
+          data-timer-fullscreen-trigger
           className="w-full sm:min-w-44"
           onClick={() => {
             if (hasStepTimer) {
