@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema.js';
+import { normalizeDatabaseUrl } from './database-url.js';
 
 // OWASP A02: connexion via variable d'env uniquement, jamais hardcodée
 const databaseUrl = process.env['DATABASE_URL'];
@@ -9,7 +10,7 @@ if (!databaseUrl) {
 }
 
 const pool = new Pool({
-  connectionString: databaseUrl,
+  connectionString: normalizeDatabaseUrl(databaseUrl),
   // Serverless-optimisé : peu de connexions, expiration rapide
   max: 3,
   idleTimeoutMillis: 5_000,
