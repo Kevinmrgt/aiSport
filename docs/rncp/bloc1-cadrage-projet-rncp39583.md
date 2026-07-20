@@ -347,7 +347,7 @@ Avis global : **faisable pour un MVP web certifiant et un pilote client limité*
 | Base de données | Forte | PostgreSQL + Drizzle, migrations versionnées, schéma utilisateur/workout/program/session | Gestion migration production et sauvegardes |
 | IA | Moyenne à forte | Mistral/OpenAI/Anthropic via service commun, validation Zod | Coût, quotas, latence, qualité de sortie |
 | Sécurité | Forte pour MVP | OWASP documenté, secrets, auth, ownership, fail-fast | Durcir pour production multi-tenant |
-| Déploiement cloud | Forte | Vercel Web/API + Neon documentés, workflows GitHub Actions | Secrets, quotas et migrations manuelles |
+| Déploiement cloud | Forte | Vercel Web/API + Neon documentés, workflows GitHub Actions | Secrets, quotas et migration automatique à vérifier en production |
 | Sobriété | Moyenne | Cloud managé, serverless, rate limiting | Pas de mesure carbone réelle |
 
 ### 8.2 Contraintes identifiées
@@ -359,7 +359,7 @@ Avis global : **faisable pour un MVP web certifiant et un pilote client limité*
 | Sécurité | Ne jamais appeler l'IA depuis le navigateur, conserver les secrets côté serveur |
 | Qualité IA | Refuser les sorties invalides plutôt que persister des données non conformes |
 | Exploitabilité jury | Conserver preuves : ADR, CI, cahier de recettes, sécurité, changelog |
-| Production | Déployer Web/API sur Vercel et base sur Neon, migrations manuelles protégées |
+| Production | Déployer Web/API sur Vercel et base sur Neon, migration bloquante avant l'API et reprise manuelle disponible |
 
 ### 8.3 Décision de lancement
 
@@ -440,7 +440,7 @@ Preuves : `docs/adr/ADR-003-mistral-ai.md`, `apps/api/src/services/ai.service.ts
 
 | Option | Avantages | Limites | Impact sécurité / maintenabilité / coût | Décision |
 |---|---|---|---|---|
-| **Vercel Web/API + Neon PostgreSQL** | Déploiement rapide, HTTPS, previews, PostgreSQL managé, workflows existants | Vendor lock-in, quotas, fonctions serverless | Faible coût prototype, rollback Vercel, migrations Neon séparées | **Retenu comme cible canonique** |
+| **Vercel Web/API + Neon PostgreSQL** | Déploiement rapide, HTTPS, previews, PostgreSQL managé, workflows existants | Vendor lock-in, quotas, fonctions serverless | Faible coût prototype, rollback Vercel, migrations Neon exécutées avant l'API | **Retenu comme cible canonique** |
 | Fly.io + Neon | Docker, région EU, contrôle API | Configuration plus manuelle | Portable, mais cible secondaire | Supporté |
 | Railway | Simple | Coût/free tier variable selon période | À vérifier avant choix client | Non retenu comme cible canonique |
 | VPS Docker | Contrôle fort, coût prévisible | Maintenance SSL, backups, monitoring | Plus de responsabilité sécurité | Alternative industrialisation |

@@ -222,7 +222,7 @@ Le projet ne contient pas de capture d'un outil Kanban externe. Le suivi est don
 | Suivi des décisions | `docs/adr/` | Arbitrages documentés et conséquences |
 | Suivi des anomalies | `docs/bloc4/bugs/BUG-001-coverage-threshold.md`, `BUG-002-readme-utf16.md` | Incidents, causes, corrections, validations |
 | Suivi qualité | `.github/workflows/ci.yml`, `docs/ci-cd.md` | Lint, typecheck, coverage, build, audit, E2E smoke |
-| Suivi déploiement | `.github/workflows/deploy-vercel.yml`, `db-migrate.yml` | Déploiement API/Web, smoke tests, migrations manuelles |
+| Suivi déploiement | `.github/workflows/deploy-vercel.yml`, `db-migrate.yml` | Migration bloquante, déploiement API/Web, smoke tests, reprise manuelle |
 | Suivi Kanban daté | `docs/rncp/preuve-suivi-projet-2026-05-07.md` | Export Kanban, tableau de pilotage, preuve de redeploiement API et `/health` en `0.12.0` |
 
 À présenter au jury : "L'outil de suivi principal est reconstitué dans le dépôt par des artefacts versionnés. Une preuve datée de type export Kanban / tableau de pilotage a été ajoutée pour la soutenance ; pour une équipe réelle, ce système serait complété par un tableau GitHub Projects ou Jira."
@@ -439,7 +439,7 @@ Ces comptes rendus sont des **supports de soutenance reconstitués** à partir d
 | Coût ou indisponibilité IA | Moyenne | Moyen | Rate limit, plan B seed, clé utilisateur dans settings | `rate-limit.middleware.ts`, `seed.ts`, `settings.routes.ts` |
 | Accès aux données d'un autre utilisateur | Faible à moyenne | Élevé | `userId`, ownership repository, auth middleware | `schema.ts`, `auth.middleware.ts`, tests ownership |
 | Régression logicielle | Moyenne | Élevé | Vitest, Playwright, CI, coverage 70% | `.github/workflows/ci.yml`, `pnpm test` |
-| Échec de déploiement | Moyenne | Élevé | Vercel prebuilt, smoke tests, migrations séparées | `deploy-vercel.yml`, `db-migrate.yml` |
+| Échec de déploiement | Moyenne | Élevé | Migration bloquante, Vercel prebuilt, smoke tests, reprise manuelle | `deploy-vercel.yml`, `db-migrate.yml` |
 | Démo bloquée par réseau ou OAuth | Moyenne | Élevé soutenance | Démo locale, données seed, captures alternatives, healthchecks | `docs/deployment.md`, `seed.ts`, script démo |
 | Incohérence documentaire | Moyenne | Moyen jury | Matrice RNCP, consolidation Bloc 3, liste d'écarts | `matrice-conformite-rncp39583.md`, section 15 |
 | Accessibilité insuffisante | Faible à moyenne | Moyen | Tests RGAA, axe-core, navigation clavier | `accessibility.spec.ts`, `axe.spec.ts` |
