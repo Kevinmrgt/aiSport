@@ -55,6 +55,9 @@ jobs:
       - name: Test Vercel deployment policy
         run: pnpm test:vercel-ignore
 
+      - name: Test authenticated E2E storage policy
+        run: pnpm test:e2e:auth-policy
+
   test-unit:
     name: Unit tests and coverage
     runs-on: ubuntu-latest

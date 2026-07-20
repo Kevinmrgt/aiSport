@@ -11,10 +11,13 @@ function validateAuthenticatedStorageState(storagePath: string): void {
   const state = JSON.parse(readFileSync(storagePath, 'utf8')) as {
     cookies?: Array<{ name?: string; value?: string }>;
   };
+  const sessionCookieNames = ['authjs.session-token', '__Secure-authjs.session-token'];
   const hasAuthSession = state.cookies?.some(
     (cookie) =>
       Boolean(cookie.value) &&
-      ['authjs.session-token', '__Secure-authjs.session-token'].includes(cookie.name ?? ''),
+      sessionCookieNames.some(
+        (name) => cookie.name === name || cookie.name?.startsWith(`${name}.`),
+      ),
   );
 
   if (!hasAuthSession) {
@@ -24,14 +27,24 @@ function validateAuthenticatedStorageState(storagePath: string): void {
   }
 }
 
+const expectedEmail = process.env['E2E_AUTH_EMAIL']?.trim().toLowerCase();
+
 // Cette suite ne simule pas une authentification : elle exige un storageState
-// issu d'un compte OAuth de test dedie. Sans lui, les tests sont marques ignores.
+// issu d'un compte OAuth de test dédié et vérifie son identité via Auth.js.
 test.describe('Formulaire de generation (session OAuth de test requise)', () => {
   test.skip(!sessionFile, 'PLAYWRIGHT_AUTH_STORAGE non fourni : suite authentifiee non executee.');
   test.use({ storageState: sessionFile ?? { cookies: [], origins: [] } });
 
   test.beforeAll(() => {
     if (sessionFile) validateAuthenticatedStorageState(sessionFile);
+  });
+
+  test.beforeEach(async ({ request }) => {
+    expect(expectedEmail, 'E2E_AUTH_EMAIL est obligatoire').toBeTruthy();
+    const response = await request.get('/api/auth/session');
+    expect(response.ok(), 'La session Auth.js doit être valide').toBeTruthy();
+    const session = (await response.json()) as { user?: { email?: string | null } };
+    expect(session.user?.email?.trim().toLowerCase()).toBe(expectedEmail);
   });
 
   test('affiche le formulaire de generation apres connexion', async ({ page }) => {
