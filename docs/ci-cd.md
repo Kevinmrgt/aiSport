@@ -77,8 +77,11 @@ migration échouée arrête donc le déploiement. Le workflow manuel
 `DB - Drizzle migrations` reste disponible pour une intervention contrôlée ou
 une reprise. Au relevé du 2026-07-20, l'environnement GitHub `production`
 n'avait ni règle de protection ni approbateur : il ne faut pas présenter ce
-rattachement comme une validation humaine bloquante. L'exécution réelle de ce
-nouvel enchaînement doit être prouvée par le run CD du SHA candidat.
+rattachement comme une validation humaine bloquante. L'enchaînement est prouvé
+sur le SHA `4151b80cc6d164c38549e753f7b960ec4914f519` par la CI `29740673466`
+puis la CD `29740979781`. Les tentatives Git de production ont été annulées et
+une seule production GitHub Actions est arrivée à l'état `READY` pour l'API et
+le Web.
 
 ## Secrets et variables
 
@@ -119,5 +122,5 @@ Après rollback, rejouer liveness, readiness et le parcours métier concerné.
 ## État des preuves
 
 Le run CI `29489995458` et le run CD en échec `29490217892` décrivent l'état du
-2026-07-16. Ils ne doivent pas être réutilisés comme validation de la version
-candidate. Le manifeste final recevra les nouveaux liens CI/CD du SHA remis.
+2026-07-16 et restent historiques. Les preuves courantes sont la CI
+`29740673466` et la CD `29740979781`, toutes deux réussies le 2026-07-20.

@@ -2,7 +2,7 @@
 
 > Date d'exécution locale : 2026-07-20
 > Candidate : `0.13.0-rc.2`
-> Contexte : arbre de travail `codex/finalize-zero-fiction`, avant commit final
+> SHA applicatif validé et déployé : `4151b80cc6d164c38549e753f7b960ec4914f519`
 
 ## Objet
 
@@ -45,8 +45,23 @@ Versions de correction résolues dans `pnpm-lock.yaml` : Babel `8.0.1`,
 brace-expansion `5.0.6`, esbuild `0.25.12` et `0.28.1`, js-yaml `4.3.0`,
 PostCSS `8.5.20`.
 
+## Validation distante et production
+
+| Preuve              | Résultat réel                                                     |
+| ------------------- | ----------------------------------------------------------------- |
+| CI `main`           | run `29740673466`, succès sur les 6 jobs                          |
+| Audit distant       | succès avec seuil bloquant `low`                                  |
+| CD Vercel           | run `29740979781`, migration + API + Web réussis                  |
+| Intégration Git API | production automatique `dpl_5mrSuitYwdKEmwpvzh7vU9Cp9BFB` annulée |
+| CD canonique API    | production `dpl_GKNpqDoHMHkBwUSfMyWZa7q7iUXZ` prête               |
+| Intégration Git Web | production automatique `dpl_5xgYantaAdLn89GDgRgDSwuUmrPt` annulée |
+| CD canonique Web    | production `dpl_3dryqiaD8LB7d4cYSYDuBVR7gTVM` prête               |
+
+Pour ce SHA, un seul déploiement de production a donc abouti par projet. Les
+deployments Web `target=null` observés dans la même période sont des previews
+Dependabot et ne sont pas comptés comme productions.
+
 ## Limite explicite
 
-Cette annexe est une preuve locale sur arbre de travail. Elle ne remplace ni la
-CI du SHA final, ni l'observation du prochain déploiement Vercel. Ces deux
-preuves doivent être ajoutées après fusion.
+Cette preuve ne couvre pas la saisie d'un compte Google, les parcours métier
+authentifiés ni l'audit humain RGAA avec lecteur d'écran.
