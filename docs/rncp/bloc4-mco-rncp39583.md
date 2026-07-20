@@ -205,7 +205,8 @@ Vérification locale réelle du 2026-07-20 sur `0.13.0-rc.2` :
 `pnpm audit --audit-level=low` termine avec le code 0 et ne remonte aucune
 vulnérabilité connue. Les six alertes low/moderate du lockfile précédent ont été
 corrigées par des overrides ciblés ; lint, typecheck, tests, build et Drizzle
-ont ensuite été validés. La CI du SHA final reste la preuve distante attendue.
+ont ensuite été validés. La CI `main` `29740673466` a confirmé l'audit, les
+tests et les builds ; la CD `29740979781` a déployé la candidate.
 
 ---
 

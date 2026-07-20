@@ -66,10 +66,11 @@ DATABASE_URL
 ```
 
 Le token doit autoriser `vercel pull/build/deploy` sur les deux projets. Le run
-CD `29721620945`, déclenché manuellement le 2026-07-20 sur l'ancien SHA
-`533f17b`, a réussi : il prouve que le token fonctionnait pour ce run, mais ne
-valide pas la version candidate non commitée. L'échec au token invalide du
-2026-07-16 reste uniquement un fait historique.
+CD `29740979781`, déclenché automatiquement après la CI `29740673466`, a réussi
+sur le SHA `4151b80cc6d164c38549e753f7b960ec4914f519` : migration, API, Web et
+smoke tests de production. Les productions automatiques de l'intégration Git
+sur ce même SHA ont été annulées par `ignoreCommand`, puis une seule production
+GitHub Actions a abouti par projet.
 
 ## Deploiement manuel Vercel
 
@@ -126,15 +127,15 @@ curl -I https://ai-sport-web.vercel.app
 
 Checklist:
 
-- [ ] CI verte sur le SHA final de la version candidate
-- [ ] Migrations Drizzle appliquees si le schema a change
-- [ ] `SERVICE_SECRET` identique cote Web et API
-- [ ] OAuth Google callback: `https://ai-sport-web.vercel.app/api/auth/callback/google`
-- [ ] API liveness et readiness HTTP 200 après déploiement du SHA final
-- [ ] Web healthcheck HTTP 200 après déploiement du SHA final
+- [x] CI verte sur le SHA applicatif livré
+- [x] Migrations Drizzle appliquées par la CD
+- [x] `SERVICE_SECRET` cohérent côté Web et API, prouvé par les smoke tests service-to-service
+- [x] OAuth Google démarre avec le callback `https://ai-sport-web.vercel.app/api/auth/callback/google`
+- [x] API liveness et readiness HTTP 200 après déploiement
+- [x] Web healthcheck HTTP 200 après déploiement
 - [ ] Génération d'une séance testée avec un compte authentifié sur le SHA final
 - [ ] Génération d'un programme testée avec un compte authentifié sur le SHA final
-- [ ] run CD automatique vert sur le SHA final (ne régénérer le token qu'en cas d'échec d'authentification constaté)
+- [x] run CD automatique vert sur le SHA applicatif livré (`29740979781`)
 
 ## Alternative Docker Compose
 
