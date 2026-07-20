@@ -2,7 +2,7 @@ import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
-import { serverApi } from '@/lib/server-api';
+import { isServerApiNotFound, serverApi } from '@/lib/server-api';
 import { Timer } from '@/components/Timer';
 import { WorkoutTimeline } from '@/components/WorkoutTimeline';
 import { GlassPanel, MetricPill } from '@/components/PremiumPrimitives';
@@ -30,8 +30,11 @@ export default async function WorkoutDetailPage({ params }: WorkoutPageProps) {
   let workout;
   try {
     workout = await serverApi.getWorkout(id);
-  } catch {
-    notFound();
+  } catch (error) {
+    if (isServerApiNotFound(error)) {
+      notFound();
+    }
+    throw error;
   }
 
   const workoutSessionMeta = {
@@ -43,7 +46,9 @@ export default async function WorkoutDetailPage({ params }: WorkoutPageProps) {
     plannedDurationMinutes: workout.durationMinutes,
   } as const;
 
-  async function completeWorkout(payload: CreateSessionLogInput): Promise<{ error?: string } | void> {
+  async function completeWorkout(
+    payload: CreateSessionLogInput,
+  ): Promise<{ error?: string } | void> {
     'use server';
     try {
       await serverApi.createSessionLog({
@@ -78,12 +83,13 @@ export default async function WorkoutDetailPage({ params }: WorkoutPageProps) {
         <h1 className="page-title max-w-3xl">{workout.title}</h1>
         <div className="mobile-header-metrics mt-6 grid gap-2 sm:grid-cols-3">
           <MetricPill icon="activity" label="Sport" value={workout.sport} tone="lime" />
+          <MetricPill icon="target" label="Niveau" value={DIFFICULTY_LABELS[workout.difficulty]} />
           <MetricPill
-            icon="target"
-            label="Niveau"
-            value={DIFFICULTY_LABELS[workout.difficulty]}
+            icon="timer"
+            label="Duree"
+            value={`${workout.durationMinutes} min`}
+            tone="orange"
           />
-          <MetricPill icon="timer" label="Duree" value={`${workout.durationMinutes} min`} tone="orange" />
         </div>
       </header>
 

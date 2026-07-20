@@ -35,13 +35,7 @@ export default async function DashboardPage() {
 
   const [stats, sessionStats] = await Promise.all([
     serverApi.getStats(),
-    serverApi.getSessionLogStats().catch(() => ({
-      totalCompleted: 0,
-      totalDurationSeconds: 0,
-      averageEffort: null,
-      feedbackCounts: { too_easy: 0, good: 0, too_hard: 0 },
-      lastCompletedAt: null,
-    })),
+    serverApi.getSessionLogStats(),
   ]);
 
   const topLevel = (() => {
@@ -140,9 +134,23 @@ export default async function DashboardPage() {
                   </dd>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  <MetricPill icon="check" label="Facile" value={`${sessionStats.feedbackCounts.too_easy}`} />
-                  <MetricPill icon="target" label="Dose" value={`${sessionStats.feedbackCounts.good}`} tone="lime" />
-                  <MetricPill icon="flame" label="Dur" value={`${sessionStats.feedbackCounts.too_hard}`} tone="orange" />
+                  <MetricPill
+                    icon="check"
+                    label="Facile"
+                    value={`${sessionStats.feedbackCounts.too_easy}`}
+                  />
+                  <MetricPill
+                    icon="target"
+                    label="Dose"
+                    value={`${sessionStats.feedbackCounts.good}`}
+                    tone="lime"
+                  />
+                  <MetricPill
+                    icon="flame"
+                    label="Dur"
+                    value={`${sessionStats.feedbackCounts.too_hard}`}
+                    tone="orange"
+                  />
                 </div>
               </dl>
             </GlassPanel>
@@ -157,7 +165,10 @@ export default async function DashboardPage() {
               </div>
               <dl className="space-y-2">
                 {Object.entries(stats.byLevel).map(([level, count]) => (
-                  <div key={level} className="flex items-center justify-between gap-4 rounded-full bg-zinc-950/[0.42] px-3 py-2">
+                  <div
+                    key={level}
+                    className="flex items-center justify-between gap-4 rounded-full bg-zinc-950/[0.42] px-3 py-2"
+                  >
                     <dt className="text-sm text-zinc-300">{LEVEL_LABELS[level] ?? level}</dt>
                     <dd className="text-sm font-black tabular-nums text-primary-300">{count}</dd>
                   </div>
@@ -170,7 +181,10 @@ export default async function DashboardPage() {
               <dl className="space-y-2">
                 {topSports.length > 0 ? (
                   topSports.map(([sport, count]) => (
-                    <div key={sport} className="flex items-center justify-between gap-4 rounded-full bg-zinc-950/[0.42] px-3 py-2">
+                    <div
+                      key={sport}
+                      className="flex items-center justify-between gap-4 rounded-full bg-zinc-950/[0.42] px-3 py-2"
+                    >
                       <dt className="text-sm capitalize text-zinc-300">{sport}</dt>
                       <dd className="text-sm font-black tabular-nums text-primary-300">{count}</dd>
                     </div>

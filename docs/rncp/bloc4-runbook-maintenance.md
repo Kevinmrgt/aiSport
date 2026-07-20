@@ -260,10 +260,14 @@ Procédure recommandée :
 1. Vérifier que la PR applicative est validée.
 2. Vérifier la nature de la migration : additive, destructive, renommage, transformation.
 3. Créer une branche ou sauvegarde Neon si la migration est sensible.
-4. Lancer le workflow manuel `DB - Drizzle migrations`.
-5. Vérifier les logs GitHub Actions.
+4. Fusionner seulement après une CI verte : le job `migrate-db` du workflow CD
+   applique alors la migration avant tout déploiement API.
+5. Vérifier le succès du job `migrate-db` dans les logs GitHub Actions.
 6. Vérifier les healthchecks API/Web.
 7. Tester un parcours authentifié si le changement touche les données.
+
+Le workflow manuel `DB - Drizzle migrations` est conservé pour une reprise ou
+une migration isolée explicitement autorisée.
 
 Commande locale contre production uniquement si la cible `DATABASE_URL` est volontairement configurée :
 
@@ -282,15 +286,16 @@ Ne pas lancer une migration production depuis un terminal local sans validation 
 Flux canonique :
 
 ```text
-main -> CI - Alcide -> CD - Vercel -> API -> Web -> smoke tests
+main -> CI - Alcide -> migration DB -> API -> smoke API -> Web -> smoke Web
 ```
 
 Conditions :
 
 - CI verte.
 - Secrets Vercel configurés.
+- Secret `DATABASE_URL` configuré.
 - `ENABLE_GHA_VERCEL_CD=true` si CD automatique souhaitée après CI verte.
-- Migrations appliquées avant ou pendant la fenêtre de livraison si le schéma a changé.
+- Migration Drizzle réussie ; son échec bloque les déploiements API et Web.
 
 ### 9.2 Déploiement manuel API
 

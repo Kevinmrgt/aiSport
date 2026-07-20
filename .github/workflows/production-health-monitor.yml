@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  API_HEALTH_URL: ${{ vars.PROD_API_HEALTH_URL || 'https://ai-sport-api.vercel.app/health' }}
+  API_HEALTH_URL: ${{ vars.PROD_API_HEALTH_URL || 'https://ai-sport-api.vercel.app/health/ready' }}
   WEB_HEALTH_URL: ${{ vars.PROD_WEB_HEALTH_URL || 'https://ai-sport-web.vercel.app/api/health' }}
 
 jobs:
@@ -42,6 +42,7 @@ jobs:
           check_endpoint() {
             local name="$1"
             local url="$2"
+            local expected_status="$3"
             local output_file="monitoring-report/${name}.json"
             local http_code
 
@@ -60,19 +61,19 @@ jobs:
               echo "## ${name}"
               echo
               echo "- HTTP status: ${http_code}"
-            } >> "$report"
+            }
 
             if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
-              echo "- Result: failed HTTP check" >> "$report"
+              echo "- Result: failed HTTP check"
               return 1
             fi
 
-            if ! jq -e '.status == "ok"' "$output_file" >/dev/null; then
-              echo "- Result: failed JSON status check" >> "$report"
-              echo '```json' >> "$report"
-              cat "$output_file" >> "$report"
-              echo >> "$report"
-              echo '```' >> "$report"
+            if ! jq -e --arg expected "$expected_status" '.status == $expected' "$output_file" >/dev/null; then
+              echo "- Result: failed JSON status check"
+              echo '```json'
+              cat "$output_file"
+              echo
+              echo '```'
               return 1
             fi
 
@@ -83,18 +84,18 @@ jobs:
               jq . "$output_file"
               echo '```'
               echo
-            } >> "$report"
+            }
           }
 
           status=0
-          check_endpoint api "$API_HEALTH_URL" || status=1
-          check_endpoint web "$WEB_HEALTH_URL" || status=1
+          check_endpoint api "$API_HEALTH_URL" "ready" >> "$report" || status=1
+          check_endpoint web "$WEB_HEALTH_URL" "ok" >> "$report" || status=1
 
           exit "$status"
 
       - name: Upload monitoring report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: production-health-report
           path: monitoring-report/

@@ -2,10 +2,10 @@ import type { Context } from 'hono';
 import { z } from 'zod';
 import { CreateSessionLogInputSchema } from '@alcide/shared';
 import {
-  createSessionLog,
   findRecentSessionLogsByUser,
   getSessionLogStatsByUser,
 } from '../repositories/session-log.repository.js';
+import { createOwnedSessionLog } from '../services/session-log.service.js';
 import type { SessionLogRow } from '../db/schema.js';
 import { AppError } from '../types/app-error.js';
 
@@ -78,7 +78,7 @@ export async function handleCreateSessionLog(ctx: Context): Promise<Response> {
     ...(parsed.data.notes !== undefined && { notes: parsed.data.notes }),
   };
 
-  const created = await createSessionLog(auth.userId, input);
+  const created = await createOwnedSessionLog(auth.userId, input);
   return ctx.json(formatSessionLog(created), 201);
 }
 

@@ -6,7 +6,16 @@ import { serverApi } from '@/lib/server-api';
 import { WorkoutCard } from '@/components/WorkoutCard';
 import { EmptyState, GlassPanel, MetricPill } from '@/components/PremiumPrimitives';
 
-const SPORTS = ['football', 'basketball', 'natation', 'course', 'cyclisme', 'musculation', 'yoga', 'tennis'];
+const SPORTS = [
+  'football',
+  'basketball',
+  'natation',
+  'course',
+  'cyclisme',
+  'musculation',
+  'yoga',
+  'tennis',
+];
 const LEVELS = [
   { value: 'beginner', label: 'Debutant' },
   { value: 'intermediate', label: 'Intermediaire' },
@@ -31,8 +40,14 @@ export default async function WorkoutsPage({
 
   async function handleDelete(id: string) {
     'use server';
-    await serverApi.deleteWorkout(id);
-    revalidatePath('/workouts');
+    try {
+      await serverApi.deleteWorkout(id);
+      revalidatePath('/workouts');
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : "Impossible de supprimer l'entraînement.",
+      };
+    }
   }
 
   const { workouts, total, hasMore } = await serverApi.getWorkouts({ page, sport, level });
@@ -56,7 +71,8 @@ export default async function WorkoutsPage({
               Mes seances
             </h1>
             <p className="muted-copy mt-3 max-w-2xl">
-              Retrouvez vos routines, filtrez par contexte et relancez le timer quand vous etes pret.
+              Retrouvez vos routines, filtrez par contexte et relancez le timer quand vous etes
+              pret.
             </p>
           </div>
           <Link href="/generate" className="action-primary mobile-header-action w-full sm:w-auto">
@@ -110,12 +126,18 @@ export default async function WorkoutsPage({
           ))}
         </select>
 
-        <button type="submit" className="action-primary min-h-11 w-full px-5 py-2 text-sm sm:w-auto">
+        <button
+          type="submit"
+          className="action-primary min-h-11 w-full px-5 py-2 text-sm sm:w-auto"
+        >
           Filtrer
         </button>
 
         {(sport || level) && (
-          <Link href="/workouts" className="action-secondary min-h-11 w-full px-5 py-2 text-sm sm:w-auto">
+          <Link
+            href="/workouts"
+            className="action-secondary min-h-11 w-full px-5 py-2 text-sm sm:w-auto"
+          >
             Effacer
           </Link>
         )}

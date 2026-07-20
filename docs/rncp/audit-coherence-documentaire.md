@@ -1,5 +1,9 @@
 # Audit de cohérence documentaire — Alcide / alcide
 
+> **Archive historique — ne pas utiliser comme état courant du Bloc 2.** Les
+> conclusions et métriques du 2026-05-07 sont remplacées par les corrections,
+> recettes et preuves datées à partir du 2026-07-20.
+
 > Date de vérification : 2026-05-07  
 > Version applicative de référence : `0.12.0`  
 > Périmètre : README, changelog, dossier professionnel, documents RNCP, cahier de recettes, CRA, CI/CD, déploiement, sécurité, ADR, sprints, workflows GitHub Actions, rapports de couverture.
