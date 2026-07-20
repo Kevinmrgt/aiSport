@@ -11,19 +11,57 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+> Version candidate locale : `0.13.0-rc.1`. Elle ne devient une release
+> remise au jury qu'après CI verte, déploiement, recette et constitution du
+> manifeste sur un SHA immuable.
+
 ### Added
+- Endpoint de readiness API vérifiant PostgreSQL et la configuration OpenAI, distinct du liveness check.
+- Service métier de journalisation contrôlant l'ownership des séances et programmes avant insertion.
+- Invariants Zod et tests de cohérence des durées, semaines, séances et numérotations des sorties IA.
+- Couverture Vitest Web sur le périmètre `app`, `components` et `lib`, avec tests de composants via Testing Library.
+- Tests et commandes Playwright publics/authentifiés séparés ; un état Auth.js réel est désormais obligatoire pour la suite authentifiée.
+- Plan d'audit RGAA 4.1.2/WCAG 2.1 AA, manifeste de dépôt Bloc 2 et information de confidentialité utilisateur.
+- Services Docker Compose `migrate` et `seed` basés sur le stage outillage.
 - Workflow GitHub Actions `Monitoring - Production health` : verification horaire des healthchecks API/Web, artifact de preuve et issue automatique en cas d'echec.
 - Templates GitHub Issues Bloc 4 : consignation d'anomalie et cas support client.
 - Pull request template avec checklist MCO/RNCP.
 - Setup MCP local documente : Filesystem, Playwright, Vercel et exemple GitHub MCP sans secret.
 - `docs/rncp/bloc4-preuves-mco-a-completer.md` : checklist des preuves restantes avant depot.
 - Test unitaire API pour le healthcheck.
+- Recette navigateur instrumentée des pages publiques avec artefacts JSON/PNG, reflow 320 px, axe, console, focus et redirections sans session sur Chromium et Firefox.
 
 ### Changed
-- Healthchecks API/Web rendus non cacheables et alignes sur la version applicative `0.12.0`.
-- Documentation RNCP et projet harmonisée : version de référence `0.12.0`, métriques `pnpm test` / `pnpm test:coverage`, cible Vercel Web/API + Neon, cahier de recettes et preuves OWASP.
-- `apps/api/package.json` et `apps/web/package.json` alignés sur la version monorepo `0.12.0` pour éviter un `/health` API exposant `0.1.0` après déploiement.
+- Runtime de référence aligné sur Node.js 24 LTS et pnpm 11.9.0 dans `.nvmrc`, les manifests, la CI/CD et les images Docker ; Node.js 20 était en fin de vie et pnpm 9 ne lisait pas la configuration d'overrides courante.
+- CI : tests et rapports de couverture API/Web, audit high/critical bloquant et CD déclenchable uniquement après une CI `main` réussie.
+- CD : migration Drizzle de production devenue une dépendance bloquante avant le déploiement API, puis Web ; le workflow manuel reste disponible pour la reprise.
+- GitHub Actions : actions officielles Node 24 mises à jour et épinglées par SHA (`checkout` 7.0.0, `setup-node` 7.0.0, `upload-artifact` 7.0.1, `pnpm/action-setup` 6.0.9).
+- Timer : calcul sur le temps actif hors pauses et deadline réelle pour résister au ralentissement d'un onglet.
+- Navigation clavier : onglets avec flèches/Home/End, confirmation de suppression avec gestion du focus et plein écran Timer accessible.
+- Gestion Web des erreurs : distinction 404/403/5xx, timeouts explicites et suppression des valeurs de secours trompeuses.
+- CSP de production durcie ; `unsafe-eval` est limité au développement.
+- Dossier Bloc 2, matrice et recettes réécrits pour distinguer code, test automatisé, recette exécutée et preuve finale.
+- Documentation Docker, URLs de production, Next.js 15 et décision OpenAI alignées sur le code courant.
+- Healthchecks API/Web rendus non cacheables et alignés sur la version candidate `0.13.0-rc.1`.
+- Documentation RNCP et projet harmonisée : distinction entre la production `0.12.0` et la candidate `0.13.0-rc.1`, métriques `pnpm test` / `pnpm test:coverage`, cible Vercel Web/API + Neon, cahier de recettes et preuves OWASP.
+- Manifests racine, API, Web et shared alignés sur `0.13.0-rc.1` ; cette candidate ne sera annoncée en production qu'après déploiement et vérification des healthchecks.
 - `docs/rncp/audit-coherence-documentaire.md` ajouté pour tracer les incohérences corrigées et les points à valider avant dépôt.
+
+### Fixed
+- Contrôle d'accès manquant sur les `workoutId`/`programId` des journaux de séance.
+- Validation UUID des identifiants de routes afin de renvoyer une erreur client au lieu d'une erreur PostgreSQL 500.
+- Timeout global de génération d'une séance borné sous la durée maximale Vercel.
+- Contrat de réponse de génération de séance aligné entre API, types partagés et Web.
+- Fausses pages 404 lors d'une panne API et erreurs de suppression auparavant masquées.
+- Procédure Docker qui demandait `drizzle-kit` et `tsx` dans l'image runtime sans devDependencies.
+- Cahier de recettes : suppression des affirmations erronées selon lesquelles Zod rejetait une chaîne SQL ou qu'une inspection de repository prouvait l'ownership.
+- Lien d'évitement désormais focalisé sur `main#main-content`, lettre « G » décorative retirée du nom accessible Google et contrastes de la page de connexion/footer renforcés après inspection des captures 320 px.
+
+### Security
+- Audit des dépendances high/critical rendu bloquant dans GitHub Actions.
+- Secrets Docker obligatoires et valeurs d'exemple sensibles laissées vides.
+- Contrôle d'ownership centralisé pour les journaux et métadonnées dérivées de la ressource serveur.
+- URL OpenAI fixe, timeout global et validation métier renforcée des sorties générées.
 
 ---
 
@@ -185,7 +223,7 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 - Coverage exclusion `repositories/` et `routes/` (dépendances DB)
 
 ### Fixed
-- Coverage CI 54% → 96% — seuil RNCP >70% atteint
+- Coverage CI historique 54% → 96% sur un périmètre API réduit — seuil interne de 70% atteint ; cette mesure ne prouve pas à elle seule la majorité du code exigée par C2.2.2
 
 ### Security
 - OWASP A09 : `error.tsx` loggue uniquement `error.digest`, pas les détails internes

@@ -1,0 +1,15 @@
+.git
+.github
+node_modules
+**/node_modules
+.env
+.env.*
+**/.env
+**/.env.*
+.next
+**/.next
+dist
+coverage
+.turbo
+.cache
+*.log

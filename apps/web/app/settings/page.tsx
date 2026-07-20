@@ -13,11 +13,7 @@ export default async function SettingsPage() {
     redirect('/login');
   }
 
-  const aiSettings = await serverApi.getAiSettings().catch(() => ({
-    provider: 'openai' as const,
-    hasApiKey: false,
-    model: null,
-  }));
+  const aiSettings = await serverApi.getAiSettings();
 
   async function handleSave(data: SaveAiSettingsInput): Promise<{ error?: string } | void> {
     'use server';

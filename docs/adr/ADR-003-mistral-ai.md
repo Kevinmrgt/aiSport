@@ -1,8 +1,12 @@
 # ADR-003 — Mistral AI pour la génération d'entraînements
 
 **Date** : 2026-04-13
-**Statut** : Accepté
+**Statut** : Remplacé par ADR-008 le 2026-06-30
 **Auteur** : Kevin
+
+> Décision historique uniquement. L'implémentation courante utilise OpenAI côté
+> serveur conformément à l'ADR-008. Les références à Mistral ci-dessous
+> décrivent l'état initial du projet et ne constituent plus la cible technique.
 
 ## Contexte
 

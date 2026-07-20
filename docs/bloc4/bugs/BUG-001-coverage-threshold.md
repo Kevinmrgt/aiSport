@@ -1,7 +1,13 @@
 # BUG-001 — Seuil de couverture CI échoue à 54% (seuil requis : 70%)
 
+> **Addendum 2026-07-20 :** la clôture historique de cet incident est
+> insuffisante pour C2.2.2. Une partie importante du gain venait de l'exclusion
+> de `db`, `repositories`, `routes`, `app.ts` et `index.ts`, sans mesure Web ou
+> shared. Le seuil CI a été réparé, mais la majorité du code développé n'a pas
+> été démontrée. Le suivi courant est `B2-BUG-009` dans le plan Bloc 2.
+
 > Bloc 4 RNCP — Rapport de bug
-> Date détection : 2026-04-13 | Statut : **Résolu** | Sévérité : **Bloquant CI**
+> Date détection : 2026-04-13 | Statut : **Résolu pour le gate CI historique ; non clos pour C2.2.2** | Sévérité : **Bloquant CI**
 
 ---
 

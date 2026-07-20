@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, jsonb, uuid, integer } from 'drizzle-orm/pg-core';
+import { index, pgTable, text, timestamp, jsonb, uuid, integer } from 'drizzle-orm/pg-core';
 import type { Workout, TrainingProgram } from '@alcide/shared';
 
 // Table des utilisateurs — Auth.js compatible
@@ -58,7 +58,9 @@ export const workouts = pgTable('workouts', {
   data: jsonb('data').notNull().$type<Workout>(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  index('workouts_user_created_idx').on(table.userId, table.createdAt),
+]);
 
 // Table des programmes multi-semaines
 // OWASP A01: userId lie chaque programme à son propriétaire
@@ -80,7 +82,9 @@ export const trainingPrograms = pgTable('training_programs', {
   data: jsonb('data').notNull().$type<TrainingProgram>(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  index('training_programs_user_created_idx').on(table.userId, table.createdAt),
+]);
 
 // Journal d'execution des seances terminees
 // OWASP A01: userId lie chaque log a son proprietaire
@@ -111,7 +115,11 @@ export const sessionLogs = pgTable('session_logs', {
   painNotes: text('pain_notes'),
   notes: text('notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  index('session_logs_user_completed_idx').on(table.userId, table.completedAt),
+  index('session_logs_workout_idx').on(table.workoutId),
+  index('session_logs_program_idx').on(table.programId),
+]);
 
 // Paramètres IA par utilisateur (clé API chiffrée AES-256-GCM, provider, modèle)
 // OWASP A02: clé API chiffrée côté serveur avant stockage

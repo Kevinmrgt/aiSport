@@ -1,0 +1,14 @@
+{
+  "route": "/cette-page-nexiste-pas",
+  "finalUrl": "http://localhost:3000/cette-page-nexiste-pas",
+  "httpStatus": 404,
+  "viewport": {
+    "width": 320,
+    "height": 720
+  },
+  "documentWidth": 320,
+  "bodyTextLength": 228,
+  "consoleErrors": [],
+  "pageErrors": [],
+  "axeViolations": []
+}

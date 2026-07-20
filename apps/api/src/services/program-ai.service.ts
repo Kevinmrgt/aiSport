@@ -107,6 +107,21 @@ async function callAiForWeek(
     throw new Error(`Schema semaine invalide: ${validated.error.message}`);
   }
 
+  const sessionNumbers = validated.data.sessions.map((session) => session.session_number);
+  if (
+    validated.data.week_number !== weekNumber
+    || validated.data.sessions.length !== input.sessions_per_week
+    || validated.data.sessions.some(
+      (session) => session.duration_minutes !== input.session_duration_minutes,
+    )
+    || sessionNumbers.some((number, index) => number !== index + 1)
+  ) {
+    throw new Error(
+      `La semaine ${weekNumber} ne correspond pas aux parametres demandes `
+      + `(${input.sessions_per_week} seances de ${input.session_duration_minutes} minutes)`,
+    );
+  }
+
   return validated.data;
 }
 

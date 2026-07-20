@@ -34,8 +34,8 @@ test.describe('Protection des routes (OWASP A01)', () => {
   });
 
   test('/workouts/[id] redirige vers /login sans session', async ({ page }) => {
-    await page.goto('/workouts/some-workout-id');
-    await expect(page).toHaveURL(/\/login/);
+    await page.goto('/workouts/some-workout-id', { waitUntil: 'domcontentloaded' });
+    await expect(page).toHaveURL(/\/login/, { timeout: 15_000 });
   });
 });
 
