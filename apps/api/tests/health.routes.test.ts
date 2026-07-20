@@ -28,7 +28,7 @@ describe('healthRouter', () => {
     expect(body).toMatchObject({
       status: 'ok',
       service: 'alcide-api',
-      version: '0.13.0-rc.2',
+      version: '0.13.0-rc.3',
     });
     expect(new Date(body.timestamp).toString()).not.toBe('Invalid Date');
   });
