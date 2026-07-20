@@ -61,19 +61,19 @@ jobs:
               echo "## ${name}"
               echo
               echo "- HTTP status: ${http_code}"
-            } >> "$report"
+            }
 
             if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
-              echo "- Result: failed HTTP check" >> "$report"
+              echo "- Result: failed HTTP check"
               return 1
             fi
 
             if ! jq -e --arg expected "$expected_status" '.status == $expected' "$output_file" >/dev/null; then
-              echo "- Result: failed JSON status check" >> "$report"
-              echo '```json' >> "$report"
-              cat "$output_file" >> "$report"
-              echo >> "$report"
-              echo '```' >> "$report"
+              echo "- Result: failed JSON status check"
+              echo '```json'
+              cat "$output_file"
+              echo
+              echo '```'
               return 1
             fi
 
@@ -84,18 +84,18 @@ jobs:
               jq . "$output_file"
               echo '```'
               echo
-            } >> "$report"
+            }
           }
 
           status=0
-          check_endpoint api "$API_HEALTH_URL" "ready" || status=1
-          check_endpoint web "$WEB_HEALTH_URL" "ok" || status=1
+          check_endpoint api "$API_HEALTH_URL" "ready" >> "$report" || status=1
+          check_endpoint web "$WEB_HEALTH_URL" "ok" >> "$report" || status=1
 
           exit "$status"
 
       - name: Upload monitoring report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: production-health-report
           path: monitoring-report/
