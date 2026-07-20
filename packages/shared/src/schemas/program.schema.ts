@@ -27,8 +27,8 @@ export const ProgramWeekSchema = z
     const sessionNumbers = week.sessions.map((session) => session.session_number);
     const expectedNumbers = week.sessions.map((_, index) => index + 1);
     if (
-      new Set(sessionNumbers).size !== sessionNumbers.length
-      || sessionNumbers.some((number, index) => number !== expectedNumbers[index])
+      new Set(sessionNumbers).size !== sessionNumbers.length ||
+      sessionNumbers.some((number, index) => number !== expectedNumbers[index])
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -61,8 +61,8 @@ export const TrainingProgramSchema = z
 
     const weekNumbers = program.weeks.map((week) => week.week_number);
     if (
-      new Set(weekNumbers).size !== weekNumbers.length
-      || weekNumbers.some((number, index) => number !== index + 1)
+      new Set(weekNumbers).size !== weekNumbers.length ||
+      weekNumbers.some((number, index) => number !== index + 1)
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -89,8 +89,10 @@ export const TrainingProgramSchema = z
           });
         }
 
-        const phaseSeconds = [...(session.warmup ?? []), ...(session.cooldown ?? [])]
-          .reduce((total, phase) => total + phase.duration_seconds, 0);
+        const phaseSeconds = [...(session.warmup ?? []), ...(session.cooldown ?? [])].reduce(
+          (total, phase) => total + phase.duration_seconds,
+          0,
+        );
         const exerciseSeconds = session.exercises.reduce(
           (total, exercise) => total + (exercise.duration_seconds ?? 0) + exercise.rest_seconds,
           0,
@@ -109,13 +111,52 @@ export const TrainingProgramSchema = z
 
 // Input utilisateur pour générer un programme
 export const GenerateProgramInputSchema = z.object({
-  sport: z.string().min(1).max(100),
-  level: z.enum(['beginner', 'intermediate', 'advanced']),
-  weeks_count: z.number().int().min(2).max(4),
-  sessions_per_week: z.number().int().min(2).max(5),
-  session_duration_minutes: z.number().int().min(20).max(60),
-  goals: z.string().min(1).max(500),
-  constraints: z.string().max(500).optional(),
+  sport: z
+    .string({
+      required_error: 'Le sport est requis',
+      invalid_type_error: 'Le sport doit être un texte',
+    })
+    .min(1, 'Le sport ne peut pas être vide')
+    .max(100, 'Le sport ne peut pas dépasser 100 caractères'),
+  level: z.enum(['beginner', 'intermediate', 'advanced'], {
+    required_error: 'Le niveau est requis',
+    invalid_type_error: 'Le niveau est invalide',
+  }),
+  weeks_count: z
+    .number({
+      required_error: 'Le nombre de semaines est requis',
+      invalid_type_error: 'Le nombre de semaines doit être un nombre',
+    })
+    .int('Le nombre de semaines doit être un nombre entier')
+    .min(2, 'Le programme doit durer au moins 2 semaines')
+    .max(4, 'Le programme ne peut pas dépasser 4 semaines'),
+  sessions_per_week: z
+    .number({
+      required_error: 'Le nombre de séances par semaine est requis',
+      invalid_type_error: 'Le nombre de séances par semaine doit être un nombre',
+    })
+    .int('Le nombre de séances par semaine doit être un nombre entier')
+    .min(2, 'Il faut au moins 2 séances par semaine')
+    .max(5, 'Il ne peut pas y avoir plus de 5 séances par semaine'),
+  session_duration_minutes: z
+    .number({
+      required_error: 'La durée des séances est requise',
+      invalid_type_error: 'La durée des séances doit être un nombre',
+    })
+    .int('La durée des séances doit être un nombre entier')
+    .min(20, 'Une séance doit durer au moins 20 minutes')
+    .max(60, 'Une séance ne peut pas dépasser 60 minutes'),
+  goals: z
+    .string({
+      required_error: 'L’objectif est requis',
+      invalid_type_error: 'L’objectif doit être un texte',
+    })
+    .min(1, 'L’objectif ne peut pas être vide')
+    .max(500, 'L’objectif ne peut pas dépasser 500 caractères'),
+  constraints: z
+    .string({ invalid_type_error: 'Les contraintes doivent être un texte' })
+    .max(500, 'Les contraintes ne peuvent pas dépasser 500 caractères')
+    .optional(),
 });
 
 export type ProgramSession = z.infer<typeof ProgramSessionSchema>;
