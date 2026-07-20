@@ -5,6 +5,11 @@ import { AiTimeoutError, callAiProvider } from './ai.service.js';
 import type { AiConfig } from './ai.service.js';
 
 const WORKOUT_AI_TIMEOUT_MS = 45_000;
+// La fonction Vercel est limitee a 60 s. Cette echeance conserve une marge
+// pour la validation, la persistance et la serialisation de la reponse.
+const WORKOUT_REQUEST_DEADLINE_MS = 55_000;
+const WORKOUT_PROVIDER_MARGIN_MS = 5_000;
+const WORKOUT_RETRY_MIN_BUDGET_MS = 5_000;
 
 // Log structuré pour OWASP A09
 function logAiCall(data: {
@@ -86,24 +91,39 @@ export async function generateWorkout(
   aiConfig: AiConfig,
 ): Promise<Workout> {
   const startTime = Date.now();
+  const requestDeadline = startTime + WORKOUT_REQUEST_DEADLINE_MS;
   const prompt = buildPrompt(input);
 
   // Retry 1 fois max avec rappel explicite du format
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
+      const remainingMs = requestDeadline - Date.now() - WORKOUT_PROVIDER_MARGIN_MS;
+      const timeoutMs = Math.min(WORKOUT_AI_TIMEOUT_MS, Math.max(0, remainingMs));
+      if (timeoutMs < WORKOUT_RETRY_MIN_BUDGET_MS) {
+        throw AppError.serviceUnavailable(
+          'Alcide met trop de temps a generer la seance, veuillez reessayer dans quelques instants',
+        );
+      }
+
       const rawResponse = await callAiProvider(
         aiConfig,
         attempt === 2
           ? `${prompt}\n\nATTENTION: Réponds ABSOLUMENT avec du JSON valide et rien d'autre.`
           : prompt,
-        { timeoutMs: WORKOUT_AI_TIMEOUT_MS },
+        { timeoutMs },
       );
 
       const jsonStr = extractJson(rawResponse);
       const parsed = JSON.parse(jsonStr) as unknown;
       const validated = WorkoutSchema.safeParse(parsed);
 
-      if (validated.success) {
+      if (
+        validated.success
+        && validated.data.duration_minutes === input.duration_minutes
+        && validated.data.difficulty === input.level
+        && validated.data.sport.trim().toLocaleLowerCase('fr')
+          === input.sport.trim().toLocaleLowerCase('fr')
+      ) {
         logAiCall({
           success: true,
           durationMs: Date.now() - startTime,
@@ -114,11 +134,20 @@ export async function generateWorkout(
       }
 
       console.warn(`[AiService] Validation Zod échouée (tentative ${attempt})`, {
-        errors: validated.error.issues,
+        errors: validated.success
+          ? ['La reponse ne correspond pas aux parametres demandes']
+          : validated.error.issues,
       });
 
-      if (attempt === 2) {
-        throw new Error(`Schéma invalide après 2 tentatives: ${validated.error.message}`);
+      if (
+        attempt === 2
+        || Date.now() + WORKOUT_RETRY_MIN_BUDGET_MS + WORKOUT_PROVIDER_MARGIN_MS
+          >= requestDeadline
+      ) {
+        const details = validated.success
+          ? 'parametres generes differents de la demande'
+          : validated.error.message;
+        throw new Error(`Schéma invalide après 2 tentatives: ${details}`);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
@@ -135,6 +164,10 @@ export async function generateWorkout(
         throw AppError.serviceUnavailable(
           'Alcide met trop de temps à répondre, veuillez réessayer dans quelques instants',
         );
+      }
+
+      if (error instanceof AppError) {
+        throw error;
       }
 
       if (attempt === 2) {

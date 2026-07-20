@@ -24,6 +24,8 @@ import {
 } from '../src/services/workout.service.js';
 
 const mockAuth = { userId: 'user-123', email: 'test@example.com' };
+const workoutId = '22222222-2222-4222-8222-222222222222';
+const otherWorkoutId = '33333333-3333-4333-8333-333333333333';
 
 function createTestApp() {
   const app = new Hono();
@@ -36,7 +38,7 @@ function createTestApp() {
 }
 
 const mockWorkoutRecord = {
-  id: 'workout-123',
+  id: workoutId,
   userId: 'user-123',
   title: 'Séance Test',
   sport: 'course',
@@ -129,10 +131,10 @@ describe('WorkoutController', () => {
       const app = createTestApp();
       app.get('/workouts/:id', handleGetWorkout);
 
-      const res = await app.fetch(new Request('http://localhost/workouts/workout-123'));
+      const res = await app.fetch(new Request(`http://localhost/workouts/${workoutId}`));
       expect(res.status).toBe(200);
       const body = (await res.json()) as { id: string; exercises: unknown[] };
-      expect(body.id).toBe('workout-123');
+      expect(body.id).toBe(workoutId);
       expect(body.exercises).toHaveLength(1);
     });
 
@@ -143,8 +145,18 @@ describe('WorkoutController', () => {
       const app = createTestApp();
       app.get('/workouts/:id', handleGetWorkout);
 
-      const res = await app.fetch(new Request('http://localhost/workouts/inexistant'));
+      const res = await app.fetch(new Request(`http://localhost/workouts/${otherWorkoutId}`));
       expect(res.status).toBe(404);
+    });
+
+    it('retourne 400 sans appeler le service si l ID est malforme', async () => {
+      const app = createTestApp();
+      app.get('/workouts/:id', handleGetWorkout);
+
+      const res = await app.request('/workouts/pas-un-uuid');
+
+      expect(res.status).toBe(400);
+      expect(getWorkoutDetail).not.toHaveBeenCalled();
     });
   });
 
@@ -155,7 +167,7 @@ describe('WorkoutController', () => {
       const app = createTestApp();
       app.delete('/workouts/:id', handleDeleteWorkout);
 
-      const res = await app.fetch(new Request('http://localhost/workouts/workout-123', { method: 'DELETE' }));
+      const res = await app.fetch(new Request(`http://localhost/workouts/${workoutId}`, { method: 'DELETE' }));
       expect(res.status).toBe(200);
       const body = (await res.json()) as { message: string };
       expect(body.message).toBe('Entraînement supprimé');
@@ -168,8 +180,18 @@ describe('WorkoutController', () => {
       const app = createTestApp();
       app.delete('/workouts/:id', handleDeleteWorkout);
 
-      const res = await app.fetch(new Request('http://localhost/workouts/autre-workout', { method: 'DELETE' }));
+      const res = await app.fetch(new Request(`http://localhost/workouts/${otherWorkoutId}`, { method: 'DELETE' }));
       expect(res.status).toBe(403);
+    });
+
+    it('retourne 400 sans appeler le service si l ID est malforme', async () => {
+      const app = createTestApp();
+      app.delete('/workouts/:id', handleDeleteWorkout);
+
+      const res = await app.request('/workouts/invalide', { method: 'DELETE' });
+
+      expect(res.status).toBe(400);
+      expect(removeWorkout).not.toHaveBeenCalled();
     });
   });
 });

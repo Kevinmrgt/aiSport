@@ -25,6 +25,8 @@ import {
 } from '../src/services/program.service.js';
 
 const mockAuth = { userId: 'user-123', email: 'test@example.com' };
+const programId = '22222222-2222-4222-8222-222222222222';
+const otherProgramId = '33333333-3333-4333-8333-333333333333';
 
 function createTestApp() {
   const app = new Hono();
@@ -37,7 +39,7 @@ function createTestApp() {
 }
 
 const mockProgramRecord = {
-  id: 'program-123',
+  id: programId,
   userId: 'user-123',
   title: 'Programme Course — 2 semaines (Débutant)',
   sport: 'course',
@@ -119,7 +121,7 @@ describe('ProgramController', () => {
 
       expect(res.status).toBe(201);
       const body = await res.json() as { id: string; weeksCount: number };
-      expect(body.id).toBe('program-123');
+      expect(body.id).toBe(programId);
       expect(body.weeksCount).toBe(2);
     });
 
@@ -175,11 +177,11 @@ describe('ProgramController', () => {
       const app = createTestApp();
       app.get('/programs/:id', handleGetProgram);
 
-      const res = await app.request('/programs/program-123');
+      const res = await app.request(`/programs/${programId}`);
 
       expect(res.status).toBe(200);
       const body = await res.json() as { id: string; data: unknown };
-      expect(body.id).toBe('program-123');
+      expect(body.id).toBe(programId);
       expect(body.data).toBeDefined();
     });
 
@@ -189,7 +191,7 @@ describe('ProgramController', () => {
       const app = createTestApp();
       app.get('/programs/:id', handleGetProgram);
 
-      const res = await app.request('/programs/inexistant');
+      const res = await app.request(`/programs/${otherProgramId}`);
       expect(res.status).toBe(404);
     });
 
@@ -199,8 +201,18 @@ describe('ProgramController', () => {
       const app = createTestApp();
       app.get('/programs/:id', handleGetProgram);
 
-      const res = await app.request('/programs/autre-user-program');
+      const res = await app.request(`/programs/${otherProgramId}`);
       expect(res.status).toBe(403);
+    });
+
+    it('retourne 400 sans appeler le service si l ID est malforme', async () => {
+      const app = createTestApp();
+      app.get('/programs/:id', handleGetProgram);
+
+      const res = await app.request('/programs/pas-un-uuid');
+
+      expect(res.status).toBe(400);
+      expect(getProgramDetail).not.toHaveBeenCalled();
     });
   });
 
@@ -211,8 +223,18 @@ describe('ProgramController', () => {
       const app = createTestApp();
       app.delete('/programs/:id', handleDeleteProgram);
 
-      const res = await app.request('/programs/program-123', { method: 'DELETE' });
+      const res = await app.request(`/programs/${programId}`, { method: 'DELETE' });
       expect(res.status).toBe(200);
+    });
+
+    it('retourne 400 sans appeler le service si l ID est malforme', async () => {
+      const app = createTestApp();
+      app.delete('/programs/:id', handleDeleteProgram);
+
+      const res = await app.request('/programs/invalide', { method: 'DELETE' });
+
+      expect(res.status).toBe(400);
+      expect(removeProgram).not.toHaveBeenCalled();
     });
   });
 });

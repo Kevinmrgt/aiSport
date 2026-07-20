@@ -1,8 +1,9 @@
 # Guide de deploiement - Alcide
 
-> Version applicative de reference: 0.12.0
+> Version applicative candidate: 0.13.0-rc.1
+> Version encore déployée au début de cette correction: 0.12.0
 > Date de verification documentaire initiale: 2026-05-07
-> Derniere verification operationnelle Bloc 2: 2026-07-16
+> Derniere verification locale Bloc 2: 2026-07-20
 
 ## Production canonique
 
@@ -39,11 +40,14 @@ NODE_ENV=production
 
 ## GitHub Actions
 
-1. `CI - Alcide` verifie lint, types, tests, build, smoke E2E et Docker.
-2. `CD - Vercel` se lance manuellement, ou apres une CI verte sur `main` si la
-   variable GitHub `ENABLE_GHA_VERCEL_CD=true` est definie.
-3. `DB - Drizzle migrations` reste manuel et protege par l'environnement
-   `production`.
+1. `CI - Alcide` vérifie lint, types, tests et couvertures API/Web/PostgreSQL,
+   build, smoke E2E public, audit high/critical et Docker.
+2. `CD - Vercel` se lance uniquement après une CI verte sur `main` si la
+   variable GitHub `ENABLE_GHA_VERCEL_CD=true` est définie. Il n'existe plus de
+   lancement manuel contournant les gates.
+3. `DB - Drizzle migrations` reste manuel et rattaché à l'environnement
+   `production`. Au relevé du 2026-07-20, cet environnement ne possédait aucune
+   règle de protection ni approbateur ; ce n'est donc pas encore une gate humaine.
 
 Secrets GitHub requis pour la CD:
 
@@ -55,16 +59,17 @@ VERCEL_WEB_PROJECT_ID
 DATABASE_URL
 ```
 
-`VERCEL_TOKEN` doit etre cree ou re-authentifie avec acces au scope Vercel
-`kevinmrgts-projects`; sinon `vercel pull/build/deploy` echouera sur les deux
-projets de production.
-
-Etat constate le 2026-07-16 : la production Web/API et le monitoring sont OK,
-mais le workflow GitHub Actions `CD - Vercel` echoue encore car `VERCEL_TOKEN`
-est invalide au moment de `vercel pull`. Cette action est une configuration
-proprietaire GitHub/Vercel, pas une panne applicative.
+Le token doit autoriser `vercel pull/build/deploy` sur les deux projets. Le run
+CD `29721620945`, déclenché manuellement le 2026-07-20 sur l'ancien SHA
+`533f17b`, a réussi : il prouve que le token fonctionnait pour ce run, mais ne
+valide pas la version candidate non commitée. L'échec au token invalide du
+2026-07-16 reste uniquement un fait historique.
 
 ## Deploiement manuel Vercel
+
+Cette procédure est réservée au diagnostic ou à une intervention d'urgence
+autorisée. Elle ne doit pas servir à contourner la CI ni à constituer la preuve
+de la candidate RNCP ; le chemin nominal reste le workflow CD après CI verte.
 
 Depuis la racine du depot:
 
@@ -106,21 +111,22 @@ pnpm db:migrate
 
 ```bash
 curl https://ai-sport-api.vercel.app/health
+curl https://ai-sport-api.vercel.app/health/ready
 curl https://ai-sport-web.vercel.app/api/health
 curl -I https://ai-sport-web.vercel.app
 ```
 
 Checklist:
 
-- [x] CI verte sur `main` : run `29489995458`, commit `533f17b`, 2026-07-16
+- [ ] CI verte sur le SHA final de la version candidate
 - [ ] Migrations Drizzle appliquees si le schema a change
 - [ ] `SERVICE_SECRET` identique cote Web et API
 - [ ] OAuth Google callback: `https://ai-sport-web.vercel.app/api/auth/callback/google`
-- [x] API healthcheck HTTP 200 le 2026-07-16
-- [x] Web healthcheck HTTP 200 le 2026-07-16
-- [x] Generation d'un entrainement testee avec un compte authentifie le 2026-07-16
-- [x] Generation d'un programme testee avec un compte authentifie le 2026-07-16
-- [ ] `VERCEL_TOKEN` GitHub regenere si le workflow CD custom doit etre relance
+- [ ] API liveness et readiness HTTP 200 après déploiement du SHA final
+- [ ] Web healthcheck HTTP 200 après déploiement du SHA final
+- [ ] Génération d'une séance testée avec un compte authentifié sur le SHA final
+- [ ] Génération d'un programme testée avec un compte authentifié sur le SHA final
+- [ ] run CD automatique vert sur le SHA final (ne régénérer le token qu'en cas d'échec d'authentification constaté)
 
 ## Alternative Docker Compose
 
@@ -128,9 +134,17 @@ Pour une demonstration locale ou un auto-hebergement:
 
 ```bash
 cp .env.example .env
+# Remplacer OPENAI_API_KEY, SERVICE_SECRET et les secrets OAuth de démonstration.
+docker compose up -d postgres
+docker compose --profile tools run --rm migrate
+docker compose --profile tools run --rm seed  # facultatif
 docker compose up --build -d
-docker compose exec api pnpm db:migrate
 ```
+
+Les commandes de migration et de seed utilisent des services outillage basés
+sur le stage Docker `builder`. Elles ne sont pas exécutées dans l'image API de
+production, qui ne contient volontairement ni `drizzle-kit`, ni `tsx`, ni les
+sources TypeScript.
 
 URLs locales:
 

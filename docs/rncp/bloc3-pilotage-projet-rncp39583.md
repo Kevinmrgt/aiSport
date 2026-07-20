@@ -198,7 +198,7 @@ Le projet a été conduit en autonomie. Pour l'oral, il faut expliquer que le ca
 | Ressource | Usage | Preuve |
 |---|---|---|
 | Poste Windows + IDE | Développement local | Contexte de travail local |
-| Node.js 20 et pnpm 9 | Runtime et package manager | `package.json`, `.nvmrc`, `pnpm-lock.yaml` |
+| Node.js 24 et pnpm 11.9 | Runtime et package manager | `package.json`, `.nvmrc`, `pnpm-lock.yaml` |
 | Docker / Docker Compose | Démo locale et portabilité | `docker-compose.yml`, `apps/api/Dockerfile`, `apps/web/Dockerfile` |
 | PostgreSQL / Neon | Persistance applicative | `apps/api/src/db/schema.ts`, `docs/deployment.md` |
 | GitHub Actions | CI, CD, migrations | `.github/workflows/ci.yml`, `deploy-vercel.yml`, `db-migrate.yml` |

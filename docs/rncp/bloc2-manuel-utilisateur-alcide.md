@@ -77,9 +77,15 @@ Lorsqu'une séance ou session est terminée, l'utilisateur peut renseigner son r
 
 - effort perçu ;
 - feedback de difficulté ;
+- notes de douleur éventuelles ;
 - commentaire éventuel.
 
 Ces informations alimentent les statistiques du dashboard.
+
+Les notes de douleur ne constituent pas un diagnostic médical. Elles sont
+associées au compte connecté et doivent être considérées comme des données
+personnelles potentiellement sensibles. Consulter la page `Confidentialité`
+avant de les renseigner.
 
 ## 8. Consulter le dashboard
 
@@ -97,14 +103,14 @@ Si aucune séance n'existe, le dashboard propose de commencer par une première 
 
 ## 9. Paramétrer l'IA
 
-La page de paramètres permet de gérer les préférences IA lorsqu'elles sont activées dans l'application :
+La page de paramètres permet uniquement de choisir un modèle OpenAI parmi les
+modèles proposés. OpenAI est le fournisseur de l'application et la clé API est
+gérée par l'exploitant côté serveur. L'utilisateur ne peut ni saisir une clé,
+ni choisir un autre fournisseur.
 
-- fournisseur IA ;
-- modèle ;
-- clé ou configuration utilisateur si disponible ;
-- préférences personnelles.
-
-Les secrets ne doivent jamais être partagés publiquement. Les clés sont traitées côté serveur.
+Si la lecture ou l'enregistrement des paramètres échoue, l'interface affiche
+une erreur ; elle ne doit pas présenter une valeur de secours comme si elle
+avait été enregistrée.
 
 ## 10. Supprimer une séance
 
@@ -147,4 +153,3 @@ Pour vérifier l'accessibilité en démonstration, utiliser la touche `Tab` pour
 6. Filtrer les séances.
 7. Ouvrir le dashboard.
 8. Montrer la déconnexion.
-

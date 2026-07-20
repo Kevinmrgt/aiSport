@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: '24'
   NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'http://localhost:3001' }}
   NEXTAUTH_URL: http://localhost:3000
   AUTH_SECRET: ci-auth-secret-change-only-in-ci
@@ -56,6 +56,20 @@ jobs:
     name: Unit tests and coverage
     runs-on: ubuntu-latest
     needs: lint-typecheck
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: alcide
+          POSTGRES_PASSWORD: alcide_dev
+          POSTGRES_DB: alcide
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U alcide -d alcide"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -75,19 +89,47 @@ jobs:
       - name: Build shared package
         run: pnpm --filter shared build
 
-      - name: Run API tests with coverage
+      - name: Apply database migrations for integration tests
+        run: pnpm --filter api db:migrate
+        env:
+          DATABASE_URL: postgresql://alcide:alcide_dev@localhost:5432/alcide
+
+      - name: Run API and Web tests with coverage
         run: pnpm test:coverage
         env:
           DATABASE_URL: postgresql://alcide:alcide_dev@localhost:5432/alcide
+          TEST_DATABASE_URL: postgresql://alcide:alcide_dev@localhost:5432/alcide
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
-      - name: Upload coverage report
+      - name: Run PostgreSQL repository tests with dedicated coverage
+        run: pnpm --filter api test:integration:coverage
+        env:
+          DATABASE_URL: postgresql://alcide:alcide_dev@localhost:5432/alcide
+          TEST_DATABASE_URL: postgresql://alcide:alcide_dev@localhost:5432/alcide
+
+      - name: Upload API coverage report
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: coverage-report
+          name: coverage-report-api
           path: apps/api/coverage/
           if-no-files-found: ignore
+
+      - name: Upload Web coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report-web
+          path: apps/web/coverage/
+          if-no-files-found: error
+
+      - name: Upload PostgreSQL integration coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report-api-integration
+          path: apps/api/coverage/integration/
+          if-no-files-found: error
 
   build:
     name: Build packages
@@ -182,7 +224,6 @@ jobs:
   security-audit:
     name: Security audit
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -200,5 +241,4 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Security audit
-        continue-on-error: true
         run: pnpm audit --audit-level=high

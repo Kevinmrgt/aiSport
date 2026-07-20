@@ -1,5 +1,8 @@
 // @ts-check
 
+const isDevelopment = process.env.NODE_ENV !== 'production';
+const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // OWASP A05: Content Security Policy et headers de sécurité
@@ -13,12 +16,16 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // unsafe-eval requis par Next.js dev
+              `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ''}`,
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self'",
-              `connect-src 'self' ${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'}`,
+              `connect-src 'self' ${apiUrl}`,
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
               "frame-ancestors 'none'",
+              ...(isDevelopment ? [] : ['upgrade-insecure-requests']),
             ].join('; '),
           },
           // OWASP A05: headers de sécurité additionnels

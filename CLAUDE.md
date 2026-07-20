@@ -17,5 +17,5 @@ Operational reminders:
   permission files.
 - Build order is `shared -> api -> web`.
 - Production URLs are:
-  - Web: `https://alcide-web.vercel.app`
-  - API: `https://alcide-api.vercel.app`
+  - Web: `https://ai-sport-web.vercel.app`
+  - API: `https://ai-sport-api.vercel.app`
