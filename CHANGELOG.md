@@ -9,11 +9,11 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ---
 
-## [Unreleased]
+## [0.13.0-rc.2] — 2026-07-20
 
-> Version candidate locale : `0.13.0-rc.2`. Elle ne devient une release
-> remise au jury qu'après CI verte, déploiement, recette et constitution du
-> manifeste sur un SHA immuable.
+> Candidate déployée après CI et CD vertes. Les limites restantes sur le
+> parcours authentifié et l'audit humain d'accessibilité sont conservées dans
+> le manifeste et ne sont pas présentées comme validées.
 
 ### Added
 

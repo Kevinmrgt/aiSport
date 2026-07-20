@@ -1,8 +1,8 @@
 # Dossier Bloc 2 RNCP39583 — Alcide
 
 > Concevoir et développer des applications logicielles
-> Version candidate locale : `0.13.0-rc.2` — 2026-07-20
-> Statut : **à figer après recette, CI, audit accessibilité et déploiement du SHA final**
+> Version candidate déployée : `0.13.0-rc.2` — 2026-07-20
+> Statut : **CI/CD et production validées ; authentification utilisateur complète et audit humain RGAA encore à exécuter**
 
 ## 1. Cadre officiel et règle de validation
 
@@ -26,17 +26,17 @@ instrumenté et sur la représentativité des tests.
 
 ## 2. Synthèse de la version candidate
 
-| Compétence | État de la version candidate                                        | Condition de fermeture                         |
-| ---------- | ------------------------------------------------------------------- | ---------------------------------------------- |
-| C2.1.1     | Environnements décrits ; mesures finales à produire                 | rapport performance et preuves datées          |
-| C2.1.2     | CI renforcée dans le code                                           | premier run vert du SHA final                  |
-| C2.2.1     | Prototype existant et déployé                                       | recette desktop/mobile après corrections       |
-| C2.2.2     | Mesures locales API/Web/PostgreSQL disponibles ; shared non isolé   | run CI du SHA final et rapports bruts archivés |
-| C2.2.3     | Correctifs sécurité, conformité métier et accessibilité en cours    | revue OWASP + audit RGAA manuel/auto           |
-| C2.2.4     | Git et production existent, mais ne ciblent pas encore ce correctif | merge, tag, déploiement et smoke du même SHA   |
-| C2.3.1     | Inventaire reconstruit ; recette finale non exécutée                | exécution traçable de toutes les fonctions     |
-| C2.3.2     | Registre enrichi avec les défauts réellement découverts             | clôture liée aux tests de non-régression       |
-| C2.4.1     | Manuels présents ; procédures non validées depuis un clone vierge   | test depuis un clone vierge et paquet final    |
+| Compétence | État de la version candidate                                                            | Condition de fermeture                                  |
+| ---------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| C2.1.1     | Environnements décrits                                                                  | rapport de performance final et preuves datées          |
+| C2.1.2     | CI du SHA applicatif `4151b80` verte                                                    | aucune sur le périmètre automatisé                      |
+| C2.2.1     | Prototype `0.13.0-rc.2` déployé et parcours public vérifié                              | recette authentifiée desktop/mobile                     |
+| C2.2.2     | Tests API/Web/PostgreSQL exécutés localement et en CI ; shared non isolé                | archiver les rapports bruts de couverture du SHA déposé |
+| C2.2.3     | Revue OWASP, audit des dépendances et axe réalisés                                      | audit RGAA humain et parcours authentifié               |
+| C2.2.4     | Merge, migration, CD et smoke tests du SHA applicatif réussis                           | tag du gel documentaire final                           |
+| C2.3.1     | Recettes publiques automatisées exécutées                                               | recettes authentifiées et validation humaine            |
+| C2.3.2     | Registre enrichi avec les défauts réellement découverts et tests de non-régression liés | clôture des réserves issues de la recette humaine       |
+| C2.4.1     | Manuels présents ; procédures non validées depuis un clone vierge                       | test depuis un clone vierge et paquet final             |
 
 Cette table ne préjuge pas de la décision du jury. Elle distingue volontairement
 le code écrit d'une preuve d'exécution effectivement obtenue.
@@ -65,8 +65,9 @@ un éditeur fictif.
 
 ### Gates qualité visées
 
-La liste ci-dessous décrit les conditions de fermeture. Elle ne signifie pas
-qu'elles ont déjà toutes été exécutées sur un SHA final :
+La liste ci-dessous décrit les conditions de fermeture. Les contrôles publics
+ont été exécutés sur le SHA applicatif `4151b80cc6d164c38549e753f7b960ec4914f519` ;
+le parcours utilisateur authentifié reste distinctement ouvert :
 
 - aucune erreur ESLint ;
 - aucune erreur TypeScript ;
@@ -74,8 +75,8 @@ qu'elles ont déjà toutes été exécutées sur un SHA final :
   explicitement documenté ;
 - rapport de couverture API et Web conservé sans exclusions opportunistes ;
 - build de production réussi sous Node 24 ;
-- audit high/critical bloquant ;
-- Playwright public et authentifié ;
+- audit bloquant dès le niveau low ;
+- Playwright public réussi ; Playwright authentifié encore à exécuter ;
 - build Docker et procédure de migration/seed exécutables.
 
 ### Performance
@@ -103,7 +104,7 @@ Le protocole cible est :
 5. tests et couverture API/Web ;
 6. build des packages ;
 7. tests Playwright et accessibilité ;
-8. audit de dépendances high/critical bloquant ;
+8. audit de dépendances bloquant dès le niveau low ;
 9. build des images Docker ;
 10. migration Drizzle bloquante après une CI verte sur `main` ;
 11. déploiement API puis Web, avec smoke tests, seulement si la migration réussit.
@@ -111,8 +112,10 @@ Le protocole cible est :
 Le workflow CD manuel qui permettait de contourner la CI est supprimé de la
 version candidate. Le déploiement reste conditionné par la variable de projet
 et par un `workflow_run` réussi. `deploy-api` dépend de `migrate-db`, puis
-`deploy-web` dépend de `deploy-api`. La preuve finale sera un run GitHub du SHA
-remis, pas le run historique `29489995458`.
+`deploy-web` dépend de `deploy-api`. La preuve réelle est la CI `29740673466`
+puis la CD `29740979781`, toutes deux réussies. Pour le même SHA, les builds Git
+de production ont été annulés et une seule production GitHub Actions a abouti
+par projet.
 
 ## 5. Architecture maintenable
 
@@ -152,8 +155,10 @@ suivantes :
 | US-09 | Supprimer une ressource avec confirmation          | dialogues accessibles            |
 | US-10 | Utiliser les parcours au clavier et sur mobile     | audit RGAA représentatif         |
 
-Le prototype de référence demeure `https://ai-sport-web.vercel.app`, mais il ne
-sera une preuve de la version candidate qu'après déploiement du SHA final.
+Le prototype de référence `https://ai-sport-web.vercel.app` sert la version
+`0.13.0-rc.2`. Les healthchecks Web et API, la readiness PostgreSQL/IA et le
+démarrage OAuth ont été contrôlés après le déploiement du SHA applicatif
+`4151b80cc6d164c38549e753f7b960ec4914f519`.
 
 ## 7. C2.2.2 — Harnais de tests unitaires
 
@@ -177,14 +182,13 @@ Les rapports API et Web sont publiés séparément. La mesure locale du
 | Web                        |    68,07 % |   77,45 % |   79,38 % |   68,07 % | `app`, `components`, `lib` ; les pages serveur non instanciées apparaissent bien à 0 %                                     |
 | Shared                     |  Non isolé | Non isolé | Non isolé | Non isolé | schémas exercés par 6 tests de contrats API, mais pas de rapport instrumenté autonome                                      |
 
-Les suites locales comptent 86 tests API et 39 tests Web réussis ; leurs sorties
-ont été observées pendant la correction mais ne sont pas encore archivées comme
-annexes brutes du SHA final. Un PostgreSQL
-16.14 réel a également exécuté 8/8 tests d'intégration sur la candidate locale
-`69b21ef-dirty`. Ce rapport reste séparé du rapport unitaire et est consigné
-dans B2-A19 ; il doit encore être rejoué en CI sur le SHA final. Les 48 cas
-Playwright publics ont aussi réussi localement, sans rapport brut final archivé,
-et ne sont pas comptés comme tests unitaires.
+Les suites locales de `0.13.0-rc.2` comptent 91 tests API et 39 tests Web
+réussis. Un PostgreSQL 16.14 réel a également exécuté 8/8 tests d'intégration
+sur la candidate locale `69b21ef-dirty`, preuve séparée consignée dans B2-A19.
+Le job PostgreSQL, les tests Playwright publics et axe ont ensuite réussi sur le
+SHA applicatif final dans la CI `29740673466`. Les rapports bruts de couverture
+du SHA déposé ne sont pas archivés et les cas Playwright ne sont pas comptés
+comme tests unitaires.
 
 Le nombre de tests ou un pourcentage API isolé ne suffit pas. Cette mesure
 montre une majorité sur les périmètres instrumentés, avec une faiblesse visible
@@ -234,29 +238,25 @@ La recette instrumentée locale B2-A20 a réussi 12/12 contrôles sur Chromium e
 12/12 sur Firefox. Elle couvre quatre pages publiques à 320 px, axe ciblé,
 console et erreurs JavaScript, le lien d'évitement, le nom du bouton Google et
 quatre redirections sans session. Elle a conduit à corriger deux défauts de
-focus/nom accessible et un contraste visuellement faible. `/dashboard`, OAuth,
-la suite authentifiée et l'audit RGAA manuel n'ont pas été exécutés dans cette
-preuve. Les contrôles humains complets — zoom, ratios de contraste, lecteur
+focus/nom accessible et un contraste visuellement faible. Après déploiement,
+la redirection `/dashboard` vers `/login`, le lien d'évitement et le démarrage
+OAuth jusqu'au formulaire Google ont aussi été observés sur `0.13.0-rc.2`. La
+suite authentifiée et l'audit RGAA manuel n'ont pas été exécutés. Les contrôles
+humains complets — zoom, ratios de contraste, lecteur
 d'écran, dialogues, onglets et Timer — restent à consigner. Le statut
 « conforme RGAA » reste interdit tant que l'audit humain final n'est pas terminé.
 
 ## 9. C2.2.4 — Version, déploiement et viabilité
 
-La version finale doit suivre cette séquence :
+La séquence technique de `0.13.0-rc.2` est tracée : merge sur `main`, gates CI,
+SHA immuable, migration, déploiement de ce SHA puis healthchecks et démarrage
+OAuth. Le tag `v0.13.0-rc.2` identifie le gel documentaire final qui contient
+ce dossier et son PDF. La connexion Google complète, les parcours métier
+authentifiés et le test d'utilisation autonome restent explicitement hors des
+preuves acquises.
 
-1. intégrer les corrections sur `main` ;
-2. exécuter toutes les gates ;
-3. relever le SHA immuable du commit validé ;
-4. appliquer les migrations tracées ;
-5. déployer exactement ce SHA ;
-6. vérifier readiness, login et parcours métier ;
-7. recueillir un test d'utilisation autonome ;
-8. créer le tag sur ce SHA seulement après ces vérifications ;
-9. joindre les preuves et renseigner le manifeste.
-
-Le changelog distingue les versions historiques, les évolutions `Unreleased`
-et la future release de correction. Les anciens domaines `alcide-*` ne sont
-plus des cibles de production.
+Le changelog identifie `0.13.0-rc.2` comme préversion datée. Les anciens domaines
+`alcide-*` ne sont plus des cibles de production.
 
 ## 10. C2.3.1 — Cahier de recettes
 
@@ -306,32 +306,37 @@ builder. Elle ne demande plus d'exécuter `drizzle-kit` ou `tsx` dans l'image AP
 de production qui ne les contient pas.
 
 B2-A22 consigne l'exécution locale réelle des deux builds Node 24/pnpm 11.9,
-des runtimes non-root, de `migrate`, de `seed` et du nettoyage ciblé. Le contrôle
-depuis un clone vierge et le job Docker du SHA final restent à produire.
+des runtimes non-root, de `migrate`, de `seed` et du nettoyage ciblé. La CI
+`29740673466` confirme aussi le build Docker du SHA applicatif final. Le contrôle
+depuis un clone vierge n'a pas été archivé.
 
-## 13. Annexes à produire sur la version finale
+## 13. État des annexes et preuves résiduelles
 
-- sortie brute lint/typecheck/build ;
-- résultats et rapports de couverture API/Web/shared ;
-- résultats des tests PostgreSQL ;
-- rapport Playwright public/authentifié avec traces en cas d'échec ;
-- rapport axe sans filtrage des seules violations graves ;
-- grille d'audit manuel RGAA ;
-- audit de dépendances ;
-- run CI et CD du SHA final ;
-- healthchecks et parcours post-déploiement ;
-- captures desktop/mobile ;
+Sont acquises et référencées : lint, typecheck, tests, build, PostgreSQL,
+Playwright public, axe, build Docker, audit de dépendances au niveau `low`, CI,
+CD, healthchecks, démarrage OAuth, manifeste et PDF de 15 pages.
+
+Restent à produire sans les simuler :
+
+- rapports bruts de couverture du SHA déposé, dont une mesure autonome du
+  package `shared` ;
+- parcours Google complet et suite Playwright authentifiée avec un
+  `storageState` réel ;
+- grille d'audit RGAA humain, captures desktop/mobile associées et lecteur
+  d'écran ;
+- rapport de performance final ;
 - retour d'un utilisateur autonome ;
-- manifeste avec archive, SHA, tag et version.
+- contrôle archivé depuis un clone vierge.
 
 ## 14. Conclusion
 
-Alcide dispose d'une candidate `0.13.0-rc.1` historiquement déployée et d'une candidate
-locale `0.13.0-rc.2`. La candidate traite des défauts constatés lors de l'audit
-du 2026-07-20 qui n'étaient pas explicités dans le dossier du 2026-07-16. Elle ne
-doit toutefois pas être annoncée comme « validable » tant
-que les champs `À RENSEIGNER`, la recette complète, l'audit RGAA, la CI/CD et le
-déploiement du même SHA ne sont pas fermés.
+Alcide `0.13.0-rc.2` est déployée après CI, migration et CD réussies. Les
+healthchecks API/Web annoncent cette version, PostgreSQL et la configuration IA
+sont prêts, l'audit de dépendances ne remonte aucune vulnérabilité connue et la
+CD n'effectue plus de double production. La candidate ne doit toutefois pas
+être annoncée comme « prête au dépôt sans réserve » tant que la connexion
+Google complète, les parcours métier authentifiés et l'audit humain RGAA ne
+sont pas exécutés.
 
 Cette formulation vise à distinguer ce qui est implémenté, ce qui est prouvé et
 ce qui reste à exécuter, sans abaisser les

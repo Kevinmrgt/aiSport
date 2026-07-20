@@ -1,70 +1,81 @@
-# Manifeste de dépôt — Bloc 2 RNCP39583
+# Manifeste de dépôt - Bloc 2 RNCP39583
 
-> Statut : **version candidate**. Remplacer les champs `À RENSEIGNER` après
-> fusion, tag et déploiement de la version effectivement remise au jury.
+> Statut au 2026-07-20 : **candidate `0.13.0-rc.2` livrée techniquement**.
+> La CI, la CD, les healthchecks, l'audit de dépendances et les recettes
+> publiques sont réels. Le parcours Google authentifié complet et l'audit humain
+> RGAA restent volontairement non validés.
 
-## Référence immuable
+## Références vérifiables
 
-| Élément                    | Valeur                                                                                                      |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Dépôt ou archive de code   | À RENSEIGNER                                                                                                |
-| Branche finale             | `main` après fusion                                                                                         |
-| Commit SHA complet         | À RENSEIGNER                                                                                                |
-| Tag de release             | À RENSEIGNER                                                                                                |
-| Version applicative        | `0.13.0-rc.2` (candidate locale ; à confirmer après tag)                                                    |
-| Date/heure de constitution | À RENSEIGNER, fuseau Europe/Paris                                                                           |
-| URL Web observée           | `https://ai-sport-web.vercel.app` — HTTP 200 sur `0.13.0-rc.1`, candidate `0.13.0-rc.2` non encore déployée |
-| URL API observée           | `https://ai-sport-api.vercel.app` — HTTP 200 sur `0.13.0-rc.1`, candidate `0.13.0-rc.2` non encore déployée |
+| Élément                          | Valeur                                                                                            |
+| -------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Dépôt                            | `https://github.com/Kevinmrgt/aiSport`                                                            |
+| Branche                          | `main`                                                                                            |
+| SHA applicatif validé et déployé | `4151b80cc6d164c38549e753f7b960ec4914f519`                                                        |
+| Pull request                     | `https://github.com/Kevinmrgt/aiSport/pull/30`                                                    |
+| Tag de release                   | `v0.13.0-rc.2` - créé sur le commit documentaire final qui contient ce manifeste et le PDF        |
+| Version API/Web/packages         | `0.13.0-rc.2`                                                                                     |
+| CI `main`                        | `https://github.com/Kevinmrgt/aiSport/actions/runs/29740673466` - succès                          |
+| CD Vercel                        | `https://github.com/Kevinmrgt/aiSport/actions/runs/29740979781` - succès                          |
+| Web                              | `https://ai-sport-web.vercel.app` - HTTP 200, version `0.13.0-rc.2`                               |
+| API liveness                     | `https://ai-sport-api.vercel.app/health` - HTTP 200, version `0.13.0-rc.2`                        |
+| API readiness                    | `https://ai-sport-api.vercel.app/health/ready` - HTTP 200, PostgreSQL `ok`, configuration IA `ok` |
 
-Le SHA, le tag, les healthchecks et les rapports de tests doivent tous porter
-sur la même version. Un ancien run CI ne constitue pas une preuve de la version
-candidate courante.
+## Unicité du déploiement de production
 
-## Pièces obligatoires
+Pour le SHA applicatif validé, l'intégration Git Vercel a créé une tentative de
+production par projet, toutes deux annulées par `ignoreCommand`. GitHub Actions
+a ensuite créé une seule production prête par projet :
 
-| Pièce                             | Emplacement                                                                              | Statut avant dépôt                                                                          |
-| --------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| Code source                       | archive du SHA ci-dessus ou dépôt accessible                                             | À RENSEIGNER                                                                                |
-| Dossier écrit, 30 pages maximum   | `docs/rncp/livrables/dossier-bloc2-candidat-corrige-2026-07-20.pdf`                      | Export de travail régénéré, 15 pages visuellement contrôlées ; à régénérer après gel du SHA |
-| Manuel de déploiement             | `docs/deployment.md`                                                                     | Présent                                                                                     |
-| Manuel utilisateur                | `docs/rncp/bloc2-manuel-utilisateur-alcide.md`                                           | Présent                                                                                     |
-| Manuel de mise à jour             | `docs/rncp/bloc2-manuel-mise-a-jour.md`                                                  | Présent                                                                                     |
-| Cahier de recettes                | `docs/bloc2/cahier-recettes.md`                                                          | À figer après recette finale                                                                |
-| Plan de correction                | `docs/rncp/bloc2-plan-correction-bogues-rncp39583.md`                                    | Présent                                                                                     |
-| Revue sécurité OWASP              | `docs/security/owasp-review.md`                                                          | À dater après audit final                                                                   |
-| Rapport accessibilité             | `docs/rncp/bloc2-accessibilite-rgaa.md`                                                  | À compléter après audit manuel                                                              |
-| Recette navigateur publique       | `docs/rncp/bloc2-annexes/B2-A20-recette-navigateur-accessibilite-publique-2026-07-20.md` | Preuve locale partielle : 24/24 contrôles ; OAuth/authentifié/audit manuel non exécutés     |
-| Validation Docker                 | `docs/rncp/bloc2-annexes/B2-A22-docker-node24-2026-07-20.md`                             | Preuve locale : builds/runtimes/migrate/seed réussis ; CI finale non exécutée               |
-| Audit dépendances et politique CD | `docs/rncp/bloc2-annexes/B2-A23-securite-dependances-et-cd-2026-07-20.md`                | Preuve locale réussie ; CI et déploiement final attendus                                    |
-| Démarrage OAuth production        | `docs/rncp/bloc2-annexes/B2-A24-demarrage-oauth-production-2026-07-20.md`                | OAuth atteint Google ; saisie du compte et retour authentifié non exécutés                  |
-| Annexes et preuves brutes         | `docs/rncp/bloc2-annexes/`                                                               | À régénérer                                                                                 |
+| Projet | Intégration Git                                 | CD GitHub Actions                            |
+| ------ | ----------------------------------------------- | -------------------------------------------- |
+| API    | `dpl_5mrSuitYwdKEmwpvzh7vU9Cp9BFB` - `CANCELED` | `dpl_GKNpqDoHMHkBwUSfMyWZa7q7iUXZ` - `READY` |
+| Web    | `dpl_5xgYantaAdLn89GDgRgDSwuUmrPt` - `CANCELED` | `dpl_3dryqiaD8LB7d4cYSYDuBVR7gTVM` - `READY` |
 
-## Vérifications de la version remise
+Les deployments Web Dependabot observés avec `target=null` sont des previews et
+ne sont pas des doubles productions.
 
-Toutes les cases doivent être cochées sur le SHA final :
+## Pièces du dossier
 
-Preuve locale intermédiaire disponible : B2-A19 rapporte 8/8 tests
-d'intégration réussis sur PostgreSQL 16.14, mais sur `69b21ef-dirty` avec Node
-24.14.0. La case correspondante reste donc volontairement décochée jusqu'au run
-CI Node 24 du SHA final.
+| Pièce                           | Emplacement                                                  | État réel                                                                                          |
+| ------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| Code source                     | dépôt et tag ci-dessus                                       | présent                                                                                            |
+| Dossier écrit, maximum 30 pages | `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.2.pdf` | généré : 15 pages, texte extrait contrôlé et toutes les pages rendues puis inspectées visuellement |
+| Manuel de déploiement           | `docs/deployment.md`                                         | présent et actualisé                                                                               |
+| Manuel utilisateur              | `docs/rncp/bloc2-manuel-utilisateur-alcide.md`               | présent                                                                                            |
+| Manuel de mise à jour           | `docs/rncp/bloc2-manuel-mise-a-jour.md`                      | présent                                                                                            |
+| Cahier de recettes              | `docs/bloc2/cahier-recettes.md`                              | présent ; parcours authentifiés à compléter                                                        |
+| Plan de correction              | `docs/rncp/bloc2-plan-correction-bogues-rncp39583.md`        | présent                                                                                            |
+| Revue OWASP                     | `docs/security/owasp-review.md`                              | actualisée ; audit low propre                                                                      |
+| Accessibilité                   | `docs/rncp/bloc2-accessibilite-rgaa.md` et B2-A20            | automatisation réelle ; audit humain incomplet                                                     |
+| Dépendances et CD               | B2-A23                                                       | local, CI et production prouvés                                                                    |
+| OAuth production                | B2-A24                                                       | démarrage jusqu'à Google prouvé ; connexion non effectuée                                          |
 
-- [ ] `pnpm install --frozen-lockfile`
-- [ ] `pnpm lint`
-- [ ] `pnpm typecheck`
-- [ ] `pnpm test`
-- [ ] `pnpm test:coverage`
-- [ ] `pnpm build`
-- [ ] `pnpm audit --audit-level=low`
-- [ ] tests d'intégration PostgreSQL
-- [ ] Playwright public et authentifié
-- [ ] audit axe et audit manuel WCAG sur les parcours métier
-- [ ] build Docker et procédure migration/seed
-- [ ] déploiement Web/API du SHA final
-- [ ] healthchecks et parcours métier post-déploiement
-- [ ] concordance version package/API/Web/changelog/tag
+## Contrôles réussis
 
-## Règle de fermeture
+- [x] `pnpm install --frozen-lockfile`
+- [x] `pnpm lint`
+- [x] `pnpm typecheck`
+- [x] `pnpm test` - 91 tests API et 39 tests Web
+- [x] `pnpm test:coverage`
+- [x] `pnpm build`
+- [x] `pnpm audit --audit-level=low` - aucune vulnérabilité connue
+- [x] 8 tests de politique Vercel, dont 2 tests du script CLI réel
+- [x] tests d'intégration PostgreSQL dans la CI
+- [x] Playwright public et axe dans la CI
+- [x] build Docker dans la CI
+- [x] migration de production, déploiements API/Web et smoke tests CD
+- [x] healthchecks post-déploiement sur `0.13.0-rc.2`
+- [x] démarrage OAuth avec PKCE, scopes `openid profile email` et callback HTTPS attendu
 
-Ce manifeste ne doit être marqué « prêt au dépôt » que lorsque chaque preuve
-est datée, rattachée au SHA final et conservée sous forme de sortie brute ou de
-rapport exporté. Une inspection du code seule n'est pas une exécution de recette.
+## Contrôles non exécutés - ne pas les revendiquer
+
+- [ ] saisie d'un compte Google, consentement et retour Auth.js ;
+- [ ] vérification réelle du cookie et de l'expiration de session ;
+- [ ] génération d'une séance et d'un programme par un utilisateur authentifié sur `0.13.0-rc.2` ;
+- [ ] suite Playwright authentifiée avec un `storageState` réel ;
+- [ ] audit RGAA humain complet avec navigation autonome et lecteur d'écran.
+
+La candidate ne doit être présentée comme « prête au dépôt sans réserve »
+qu'après ces actions personnelles. Les tests publics, les tests unitaires et
+l'audit axe ne sont pas assimilés à un audit RGAA humain complet.
