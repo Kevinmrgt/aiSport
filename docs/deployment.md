@@ -45,9 +45,11 @@ NODE_ENV=production
 2. `CD - Vercel` se lance uniquement après une CI verte sur `main` si la
    variable GitHub `ENABLE_GHA_VERCEL_CD=true` est définie. Il n'existe plus de
    lancement manuel contournant les gates.
-3. `DB - Drizzle migrations` reste manuel et rattaché à l'environnement
-   `production`. Au relevé du 2026-07-20, cet environnement ne possédait aucune
-   règle de protection ni approbateur ; ce n'est donc pas encore une gate humaine.
+3. `CD - Vercel` applique les migrations Drizzle avant le déploiement API ; un
+   échec bloque ensuite l'API et le Web. `DB - Drizzle migrations` reste un
+   chemin manuel de reprise, rattaché à l'environnement `production`. Au relevé
+   du 2026-07-20, cet environnement ne possédait aucune règle de protection ni
+   approbateur ; ce n'est donc pas encore une gate humaine.
 
 Secrets GitHub requis pour la CD:
 
@@ -98,7 +100,9 @@ vercel deploy --prebuilt --prod
 
 ## Migrations Neon
 
-Depuis GitHub Actions, lancer le workflow manuel `DB - Drizzle migrations`.
+Dans le chemin nominal, le job `migrate-db` du workflow `CD - Vercel` applique
+les migrations avant le déploiement API. Pour une reprise autorisée ou une
+migration isolée, lancer le workflow manuel `DB - Drizzle migrations`.
 
 En local, uniquement si `DATABASE_URL` pointe volontairement vers la cible:
 

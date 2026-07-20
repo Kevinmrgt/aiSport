@@ -105,12 +105,14 @@ Le protocole cible est :
 7. tests Playwright et accessibilité ;
 8. audit de dépendances high/critical bloquant ;
 9. build des images Docker ;
-10. déploiement uniquement après une CI verte sur `main`.
+10. migration Drizzle bloquante après une CI verte sur `main` ;
+11. déploiement API puis Web, avec smoke tests, seulement si la migration réussit.
 
 Le workflow CD manuel qui permettait de contourner la CI est supprimé de la
 version candidate. Le déploiement reste conditionné par la variable de projet
-et par un `workflow_run` réussi. La preuve finale sera un run GitHub du SHA remis,
-pas le run historique `29489995458`.
+et par un `workflow_run` réussi. `deploy-api` dépend de `migrate-db`, puis
+`deploy-web` dépend de `deploy-api`. La preuve finale sera un run GitHub du SHA
+remis, pas le run historique `29489995458`.
 
 ## 5. Architecture maintenable
 

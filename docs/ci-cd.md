@@ -57,20 +57,21 @@ contourne les gates. Le déploiement se lance uniquement après un workflow
 Séquence :
 
 1. checkout du `head_sha` de la CI réussie ;
-2. validation des secrets Vercel ;
-3. `vercel pull`, build et déploiement API ;
-4. smoke/readiness API ;
-5. build et déploiement Web ;
-6. smoke Web.
+2. validation du secret `DATABASE_URL` et application des migrations Drizzle ;
+3. validation des secrets Vercel ;
+4. `vercel pull`, build et déploiement API ;
+5. smoke/readiness API ;
+6. build et déploiement Web ;
+7. smoke Web.
 
-La CLI Vercel est figée par `VERCEL_CLI_VERSION`. Les migrations de production
-restent un workflow manuel rattaché à l'environnement GitHub `Production`, à
-exécuter avant le déploiement lorsque le schéma change. Au relevé du 2026-07-20,
-cet environnement n'avait ni règle de protection ni approbateur : il ne faut
-donc pas présenter ce rattachement comme une validation humaine bloquante.
-Le workflow CD ne dépend pas techniquement du workflow de migration : quand le
-schéma change, l'opérateur doit exécuter et vérifier la migration avant de
-déclencher le chemin qui mènera au CD. Cet ordre n'est pas garanti par GitHub.
+La CLI Vercel est figée par `VERCEL_CLI_VERSION`. Le job `migrate-db` est une
+dépendance bloquante de `deploy-api`, lui-même préalable à `deploy-web` : une
+migration échouée arrête donc le déploiement. Le workflow manuel
+`DB - Drizzle migrations` reste disponible pour une intervention contrôlée ou
+une reprise. Au relevé du 2026-07-20, l'environnement GitHub `production`
+n'avait ni règle de protection ni approbateur : il ne faut pas présenter ce
+rattachement comme une validation humaine bloquante. L'exécution réelle de ce
+nouvel enchaînement doit être prouvée par le run CD du SHA candidat.
 
 ## Secrets et variables
 

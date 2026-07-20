@@ -187,8 +187,8 @@ La CI/CD sert de contrôle de non-régression avant maintenance, correction ou d
 | Workflow | Déclenchement | Rôle MCO |
 |---|---|---|
 | [ci.yml](../../.github/workflows/ci.yml) | push, PR, manuel | Vérifier qualité, tests, build, Docker et audit |
-| [deploy-vercel.yml](../../.github/workflows/deploy-vercel.yml) | manuel ou CI verte sur `main` si `ENABLE_GHA_VERCEL_CD=true` | Déployer API puis Web sur Vercel et lancer smoke tests prod |
-| [db-migrate.yml](../../.github/workflows/db-migrate.yml) | manuel | Appliquer migrations Drizzle contre la base cible |
+| [deploy-vercel.yml](../../.github/workflows/deploy-vercel.yml) | CI verte sur `main` si `ENABLE_GHA_VERCEL_CD=true` | Migrer la base, déployer API puis Web et lancer les smoke tests prod |
+| [db-migrate.yml](../../.github/workflows/db-migrate.yml) | manuel | Reprise contrôlée ou migration Drizzle isolée contre la base cible |
 
 Gates existantes :
 
@@ -199,11 +199,12 @@ Gates existantes :
 - `pnpm build`
 - smoke E2E public et accessibilité Playwright/axe-core
 - build Docker API et Web
-- audit `pnpm audit --audit-level=high`, visible mais non bloquant
+- audit `pnpm audit --audit-level=high`, bloquant
 
-Point de vigilance : l'audit sécurité est actuellement `continue-on-error: true`. C'est acceptable pour éviter un blocage transitoire, mais toute alerte haute doit être consignée, qualifiée et traitée comme anomalie sécurité.
-
-Vérification 2026-05-07 : `pnpm audit --audit-level=high` échoue avec 3 vulnérabilités high (`glob` via `eslint-config-next` et deux avis Next.js/React Server Components). Ces alertes doivent être traitées ou justifiées avant dépôt.
+Vérification locale réelle du 2026-07-20 : `pnpm audit --audit-level=high`
+termine avec le code 0. Le rapport contient 2 vulnérabilités faibles et 4
+modérées, sans vulnérabilité haute ou critique. Elles restent à suivre, sans
+être présentées comme corrigées.
 
 ---
 
@@ -217,15 +218,15 @@ Vérification 2026-05-07 : `pnpm audit --audit-level=high` échoue avec 3 vulné
 | Web `/api/health` | En place | JSON `status: ok`, service, timestamp | [route.ts](../../apps/web/app/api/health/route.ts) |
 | Docker PostgreSQL | En place | `pg_isready` OK | [docker-compose.yml](../../docker-compose.yml) |
 | Docker API | En place | `wget http://localhost:3001/health` OK | [docker-compose.yml](../../docker-compose.yml) |
-| CD API | En place | `curl --fail https://alcide-api.vercel.app/health` | [deploy-vercel.yml](../../.github/workflows/deploy-vercel.yml) |
-| CD Web | En place | `curl --fail https://alcide-web.vercel.app/api/health` | [deploy-vercel.yml](../../.github/workflows/deploy-vercel.yml) |
+| CD API | En place | `curl --fail https://ai-sport-api.vercel.app/health/ready` | [deploy-vercel.yml](../../.github/workflows/deploy-vercel.yml) |
+| CD Web | En place | `curl --fail https://ai-sport-web.vercel.app/api/health` | [deploy-vercel.yml](../../.github/workflows/deploy-vercel.yml) |
 
 Commandes de vérification :
 
 ```bash
-curl https://alcide-api.vercel.app/health
-curl https://alcide-web.vercel.app/api/health
-curl -I https://alcide-web.vercel.app
+curl https://ai-sport-api.vercel.app/health/ready
+curl https://ai-sport-web.vercel.app/api/health
+curl -I https://ai-sport-web.vercel.app
 ```
 
 ### 4.2 Périmètre à surveiller

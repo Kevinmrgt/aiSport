@@ -34,6 +34,8 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 ### Changed
 - Runtime de référence aligné sur Node.js 24 LTS et pnpm 11.9.0 dans `.nvmrc`, les manifests, la CI/CD et les images Docker ; Node.js 20 était en fin de vie et pnpm 9 ne lisait pas la configuration d'overrides courante.
 - CI : tests et rapports de couverture API/Web, audit high/critical bloquant et CD déclenchable uniquement après une CI `main` réussie.
+- CD : migration Drizzle de production devenue une dépendance bloquante avant le déploiement API, puis Web ; le workflow manuel reste disponible pour la reprise.
+- GitHub Actions : actions officielles Node 24 mises à jour et épinglées par SHA (`checkout` 7.0.0, `setup-node` 7.0.0, `upload-artifact` 7.0.1, `pnpm/action-setup` 6.0.9).
 - Timer : calcul sur le temps actif hors pauses et deadline réelle pour résister au ralentissement d'un onglet.
 - Navigation clavier : onglets avec flèches/Home/End, confirmation de suppression avec gestion du focus et plein écran Timer accessible.
 - Gestion Web des erreurs : distinction 404/403/5xx, timeouts explicites et suppression des valeurs de secours trompeuses.
