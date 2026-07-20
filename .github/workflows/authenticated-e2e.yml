@@ -1,0 +1,77 @@
+name: E2E authentifié - compte Google dédié
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: authenticated-e2e-production
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+  E2E_BASE_URL: https://ai-sport-web.vercel.app
+  PLAYWRIGHT_AUTH_STORAGE: ${{ github.workspace }}/apps/web/playwright/.auth/google-e2e.json
+
+jobs:
+  authenticated-e2e:
+    name: Parcours authentifié sans session personnelle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b0f76dfb45f55f8421693e4803ac7bb65143bd34 # v6.0.9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Vérifier les secrets du compte dédié
+        shell: bash
+        env:
+          E2E_AUTH_EMAIL: ${{ secrets.E2E_AUTH_EMAIL }}
+          E2E_AUTH_STORAGE_B64: ${{ secrets.E2E_AUTH_STORAGE_B64 }}
+        run: |
+          test -n "$E2E_AUTH_EMAIL" || { echo "Secret E2E_AUTH_EMAIL manquant"; exit 1; }
+          test -n "$E2E_AUTH_STORAGE_B64" || { echo "Secret E2E_AUTH_STORAGE_B64 manquant"; exit 1; }
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter web exec playwright install --with-deps chromium
+
+      - name: Restaurer la session dédiée depuis GitHub Secrets
+        env:
+          E2E_AUTH_STORAGE_B64: ${{ secrets.E2E_AUTH_STORAGE_B64 }}
+        run: >-
+          node -e "const fs=require('node:fs');const path=require('node:path');
+          const target=process.env.PLAYWRIGHT_AUTH_STORAGE;
+          fs.mkdirSync(path.dirname(target),{recursive:true});
+          fs.writeFileSync(target,Buffer.from(process.env.E2E_AUTH_STORAGE_B64,'base64'),{mode:0o600});"
+
+      - name: Run authenticated Playwright suite
+        env:
+          E2E_AUTH_EMAIL: ${{ secrets.E2E_AUTH_EMAIL }}
+        run: pnpm test:e2e:authenticated
+
+      - name: Supprimer la session du runner
+        if: always()
+        run: >-
+          node -e "const fs=require('node:fs');
+          const target=process.env.PLAYWRIGHT_AUTH_STORAGE;
+          if(fs.existsSync(target))fs.unlinkSync(target);"
+
+      - name: Upload authenticated Playwright report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report-authenticated
+          path: apps/web/playwright-report-authenticated/
+          if-no-files-found: ignore
