@@ -5,7 +5,7 @@ import { Icon } from './ui/Icon';
 
 interface WorkoutCardProps {
   workout: WorkoutListItem;
-  onDelete: (id: string) => Promise<void>;
+  onDelete: (id: string) => Promise<{ error?: string } | void>;
 }
 
 const DIFFICULTY_LABELS: Record<WorkoutListItem['difficulty'], string> = {
@@ -22,7 +22,10 @@ export function WorkoutCard({ workout, onDelete }: WorkoutCardProps) {
   });
 
   return (
-    <li role="article" className="glass-soft group relative min-w-0 overflow-hidden p-4 transition hover:border-primary-300/[0.45] hover:bg-zinc-950/[0.72]">
+    <li
+      role="article"
+      className="glass-soft group relative min-w-0 overflow-hidden p-4 transition hover:border-primary-300/[0.45] hover:bg-zinc-950/[0.72]"
+    >
       <Link
         href={`/workouts/${workout.id}`}
         aria-label={`Voir l'entrainement : ${workout.title}`}
@@ -47,15 +50,21 @@ export function WorkoutCard({ workout, onDelete }: WorkoutCardProps) {
 
         <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
           <div className="rounded-full bg-zinc-950/[0.46] px-3 py-2">
-            <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-zinc-300">Duree</p>
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-zinc-300">
+              Duree
+            </p>
             <p className="text-sm font-black text-white">{workout.durationMinutes} min</p>
           </div>
           <div className="rounded-full bg-zinc-950/[0.46] px-3 py-2">
-            <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-zinc-300">Cree</p>
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-zinc-300">
+              Cree
+            </p>
             <p className="text-sm font-black text-white">{createdAt}</p>
           </div>
           <div className="hidden rounded-full border border-primary-300/[0.18] bg-zinc-950/[0.46] px-3 py-2 sm:block">
-            <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-zinc-300">Statut</p>
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-zinc-300">
+              Statut
+            </p>
             <p className="text-sm font-black text-primary-200">Pret</p>
           </div>
         </div>

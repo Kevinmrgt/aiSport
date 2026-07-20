@@ -22,7 +22,7 @@ const validWorkoutResponse = {
     {
       name: 'Footing léger',
       description: 'Course à allure confortable',
-      duration_seconds: 600,
+      duration_seconds: 1_440,
       rest_seconds: 60,
       tips: 'Respiration nasale',
     },
@@ -104,6 +104,29 @@ describe('WorkoutAiService', () => {
       const result = await generateWorkout(defaultInput, mockAiConfig);
       expect(mockFetch).toHaveBeenCalledTimes(2);
       expect(result.exercises).toHaveLength(1);
+    });
+
+    it('retente si la duree detaillee ne correspond pas a la duree demandee', async () => {
+      const inconsistentWorkout = {
+        ...validWorkoutResponse,
+        exercises: [{ ...validWorkoutResponse.exercises[0], duration_seconds: 600 }],
+      };
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({
+            choices: [{ message: { content: JSON.stringify(inconsistentWorkout) } }],
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(validApiResponse),
+        });
+
+      const result = await generateWorkout(defaultInput, mockAiConfig);
+
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(result.exercises[0]?.duration_seconds).toBe(1_440);
     });
 
     it('lance AppError.serviceUnavailable après 2 échecs de parsing', async () => {

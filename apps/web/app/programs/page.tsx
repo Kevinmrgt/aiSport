@@ -22,8 +22,14 @@ export default async function ProgramsPage({
 
   async function handleDelete(id: string) {
     'use server';
-    await serverApi.deleteProgram(id);
-    revalidatePath('/programs');
+    try {
+      await serverApi.deleteProgram(id);
+      revalidatePath('/programs');
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : 'Impossible de supprimer le programme.',
+      };
+    }
   }
 
   const { programs, total, hasMore } = await serverApi.getPrograms({ page });
@@ -46,7 +52,10 @@ export default async function ProgramsPage({
               Des progressions multi-semaines pour structurer vos objectifs sans repartir de zero.
             </p>
           </div>
-          <Link href="/programs/generate" className="action-primary mobile-header-action w-full sm:w-auto">
+          <Link
+            href="/programs/generate"
+            className="action-primary mobile-header-action w-full sm:w-auto"
+          >
             Nouveau programme
           </Link>
         </div>

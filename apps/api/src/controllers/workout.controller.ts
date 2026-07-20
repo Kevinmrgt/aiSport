@@ -16,6 +16,15 @@ const WorkoutQuerySchema = z.object({
   sport: z.string().trim().optional(),
   level: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
 });
+const WorkoutIdSchema = z.string().uuid();
+
+function parseWorkoutId(value: string | undefined): string {
+  const parsed = WorkoutIdSchema.safeParse(value);
+  if (!parsed.success) {
+    throw AppError.badRequest("L'ID de l'entrainement doit etre un UUID valide");
+  }
+  return parsed.data;
+}
 
 // Valide les inputs Zod, appelle le service, formate la réponse HTTP (architecture.md)
 // Jamais d'accès BDD ni de logique métier ici
@@ -48,7 +57,9 @@ export async function handleGenerateWorkout(ctx: Context): Promise<Response> {
       sport: workout.sport,
       difficulty: workout.difficulty,
       durationMinutes: workout.durationMinutes,
-      data: workout.data,
+      exercises: workout.data.exercises,
+      warmup: workout.data.warmup,
+      cooldown: workout.data.cooldown,
       createdAt: workout.createdAt.toISOString(),
     },
     201,
@@ -83,11 +94,7 @@ export async function handleGetStats(ctx: Context): Promise<Response> {
 
 export async function handleGetWorkout(ctx: Context): Promise<Response> {
   const auth = ctx.get('auth');
-  const workoutId = ctx.req.param('id');
-
-  if (!workoutId) {
-    throw AppError.badRequest("L'ID de l'entraînement est requis");
-  }
+  const workoutId = parseWorkoutId(ctx.req.param('id'));
 
   const workout = await getWorkoutDetail(workoutId, auth.userId);
 
@@ -106,11 +113,7 @@ export async function handleGetWorkout(ctx: Context): Promise<Response> {
 
 export async function handleDeleteWorkout(ctx: Context): Promise<Response> {
   const auth = ctx.get('auth');
-  const workoutId = ctx.req.param('id');
-
-  if (!workoutId) {
-    throw AppError.badRequest("L'ID de l'entraînement est requis");
-  }
+  const workoutId = parseWorkoutId(ctx.req.param('id'));
 
   await removeWorkout(workoutId, auth.userId);
   return ctx.json({ message: 'Entraînement supprimé' });

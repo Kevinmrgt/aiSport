@@ -130,13 +130,19 @@ export default async function RootLayout({ children }: { readonly children: Reac
           </nav>
         )}
 
-        <main id="main-content" className="app-container">
+        <main id="main-content" tabIndex={-1} className="app-container">
           {children}
         </main>
 
         <footer className="relative z-10 border-t border-white/10">
-          <div className="mx-auto max-w-7xl px-5 py-6 text-center text-xs text-zinc-500 lg:px-8">
+          <div className="mx-auto max-w-7xl px-5 py-6 text-center text-xs font-medium text-zinc-700 lg:px-8">
             <p>Alcide - Projet RNCP 39583</p>
+            <Link
+              href="/confidentialite"
+              className="mt-2 inline-block font-bold text-zinc-800 underline underline-offset-4 hover:text-zinc-950"
+            >
+              Confidentialité et données personnelles
+            </Link>
           </div>
         </footer>
       </body>

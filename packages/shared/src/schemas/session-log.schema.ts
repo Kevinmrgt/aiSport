@@ -31,7 +31,26 @@ export const CreateSessionLogInputSchema = z
       });
     }
 
+    if (value.sourceType === 'workout') {
+      for (const field of ['programId', 'programWeekNumber', 'programSessionNumber'] as const) {
+        if (value[field] !== undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [field],
+            message: "Ce champ n'est pas autorise pour une seance simple",
+          });
+        }
+      }
+    }
+
     if (value.sourceType === 'program_session') {
+      if (value.workoutId !== undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['workoutId'],
+          message: "L'ID de seance simple n'est pas autorise pour une seance de programme",
+        });
+      }
       if (!value.programId) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,

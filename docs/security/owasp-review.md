@@ -1,174 +1,156 @@
-# Revue de Sécurité OWASP Top 10 — Alcide
+# Revue de sécurité OWASP Top 10 — Alcide
 
-> Livrable RNCP Bloc 3 — Sécurité applicative
-> Date de vérification : 2026-06-30 | Version applicative : 0.12.0
+> Livrable transversal utilisé par le Bloc 2, compétence C2.2.3
+> Revue de code : 2026-07-20 — résultats d'exécution à rattacher au SHA final
 
----
+## Méthode et échelle
 
-## A01 — Broken Access Control ✅
+Cette revue suit les dix catégories OWASP Top 10 2021. Elle distingue :
 
-**Risque** : Un utilisateur accède aux données d'un autre utilisateur.
+- **contrôlé** : mesure présente et testée sur la version candidate ;
+- **partiel** : mesure utile présente, avec risque résiduel identifié ;
+- **à prouver** : code présent mais preuve finale non encore exécutée.
 
-**Contrôles en place :**
-| Couche | Contrôle | Fichier |
+`pnpm audit` ne couvre que les vulnérabilités connues des dépendances. Il ne
+constitue pas à lui seul une revue OWASP Top 10.
+
+## A01 — Broken Access Control — à prouver
+
+Contrôles :
+
+- OAuth Google et vérification `auth()` sur les routes Web privées ;
+- secret interservice entre Next.js et Hono ;
+- identité utilisateur transmise côté serveur uniquement ;
+- repositories workout/program vérifiant l'ownership ;
+- service session-log vérifiant workout/program avant insertion et dérivant les
+  métadonnées depuis la ressource détenue par l'utilisateur ;
+- UUID validés avant PostgreSQL.
+
+Preuve locale intermédiaire : B2-A19 consigne 8/8 tests PostgreSQL réels avec
+deux utilisateurs, dont l'isolation et l'ownership workout/program/session-log.
+Les tests middleware et controllers sont exécutés dans la suite unitaire locale.
+Ces résultats portent sur `69b21ef-dirty` et restent à rejouer en CI sur le SHA
+final. L'existence d'une FK seule ne prouve pas l'ownership.
+
+Risque résiduel : `SERVICE_SECRET` est une frontière de confiance à fort impact.
+Sa rotation et son stockage Vercel/GitHub doivent être documentés.
+
+## A02 — Cryptographic Failures — partiel
+
+Contrôles de code : fichiers `.env` ignorés, exemples sans valeur secrète, TLS
+observé sur les URL de production et secrets OpenAI/interservice utilisés dans
+des modules serveur. Compose rend les valeurs requises. L'inspection finale des
+bundles/réseau et des attributs du cookie Auth.js sur la candidate déployée n'a
+pas encore été exécutée ; aucune absence absolue de fuite n'est affirmée ici.
+
+Risque résiduel : les journaux peuvent contenir effort et notes de douleur,
+liés à l'identité. Une page de confidentialité informe l'utilisateur, mais la
+durée de conservation, l'export et la suppression de compte doivent être
+formalisés et, s'ils sont annoncés, réellement implémentés.
+
+## A03 — Injection — contrôlé à confirmer en intégration
+
+Les chaînes utilisateur ne sont pas nécessairement rejetées parce qu'elles
+ressemblent à du SQL. La protection repose sur les requêtes paramétrées Drizzle,
+complétées par la validation de forme Zod. Le cahier de recettes ne prétend plus
+que Zod bloque la chaîne `'; DROP TABLE ...`.
+
+Preuves : test PostgreSQL avec contenu SQL-like conservé comme donnée, test XSS
+au rendu navigateur, recherche d'appels `eval`/`exec` et revue des requêtes SQL.
+
+## A04 — Insecure Design — partiel
+
+Contrôles : architecture en couches, schémas partagés, invariants métier sur les
+sorties IA, timeouts, retry borné, erreurs typées, contrôle d'ownership et limite
+de taille des entrées.
+
+Risque résiduel majeur : le rate limit utilise un `Map` mémoire par processus.
+Il protège un processus unique mais ne garantit pas un quota global sur Vercel
+avec cold starts ou plusieurs instances. Le passage à un store distribué
+atomique reste nécessaire avant de présenter cette limite comme garantie de
+production.
+
+## A05 — Security Misconfiguration — partiel
+
+Contrôles : `secureHeaders`, CORS restreint, erreurs sans stack client,
+variables obligatoires, readiness DB et présence de configuration OpenAI,
+images non-root, directives CSP
+`object-src`, `base-uri`, `form-action` et `frame-ancestors`.
+
+Risques résiduels :
+
+- `unsafe-inline` reste présent pour scripts/styles, notamment pour les besoins
+  de Next.js ; une CSP à nonce demanderait une évolution dédiée ;
+- le liveness check ne doit pas être confondu avec readiness ;
+- les secrets et callbacks OAuth de production restent une configuration
+  externe à vérifier.
+
+## A06 — Vulnerable and Outdated Components — à prouver
+
+Contrôles : lockfile, installation figée, audit high/critical rendu bloquant en
+CI, versions Next.js/React situées sur une ligne corrigée.
+
+Contrôle local intermédiaire du 2026-07-20 : zéro high/critical, quatre
+moderate et deux low. Ce résultat doit être rejoué sur le lockfile final et le
+rapport brut conservé. Les vulnérabilités modérées ne sont pas déclarées
+« négligeables » : elles sont analysées selon leur chemin production/dev.
+
+## A07 — Identification and Authentication Failures — à prouver
+
+Contrôles de code : Google OAuth, stratégie de session JWT Auth.js avec durée
+maximale configurée et vérification serveur sur chaque parcours protégé. Les
+attributs réels du cookie et l'expiration doivent être relevés sur la candidate
+déployée ; ils ne sont pas considérés comme prouvés par la seule configuration.
+
+La suite Playwright authentifiée n'utilise plus une fixture vide. Elle exige un
+vrai `storageState` Auth.js fourni explicitement ; à défaut, elle est marquée
+ignorée et non faussement verte. La preuve finale doit inclure connexion,
+expiration/déconnexion et accès sans session.
+
+## A08 — Software and Data Integrity Failures — partiel
+
+Contrôles : lockfile, `--frozen-lockfile`, CI avant CD, migrations versionnées,
+validation Zod des sorties OpenAI et images construites depuis le SHA.
+
+Le CD manuel contournant la CI est supprimé. La CLI Vercel doit être figée à une
+version explicite, les actions GitHub révisées périodiquement et le SHA déployé
+conservé dans le manifeste.
+
+## A09 — Security Logging and Monitoring Failures — partiel
+
+Les tentatives d'auth invalides, erreurs applicatives, appels IA et erreurs DB
+disposent d'appels de journalisation dans le code. Un monitoring de healthchecks
+a réellement tourné sur la production historique `0.12.0` ; son exécution sur
+la candidate reste à prouver.
+
+Risque résiduel : `console.*` n'offre ni corrélation systématique, ni rétention,
+ni alerte sécurité dédiée. Un logger structuré, un identifiant de requête, une
+politique de masquage et un export vers un outil d'observabilité restent à
+mettre en place.
+
+## A10 — Server-Side Request Forgery — contrôlé
+
+L'URL OpenAI est fixe côté serveur et aucune URL fournie par l'utilisateur n'est
+utilisée par `fetch`. Le budget global de génération est borné sous la durée
+maximale Vercel ; les appels Web possèdent également un timeout.
+
+Preuves : tests timeout/retry et revue des appels réseau serveur.
+
+## Synthèse des risques
+
+| Catégorie | État candidat | Preuve finale requise |
 |---|---|---|
-| Middleware Hono | `authMiddleware` valide `x-internal-secret` + `x-user-id` sur chaque route protégée | `apps/api/src/middleware/auth.middleware.ts` |
-| Repository | `findWorkoutById(id, userId)` et `deleteWorkout(id, userId)` vérifient l'ownership avant retour | `apps/api/src/repositories/workout.repository.ts` |
-| Next.js | `auth()` sur chaque Server Component protégé → redirect `/login` | `apps/web/app/generate/page.tsx`, `workouts/page.tsx` |
-| Server Action | `serverApi` passe `session.user.id` au backend, jamais côté client | `apps/web/lib/server-api.ts` |
+| A01 Accès | À prouver | PostgreSQL multi-utilisateur + API |
+| A02 Cryptographie/données | Partiel | politique données et secrets |
+| A03 Injection | À confirmer | DB réelle + navigateur |
+| A04 Conception | Partiel | stratégie rate limit distribué ou risque accepté |
+| A05 Configuration | Partiel | headers et readiness de production |
+| A06 Composants | À prouver | audit brut du lockfile final |
+| A07 Authentification | À prouver | Playwright avec vrai état Auth.js |
+| A08 Intégrité | Partiel | CI/CD et SHA final |
+| A09 Logs | Partiel | preuve monitoring et limites documentées |
+| A10 SSRF | Contrôlé | tests timeout + revue URL fixe |
 
-**Test couverture** : `auth.middleware.test.ts` (6 tests), `workout.service.test.ts` (ownership 403)
-**E2E** : `auth.spec.ts` — routes protégées redirigent sans session
-
----
-
-## A02 — Cryptographic Failures ✅
-
-**Risque** : Exposition de secrets ou de données sensibles.
-
-**Contrôles en place :**
-| Contrôle | Détail |
-|---|---|
-| Clés API IA | `OPENAI_API_KEY` serveur utilisée exclusivement ; aucune clé IA utilisateur n'est demandée, stockée ou exposée au navigateur |
-| `SERVICE_SECRET` | Jamais dans `NEXT_PUBLIC_*`, jamais bundlé côté client |
-| `AUTH_SECRET` | Uniquement dans `.env` serveur, signé par Auth.js |
-| HTTPS en prod | Obligatoire — cookies Auth.js configurés `secure: true` en production |
-| `.env` hors git | `.gitignore` exclut tous les fichiers `.env` |
-
----
-
-## A03 — Injection ✅
-
-**Risque** : SQL injection, NoSQL injection, command injection.
-
-**Contrôles en place :**
-| Contrôle | Détail |
-|---|---|
-| Drizzle ORM | Toutes les requêtes DB sont paramétrées — zéro SQL brut dans le code | 
-| Zod validation | Validation stricte de tous les inputs avant traitement (`GenerateWorkoutInputSchema`) |
-| Pas de `eval` | Aucun `eval()`, `Function()`, `exec()` dans le code |
-
-**Test** : `CR-030` cahier de recettes — injection SQL testée et bloquée par Zod
-
----
-
-## A04 — Insecure Design ✅
-
-**Risque** : Architecture non sécurisée par conception.
-
-**Contrôles en place :**
-| Contrôle | Détail |
-|---|---|
-| Validation à toutes les frontières | Zod côté client (WorkoutForm) + côté serveur (Controller) |
-| Architecture en couches | Routes → Controllers → Services → Repositories — pas d'accès DB direct depuis les routes |
-| Prompt IA strict | JSON demandé explicitement + validation Zod du résultat |
-| Retry limité | Maximum 2 tentatives par génération, avec budget de temps côté API |
-
----
-
-## A05 — Security Misconfiguration ✅
-
-**Risque** : Headers HTTP manquants, CORS trop permissif, ports exposés, démarrage en état non sécurisé.
-
-**Contrôles en place :**
-| Contrôle | Détail | Fichier |
-|---|---|---|
-| `secureHeaders()` | Hono middleware : X-Frame-Options, X-Content-Type-Options, Referrer-Policy | `apps/api/src/index.ts` |
-| CORS restrictif | `origin: process.env.FRONTEND_URL` uniquement, `credentials: true` | `apps/api/src/index.ts` |
-| Next.js CSP | `X-Frame-Options`, `X-Content-Type-Options` via `next.config` headers | `apps/web/next.config.mjs` |
-| Pas de stack trace client | `handleError` renvoie uniquement `error.code` + `message` sanitisé | `apps/api/src/middleware/error.middleware.ts` |
-| **Fail-fast env vars** | `validateEnv()` appelé au boot — erreur si `DATABASE_URL` ou `SERVICE_SECRET` manquent. `OPENAI_API_KEY` est optionnelle au démarrage pour permettre une démo seedée ; une génération IA réelle échoue proprement si la clé serveur manque. | `apps/api/src/lib/validate-env.ts` |
-
----
-
-## A06 — Vulnerable and Outdated Components ✅
-
-**Risque** : Dépendances avec des CVEs connues.
-
-**Contrôles en place :**
-| Contrôle | Détail |
-|---|---|
-| `pnpm audit` en CI | Job `security-audit` dans GitHub Actions sur chaque push |
-| Versions verrouillées | `pnpm-lock.yaml` committé — builds reproductibles |
-| Dépendances minimales | Pas de dépendances inutiles, pas de `lodash` |
-
-**Résultat audit 2026-06-30** : `pnpm audit --audit-level=high` passe. L'audit remonte encore 6 vulnérabilités non bloquantes, dont 2 low et 4 moderate, mais aucune vulnérabilité high ou critical.
-
----
-
-## A07 — Identification and Authentication Failures ✅
-
-**Risque** : Sessions non sécurisées, tokens faibles, pas d'expiration.
-
-**Contrôles en place :**
-| Contrôle | Détail |
-|---|---|
-| Auth.js OAuth | Pas de gestion de mots de passe — délégation à Google OAuth |
-| JWT signé | `AUTH_SECRET` fort (32 bytes hex), session strategy JWT |
-| Expiration | `maxAge: 30 * 24 * 60 * 60` (30 jours) |
-| Pages auth custom | `/login` et `/login` (erreur) — pas de pages Auth.js par défaut exposées |
-| Cookie HTTP-only | Token de session inaccessible depuis JS côté client |
-
----
-
-## A08 — Software and Data Integrity Failures ✅
-
-**Risque** : Dépendances non vérifiées, pipeline CI compromis.
-
-**Contrôles en place :**
-| Contrôle | Détail |
-|---|---|
-| `pnpm-lock.yaml` | Lockfile committé — intégrité des dépendances garantie |
-| `--frozen-lockfile` en CI | Empêche toute modification du lockfile en CI |
-| GitHub Actions versions fixées | `actions/checkout@v4`, `pnpm/action-setup@v4` — pas de `@latest` |
-| Zod validation IA | La réponse OpenAI est validée avant d'être sauvegardée — pas de confiance aveugle |
-
----
-
-## A09 — Security Logging and Monitoring Failures ✅
-
-**Risque** : Absence de logs sur les événements de sécurité.
-
-**Contrôles en place :**
-| Événement | Log | Fichier |
-|---|---|---|
-| Tentative auth invalide | `console.warn('[Auth] Secret interne invalide')` + timestamp + path | `auth.middleware.ts` |
-| AppError (400-503) | `console.error('[AppError] CODE: message')` + statusCode + details | `error.middleware.ts` |
-| Appel IA | `console.info('[AiService]')` / `[AiProgramService]` + success/duration/attempt/provider | `ai.service.ts`, `workout-ai.service.ts`, `program-ai.service.ts` |
-| Erreur inattendue | `console.error('[UnexpectedError]', error)` | `error.middleware.ts` |
-| Error boundary client | `console.error('[ErrorBoundary]', error.digest)` — digest uniquement | `error.tsx` |
-
-**Note prod** : En production, remplacer `console.*` par un logger structuré (ex: Pino) avec export vers un SIEM.
-
----
-
-## A10 — Server-Side Request Forgery ✅
-
-**Risque** : L'application effectue des requêtes vers des ressources arbitraires.
-
-**Contrôles en place :**
-| Contrôle | Détail |
-|---|---|
-| URL fournisseur bornée | L'URL d'appel OpenAI est fixe côté serveur — pas d'URL fournisseur ni de clé fournie par l'input utilisateur | `apps/api/src/services/ai.service.ts` |
-| Timeout strict | `AbortController` avec timeout strict : 45s pour une séance, budget global 55s pour un programme multi-semaines | `workout-ai.service.ts`, `program-ai.service.ts` |
-| Pas de redirect externe | Aucun `fetch()` avec URL construite depuis l'input utilisateur |
-| `NEXT_PUBLIC_API_URL` validée | Seule URL permise pour les appels backend |
-
----
-
-## Résumé
-
-| Risque OWASP | Statut | Couverture test |
-|---|---|---|
-| A01 — Broken Access Control | ✅ Contrôlé | `auth.middleware.test.ts`, `workout.service.test.ts` |
-| A02 — Cryptographic Failures | ✅ Contrôlé | Revue de code |
-| A03 — Injection | ✅ Contrôlé | `CR-030`, Zod + Drizzle |
-| A04 — Insecure Design | ✅ Contrôlé | Architecture en couches |
-| A05 — Security Misconfiguration | ✅ Contrôlé | `secureHeaders()`, CORS, `validateEnv()` fail-fast |
-| A06 — Vulnerable Components | ✅ Contrôlé | `pnpm audit --audit-level=high` passe ; 0 high/critical, 2 low et 4 moderate à suivre |
-| A07 — Auth Failures | ✅ Contrôlé | Auth.js, JWT signé |
-| A08 — Integrity Failures | ✅ Contrôlé | Lockfile, CI frozen |
-| A09 — Logging & Monitoring | ✅ Contrôlé | Logs structurés sur tous les événements |
-| A10 — SSRF | ✅ Contrôlé | URL fixe, timeout AbortController |
-
-Les 10 risques OWASP sont couverts par des contrôles applicatifs. Le point A06 n'est plus bloquant au niveau high/critical ; les vulnérabilités low/moderate restantes restent à suivre dans le cycle de maintenance.
+La revue ne conclut pas « 10/10 couvert ». Elle fournit au jury les contrôles,
+preuves et risques résiduels, puis sera figée après les exécutions de la version
+finale.

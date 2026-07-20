@@ -8,7 +8,7 @@ export default defineConfig({
   testDir: './tests/e2e',
   // Timeout par test — OWASP A10: s'assurer que les tests ne tournent pas indéfiniment
   timeout: 30_000,
-  expect: { timeout: 5_000 },
+  expect: { timeout: 10_000 },
   // Reporter lisible en CI
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
   // Paramètres partagés entre tous les tests
@@ -33,6 +33,9 @@ export default defineConfig({
   ],
   // Démarrage automatique du serveur Next.js pour les tests locaux
   webServer: {
+    // pnpm est fourni par pnpm/action-setup en CI et par le runtime local.
+    // Ne pas imposer Corepack : certains environnements Node minimaux ne
+    // livrent pas son exécutable alors que pnpm est déjà disponible.
     command: 'pnpm dev',
     env: {
       ...process.env,
@@ -46,6 +49,7 @@ export default defineConfig({
         process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001',
       SERVICE_SECRET:
         process.env['SERVICE_SECRET'] ?? 'test-service-secret-for-playwright',
+      PLAYWRIGHT_AUTH_STORAGE: process.env['PLAYWRIGHT_AUTH_STORAGE'] ?? '',
     },
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env['CI'],

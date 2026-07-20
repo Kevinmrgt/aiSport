@@ -7,14 +7,17 @@ import {
 } from '../src/controllers/session-log.controller.js';
 import { handleError } from '../src/middleware/error.middleware.js';
 
+vi.mock('../src/services/session-log.service.js', () => ({
+  createOwnedSessionLog: vi.fn(),
+}));
+
 vi.mock('../src/repositories/session-log.repository.js', () => ({
-  createSessionLog: vi.fn(),
   findRecentSessionLogsByUser: vi.fn(),
   getSessionLogStatsByUser: vi.fn(),
 }));
 
+import { createOwnedSessionLog } from '../src/services/session-log.service.js';
 import {
-  createSessionLog,
   findRecentSessionLogsByUser,
   getSessionLogStatsByUser,
 } from '../src/repositories/session-log.repository.js';
@@ -60,7 +63,7 @@ describe('SessionLogController', () => {
 
   describe('handleCreateSessionLog', () => {
     it('retourne 201 avec le journal cree', async () => {
-      vi.mocked(createSessionLog).mockResolvedValue(mockSessionLog);
+      vi.mocked(createOwnedSessionLog).mockResolvedValue(mockSessionLog);
 
       const app = createTestApp();
       app.post('/session-logs', handleCreateSessionLog);
@@ -84,7 +87,7 @@ describe('SessionLogController', () => {
       });
 
       expect(res.status).toBe(201);
-      expect(createSessionLog).toHaveBeenCalledWith(
+      expect(createOwnedSessionLog).toHaveBeenCalledWith(
         mockAuth.userId,
         expect.objectContaining({
           sourceType: 'workout',
@@ -118,7 +121,7 @@ describe('SessionLogController', () => {
       });
 
       expect(res.status).toBe(400);
-      expect(createSessionLog).not.toHaveBeenCalled();
+      expect(createOwnedSessionLog).not.toHaveBeenCalled();
     });
   });
 

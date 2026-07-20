@@ -13,11 +13,7 @@ export default async function GeneratePage() {
     redirect('/login');
   }
 
-  const aiSettings = await serverApi.getAiSettings().catch(() => ({
-    provider: 'openai' as const,
-    hasApiKey: false,
-    model: null,
-  }));
+  const aiSettings = await serverApi.getAiSettings();
   const costEstimate = estimateWorkoutGenerationCost(aiSettings.model);
 
   async function handleGenerate(data: GenerateWorkoutInput): Promise<{ error?: string } | void> {
@@ -47,8 +43,8 @@ export default async function GeneratePage() {
             <p className="section-kicker mb-4">Atelier seance</p>
             <h1 className="page-title">Creer une seance sur mesure</h1>
             <p className="muted-copy mt-4 max-w-md">
-              Renseignez le sport, le niveau, la duree et le contexte. Alcide transforme le brief
-              en routine executable avec timer.
+              Renseignez le sport, le niveau, la duree et le contexte. Alcide transforme le brief en
+              routine executable avec timer.
             </p>
           </div>
 

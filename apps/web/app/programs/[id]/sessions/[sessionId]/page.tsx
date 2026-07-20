@@ -2,7 +2,7 @@ import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
-import { serverApi } from '@/lib/server-api';
+import { isServerApiNotFound, serverApi } from '@/lib/server-api';
 import { Timer } from '@/components/Timer';
 import { WorkoutTimeline } from '@/components/WorkoutTimeline';
 import { GlassPanel, MetricPill } from '@/components/PremiumPrimitives';
@@ -32,8 +32,11 @@ export default async function ProgramSessionPage({ params }: SessionPageProps) {
   let program: Awaited<ReturnType<typeof serverApi.getProgram>>;
   try {
     program = await serverApi.getProgram(id);
-  } catch {
-    notFound();
+  } catch (error) {
+    if (isServerApiNotFound(error)) {
+      notFound();
+    }
+    throw error;
   }
 
   const week = program.data.weeks.find((w) => w.week_number === weekNumber);
@@ -53,7 +56,9 @@ export default async function ProgramSessionPage({ params }: SessionPageProps) {
     plannedDurationMinutes: trainingSession.duration_minutes,
   } as const;
 
-  async function completeProgramSession(payload: CreateSessionLogInput): Promise<{ error?: string } | void> {
+  async function completeProgramSession(
+    payload: CreateSessionLogInput,
+  ): Promise<{ error?: string } | void> {
     'use server';
     try {
       await serverApi.createSessionLog({
@@ -93,7 +98,11 @@ export default async function ProgramSessionPage({ params }: SessionPageProps) {
         </h1>
         <div className="mobile-header-metrics mt-6 grid gap-2 sm:grid-cols-3">
           <MetricPill icon="target" label="Focus" value={trainingSession.focus} tone="lime" />
-          <MetricPill icon="timer" label="Duree" value={`${trainingSession.duration_minutes} min`} />
+          <MetricPill
+            icon="timer"
+            label="Duree"
+            value={`${trainingSession.duration_minutes} min`}
+          />
           <MetricPill
             icon="activity"
             label="Exercices"

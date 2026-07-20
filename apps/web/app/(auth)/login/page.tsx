@@ -4,7 +4,10 @@ import { GlassPanel, IconBubble, MetricPill } from '@/components/PremiumPrimitiv
 export default function LoginPage() {
   return (
     <div className="grid min-h-[72vh] items-center gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-      <section aria-labelledby="login-title" className="max-w-xl">
+      <section
+        aria-labelledby="login-title"
+        className="max-w-xl rounded-[2rem] border border-white/15 bg-zinc-950/75 p-5 shadow-2xl shadow-black/25 backdrop-blur-xl sm:p-8"
+      >
         <p className="section-kicker mb-4">Acces Alcide</p>
         <h1 id="login-title" className="page-title">
           Reprendre votre entrainement.
@@ -26,7 +29,10 @@ export default function LoginPage() {
             className="action-primary w-full max-w-sm justify-between gap-4 pl-5 pr-3 sm:w-auto"
           >
             <span>Continuer avec Google</span>
-            <span className="grid h-10 w-10 place-items-center rounded-full bg-zinc-950 text-white">
+            <span
+              aria-hidden="true"
+              className="grid h-10 w-10 place-items-center rounded-full bg-zinc-950 text-white"
+            >
               G
             </span>
           </button>
