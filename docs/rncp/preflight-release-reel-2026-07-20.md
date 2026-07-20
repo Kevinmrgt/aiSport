@@ -65,8 +65,13 @@ Les derniers déploiements de production des deux projets sont dans l'état
 Plusieurs previews API antérieures de la pull request sont en `ERROR`. Par
 exemple, le déploiement du SHA `2674bd3` porte l'erreur Vercel
 `BUILD_FAILED: Resource provisioning failed` sans journal de build disponible.
-Une nouvelle preview API `READY` sur le SHA final est donc requise ; l'état de la
-production existante ne suffit pas à valider la candidate.
+Cette erreur est historique : elle ne correspond pas au SHA candidat courant.
+Le projet API a ensuite été configuré avec `previewDeploymentsDisabled=true`
+pour ne pas provisionner de ressource Neon de preview ; aucun statut API de PR
+n'est donc attendu tant que cette politique reste active. La validation de la
+candidate API doit provenir de la CI (build/tests/Docker), puis du workflow CD
+de production sur le SHA fusionné avec migration et smoke readiness réussis.
+L'état de la production existante ne suffit toujours pas à valider la candidate.
 
 Les paramètres des deux projets indiquent un runtime Node.js `24.x`. L'écart
 initial avec Node.js 20 dans le dépôt a été corrigé dans l'arbre candidat :
