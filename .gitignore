@@ -22,6 +22,10 @@ coverage/
 playwright-report/
 test-results/
 
+# Playwright authenticated state — contains live session cookies.
+# This directory must never be committed or uploaded as an artifact.
+apps/web/playwright/.auth/
+
 # Logs
 *.log
 logs/
