@@ -3,7 +3,10 @@
 > Certification RNCP 39583 — Expert en développement logiciel (Niv. 7, YNOV)
 > Candidat : Kevin | Date de vérification : 2026-05-07 | Version du projet : 0.12.0
 
-> Note de cohérence : ce fichier est conservé comme synthèse technique historique. Le dossier RNCP de référence, aligné sur les intitulés officiels RNCP39583, est `docs/rncp/dossier-professionnel-rncp39583.md`.
+> Note de cohérence : ce fichier est conservé comme synthèse technique
+> historique. Ses mentions Mistral, métriques et statuts Bloc 2 ne décrivent
+> pas la version candidate courante et ne doivent pas être repris dans le dépôt.
+> Pour le Bloc 2, utiliser `docs/rncp/bloc2-dossier-conception-developpement-rncp39583.md`.
 
 ---
 

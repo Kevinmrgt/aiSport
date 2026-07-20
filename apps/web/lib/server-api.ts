@@ -1,12 +1,18 @@
 import 'server-only';
 import { auth } from '@/lib/auth';
-import type { WorkoutDetail, WorkoutListResponse, WorkoutStats, GenerateWorkoutInput } from '@alcide/shared';
-import type { GenerateProgramInput, ProgramListResponse, TrainingProgramRecord, ProgramListItem } from '@alcide/shared';
 import type {
-  CreateSessionLogInput,
-  SessionLogListItem,
-  SessionLogStats,
+  WorkoutDetail,
+  WorkoutListResponse,
+  WorkoutStats,
+  GenerateWorkoutInput,
 } from '@alcide/shared';
+import type {
+  GenerateProgramInput,
+  ProgramListResponse,
+  TrainingProgramRecord,
+  ProgramListItem,
+} from '@alcide/shared';
+import type { CreateSessionLogInput, SessionLogListItem, SessionLogStats } from '@alcide/shared';
 
 export interface UserAiSettings {
   provider: 'openai';
@@ -20,10 +26,30 @@ export interface SaveAiSettingsInput {
 
 // OWASP A02: URL backend depuis variable d'env uniquement
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001';
+const DEFAULT_TIMEOUT_MS = 15_000;
+const GENERATION_TIMEOUT_MS = 120_000;
+
+export class ServerApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = 'ServerApiError';
+  }
+}
+
+export function isServerApiNotFound(error: unknown): error is ServerApiError {
+  return error instanceof ServerApiError && error.status === 404;
+}
 
 // Helper interne - appel Hono avec auth service-to-service (OWASP A01)
 // Le secret n'est jamais expose cote client : ce module est server-only
-async function serverFetch<T>(path: string, options?: RequestInit): Promise<T> {
+async function serverFetch<T>(
+  path: string,
+  options?: RequestInit,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<T> {
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -39,18 +65,38 @@ async function serverFetch<T>(path: string, options?: RequestInit): Promise<T> {
     timestamp: new Date().toISOString(),
   });
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      // OWASP A01: secret partage valide par le middleware Hono
-      'x-internal-secret': process.env['SERVICE_SECRET'] ?? '',
-      'x-user-id': session.user.id,
-      'x-user-email': session.user.email ?? '',
-      'x-user-name': session.user.name ?? '',
-      ...(options?.headers as Record<string, string>),
-    },
-  });
+  const timeoutController = new AbortController();
+  const timeout = setTimeout(() => timeoutController.abort(), timeoutMs);
+  const abortFromCaller = () => timeoutController.abort();
+  options?.signal?.addEventListener('abort', abortFromCaller, { once: true });
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      signal: timeoutController.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        // OWASP A01: secret partage valide par le middleware Hono
+        'x-internal-secret': process.env['SERVICE_SECRET'] ?? '',
+        'x-user-id': session.user.id,
+        'x-user-email': session.user.email ?? '',
+        'x-user-name': session.user.name ?? '',
+        ...(options?.headers as Record<string, string>),
+      },
+    });
+  } catch (error) {
+    if (timeoutController.signal.aborted && !options?.signal?.aborted) {
+      throw new ServerApiError(
+        `Le service Alcide n'a pas repondu sous ${timeoutMs / 1000} secondes.`,
+        504,
+      );
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+    options?.signal?.removeEventListener('abort', abortFromCaller);
+  }
 
   if (!response.ok) {
     const err = (await response.json().catch(() => ({}))) as {
@@ -66,7 +112,7 @@ async function serverFetch<T>(path: string, options?: RequestInit): Promise<T> {
       apiError: err,
       timestamp: new Date().toISOString(),
     });
-    throw new Error(err.message ?? `Erreur API: ${response.status}`);
+    throw new ServerApiError(err.message ?? `Erreur API: ${response.status}`, response.status);
   }
 
   return response.json() as Promise<T>;
@@ -74,10 +120,14 @@ async function serverFetch<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const serverApi = {
   generateWorkout: (input: GenerateWorkoutInput): Promise<WorkoutDetail> =>
-    serverFetch<WorkoutDetail>('/workouts/generate', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    }),
+    serverFetch<WorkoutDetail>(
+      '/workouts/generate',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+      GENERATION_TIMEOUT_MS,
+    ),
 
   getWorkouts: (params?: {
     page?: number;
@@ -96,8 +146,7 @@ export const serverApi = {
 
   getStats: (): Promise<WorkoutStats> => serverFetch<WorkoutStats>('/workouts/stats'),
 
-  getWorkout: (id: string): Promise<WorkoutDetail> =>
-    serverFetch<WorkoutDetail>(`/workouts/${id}`),
+  getWorkout: (id: string): Promise<WorkoutDetail> => serverFetch<WorkoutDetail>(`/workouts/${id}`),
 
   deleteWorkout: (id: string): Promise<void> =>
     serverFetch<void>(`/workouts/${id}`, { method: 'DELETE' }),
@@ -105,10 +154,14 @@ export const serverApi = {
   // --- Programmes multi-semaines ---
 
   generateProgram: (input: GenerateProgramInput): Promise<ProgramListItem> =>
-    serverFetch<ProgramListItem>('/programs/generate', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    }),
+    serverFetch<ProgramListItem>(
+      '/programs/generate',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+      GENERATION_TIMEOUT_MS,
+    ),
 
   getPrograms: (params?: { page?: number; limit?: number }): Promise<ProgramListResponse> => {
     const qs = new URLSearchParams();
@@ -140,8 +193,7 @@ export const serverApi = {
 
   // --- Parametres IA ---
 
-  getAiSettings: (): Promise<UserAiSettings> =>
-    serverFetch<UserAiSettings>('/settings'),
+  getAiSettings: (): Promise<UserAiSettings> => serverFetch<UserAiSettings>('/settings'),
 
   saveAiSettings: (input: SaveAiSettingsInput): Promise<{ ok: boolean }> =>
     serverFetch<{ ok: boolean }>('/settings', {

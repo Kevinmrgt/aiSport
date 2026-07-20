@@ -1,9 +1,9 @@
 {
   "name": "alcide",
   "private": true,
-  "version": "0.12.0",
+  "version": "0.13.0-rc.1",
   "description": "Coach IA personnel qui prépare des entraînements sportifs personnalisés",
-  "packageManager": "pnpm@9.15.9",
+  "packageManager": "pnpm@11.9.0",
   "scripts": {
     "dev": "concurrently \"pnpm dev:api\" \"pnpm dev:web\"",
     "dev:web": "pnpm --filter web dev",
@@ -16,7 +16,8 @@
     "test:api": "pnpm --filter shared build && pnpm --filter api test",
     "test:e2e": "pnpm --filter shared build && pnpm --filter web test:e2e",
     "test:e2e:smoke": "pnpm --filter shared build && pnpm --filter web exec playwright test tests/e2e/home.spec.ts tests/e2e/auth.spec.ts tests/e2e/accessibility.spec.ts tests/e2e/axe.spec.ts",
-    "test:coverage": "pnpm --filter shared build && pnpm --filter api test:coverage",
+    "test:e2e:evidence": "pnpm --filter shared build && pnpm --filter web test:e2e:evidence",
+    "test:coverage": "pnpm --filter shared build && pnpm --filter api test:coverage && pnpm --filter web test:coverage",
     "lint": "pnpm --recursive lint",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore",
     "typecheck": "pnpm --recursive typecheck",
@@ -33,14 +34,8 @@
     "prettier": "^3.4.2",
     "typescript": "5.7.3"
   },
-  "pnpm": {
-    "overrides": {
-      "shell-quote": "1.8.4",
-      "vite": "7.3.5"
-    }
-  },
   "engines": {
-    "node": ">=20.0.0",
-    "pnpm": ">=9.0.0"
+    "node": "24.x",
+    "pnpm": ">=11.9.0"
   }
 }

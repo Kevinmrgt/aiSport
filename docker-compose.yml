@@ -33,8 +33,8 @@ services:
       PORT: 3001
       DATABASE_URL: postgresql://alcide:alcide_dev@postgres:5432/alcide
       # OWASP A02: les secrets sensibles viennent du fichier .env (non commité)
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      SERVICE_SECRET: ${SERVICE_SECRET}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY must be set in .env}
+      SERVICE_SECRET: ${SERVICE_SECRET:?SERVICE_SECRET must be set in .env}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
     ports:
       - "3001:3001"
@@ -44,6 +44,36 @@ services:
       timeout: 5s
       start_period: 15s
       retries: 3
+
+  # Outils ponctuels : ils utilisent le stage builder, qui contient drizzle-kit,
+  # tsx et les sources. Le runtime API reste volontairement minimal.
+  migrate:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: builder
+    working_dir: /app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://alcide:alcide_dev@postgres:5432/alcide
+    command: ["pnpm", "--filter", "api", "db:migrate"]
+
+  seed:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: builder
+    working_dir: /app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://alcide:alcide_dev@postgres:5432/alcide
+    command: ["pnpm", "--filter", "api", "db:seed"]
 
   # ─── Frontend Next.js ─────────────────────────────────────────────────────────
   web:
@@ -60,11 +90,11 @@ services:
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://api:3001}
-      AUTH_SECRET: ${AUTH_SECRET}
-      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID}
-      AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET}
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET must be set in .env}
+      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:?AUTH_GOOGLE_ID must be set in .env}
+      AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:?AUTH_GOOGLE_SECRET must be set in .env}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
-      SERVICE_SECRET: ${SERVICE_SECRET}
+      SERVICE_SECRET: ${SERVICE_SECRET:?SERVICE_SECRET must be set in .env}
     ports:
       - "3000:3000"
 

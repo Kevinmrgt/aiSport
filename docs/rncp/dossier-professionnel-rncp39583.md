@@ -5,6 +5,10 @@
 > Date de consolidation : 2026-05-07
 > Version applicative de référence constatée : `package.json` indique `0.12.0`
 
+> **Avertissement de version :** ce dossier transversal a été consolidé le
+> 2026-05-07. Ses métriques et conclusions Bloc 2 sont historiques. Le dossier
+> Bloc 2 daté après le 2026-07-20 est la source de vérité pour ce bloc.
+
 ## Sources utilisées
 
 ### Sources RNCP officielles

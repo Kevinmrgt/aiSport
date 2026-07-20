@@ -1,5 +1,9 @@
 # Suivi d'orchestration - Bloc 2 RNCP39583
 
+> **Archive du verrouillage 2026-07-16.** Les statuts « Validé » de ce fichier
+> ne constituent plus l'état courant. Utiliser le dossier Bloc 2, le cahier de
+> recettes, le plan de bogues et le manifeste mis à jour après le 2026-07-20.
+
 > Registre opérationnel à tenir par l'orchestrateur. Une mission ne passe à `Validé` que si les livrables, les contrôles et la revue orchestrateur sont terminés.
 
 Plan de référence : `docs/rncp/bloc2-plan-orchestration-agents-rncp39583.md`

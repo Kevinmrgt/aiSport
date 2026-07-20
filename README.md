@@ -21,6 +21,8 @@ L'utilisateur sélectionne un sport, décrit ses objectifs et contraintes, puis 
 | CI/CD | GitHub Actions — CI, CD Vercel, migrations DB manuelles |
 | Deploy | Vercel (frontend + API) + Neon PostgreSQL |
 
+Runtime de référence : **Node.js 24 LTS** et **pnpm 11.9.0**.
+
 ---
 
 ## Démarrage rapide
@@ -29,9 +31,11 @@ L'utilisateur sélectionne un sport, décrit ses objectifs et contraintes, puis 
 
 ```bash
 cp .env.example .env
+# Remplacer toutes les valeurs de démonstration dans .env avant de continuer.
+docker compose up -d postgres
+docker compose --profile tools run --rm migrate
+docker compose --profile tools run --rm seed
 docker compose up --build -d
-docker compose exec api pnpm db:migrate
-docker compose exec api pnpm db:seed
 ```
 
 Frontend : http://localhost:3000 | API : http://localhost:3001
@@ -71,7 +75,7 @@ pnpm db:studio        # Interface Drizzle Studio
 ```
 alcide/
 ├── apps/
-│   ├── web/                    # Next.js 14 — frontend
+│   ├── web/                    # Next.js 15 — frontend
 │   │   ├── app/                # App Router (pages, layouts, loading)
 │   │   ├── components/         # Composants réutilisables
 │   │   ├── lib/                # server-api.ts, auth.ts
@@ -87,14 +91,14 @@ alcide/
 ├── packages/
 │   └── shared/                 # Types & schémas Zod partagés
 ├── docs/
-│   ├── adr/                    # Architecture Decision Records (×7)
-│   ├── bloc2/                  # Cahier de recettes (33 scénarios CR)
+│   ├── adr/                    # Architecture Decision Records (×8)
+│   ├── bloc2/                  # Cahier de recettes et preuves d'exécution
 │   ├── bloc4/                  # Veille techno, CRA, rapports de bugs
 │   ├── security/               # Revue OWASP Top 10
 │   ├── sprints/                # Revues sprint 01 à 12
 │   ├── deployment.md           # Guide déploiement (cloud, Docker, local)
 │   └── dossier-professionnel.md
-├── .github/workflows/ci.yml    # Pipeline CI/CD 5 jobs
+├── .github/workflows/ci.yml    # Pipeline CI à 6 jobs
 ├── docker-compose.yml          # Stack complète
 └── .env.example                # Template variables d'environnement
 ```
@@ -106,9 +110,9 @@ alcide/
 Pipeline GitHub Actions sur chaque push vers main et pull request :
 
 ```
-lint-typecheck → test-unit (coverage ≥ 70%) → build → docker-build
+lint-typecheck → tests + couverture API/Web → build → docker-build
               ↘ test-e2e-smoke (Playwright + axe-core)
-              ↘ security-audit (pnpm audit, non bloquant)
+              ↘ security-audit high/critical (bloquant)
 CI verte sur main → CD Vercel API → CD Vercel Web → smoke tests prod
 ```
 
@@ -118,12 +122,12 @@ CI verte sur main → CD Vercel API → CD Vercel Web → smoke tests prod
 
 | Critère | Statut | Preuve |
 |---|---|---|
-| Sécurité OWASP Top 10 | ⚠️ A01–A10 documentés, A06 dépendances à traiter | docs/security/owasp-review.md |
-| Accessibilité RGAA 4.1 | ✅ + axe-core WCAG 2.1 | tests/e2e/accessibility.spec.ts |
-| Tests automatisés | ✅ `pnpm test` : 71 tests passés | 70 API + 1 Web |
-| Couverture API ≥ 70% | ✅ 82.33% statements | `pnpm test:coverage`, `apps/api/coverage/index.html` |
-| Documentation ADRs | ✅ 7 décisions | docs/adr/ |
-| Cahier de recettes | ✅ 33 scénarios CR | docs/bloc2/cahier-recettes.md |
+| Sécurité OWASP Top 10 | Revue et écarts résiduels documentés | docs/security/owasp-review.md |
+| Accessibilité | WCAG 2.1 AA retenu ; automatisation et contrôles manuels à joindre | tests/e2e/accessibility.spec.ts |
+| Tests automatisés | Résultat à dater après chaque version candidate | `pnpm test` |
+| Couverture | Rapports API et Web distincts, sans assimiler le seuil CI au critère RNCP | `pnpm test:coverage` |
+| Documentation ADRs | 8 décisions, dont ADR-003 remplacée par ADR-008 | docs/adr/ |
+| Cahier de recettes | Inventaire complet avec statuts exécuté/automatisé/à exécuter | docs/bloc2/cahier-recettes.md |
 | Déploiement conteneurisé | ✅ Dockerfiles multi-stage | apps/*/Dockerfile |
 | Dossier professionnel RNCP | ✅ | docs/rncp/dossier-professionnel-rncp39583.md |
 
