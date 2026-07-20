@@ -1,17 +1,17 @@
 # Guide de deploiement - Alcide
 
-> Version applicative candidate: 0.13.0-rc.1
-> Version encore déployée au début de cette correction: 0.12.0
+> Version applicative candidate: 0.13.0-rc.2
+> Version déployée au début de cette correction: 0.13.0-rc.1
 > Date de verification documentaire initiale: 2026-05-07
 > Derniere verification locale Bloc 2: 2026-07-20
 
 ## Production canonique
 
-| Composant | Plateforme | URL |
-| --- | --- | --- |
-| Frontend | Vercel | `https://ai-sport-web.vercel.app` |
-| API | Vercel | `https://ai-sport-api.vercel.app` |
-| Base de donnees | Neon PostgreSQL | via `DATABASE_URL` |
+| Composant       | Plateforme      | URL                               |
+| --------------- | --------------- | --------------------------------- |
+| Frontend        | Vercel          | `https://ai-sport-web.vercel.app` |
+| API             | Vercel          | `https://ai-sport-api.vercel.app` |
+| Base de donnees | Neon PostgreSQL | via `DATABASE_URL`                |
 
 La CI/CD est documentee dans `docs/ci-cd.md`.
 
@@ -41,7 +41,8 @@ NODE_ENV=production
 ## GitHub Actions
 
 1. `CI - Alcide` vérifie lint, types, tests et couvertures API/Web/PostgreSQL,
-   build, smoke E2E public, audit high/critical et Docker.
+   build, smoke E2E public, audit dès le niveau low, politique de déploiement
+   Vercel et Docker.
 2. `CD - Vercel` se lance uniquement après une CI verte sur `main` si la
    variable GitHub `ENABLE_GHA_VERCEL_CD=true` est définie. Il n'existe plus de
    lancement manuel contournant les gates.
@@ -50,6 +51,9 @@ NODE_ENV=production
    chemin manuel de reprise, rattaché à l'environnement `production`. Au relevé
    du 2026-07-20, cet environnement ne possédait aucune règle de protection ni
    approbateur ; ce n'est donc pas encore une gate humaine.
+4. Les previews Vercel de pull request restent actives. Pour `VERCEL_ENV=production`,
+   `ignoreCommand` ignore le déploiement automatique de l'intégration Git ; le
+   workflow CD force explicitement le chemin canonique après CI verte.
 
 Secrets GitHub requis pour la CD:
 
@@ -152,11 +156,11 @@ sources TypeScript.
 
 URLs locales:
 
-| Service | URL |
-| --- | --- |
-| Web | `http://localhost:3000` |
-| API | `http://localhost:3001` |
-| PostgreSQL | `localhost:5432` |
+| Service    | URL                     |
+| ---------- | ----------------------- |
+| Web        | `http://localhost:3000` |
+| API        | `http://localhost:3001` |
+| PostgreSQL | `localhost:5432`        |
 
 ## Alternative Fly.io pour l'API
 

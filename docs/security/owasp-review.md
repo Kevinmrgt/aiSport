@@ -87,13 +87,15 @@ Risques résiduels :
 
 ## A06 — Vulnerable and Outdated Components — à prouver
 
-Contrôles : lockfile, installation figée, audit high/critical rendu bloquant en
+Contrôles : lockfile, installation figée, audit dès le niveau low rendu bloquant en
 CI, versions Next.js/React situées sur une ligne corrigée.
 
-Contrôle local intermédiaire du 2026-07-20 : zéro high/critical, quatre
-moderate et deux low. Ce résultat doit être rejoué sur le lockfile final et le
-rapport brut conservé. Les vulnérabilités modérées ne sont pas déclarées
-« négligeables » : elles sont analysées selon leur chemin production/dev.
+Contrôle local du 2026-07-20 sur la candidate `0.13.0-rc.2` :
+`pnpm audit --audit-level=low` termine avec le code 0 et indique
+`No known vulnerabilities found`. Les six alertes précédentes ont été corrigées
+par des overrides ciblés, puis le lint, les types, 130 tests, les builds et
+`drizzle-kit check` ont été rejoués. Ce résultat local doit encore être confirmé
+par la CI du SHA final.
 
 ## A07 — Identification and Authentication Failures — à prouver
 
@@ -138,18 +140,18 @@ Preuves : tests timeout/retry et revue des appels réseau serveur.
 
 ## Synthèse des risques
 
-| Catégorie | État candidat | Preuve finale requise |
-|---|---|---|
-| A01 Accès | À prouver | PostgreSQL multi-utilisateur + API |
-| A02 Cryptographie/données | Partiel | politique données et secrets |
-| A03 Injection | À confirmer | DB réelle + navigateur |
-| A04 Conception | Partiel | stratégie rate limit distribué ou risque accepté |
-| A05 Configuration | Partiel | headers et readiness de production |
-| A06 Composants | À prouver | audit brut du lockfile final |
-| A07 Authentification | À prouver | Playwright avec vrai état Auth.js |
-| A08 Intégrité | Partiel | CI/CD et SHA final |
-| A09 Logs | Partiel | preuve monitoring et limites documentées |
-| A10 SSRF | Contrôlé | tests timeout + revue URL fixe |
+| Catégorie                 | État candidat | Preuve finale requise                            |
+| ------------------------- | ------------- | ------------------------------------------------ |
+| A01 Accès                 | À prouver     | PostgreSQL multi-utilisateur + API               |
+| A02 Cryptographie/données | Partiel       | politique données et secrets                     |
+| A03 Injection             | À confirmer   | DB réelle + navigateur                           |
+| A04 Conception            | Partiel       | stratégie rate limit distribué ou risque accepté |
+| A05 Configuration         | Partiel       | headers et readiness de production               |
+| A06 Composants            | À prouver     | audit brut du lockfile final                     |
+| A07 Authentification      | À prouver     | Playwright avec vrai état Auth.js                |
+| A08 Intégrité             | Partiel       | CI/CD et SHA final                               |
+| A09 Logs                  | Partiel       | preuve monitoring et limites documentées         |
+| A10 SSRF                  | Contrôlé      | tests timeout + revue URL fixe                   |
 
 La revue ne conclut pas « 10/10 couvert ». Elle fournit au jury les contrôles,
 preuves et risques résiduels, puis sera figée après les exécutions de la version

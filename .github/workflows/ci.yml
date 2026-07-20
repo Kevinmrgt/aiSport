@@ -52,6 +52,9 @@ jobs:
       - name: ESLint
         run: pnpm lint
 
+      - name: Test Vercel deployment policy
+        run: pnpm test:vercel-ignore
+
   test-unit:
     name: Unit tests and coverage
     runs-on: ubuntu-latest
@@ -241,4 +244,4 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Security audit
-        run: pnpm audit --audit-level=high
+        run: pnpm audit --audit-level=low

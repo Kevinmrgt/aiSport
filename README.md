@@ -10,16 +10,16 @@ L'utilisateur sélectionne un sport, décrit ses objectifs et contraintes, puis 
 
 ## Stack technique
 
-| Couche | Technologie |
-|---|---|
-| Frontend | Next.js 15 (App Router), TypeScript, Tailwind CSS |
-| Backend | Hono (TypeScript), architecture en couches |
-| Base de données | PostgreSQL 16 + Drizzle ORM |
-| Authentification | Auth.js (NextAuth v5) — OAuth Google |
-| IA | OpenAI API côté serveur, modèle configurable, estimation de coût affichée, sorties validées par Zod |
-| Tests | Vitest (unitaires), Playwright (E2E), axe-core (WCAG) |
-| CI/CD | GitHub Actions — CI, CD Vercel, migrations DB manuelles |
-| Deploy | Vercel (frontend + API) + Neon PostgreSQL |
+| Couche           | Technologie                                                                                         |
+| ---------------- | --------------------------------------------------------------------------------------------------- |
+| Frontend         | Next.js 15 (App Router), TypeScript, Tailwind CSS                                                   |
+| Backend          | Hono (TypeScript), architecture en couches                                                          |
+| Base de données  | PostgreSQL 16 + Drizzle ORM                                                                         |
+| Authentification | Auth.js (NextAuth v5) — OAuth Google                                                                |
+| IA               | OpenAI API côté serveur, modèle configurable, estimation de coût affichée, sorties validées par Zod |
+| Tests            | Vitest (unitaires), Playwright (E2E), axe-core (WCAG)                                               |
+| CI/CD            | GitHub Actions — CI, CD Vercel, migrations DB manuelles                                             |
+| Deploy           | Vercel (frontend + API) + Neon PostgreSQL                                                           |
 
 Runtime de référence : **Node.js 24 LTS** et **pnpm 11.9.0**.
 
@@ -112,7 +112,7 @@ Pipeline GitHub Actions sur chaque push vers main et pull request :
 ```
 lint-typecheck → tests + couverture API/Web → build → docker-build
               ↘ test-e2e-smoke (Playwright + axe-core)
-              ↘ security-audit high/critical (bloquant)
+              ↘ security-audit low/moderate/high/critical (bloquant)
 CI verte sur main → CD Vercel API → CD Vercel Web → smoke tests prod
 ```
 
@@ -120,16 +120,16 @@ CI verte sur main → CD Vercel API → CD Vercel Web → smoke tests prod
 
 ## Conformité RNCP
 
-| Critère | Statut | Preuve |
-|---|---|---|
-| Sécurité OWASP Top 10 | Revue et écarts résiduels documentés | docs/security/owasp-review.md |
-| Accessibilité | WCAG 2.1 AA retenu ; automatisation et contrôles manuels à joindre | tests/e2e/accessibility.spec.ts |
-| Tests automatisés | Résultat à dater après chaque version candidate | `pnpm test` |
-| Couverture | Rapports API et Web distincts, sans assimiler le seuil CI au critère RNCP | `pnpm test:coverage` |
-| Documentation ADRs | 8 décisions, dont ADR-003 remplacée par ADR-008 | docs/adr/ |
-| Cahier de recettes | Inventaire complet avec statuts exécuté/automatisé/à exécuter | docs/bloc2/cahier-recettes.md |
-| Déploiement conteneurisé | ✅ Dockerfiles multi-stage | apps/*/Dockerfile |
-| Dossier professionnel RNCP | ✅ | docs/rncp/dossier-professionnel-rncp39583.md |
+| Critère                    | Statut                                                                    | Preuve                                       |
+| -------------------------- | ------------------------------------------------------------------------- | -------------------------------------------- |
+| Sécurité OWASP Top 10      | Revue et écarts résiduels documentés                                      | docs/security/owasp-review.md                |
+| Accessibilité              | WCAG 2.1 AA retenu ; automatisation et contrôles manuels à joindre        | tests/e2e/accessibility.spec.ts              |
+| Tests automatisés          | Résultat à dater après chaque version candidate                           | `pnpm test`                                  |
+| Couverture                 | Rapports API et Web distincts, sans assimiler le seuil CI au critère RNCP | `pnpm test:coverage`                         |
+| Documentation ADRs         | 8 décisions, dont ADR-003 remplacée par ADR-008                           | docs/adr/                                    |
+| Cahier de recettes         | Inventaire complet avec statuts exécuté/automatisé/à exécuter             | docs/bloc2/cahier-recettes.md                |
+| Déploiement conteneurisé   | ✅ Dockerfiles multi-stage                                                | apps/\*/Dockerfile                           |
+| Dossier professionnel RNCP | ✅                                                                        | docs/rncp/dossier-professionnel-rncp39583.md |
 
 ---
 
