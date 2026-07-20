@@ -1,0 +1,12 @@
+{
+  "route": "/login",
+  "focusedBeforeActivation": {
+    "text": "Aller au contenu principal",
+    "href": "#main-content"
+  },
+  "focusedAfterActivation": {
+    "hash": "#main-content",
+    "tagName": "MAIN",
+    "id": "main-content"
+  }
+}

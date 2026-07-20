@@ -13,6 +13,15 @@ const ProgramQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional().default(1),
   limit: z.coerce.number().int().min(1).max(50).optional().default(9),
 });
+const ProgramIdSchema = z.string().uuid();
+
+function parseProgramId(value: string | undefined): string {
+  const parsed = ProgramIdSchema.safeParse(value);
+  if (!parsed.success) {
+    throw AppError.badRequest("L'ID du programme doit etre un UUID valide");
+  }
+  return parsed.data;
+}
 
 // Valide les inputs Zod, appelle le service, formate la réponse HTTP (architecture.md)
 // Jamais d'accès BDD ni de logique métier ici
@@ -73,11 +82,7 @@ export async function handleGetPrograms(ctx: Context): Promise<Response> {
 
 export async function handleGetProgram(ctx: Context): Promise<Response> {
   const auth = ctx.get('auth');
-  const programId = ctx.req.param('id');
-
-  if (!programId) {
-    throw AppError.badRequest("L'ID du programme est requis");
-  }
+  const programId = parseProgramId(ctx.req.param('id'));
 
   const program = await getProgramDetail(programId, auth.userId);
 
@@ -96,11 +101,7 @@ export async function handleGetProgram(ctx: Context): Promise<Response> {
 
 export async function handleDeleteProgram(ctx: Context): Promise<Response> {
   const auth = ctx.get('auth');
-  const programId = ctx.req.param('id');
-
-  if (!programId) {
-    throw AppError.badRequest("L'ID du programme est requis");
-  }
+  const programId = parseProgramId(ctx.req.param('id'));
 
   await removeProgram(programId, auth.userId);
   return ctx.json({ message: 'Programme supprimé' });

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useRef, useState } from 'react';
+import type { KeyboardEvent } from 'react';
 import Link from 'next/link';
 import type { ProgramWeek } from '@alcide/shared';
 import { Icon } from './ui/Icon';
@@ -11,27 +12,56 @@ interface ProgramWeekTabsProps {
 }
 
 export function ProgramWeekTabs({ weeks, programId }: ProgramWeekTabsProps) {
-  const [activeWeek, setActiveWeek] = useState(1);
+  const tabsetId = useId();
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [activeWeek, setActiveWeek] = useState(() => weeks[0]?.week_number ?? 1);
 
   const currentWeek = weeks.find((w) => w.week_number === activeWeek) ?? weeks[0];
 
   if (!currentWeek) return null;
 
+  const activateTab = (index: number) => {
+    const week = weeks[index];
+    if (!week) return;
+    setActiveWeek(week.week_number);
+    tabRefs.current[index]?.focus();
+  };
+
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    let nextIndex: number | null = null;
+
+    if (event.key === 'ArrowRight') nextIndex = (index + 1) % weeks.length;
+    if (event.key === 'ArrowLeft') nextIndex = (index - 1 + weeks.length) % weeks.length;
+    if (event.key === 'Home') nextIndex = 0;
+    if (event.key === 'End') nextIndex = weeks.length - 1;
+
+    if (nextIndex !== null) {
+      event.preventDefault();
+      activateTab(nextIndex);
+    }
+  };
+
   return (
     <div>
       <nav
         role="tablist"
+        aria-orientation="horizontal"
         aria-label="Semaines du programme"
         className="mb-6 flex gap-2 overflow-x-auto rounded-full border border-white/10 bg-zinc-950/[0.55] p-1"
       >
-        {weeks.map((week) => (
+        {weeks.map((week, index) => (
           <button
             key={week.week_number}
+            ref={(element) => {
+              tabRefs.current[index] = element;
+            }}
             type="button"
             role="tab"
             aria-selected={activeWeek === week.week_number}
-            aria-controls={`week-panel-${week.week_number}`}
-            id={`week-tab-${week.week_number}`}
+            aria-controls={`${tabsetId}-panel-${week.week_number}`}
+            id={`${tabsetId}-tab-${week.week_number}`}
+            tabIndex={activeWeek === week.week_number ? 0 : -1}
+            onKeyDown={(event) => handleTabKeyDown(event, index)}
             onClick={() => {
               setActiveWeek(week.week_number);
             }}
@@ -48,8 +78,9 @@ export function ProgramWeekTabs({ weeks, programId }: ProgramWeekTabsProps) {
 
       <div
         role="tabpanel"
-        id={`week-panel-${currentWeek.week_number}`}
-        aria-labelledby={`week-tab-${currentWeek.week_number}`}
+        id={`${tabsetId}-panel-${currentWeek.week_number}`}
+        aria-labelledby={`${tabsetId}-tab-${currentWeek.week_number}`}
+        tabIndex={0}
       >
         <div className="mb-5 rounded-[1.8rem] border border-white/10 bg-zinc-950/[0.58] p-4">
           <h2 className="text-2xl font-black text-white">{currentWeek.theme}</h2>
@@ -81,7 +112,9 @@ export function ProgramWeekTabs({ weeks, programId }: ProgramWeekTabsProps) {
                       </p>
                       <p className="mt-1 break-words text-xs leading-5 text-zinc-300">
                         {session.exercises.length} exercice{session.exercises.length > 1 ? 's' : ''}
-                        {session.warmup && session.warmup.length > 0 ? ' - echauffement inclus' : ''}
+                        {session.warmup && session.warmup.length > 0
+                          ? ' - echauffement inclus'
+                          : ''}
                       </p>
                     </div>
                   </div>

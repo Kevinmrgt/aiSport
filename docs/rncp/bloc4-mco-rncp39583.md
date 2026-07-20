@@ -129,7 +129,7 @@ Contrôles existants :
 | Preuve | Rôle MCO |
 |---|---|
 | [dependabot.yml](../../.github/dependabot.yml) | Surveillance hebdomadaire des dépendances npm et GitHub Actions, le lundi matin Europe/Paris |
-| [package.json](../../package.json) | Version projet, scripts de test/build/audit, pnpm 9.15.9 |
+| [package.json](../../package.json) | Version projet, scripts de test/build/audit, pnpm 11.9.0 |
 | [pnpm-lock.yaml](../../pnpm-lock.yaml) | Reproductibilité des installations |
 | [ci.yml](../../.github/workflows/ci.yml) | Lint, typecheck, tests, coverage, build, E2E smoke, Docker build, audit |
 | [ci-cd.md](../ci-cd.md) | Documentation CI/CD, secrets, migrations, smoke tests et rollback |

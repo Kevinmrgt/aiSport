@@ -171,7 +171,10 @@ function getProgressLabel(step: TimerStep, exercisesCount: number): string {
 }
 
 export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta }: TimerProps) {
-  const steps = useMemo(() => buildTimerSteps(exercises, warmup, cooldown), [exercises, warmup, cooldown]);
+  const steps = useMemo(
+    () => buildTimerSteps(exercises, warmup, cooldown),
+    [exercises, warmup, cooldown],
+  );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(steps[0]?.durationSeconds ?? null);
   const [isRunning, setIsRunning] = useState(false);
@@ -180,7 +183,10 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
   const [isFullscreen, setIsFullscreen] = useState(false);
   const timerContainerRef = useRef<HTMLElement | null>(null);
   const nativeFullscreenActiveRef = useRef(false);
-  const sessionStartedAtRef = useRef<number | null>(null);
+  const stepDeadlineRef = useRef<number | null>(null);
+  const activeStartedAtRef = useRef<number | null>(null);
+  const accumulatedActiveMsRef = useRef(0);
+  const fullscreenTriggerRef = useRef<HTMLElement | null>(null);
 
   const { playCountdown, playPhaseChange, playComplete } = useAudio();
   const currentStep = steps[currentIndex];
@@ -189,11 +195,19 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
     [steps],
   );
 
-  const markSessionStarted = useCallback(() => {
-    sessionStartedAtRef.current ??= Date.now();
+  const startActiveClock = useCallback(() => {
+    activeStartedAtRef.current ??= Date.now();
+  }, []);
+
+  const pauseActiveClock = useCallback(() => {
+    if (activeStartedAtRef.current === null) return;
+    accumulatedActiveMsRef.current += Math.max(0, Date.now() - activeStartedAtRef.current);
+    activeStartedAtRef.current = null;
   }, []);
 
   const enterFullscreen = useCallback(async () => {
+    fullscreenTriggerRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setIsFullscreen(true);
 
     if (document.fullscreenElement || !document.documentElement.requestFullscreen) {
@@ -222,16 +236,17 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
   }, []);
 
   const finish = useCallback(() => {
+    pauseActiveClock();
+    const activeDurationMs = accumulatedActiveMsRef.current;
     const elapsedSeconds =
-      sessionStartedAtRef.current !== null
-        ? Math.round((Date.now() - sessionStartedAtRef.current) / 1000)
-        : totalTimedSeconds;
-    setCompletedDurationSeconds(Math.max(1, elapsedSeconds || totalTimedSeconds || 1));
+      activeDurationMs > 0 ? Math.max(1, Math.round(activeDurationMs / 1000)) : totalTimedSeconds;
+    setCompletedDurationSeconds(Math.max(1, elapsedSeconds || 1));
     playComplete();
+    stepDeadlineRef.current = null;
     setIsRunning(false);
     setDone(true);
     void exitFullscreen();
-  }, [exitFullscreen, playComplete, totalTimedSeconds]);
+  }, [exitFullscreen, pauseActiveClock, playComplete, totalTimedSeconds]);
 
   const goToStep = useCallback(
     (nextIndex: number, keepRunning = false) => {
@@ -244,9 +259,18 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
 
       setCurrentIndex(nextIndex);
       setSecondsLeft(nextStep.durationSeconds);
-      setIsRunning(keepRunning && nextStep.durationSeconds !== null);
+      const nextDurationSeconds = nextStep.durationSeconds;
+      const shouldRun = keepRunning && nextDurationSeconds !== null;
+      if (keepRunning && nextDurationSeconds !== null) {
+        stepDeadlineRef.current = Date.now() + nextDurationSeconds * 1000;
+        startActiveClock();
+      } else {
+        stepDeadlineRef.current = null;
+        pauseActiveClock();
+      }
+      setIsRunning(shouldRun);
     },
-    [finish, steps],
+    [finish, pauseActiveClock, startActiveClock, steps],
   );
 
   useEffect(() => {
@@ -256,7 +280,9 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
     setDone(steps.length === 0);
     setCompletedDurationSeconds(null);
     void exitFullscreen();
-    sessionStartedAtRef.current = null;
+    stepDeadlineRef.current = null;
+    activeStartedAtRef.current = null;
+    accumulatedActiveMsRef.current = 0;
   }, [exitFullscreen, steps]);
 
   useEffect(() => {
@@ -292,7 +318,72 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
   }, [isFullscreen]);
 
   useEffect(() => {
-    if (!currentStep || currentStep.durationSeconds === null || !isRunning || secondsLeft === null || done) return;
+    if (!isFullscreen) return;
+
+    timerContainerRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        void exitFullscreen();
+        return;
+      }
+
+      if (event.key !== 'Tab' || !timerContainerRef.current) return;
+
+      const focusableElements = Array.from(
+        timerContainerRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      const first = focusableElements[0];
+      const last = focusableElements.at(-1);
+      if (!first || !last) {
+        event.preventDefault();
+        timerContainerRef.current.focus();
+        return;
+      }
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      fullscreenTriggerRef.current?.focus();
+      fullscreenTriggerRef.current = null;
+    };
+  }, [exitFullscreen, isFullscreen]);
+
+  useEffect(() => {
+    if (!currentStep || currentStep.durationSeconds === null || !isRunning || done) return;
+
+    const updateRemainingTime = () => {
+      if (stepDeadlineRef.current === null) return;
+      const nextSecondsLeft = Math.max(0, Math.ceil((stepDeadlineRef.current - Date.now()) / 1000));
+      setSecondsLeft(nextSecondsLeft);
+    };
+
+    updateRemainingTime();
+    const timer = window.setInterval(updateRemainingTime, 250);
+    return () => window.clearInterval(timer);
+  }, [currentStep, done, isRunning]);
+
+  useEffect(() => {
+    if (
+      !currentStep ||
+      currentStep.durationSeconds === null ||
+      !isRunning ||
+      secondsLeft === null ||
+      done
+    )
+      return;
 
     if (secondsLeft > 0 && secondsLeft <= 3) {
       playCountdown();
@@ -307,9 +398,6 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
       }
       return;
     }
-
-    const timer = setTimeout(() => setSecondsLeft((s) => (s !== null ? s - 1 : null)), 1000);
-    return () => clearTimeout(timer);
   }, [
     currentIndex,
     currentStep,
@@ -322,6 +410,25 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
     secondsLeft,
     steps.length,
   ]);
+
+  const toggleTimer = useCallback(() => {
+    if (secondsLeft === null) return;
+
+    if (isRunning) {
+      if (stepDeadlineRef.current !== null) {
+        setSecondsLeft(Math.max(0, Math.ceil((stepDeadlineRef.current - Date.now()) / 1000)));
+      }
+      stepDeadlineRef.current = null;
+      pauseActiveClock();
+      setIsRunning(false);
+      return;
+    }
+
+    stepDeadlineRef.current = Date.now() + Math.max(0, secondsLeft) * 1000;
+    startActiveClock();
+    setIsRunning(true);
+    void enterFullscreen();
+  }, [enterFullscreen, isRunning, pauseActiveClock, secondsLeft, startActiveClock]);
 
   if (done || !currentStep) {
     if (completeAction && sessionMeta) {
@@ -360,7 +467,10 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
   const sessionSecondsLeft = currentStepRemaining + futureTimedSeconds;
   const sessionProgress =
     totalTimedSeconds > 0
-      ? Math.min(100, Math.round(((totalTimedSeconds - sessionSecondsLeft) / totalTimedSeconds) * 100))
+      ? Math.min(
+          100,
+          Math.round(((totalTimedSeconds - sessionSecondsLeft) / totalTimedSeconds) * 100),
+        )
       : null;
   const timeDisplay = hasStepTimer ? formatTime(currentStepRemaining) : null;
   const isLastStep = currentIndex === steps.length - 1;
@@ -392,7 +502,9 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
   const timerRingClassName = [
     'grid place-items-center rounded-full border border-white/10 shadow-2xl shadow-black/30 transition-colors',
     isFullscreen ? 'h-64 w-64' : 'h-52 w-52',
-    isCountingDown ? 'animate-pulse bg-sport-orange/[0.15] text-sport-orange' : 'bg-white/[0.06] text-white',
+    isCountingDown
+      ? 'animate-pulse bg-sport-orange/[0.15] text-sport-orange'
+      : 'bg-white/[0.06] text-white',
   ].join(' ');
   const timerRingInnerClassName = [
     'grid place-items-center rounded-full bg-zinc-950/[0.85] font-mono font-black tabular-nums',
@@ -404,12 +516,23 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
   ].join(' ');
 
   const timerContent = (
-    <section ref={timerContainerRef} aria-labelledby="timer-exercise-title" className={timerContainerClassName}>
+    <section
+      ref={timerContainerRef}
+      aria-labelledby="timer-exercise-title"
+      aria-modal={isFullscreen ? true : undefined}
+      role={isFullscreen ? 'dialog' : undefined}
+      tabIndex={isFullscreen ? -1 : undefined}
+      className={timerContainerClassName}
+    >
       {totalTimedSeconds > 0 && (
         <div className="w-full">
           <div className="mb-2 flex justify-between text-xs font-bold text-zinc-400">
             <span>Session</span>
-            <span role="timer" aria-label={`Temps chronometre restant : ${sessionDisplay}`} aria-live="off">
+            <span
+              role="timer"
+              aria-label={`Temps chronometre restant : ${sessionDisplay}`}
+              aria-live="off"
+            >
               {sessionDisplay} restant
             </span>
           </div>
@@ -490,12 +613,8 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
           size="lg"
           className="w-full sm:min-w-44"
           onClick={() => {
-            markSessionStarted();
             if (hasStepTimer) {
-              if (!isRunning) {
-                void enterFullscreen();
-              }
-              setIsRunning((r) => !r);
+              toggleTimer();
             } else {
               goToStep(currentIndex + 1);
             }
@@ -512,7 +631,6 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
             size="lg"
             className="w-full sm:min-w-44"
             onClick={() => {
-              markSessionStarted();
               goToStep(currentIndex + 1);
             }}
           >

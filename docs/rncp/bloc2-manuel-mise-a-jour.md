@@ -110,11 +110,16 @@ pnpm build
 Commandes recommandées avant dépôt RNCP ou livraison importante :
 
 ```powershell
-pnpm test:e2e
 pnpm test:e2e:smoke
+$env:PLAYWRIGHT_AUTH_STORAGE='C:\chemin\session-auth.json'
+pnpm --filter web test:e2e:authenticated
 ```
 
-Si les E2E ne sont pas relancés, la documentation doit conserver le statut "à relancer" au lieu d'annoncer une réussite.
+`test:e2e:smoke` couvre le public. La commande authentifiée exige un
+`storageState` Auth.js réel, local, non committé. `pnpm test:e2e` seul marque la
+suite authentifiée ignorée si cette variable manque ; il ne prouve donc pas le
+parcours OAuth. Si les E2E ne sont pas relancés, la documentation doit conserver
+le statut "à relancer" au lieu d'annoncer une réussite.
 
 ## 7. Mise à jour de version
 
@@ -154,6 +159,7 @@ Contrôles après déploiement :
 
 ```powershell
 curl https://<api-url>/health
+curl https://<api-url>/health/ready
 curl https://<web-url>/api/health
 ```
 
@@ -203,4 +209,3 @@ Documents à mettre à jour si concernés :
 - `docs/bloc2/cahier-recettes.md`
 - `docs/rncp/dossier-professionnel-rncp39583.md`
 - `docs/rncp/matrice-conformite-rncp39583.md`
-

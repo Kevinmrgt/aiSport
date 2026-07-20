@@ -1,74 +1,67 @@
-import { test, expect, type Page } from '@playwright/test';
-import path from 'path';
+import { test, expect } from '@playwright/test';
+import { existsSync, readFileSync } from 'node:fs';
 
-// Fixture : session Auth.js simulée pour les tests E2E authentifiés
-// Le fichier session.json est créé via le script setup/auth-setup.ts
-const SESSION_FILE = path.join(__dirname, '../fixtures/session.json');
+const sessionFile = process.env['PLAYWRIGHT_AUTH_STORAGE'];
 
-// Tests E2E avec session mockée — flux de création de séance avec Alcide
-test.describe('Formulaire de génération (avec session)', () => {
-  test.use({ storageState: SESSION_FILE });
+function validateAuthenticatedStorageState(storagePath: string): void {
+  if (!existsSync(storagePath)) {
+    throw new Error(`PLAYWRIGHT_AUTH_STORAGE introuvable: ${storagePath}`);
+  }
 
-  test('affiche le formulaire de génération après connexion', async ({ page }) => {
+  const state = JSON.parse(readFileSync(storagePath, 'utf8')) as {
+    cookies?: Array<{ name?: string; value?: string }>;
+  };
+  const hasAuthSession = state.cookies?.some(
+    (cookie) =>
+      Boolean(cookie.value) &&
+      ['authjs.session-token', '__Secure-authjs.session-token'].includes(cookie.name ?? ''),
+  );
+
+  if (!hasAuthSession) {
+    throw new Error(
+      'Le storageState ne contient aucun cookie de session Auth.js. Une vraie session de test est requise.',
+    );
+  }
+}
+
+// Cette suite ne simule pas une authentification : elle exige un storageState
+// issu d'un compte OAuth de test dedie. Sans lui, les tests sont marques ignores.
+test.describe('Formulaire de generation (session OAuth de test requise)', () => {
+  test.skip(!sessionFile, 'PLAYWRIGHT_AUTH_STORAGE non fourni : suite authentifiee non executee.');
+  test.use({ storageState: sessionFile ?? { cookies: [], origins: [] } });
+
+  test.beforeAll(() => {
+    if (sessionFile) validateAuthenticatedStorageState(sessionFile);
+  });
+
+  test('affiche le formulaire de generation apres connexion', async ({ page }) => {
     await page.goto('/generate');
-    // Doit rester sur /generate (pas de redirect)
     await expect(page).toHaveURL('/generate');
     await expect(page.getByRole('heading', { name: /creer une seance/i })).toBeVisible();
   });
 
-  test('RGAA 4.1 — tous les champs ont un label associé', async ({ page }) => {
+  test('tous les champs ont un label associe', async ({ page }) => {
     await page.goto('/generate');
-
-    // Vérifier que chaque input a un label
     const inputs = page.locator('input, select, textarea');
     const count = await inputs.count();
+    expect(count).toBeGreaterThan(0);
 
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < count; i += 1) {
       const input = inputs.nth(i);
       const id = await input.getAttribute('id');
-      if (id) {
-        const label = page.locator(`label[for="${id}"]`);
-        await expect(label).toBeAttached();
-      }
+      expect(id, `Champ ${i + 1} sans identifiant`).toBeTruthy();
+      await expect(page.locator(`label[for="${id}"]`)).toBeAttached();
     }
   });
 
-  test('validation Zod côté client — champ sport vide', async ({ page }) => {
+  test('signale le champ sport vide', async ({ page }) => {
     await page.goto('/generate');
-
-    // Soumettre sans remplir sport
     await page.getByRole('button', { name: /generer la seance/i }).click();
-
-    // Message d'erreur visible
-    const error = page.getByRole('alert');
-    await expect(error).toBeVisible();
+    await expect(page.getByRole('alert')).toBeVisible();
   });
 
-  test('RGAA 4.1 — erreurs de formulaire annoncées via aria-live', async ({ page }) => {
+  test('annonce les erreurs de formulaire via aria-live', async ({ page }) => {
     await page.goto('/generate');
-
-    // La zone aria-live doit être présente
-    const liveRegion = page.locator('[aria-live]');
-    await expect(liveRegion.first()).toBeAttached();
+    await expect(page.locator('[aria-live]').first()).toBeAttached();
   });
 });
-
-// Fixtures setup helper — crée la session mockée pour Playwright
-// À exécuter via: npx playwright test --global-setup=tests/e2e/setup/auth-setup.ts
-async function createMockSession(page: Page) {
-  // Auth.js stocke la session dans un cookie HTTP-only
-  // En test, on peut injecter un cookie de session de test
-  await page.context().addCookies([
-    {
-      name: 'authjs.session-token',
-      value: 'test-session-token-for-e2e',
-      domain: 'localhost',
-      path: '/',
-      httpOnly: true,
-      secure: false,
-    },
-  ]);
-}
-
-// Export pour réutilisation dans d'autres tests
-export { createMockSession };

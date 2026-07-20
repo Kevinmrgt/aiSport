@@ -12,11 +12,11 @@ Ce projet sert de support à la certification RNCP 39583 « Expert en développe
 
 ## Stack technique
 
-- **Frontend** : Next.js 14+ (App Router, RSC), TypeScript, Tailwind CSS
+- **Frontend** : Next.js 15 (App Router, RSC), TypeScript, Tailwind CSS
 - **Backend** : Hono (TypeScript), architecture en couches (Routes → Controllers → Services → Repositories)
 - **BDD** : PostgreSQL + Drizzle ORM (migrations, type-safe)
 - **Auth** : Auth.js (NextAuth) — OAuth
-- **IA** : Mistral API (clé gratuite) — réponses JSON normées, validées par Zod
+- **IA** : OpenAI API côté serveur — réponses JSON structurées, validées par Zod
 - **Validation** : Zod (inputs et réponses API)
 - **Tests** : Vitest (unitaires), Playwright (e2e)
 - **CI/CD** : GitHub Actions (CI, CD Vercel, migrations DB manuelles)
@@ -37,7 +37,7 @@ alcide/
 │       ├── src/
 │       │   ├── routes/
 │       │   ├── controllers/
-│       │   ├── services/       # dont MistralService
+│       │   ├── services/       # orchestration métier et appels OpenAI
 │       │   ├── repositories/
 │       │   ├── schemas/        # Schémas Zod
 │       │   ├── middleware/
@@ -102,20 +102,20 @@ Voir `rules/ci.md` et `docs/ci-cd.md` pour le détail complet (pipeline, rollbac
 
 | App | URL |
 |---|---|
-| **Web** | `https://alcide-web.vercel.app` |
-| **API** | `https://alcide-api.vercel.app` |
+| **Web** | `https://ai-sport-web.vercel.app` |
+| **API** | `https://ai-sport-api.vercel.app` |
 
 ### Variables d'env critiques (Vercel)
 
 - `NEXT_PUBLIC_API_URL` (web) doit pointer vers l'URL de production de l'API
 - `SERVICE_SECRET` **doit être identique** dans les deux projets Vercel
-- `MISTRAL_API_KEY` requis sur l'API — tout 500 sur `/generate` sans log Mistral visible indique une clé manquante
+- `OPENAI_API_KEY` est gérée côté API ; l'application ne demande jamais de clé à l'utilisateur
 
 ### Diagnostic rapide en production
 
 ```bash
 # Santé de l'API
-curl https://alcide-api.vercel.app/health
+curl https://ai-sport-api.vercel.app/health
 
 # Logs CI
 gh run list --workflow=ci.yml --limit=5
@@ -127,7 +127,7 @@ gh run view <RUN_ID> --log
 Les logs de debug suivent le préfixe `[Module]` :
 - `[GeneratePage]` — erreurs server action Next.js
 - `[ServerAPI]` — appels et erreurs vers l'API Hono
-- `[MistralService]` — appels Mistral AI
+- `[AiService]`, `[WorkoutAiService]`, `[ProgramAiService]` — appels OpenAI
 - `[WorkoutRepository]` — erreurs DB
 - `[AppError]` / `[UnexpectedError]` — erreurs Hono centralisées
 - `[Auth]` — tentatives d'accès non autorisées
