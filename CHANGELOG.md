@@ -48,6 +48,7 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 - `docs/rncp/audit-coherence-documentaire.md` ajouté pour tracer les incohérences corrigées et les points à valider avant dépôt.
 
 ### Fixed
+- Connexions PostgreSQL : normalisation explicite des modes TLS historiques vers `sslmode=verify-full` dans le runtime API et Drizzle, afin de conserver la vérification du certificat et du nom d'hôte lors du futur passage à `pg` 9.
 - Contrôle d'accès manquant sur les `workoutId`/`programId` des journaux de séance.
 - Validation UUID des identifiants de routes afin de renvoyer une erreur client au lieu d'une erreur PostgreSQL 500.
 - Timeout global de génération d'une séance borné sous la durée maximale Vercel.
