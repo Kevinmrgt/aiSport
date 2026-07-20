@@ -931,7 +931,7 @@ Processus actuellement déductible :
 - tests, typecheck, lint et build avant livraison
 - consignation dans changelog si modification notable
 
-Preuve créée : le processus complet de mise à jour est formalisé dans [bloc2-manuel-mise-a-jour.md](bloc2-manuel-mise-a-jour.md) : branche, dépendances, lecture changelog, audit, tests, migration éventuelle, déploiement, rollback et journalisation. Le contrôle historique du 2026-06-30 comptait 2 alertes low et 4 moderate ; le contrôle du 2026-07-20 sur `0.13.0-rc.2`, exécuté avec `pnpm audit --audit-level=low`, ne remonte plus aucune vulnérabilité connue. La CI `29740673466` confirme ce résultat.
+Preuve créée : le processus complet de mise à jour est formalisé dans [bloc2-manuel-mise-a-jour.md](bloc2-manuel-mise-a-jour.md) : branche, dépendances, lecture changelog, audit, tests, migration éventuelle, déploiement, rollback et journalisation. Le contrôle historique du 2026-06-30 comptait 2 alertes low et 4 moderate ; le contrôle du 2026-07-20 sur `0.13.0-rc.3`, exécuté avec `pnpm audit --audit-level=low`, ne remonte plus aucune vulnérabilité connue. La CI `29747228594` confirme ce résultat.
 
 ## CI/CD et audit
 

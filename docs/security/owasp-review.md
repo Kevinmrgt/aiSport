@@ -90,11 +90,11 @@ Risques résiduels :
 Contrôles : lockfile, installation figée, audit dès le niveau low rendu bloquant en
 CI, versions Next.js/React situées sur une ligne corrigée.
 
-Contrôle local du 2026-07-20 sur la candidate `0.13.0-rc.2` :
+Contrôle local du 2026-07-20 sur la candidate `0.13.0-rc.3` :
 `pnpm audit --audit-level=low` termine avec le code 0 et indique
 `No known vulnerabilities found`. Les six alertes précédentes ont été corrigées
-par des overrides ciblés, puis le lint, les types, 130 tests, les builds et
-`drizzle-kit check` ont été rejoués. La CI `main` `29740673466` a ensuite
+par des overrides ciblés, puis le lint, les types, 198 tests, les builds et
+`drizzle-kit check` ont été rejoués. La CI `main` `29747228594` a ensuite
 confirmé ce résultat avec le seuil bloquant `low`.
 
 ## A07 — Identification and Authentication Failures — à prouver

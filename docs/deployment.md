@@ -1,7 +1,7 @@
 # Guide de deploiement - Alcide
 
-> Version applicative candidate: 0.13.0-rc.2
-> Version déployée au début de cette correction: 0.13.0-rc.1
+> Version applicative candidate: 0.13.0-rc.3
+> Version déployée au début de cette correction: 0.13.0-rc.2
 > Date de verification documentaire initiale: 2026-05-07
 > Derniere verification locale Bloc 2: 2026-07-20
 
@@ -66,8 +66,8 @@ DATABASE_URL
 ```
 
 Le token doit autoriser `vercel pull/build/deploy` sur les deux projets. Le run
-CD `29740979781`, déclenché automatiquement après la CI `29740673466`, a réussi
-sur le SHA `4151b80cc6d164c38549e753f7b960ec4914f519` : migration, API, Web et
+CD `29747592571`, déclenché automatiquement après la CI `29747228594`, a réussi
+sur le SHA `3a21e3b2b547e99410388d5b83b62df79a436ea8` : migration, API, Web et
 smoke tests de production. Les productions automatiques de l'intégration Git
 sur ce même SHA ont été annulées par `ignoreCommand`, puis une seule production
 GitHub Actions a abouti par projet.
@@ -133,9 +133,9 @@ Checklist:
 - [x] OAuth Google démarre avec le callback `https://ai-sport-web.vercel.app/api/auth/callback/google`
 - [x] API liveness et readiness HTTP 200 après déploiement
 - [x] Web healthcheck HTTP 200 après déploiement
-- [ ] Génération d'une séance testée avec un compte authentifié sur le SHA final
-- [ ] Génération d'un programme testée avec un compte authentifié sur le SHA final
-- [x] run CD automatique vert sur le SHA applicatif livré (`29740979781`)
+- [x] Génération d'une séance testée avec un compte authentifié, puis donnée de recette supprimée (B2-A25)
+- [x] Génération d'un programme testée avec un compte authentifié, puis donnée de recette supprimée (B2-A25)
+- [x] run CD automatique vert sur le SHA applicatif livré (`29747592571`)
 
 ## Alternative Docker Compose
 

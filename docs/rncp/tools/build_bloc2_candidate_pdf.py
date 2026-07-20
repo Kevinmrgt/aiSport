@@ -20,7 +20,7 @@ from reportlab.platypus import (
 
 ROOT = Path(__file__).resolve().parents[3]
 SOURCE = ROOT / "docs" / "rncp" / "bloc2-dossier-conception-developpement-rncp39583.md"
-OUTPUT = ROOT / "output" / "pdf" / "dossier-bloc2-rncp39583-alcide-v0.13.0-rc.2.pdf"
+OUTPUT = ROOT / "output" / "pdf" / "dossier-bloc2-rncp39583-alcide-v0.13.0-rc.3.pdf"
 
 
 def inline_markdown(value: str) -> str:
