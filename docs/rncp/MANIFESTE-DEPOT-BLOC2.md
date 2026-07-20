@@ -1,9 +1,9 @@
 # Manifeste de dépôt - Bloc 2 RNCP39583
 
-> Statut au 2026-07-20 : **candidate `0.13.0-rc.2` livrée techniquement**.
+> Statut au 2026-07-20 : **candidate `0.13.0-rc.3` livrée techniquement**.
 > La CI, la CD, les healthchecks, l'audit de dépendances et les recettes
-> publiques sont réels. Le parcours Google authentifié complet et l'audit humain
-> RGAA restent volontairement non validés.
+> publiques et authentifiées décrites dans B2-A25 sont réels. L'audit humain
+> RGAA complet reste volontairement non validé.
 
 ## Références vérifiables
 
@@ -11,14 +11,14 @@
 | -------------------------------- | ------------------------------------------------------------------------------------------------- |
 | Dépôt                            | `https://github.com/Kevinmrgt/aiSport`                                                            |
 | Branche                          | `main`                                                                                            |
-| SHA applicatif validé et déployé | `4151b80cc6d164c38549e753f7b960ec4914f519`                                                        |
-| Pull request                     | `https://github.com/Kevinmrgt/aiSport/pull/30`                                                    |
-| Tag de release                   | `v0.13.0-rc.2` - créé sur le commit documentaire final qui contient ce manifeste et le PDF        |
-| Version API/Web/packages         | `0.13.0-rc.2`                                                                                     |
-| CI `main`                        | `https://github.com/Kevinmrgt/aiSport/actions/runs/29740673466` - succès                          |
-| CD Vercel                        | `https://github.com/Kevinmrgt/aiSport/actions/runs/29740979781` - succès                          |
-| Web                              | `https://ai-sport-web.vercel.app` - HTTP 200, version `0.13.0-rc.2`                               |
-| API liveness                     | `https://ai-sport-api.vercel.app/health` - HTTP 200, version `0.13.0-rc.2`                        |
+| SHA applicatif validé et déployé | `3a21e3b2b547e99410388d5b83b62df79a436ea8`                                                        |
+| Pull request                     | `https://github.com/Kevinmrgt/aiSport/pull/34`                                                    |
+| Tag de release                   | `v0.13.0-rc.3` - identifie le commit documentaire final qui contient ce manifeste et le PDF       |
+| Version API/Web/packages         | `0.13.0-rc.3`                                                                                     |
+| CI `main`                        | `https://github.com/Kevinmrgt/aiSport/actions/runs/29747228594` - succès                          |
+| CD Vercel                        | `https://github.com/Kevinmrgt/aiSport/actions/runs/29747592571` - succès                          |
+| Web                              | `https://ai-sport-web.vercel.app` - HTTP 200, version `0.13.0-rc.3`                               |
+| API liveness                     | `https://ai-sport-api.vercel.app/health` - HTTP 200, version `0.13.0-rc.3`                        |
 | API readiness                    | `https://ai-sport-api.vercel.app/health/ready` - HTTP 200, PostgreSQL `ok`, configuration IA `ok` |
 
 ## Unicité du déploiement de production
@@ -40,23 +40,24 @@ ne sont pas des doubles productions.
 | Pièce                           | Emplacement                                                  | État réel                                                                                          |
 | ------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
 | Code source                     | dépôt et tag ci-dessus                                       | présent                                                                                            |
-| Dossier écrit, maximum 30 pages | `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.2.pdf` | généré : 15 pages, texte extrait contrôlé et toutes les pages rendues puis inspectées visuellement |
+| Dossier écrit, maximum 30 pages | `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.3.pdf` | généré : 15 pages, texte extrait et toutes les pages rendues puis inspectées visuellement          |
+| Empreinte du PDF                | SHA-256 `C72A04FB7829679972423326BD3445D6F064B0F0E1A04405EE421286D7BC7FB4` | calculée sur le fichier final `rc.3`                                                      |
 | Manuel de déploiement           | `docs/deployment.md`                                         | présent et actualisé                                                                               |
 | Manuel utilisateur              | `docs/rncp/bloc2-manuel-utilisateur-alcide.md`               | présent                                                                                            |
 | Manuel de mise à jour           | `docs/rncp/bloc2-manuel-mise-a-jour.md`                      | présent                                                                                            |
-| Cahier de recettes              | `docs/bloc2/cahier-recettes.md`                              | présent ; parcours authentifiés à compléter                                                        |
+| Cahier de recettes              | `docs/bloc2/cahier-recettes.md`                              | présent ; parcours authentifiés réels détaillés, réserves explicites                               |
 | Plan de correction              | `docs/rncp/bloc2-plan-correction-bogues-rncp39583.md`        | présent                                                                                            |
 | Revue OWASP                     | `docs/security/owasp-review.md`                              | actualisée ; audit low propre                                                                      |
 | Accessibilité                   | `docs/rncp/bloc2-accessibilite-rgaa.md` et B2-A20            | automatisation réelle ; audit humain incomplet                                                     |
 | Dépendances et CD               | B2-A23                                                       | local, CI et production prouvés                                                                    |
-| OAuth production                | B2-A24                                                       | démarrage jusqu'à Google prouvé ; connexion non effectuée                                          |
+| OAuth et recette authentifiée   | B2-A24 et B2-A25                                             | démarrage OAuth instrumenté, session obtenue par le candidat et parcours privés contre-recettés    |
 
 ## Contrôles réussis
 
 - [x] `pnpm install --frozen-lockfile`
 - [x] `pnpm lint`
 - [x] `pnpm typecheck`
-- [x] `pnpm test` - 91 tests API et 39 tests Web
+- [x] `pnpm test` - 155 tests API et 43 tests Web
 - [x] `pnpm test:coverage`
 - [x] `pnpm build`
 - [x] `pnpm audit --audit-level=low` - aucune vulnérabilité connue
@@ -65,17 +66,19 @@ ne sont pas des doubles productions.
 - [x] Playwright public et axe dans la CI
 - [x] build Docker dans la CI
 - [x] migration de production, déploiements API/Web et smoke tests CD
-- [x] healthchecks post-déploiement sur `0.13.0-rc.2`
+- [x] healthchecks post-déploiement sur `0.13.0-rc.3`
 - [x] démarrage OAuth avec PKCE, scopes `openid profile email` et callback HTTPS attendu
+- [x] séance et programme générés en production, durées contrôlées puis données de recette supprimées
+- [x] Timer pause/reprise/plein écran, onglets, dashboard, paramètres, suppressions et déconnexion contre-recettés
 
 ## Contrôles non exécutés - ne pas les revendiquer
 
-- [ ] saisie d'un compte Google, consentement et retour Auth.js ;
-- [ ] vérification réelle du cookie et de l'expiration de session ;
-- [ ] génération d'une séance et d'un programme par un utilisateur authentifié sur `0.13.0-rc.2` ;
+- [ ] instrumentation des écrans de compte/consentement Google ;
+- [ ] inspection du cookie et de l'expiration de session, volontairement non réalisée ;
 - [ ] suite Playwright authentifiée avec un `storageState` réel ;
 - [ ] audit RGAA humain complet avec navigation autonome et lecteur d'écran.
 
 La candidate ne doit être présentée comme « prête au dépôt sans réserve »
-qu'après ces actions personnelles. Les tests publics, les tests unitaires et
-l'audit axe ne sont pas assimilés à un audit RGAA humain complet.
+qu'après l'audit humain et les contrôles personnels restants. Les recettes
+authentifiées, les tests unitaires et l'audit axe ne sont pas assimilés à un
+audit RGAA humain complet.

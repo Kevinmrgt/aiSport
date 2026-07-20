@@ -2,8 +2,8 @@
 
 > Bloc 2 RNCP39583 — C2.3.1, compétence éliminatoire
 > Version reconstruite : 2026-07-20
-> Gel de remise : `v0.13.0-rc.2` — SHA documentaire
-> `c474877f98fe63a71d839117f84f10cef585a0e5`
+> Gel de remise : `v0.13.0-rc.3` — le tag identifie le commit documentaire
+> final ; SHA applicatif testé `3a21e3b2b547e99410388d5b83b62df79a436ea8`.
 
 ## Règles de preuve
 
@@ -25,9 +25,9 @@ artefact et anomalie éventuelle.
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | Scénarios inventoriés               | 61                                                                                                                                           |
 | Scénarios exécutés sur le SHA final | Non agrégés : les tests automatisés ne correspondent pas un pour un aux 61 scénarios ; statuts détaillés ci-dessous                          |
-| Scénarios réussis                   | Non agrégés pour la même raison ; aucun total fonctionnel n'est déduit des 130 tests unitaires                                               |
-| Scénarios en échec                  | Aucun échec dans les gates CI/CD ; la recette fonctionnelle exhaustive n'a pas été exécutée                                                  |
-| SHA/tag testé                       | SHA applicatif `4151b80cc6d164c38549e753f7b960ec4914f519` ; gel documentaire `c474877f98fe63a71d839117f84f10cef585a0e5` ; tag `v0.13.0-rc.2` |
+| Scénarios réussis                   | Non agrégés ; 198 tests unitaires et des parcours authentifiés réels sont détaillés sans conversion en pourcentage fonctionnel              |
+| Scénarios en échec                  | Quatre écarts ont été reproduits sur `rc.2`, corrigés puis contre-recettés sur `rc.3` ; aucune gate CI/CD finale en échec                    |
+| SHA/tag testé                       | SHA applicatif `3a21e3b2b547e99410388d5b83b62df79a436ea8` ; gel documentaire identifié par `v0.13.0-rc.3`                                 |
 | Environnement                       | Local/CI Node 24 + PostgreSQL de test, puis production Vercel/Neon                                                                           |
 | Artefacts                           | annexes locales et finales dans `docs/rncp/bloc2-annexes/`, rapports CI, release et PDF de 15 pages                                          |
 
@@ -35,14 +35,15 @@ artefact et anomalie éventuelle.
 
 | Contrôle               | Résultat                          | Preuve et limite                                                                                                                  |
 | ---------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| CI du gel documentaire | Succès des 6 jobs                 | run `29742672052` : audit `low`, lint/typecheck, 130 tests API/Web et couvertures, PostgreSQL, Playwright/axe, packages et Docker |
-| CD du gel documentaire | Succès                            | run `29742980469` : migration, API, Web et smoke tests                                                                            |
-| Production             | HTTP 200                          | API liveness/readiness et Web en `0.13.0-rc.2`, DB et configuration IA `ok`                                                       |
-| Monitoring officiel    | Succès                            | run `29743391060` sur le SHA documentaire                                                                                         |
+| CI du SHA applicatif   | Succès des 6 jobs                 | run `29747228594` : audit `low`, lint/typecheck, 198 tests API/Web et couvertures, PostgreSQL, Playwright/axe, packages et Docker |
+| CD du SHA applicatif   | Succès                            | run `29747592571` : migration, API, Web et smoke tests                                                                            |
+| Production             | HTTP 200                          | API liveness/readiness et Web en `0.13.0-rc.3`, DB et configuration IA `ok`                                                       |
+| Monitoring officiel    | Succès                            | run `29748032763` sur le SHA applicatif                                                                                           |
 | Déploiement unique     | Une production `READY` par projet | tentatives Git automatiques API/Web `CANCELED`, productions GitHub Actions `READY`                                                |
 
-Ces résultats automatisés ne valident ni la connexion Google complète, ni les
-parcours métier authentifiés, ni l'audit RGAA humain.
+Ces résultats automatisés ne sont pas confondus avec la recette authentifiée
+manuelle B2-A25. Ils ne valident ni l'inspection interne de la session, ni
+l'audit RGAA humain complet.
 
 ### Vérification locale non finale du 2026-07-20
 
@@ -63,17 +64,17 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 
 | ID     | Fonctionnalité            | Préconditions et actions                                                | Résultat attendu                                                 | Preuve prévue                | Statut                                                                                                           |
 | ------ | ------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| CR-001 | Connexion Google          | Sans session, `/login`, autoriser Google                                | session créée et redirection vers `/generate`                    | recette production + capture | ⏳ Démarrage OAuth `0.13.0-rc.2` prouvé jusqu'au formulaire Google ; compte, consentement et retour non exécutés |
+| CR-001 | Connexion Google          | Sans session, `/login`, autoriser Google                                | session créée et redirection vers `/generate`                    | recette production + capture | ✅ Connexion réalisée par le candidat ; session privée active observée sur `/generate` dans B2-A25, écrans Google non instrumentés |
 | CR-002 | Route privée sans session | ouvrir `/generate`, `/workouts`, `/programs`, `/dashboard`, `/settings` | redirection `/login`                                             | Playwright public            | ✅ Redirections publiques automatisées ; `/dashboard` également observé en production sans session               |
-| CR-003 | Déconnexion               | session active, cliquer `Sortir`                                        | session supprimée et retour public                               | recette production           | ⏳ À exécuter                                                                                                    |
-| CR-004 | Navigation selon session  | comparer accueil connecté/déconnecté                                    | liens privés uniquement connecté ; aucun faux nom Google annoncé | capture desktop/mobile       | ⏳ À exécuter                                                                                                    |
+| CR-003 | Déconnexion               | session active, cliquer `Sortir`                                        | session supprimée et retour public                               | recette production           | ✅ Exécuté sur `rc.3` : `/dashboard` redirige ensuite vers `/login`, B2-A25                                       |
+| CR-004 | Navigation selon session  | comparer accueil connecté/déconnecté                                    | liens privés uniquement connecté ; aucun faux nom Google annoncé | capture desktop/mobile       | ✅ États connecté/déconnecté observés sur desktop ; mobile authentifié non exécuté, B2-A25                       |
 
 ## Génération de séance
 
 | ID     | Fonctionnalité               | Préconditions et actions                           | Résultat attendu                                                    | Preuve prévue                      | Statut                                 |
 | ------ | ---------------------------- | -------------------------------------------------- | ------------------------------------------------------------------- | ---------------------------------- | -------------------------------------- |
-| CR-010 | Séance valide                | compte actif, sport/niveau/durée/objectifs valides | réponse créée, sauvegarde, détail affiché                           | E2E full-stack + production        | 📎 Historique 2026-07-16               |
-| CR-011 | Sport vide                   | soumettre sans sport                               | message relié au champ, aucun appel API                             | test composant/E2E                 | 🧪 Automatisé, CI finale verte         |
+| CR-010 | Séance valide                | compte actif, sport/niveau/durée/objectifs valides | réponse créée, sauvegarde, détail affiché                           | E2E full-stack + production        | ✅ Génération réelle `rc.2`, 15 min exactes, puis donnée de recette supprimée ; B2-A25 |
+| CR-011 | Sport vide                   | soumettre sans sport                               | message relié au champ, aucun appel API                             | test composant/E2E                 | ✅ 64 tests de schémas et soumission `rc.3` avec message français ; B2-A25       |
 | CR-012 | Durée hors limites           | saisir une durée invalide                          | validation client et serveur cohérente                              | tests schéma/formulaire/controller | 🧪 Automatisé, CI finale verte         |
 | CR-013 | OpenAI indisponible          | simuler timeout/429/5xx                            | erreur claire, aucune donnée incomplète                             | test service + E2E erreur          | 🧪 Automatisé partiel ; E2E à exécuter |
 | CR-014 | JSON IA invalide puis valide | première réponse invalide, seconde correcte        | retry borné puis succès                                             | test service IA                    | 🧪 Automatisé, CI finale verte         |
@@ -83,12 +84,12 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 
 | ID     | Fonctionnalité       | Préconditions et actions                             | Résultat attendu                                                | Preuve prévue                   | Statut                         |
 | ------ | -------------------- | ---------------------------------------------------- | --------------------------------------------------------------- | ------------------------------- | ------------------------------ |
-| CR-016 | Générer un programme | objectif, niveau, semaines, séances et durée valides | programme créé et affiché                                       | E2E full-stack + production     | 📎 Historique 2026-07-16       |
+| CR-016 | Générer un programme | objectif, niveau, semaines, séances et durée valides | programme créé et affiché                                       | E2E full-stack + production     | ✅ Génération réelle `rc.2`, 2 semaines/4 séances de 20 min, puis donnée supprimée ; B2-A25 |
 | CR-017 | Structure programme  | provoquer semaines/séances manquantes ou n°99        | rejet : quantités et numéros conformes à la demande             | tests contrats/service          | 🧪 Automatisé, CI finale verte |
 | CR-018 | Lister et paginer    | plusieurs programmes du compte                       | uniquement ses programmes, pagination correcte                  | test PostgreSQL + E2E           | 🧪 Automatisé partiel          |
-| CR-019 | Détail programme     | ouvrir un programme détenu                           | semaines et séances affichées                                   | test service + E2E              | 🧪 Automatisé partiel          |
-| CR-020 | Onglets semaines     | flèches, Home, End, clic                             | sélection/focus conformes au pattern tabs                       | test composant + manuel clavier | 🧪 Automatisé partiel          |
-| CR-021 | Supprimer programme  | confirmer puis simuler aussi une erreur              | suppression réelle ; erreur visible sans fermer la confirmation | test composant + E2E/API        | 🧪 Automatisé partiel          |
+| CR-019 | Détail programme     | ouvrir un programme détenu                           | semaines et séances affichées                                   | test service + E2E              | ✅ Détail réel, 2 semaines et séance 2-1 de 20 min ; B2-A25 |
+| CR-020 | Onglets semaines     | flèches, Home, End, clic                             | sélection/focus conformes au pattern tabs                       | test composant + manuel clavier | ✅ `ArrowRight`, `Home`, `End` exécutés ; B2-A25 |
+| CR-021 | Supprimer programme  | confirmer puis simuler aussi une erreur              | suppression réelle ; erreur visible sans fermer la confirmation | test composant + E2E/API        | Exécution partielle : suppression réelle réussie ; panne API simulée non rejouée dans le navigateur, B2-A25 |
 
 ## Séances, Timer et journalisation
 
@@ -97,28 +98,28 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 | CR-022 | Liste personnelle             | deux comptes avec séances                   | liste filtrée par utilisateur                                 | test PostgreSQL multi-utilisateur | 🧪 Automatisé, CI finale verte |
 | CR-023 | Accès séance d'autrui         | compte A ouvre l'ID du compte B             | API 403 sans contenu ; UI n'affiche pas une fausse 404 réseau | test PostgreSQL/API               | 🧪 Automatisé, CI finale verte |
 | CR-024 | ID invalide                   | appeler détail/suppression avec ID non UUID | 400, jamais erreur PostgreSQL 500                             | tests controllers                 | 🧪 Automatisé, CI finale verte |
-| CR-025 | Démarrer Timer                | séance minutée, cliquer démarrer            | deadline initialisée, décompte visible                        | test composant                    | 🧪 Automatisé, CI finale verte |
-| CR-026 | Pause/reprise                 | laisser tourner, pause, attendre, reprendre | pause exclue du temps actif et du décompte                    | test Timer avec horloge simulée   | 🧪 Automatisé, CI finale verte |
+| CR-025 | Démarrer Timer                | séance minutée, cliquer démarrer            | deadline initialisée, décompte visible                        | test composant                    | ✅ Décompte réel observé en production et tests verts, B2-A25 |
+| CR-026 | Pause/reprise                 | laisser tourner, pause, attendre, reprendre | pause exclue du temps actif et du décompte                    | test Timer avec horloge simulée   | ✅ Valeurs stables pendant 2,2 s de pause puis reprise réelle, B2-A25 |
 | CR-027 | Onglet ralenti                | avancer l'horloge de plusieurs secondes     | décompte recalé sur deadline, sans dérive cumulative          | test Timer                        | 🧪 Automatisé, CI finale verte |
 | CR-028 | Passage de phase              | laisser une phase atteindre zéro            | phase suivante annoncée et démarrée                           | test Timer                        | 🧪 Automatisé, CI finale verte |
-| CR-029 | Plein écran Timer             | ouvrir, Tab/Shift+Tab, Échap                | dialogue nommé, focus contenu/restreint puis restauré         | test composant + manuel           | 🧪 Automatisé partiel          |
+| CR-029 | Plein écran Timer             | ouvrir, Tab/Shift+Tab, Échap                | dialogue nommé, focus contenu/restreint puis restauré         | test composant + manuel           | ✅ Défaut reproduit sur `rc.2`, corrigé ; focus `BUTTON Pause` sur `rc.3`, B2-A25 |
 | CR-030 | Fin de séance                 | terminer et enregistrer effort/feedback     | journal créé avec durée active                                | test composant/service/DB         | 🧪 Automatisé partiel          |
 | CR-031 | Ownership journal workout     | utiliser workout d'un autre compte          | 403 et aucune insertion                                       | test service + PostgreSQL         | 🧪 Automatisé, CI finale verte |
 | CR-032 | Ownership journal programme   | utiliser programme d'un autre compte        | 403 et aucune insertion                                       | test service + PostgreSQL         | 🧪 Automatisé, CI finale verte |
 | CR-033 | Métadonnées falsifiées        | envoyer titre/sport/durée différents        | valeurs serveur dérivées de la ressource détenue              | test service + DB                 | 🧪 Automatisé, CI finale verte |
 | CR-034 | Notes de douleur              | enregistrer une note facultative            | stockage lié au compte et information confidentialité visible | recette UI + DB                   | ⏳ À exécuter                  |
-| CR-035 | Suppression séance accessible | confirmer, annuler, Échap, erreur API       | focus géré, annulation sûre, erreur visible                   | test composant + manuel           | 🧪 Automatisé partiel          |
+| CR-035 | Suppression séance accessible | confirmer, annuler, Échap, erreur API       | focus géré, annulation sûre, erreur visible                   | test composant + manuel           | Exécution partielle : Échap/focus et suppression réelle réussis ; panne API non rejouée, B2-A25 |
 
 ## Paramètres et dashboard
 
 | ID     | Fonctionnalité      | Préconditions et actions     | Résultat attendu                                               | Preuve prévue            | Statut                         |
 | ------ | ------------------- | ---------------------------- | -------------------------------------------------------------- | ------------------------ | ------------------------------ |
-| CR-036 | Lire paramètres     | compte actif                 | fournisseur OpenAI serveur et modèle courant affichés          | test API/Web + E2E       | 🧪 Automatisé partiel          |
-| CR-037 | Enregistrer modèle  | choisir un modèle autorisé   | valeur persistée et confirmation                               | test controller/DB + E2E | 🧪 Automatisé partiel          |
+| CR-036 | Lire paramètres     | compte actif                 | fournisseur OpenAI serveur et modèle courant affichés          | test API/Web + E2E       | ✅ OpenAI serveur et GPT-5.4 mini observés en production, B2-A25 |
+| CR-037 | Enregistrer modèle  | choisir un modèle autorisé   | valeur persistée et confirmation                               | test controller/DB + E2E | Exécution partielle : sauvegarde sans changement confirmée ; changement de modèle non rejoué, B2-A25 |
 | CR-038 | Modèle non autorisé | envoyer valeur arbitraire    | 400, aucune persistance                                        | test controller          | ⏳ À automatiser               |
 | CR-039 | Panne settings      | API indisponible             | erreur explicite, pas de faux défaut présenté comme enregistré | test server-api/page     | 🧪 Automatisé, CI finale verte |
 | CR-040 | Dashboard vide      | aucun journal                | état vide compréhensible                                       | test rendu/E2E           | ⏳ À exécuter                  |
-| CR-041 | Dashboard alimenté  | plusieurs journaux du compte | totaux/durée/effort/feedback exacts et isolés                  | test PostgreSQL + E2E    | 🧪 Automatisé partiel          |
+| CR-041 | Dashboard alimenté  | plusieurs journaux du compte | totaux/durée/effort/feedback exacts et isolés                  | test PostgreSQL + E2E    | Exécution partielle : valeurs réelles affichées et variantes de sport agrégées ; isolation couverte en DB, B2-A25 |
 
 ## Sécurité
 
@@ -139,8 +140,8 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 | ID     | Fonctionnalité          | Préconditions et actions                                          | Résultat attendu                                          | Preuve prévue                      | Statut                                                                                                                                                                    |
 | ------ | ----------------------- | ----------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | CR-051 | Pages publiques         | axe complet sur `/` et `/login`                                   | aucune violation applicable non traitée                   | Playwright/axe                     | ✅ Exécuté localement puis en CI finale sur le périmètre public ; ne vaut pas audit RGAA manuel                                                                           |
-| CR-052 | Pages authentifiées     | axe sur generate, programmes, listes, détail, dashboard, settings | aucune violation applicable non traitée                   | Playwright avec vrai storage state | ⏳ À exécuter                                                                                                                                                             |
-| CR-053 | Clavier                 | parcourir navigation, formulaires, tabs, suppressions, Timer      | toutes actions atteignables, ordre/focus cohérents        | audit manuel + tests composants    | Exécution partielle réelle : skip link sur 3 pages et bouton Google dans Chromium/Firefox ; navigation authentifiée, tabs, suppressions et Timer non audités manuellement |
+| CR-052 | Pages authentifiées     | axe sur generate, programmes, listes, détail, dashboard, settings | aucune violation applicable non traitée                   | Playwright avec vrai storage state | ⏳ Parcours sémantiques réels exécutés dans B2-A25, mais aucun run axe authentifié avec `storageState`                                                                 |
+| CR-053 | Clavier                 | parcourir navigation, formulaires, tabs, suppressions, Timer      | toutes actions atteignables, ordre/focus cohérents        | audit manuel + tests composants    | Exécution partielle réelle : public Chromium/Firefox, puis tabs, suppression et Timer authentifiés ; audit clavier exhaustif restant, B2-A20/B2-A25 |
 | CR-054 | Reflow/mobile           | 320 px CSS et viewport mobile                                     | aucune perte d'information/action ni scroll 2D injustifié | captures + audit manuel            | Exécution partielle réelle : 4 pages publiques, largeur document 320 px dans Chromium/Firefox, 8 captures ; pages authentifiées non exécutées                             |
 | CR-055 | Zoom/contraste/annonces | zoom 200/400 %, contraste, lecteur d'écran                        | contenu lisible et annonces compréhensibles               | grille RGAA manuelle               | ⏳ À exécuter                                                                                                                                                             |
 
@@ -153,11 +154,11 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 | CR-058 | Qualité/build             | lint, typecheck, build sous Node 24                                      | toutes commandes réussies                                                           | logs CI                   | ✅ Exécuté dans `29742672052`                                                                          |
 | CR-059 | Docker                    | construire API/Web et contrôler la procédure migrate/seed                | images Node 24 non-root ; migrate/seed fonctionnels                                 | CI + B2-A22               | ✅ Images finales construites en CI ; migrate/seed validés localement ; clone vierge non archivé       |
 | CR-060 | Readiness API             | DB/clé disponibles puis indisponibles                                    | 200 prêt ; 503 avec dépendance défaillante                                          | tests route + curl        | ✅ Cas automatisés verts ; readiness production 200, DB/IA `ok`                                        |
-| CR-061 | CI complète               | pousser le SHA final                                                     | tous les jobs obligatoires verts                                                    | run GitHub                | ✅ Run `29742672052` réussi                                                                            |
+| CR-061 | CI complète               | pousser le SHA final                                                     | tous les jobs obligatoires verts                                                    | run GitHub                | ✅ Run `29747228594` réussi sur `3a21e3b`                                                              |
 | CR-062 | CD sans contournement     | CI échoue puis réussit                                                   | aucun déploiement après échec ; déploiement après succès                            | runs GitHub               | 🧪 Chemin de succès et chaînage `workflow_run` prouvés ; scénario d'échec non rejoué pour cette remise |
-| CR-063 | Version immuable          | comparer package, tag, SHA, health et changelog                          | version cohérente et distinction explicite entre SHA applicatif et gel documentaire | manifeste                 | ✅ Version `0.13.0-rc.2`, SHA applicatif, SHA documentaire et tag consignés sans les confondre         |
-| CR-064 | Production API/Web        | déployer le SHA final                                                    | liveness/readiness/Web en 200                                                       | curl daté                 | ✅ CD `29742980469`, contrôles indépendants HTTP 200 et monitoring `29743391060`                       |
-| CR-065 | Parcours post-déploiement | login, séance, programme, Timer, journal, dashboard                      | parcours complet sans erreur                                                        | recette production        | ⏳ À exécuter                                                                                          |
+| CR-063 | Version immuable          | comparer package, tag, SHA, health et changelog                          | version cohérente et distinction explicite entre SHA applicatif et gel documentaire | manifeste                 | ✅ Version `0.13.0-rc.3`, SHA applicatif et futur tag documentaire distingués                         |
+| CR-064 | Production API/Web        | déployer le SHA final                                                    | liveness/readiness/Web en 200                                                       | curl daté                 | ✅ CD `29747592571`, HTTP 200 `rc.3` et monitoring `29748032763`                                      |
+| CR-065 | Parcours post-déploiement | login, séance, programme, Timer, journal, dashboard                      | parcours complet sans erreur                                                        | recette production        | Exécution partielle réelle : login/session, séance, programme, Timer, dashboard, settings, suppressions et logout ; journal de fin non créé, B2-A25 |
 | CR-066 | Utilisateur autonome      | faire réaliser le parcours sans aide technique                           | tâche terminée, retours consignés                                                   | fiche de test utilisateur | ⏳ À organiser                                                                                         |
 
 ## Critère de clôture C2.3.1

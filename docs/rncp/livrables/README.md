@@ -5,11 +5,11 @@ contiennent des conclusions et métriques antérieures aux corrections du
 2026-07-20 et ne doivent pas être remis au jury.
 
 Le fichier historique `dossier-bloc2-candidat-corrige-2026-07-20.pdf` est un
-export de travail antérieur à la livraison `0.13.0-rc.2`. Le livrable courant
+export de travail antérieur à la livraison `0.13.0-rc.3`. Le livrable courant
 est généré sous
-`output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.2.pdf`. Le manifeste
-reste la source de vérité : le parcours authentifié complet et l'audit humain
-RGAA n'y sont pas déclarés validés.
+`output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.3.pdf`. Le manifeste
+reste la source de vérité : la recette authentifiée B2-A25 y est distinguée de
+l'audit humain RGAA, qui n'est pas déclaré validé.
 
 Le PDF courant a été régénéré après :
 
