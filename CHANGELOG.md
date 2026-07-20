@@ -9,6 +9,19 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ---
 
+## [0.13.0-rc.3] — 2026-07-20
+
+> Correctifs issus d'une recette authentifiée réelle sur la production
+> `0.13.0-rc.2`. Leur validation en production est consignée séparément après
+> déploiement afin de ne pas confondre test local et preuve livrée.
+
+### Fixed
+
+- Messages Zod des formulaires de séance et programme entièrement localisés en français.
+- Restitution du focus au contrôle du Timer après fermeture du plein écran, y compris après une sortie plein écran native.
+- Filtre des séances compatible avec tout sport libre accepté lors de la génération.
+- Regroupement des variantes de casse, accents et espaces dans le classement des sports du dashboard.
+
 ## [0.13.0-rc.2] — 2026-07-20
 
 > Candidate déployée après CI et CD vertes. Les limites restantes sur le

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { serverApi } from '@/lib/server-api';
+import { getTopSports } from '@/lib/sport-stats';
 import { EmptyState, GlassPanel, MetricPill, ProgressRing } from '@/components/PremiumPrimitives';
 
 const LEVEL_LABELS: Record<string, string> = {
@@ -43,9 +44,7 @@ export default async function DashboardPage() {
     return top ? (LEVEL_LABELS[top[0]] ?? top[0]) : '--';
   })();
 
-  const topSports = Object.entries(stats.bySport)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 5);
+  const topSports = getTopSports(stats.bySport);
 
   const effortPercent =
     sessionStats.averageEffort !== null ? Math.round((sessionStats.averageEffort / 10) * 100) : 0;

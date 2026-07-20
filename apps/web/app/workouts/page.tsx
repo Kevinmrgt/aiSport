@@ -6,16 +6,6 @@ import { serverApi } from '@/lib/server-api';
 import { WorkoutCard } from '@/components/WorkoutCard';
 import { EmptyState, GlassPanel, MetricPill } from '@/components/PremiumPrimitives';
 
-const SPORTS = [
-  'football',
-  'basketball',
-  'natation',
-  'course',
-  'cyclisme',
-  'musculation',
-  'yoga',
-  'tennis',
-];
 const LEVELS = [
   { value: 'beginner', label: 'Debutant' },
   { value: 'intermediate', label: 'Intermediaire' },
@@ -35,7 +25,7 @@ export default async function WorkoutsPage({
   }
 
   const page = Math.max(1, Number(query.page) || 1);
-  const sport = query.sport || undefined;
+  const sport = query.sport?.trim() || undefined;
   const level = query.level || undefined;
 
   async function handleDelete(id: string) {
@@ -95,19 +85,15 @@ export default async function WorkoutsPage({
         <label htmlFor="filter-sport" className="sr-only">
           Sport
         </label>
-        <select
+        <input
+          type="search"
           id="filter-sport"
           name="sport"
           defaultValue={sport ?? ''}
+          placeholder="Tous les sports"
+          autoComplete="off"
           className="field-control py-2 sm:w-auto"
-        >
-          <option value="">Tous les sports</option>
-          {SPORTS.map((s) => (
-            <option key={s} value={s}>
-              {s.charAt(0).toUpperCase() + s.slice(1)}
-            </option>
-          ))}
-        </select>
+        />
 
         <label htmlFor="filter-level" className="sr-only">
           Niveau
