@@ -94,8 +94,8 @@ Contrôle local du 2026-07-20 sur la candidate `0.13.0-rc.2` :
 `pnpm audit --audit-level=low` termine avec le code 0 et indique
 `No known vulnerabilities found`. Les six alertes précédentes ont été corrigées
 par des overrides ciblés, puis le lint, les types, 130 tests, les builds et
-`drizzle-kit check` ont été rejoués. Ce résultat local doit encore être confirmé
-par la CI du SHA final.
+`drizzle-kit check` ont été rejoués. La CI `main` `29740673466` a ensuite
+confirmé ce résultat avec le seuil bloquant `low`.
 
 ## A07 — Identification and Authentication Failures — à prouver
 

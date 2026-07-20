@@ -2,7 +2,7 @@
 
 > Date d'observation : 2026-07-20
 > Production observée : `https://ai-sport-web.vercel.app`
-> Version servie au début du contrôle : `0.13.0-rc.1`
+> Version servie lors du contrôle final : `0.13.0-rc.2`
 
 ## Parcours réellement exécuté
 
@@ -12,6 +12,9 @@
 4. activation du bouton ;
 5. arrivée sur la page officielle `accounts.google.com` avec le formulaire
    `Adresse e-mail ou téléphone`.
+
+Le contrôle a été rejoué après la CD `29740979781` et les healthchecks Web/API
+annonçaient tous deux `0.13.0-rc.2`.
 
 La requête OAuth observée utilise :
 

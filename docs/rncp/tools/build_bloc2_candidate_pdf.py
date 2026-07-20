@@ -20,7 +20,7 @@ from reportlab.platypus import (
 
 ROOT = Path(__file__).resolve().parents[3]
 SOURCE = ROOT / "docs" / "rncp" / "bloc2-dossier-conception-developpement-rncp39583.md"
-OUTPUT = ROOT / "docs" / "rncp" / "livrables" / "dossier-bloc2-candidat-corrige-2026-07-20.pdf"
+OUTPUT = ROOT / "output" / "pdf" / "dossier-bloc2-rncp39583-alcide-v0.13.0-rc.2.pdf"
 
 
 def inline_markdown(value: str) -> str:
@@ -48,7 +48,7 @@ def page_footer(canvas, doc):
     canvas.saveState()
     canvas.setFont("Helvetica", 8)
     canvas.setFillColor(colors.HexColor("#64748B"))
-    canvas.drawString(1.5 * cm, 0.9 * cm, "Alcide — Dossier candidat Bloc 2 RNCP39583")
+    canvas.drawString(1.5 * cm, 0.9 * cm, "Alcide - Dossier candidat Bloc 2 RNCP39583")
     canvas.drawRightString(A4[0] - 1.5 * cm, 0.9 * cm, f"Page {doc.page}")
     canvas.restoreState()
 
@@ -139,7 +139,7 @@ def parse_markdown(source: str):
             story.append(Paragraph(inline_markdown(line[2:]), STYLES["Metax"]))
         elif re.match(r"^[-*] ", line):
             flush_paragraph()
-            story.append(Paragraph(inline_markdown(line[2:]), STYLES["Bodyx"], bulletText="•"))
+            story.append(Paragraph(inline_markdown(line[2:]), STYLES["Bodyx"], bulletText="-"))
         elif re.match(r"^\d+\. ", line):
             flush_paragraph()
             number, value = line.split(". ", 1)
@@ -161,7 +161,7 @@ def main() -> None:
         rightMargin=1.5 * cm,
         topMargin=1.4 * cm,
         bottomMargin=1.4 * cm,
-        title="Dossier candidat corrigé Bloc 2 RNCP39583 — Alcide",
+        title="Dossier candidat Bloc 2 RNCP39583 - Alcide",
         author="Kevin",
     )
     document.build(parse_markdown(SOURCE.read_text(encoding="utf-8")), onFirstPage=page_footer, onLaterPages=page_footer)
