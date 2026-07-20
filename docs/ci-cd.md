@@ -5,11 +5,11 @@
 
 ## Cibles
 
-| Composant | Plateforme | URL canonique |
-|---|---|---|
-| Web Next.js | Vercel | `https://ai-sport-web.vercel.app` |
-| API Hono | Vercel | `https://ai-sport-api.vercel.app` |
-| PostgreSQL | Neon | secret `DATABASE_URL` |
+| Composant   | Plateforme | URL canonique                     |
+| ----------- | ---------- | --------------------------------- |
+| Web Next.js | Vercel     | `https://ai-sport-web.vercel.app` |
+| API Hono    | Vercel     | `https://ai-sport-api.vercel.app` |
+| PostgreSQL  | Neon       | secret `DATABASE_URL`             |
 
 ## Séquence CI
 
@@ -26,7 +26,8 @@ vers `main` et lancement manuel de contrôle. Ses gates sont :
 8. build de production shared/API/Web ;
 9. Playwright public et axe ;
 10. build des images Docker ;
-11. `pnpm audit --audit-level=high`, désormais bloquant.
+11. `pnpm audit --audit-level=low`, désormais bloquant ;
+12. test unitaire de la politique d'ignorance Vercel.
 
 Les rapports API, intégration DB, Web et Playwright sont publiés comme artefacts
 distincts. Un pourcentage de couverture n'est jamais présenté sans son
@@ -53,6 +54,12 @@ joint au dossier. Seul le rapport Playwright expurgé est conservé.
 `.github/workflows/deploy-vercel.yml` n'offre plus de déclenchement manuel qui
 contourne les gates. Le déploiement se lance uniquement après un workflow
 `CI - Alcide` réussi sur `main` et lorsque `ENABLE_GHA_VERCEL_CD=true`.
+
+L'intégration Git Vercel reste connectée pour les previews. Son build automatique
+est ignoré en production par `scripts/vercel-ignore-build.mjs` lorsque
+`VERCEL_ENV=production`. Le workflow GitHub Actions définit
+`VERCEL_FORCE_BUILD=1` et reste l'unique chemin nominal de mise en production.
+Cette règle est couverte par `pnpm test:vercel-ignore`.
 
 Séquence :
 

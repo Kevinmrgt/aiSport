@@ -16,6 +16,7 @@ concurrency:
 env:
   NODE_VERSION: '24'
   VERCEL_CLI_VERSION: '54.17.2'
+  VERCEL_FORCE_BUILD: '1'
   VERCEL_TELEMETRY_DISABLED: '1'
 
 jobs:

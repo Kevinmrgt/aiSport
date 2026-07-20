@@ -1,7 +1,7 @@
 # Dossier Bloc 2 RNCP39583 — Alcide
 
 > Concevoir et développer des applications logicielles
-> Version candidate locale : `0.13.0-rc.1` — 2026-07-20
+> Version candidate locale : `0.13.0-rc.2` — 2026-07-20
 > Statut : **à figer après recette, CI, audit accessibilité et déploiement du SHA final**
 
 ## 1. Cadre officiel et règle de validation
@@ -26,17 +26,17 @@ instrumenté et sur la représentativité des tests.
 
 ## 2. Synthèse de la version candidate
 
-| Compétence | État de la version candidate | Condition de fermeture |
-|---|---|---|
-| C2.1.1 | Environnements décrits ; mesures finales à produire | rapport performance et preuves datées |
-| C2.1.2 | CI renforcée dans le code | premier run vert du SHA final |
-| C2.2.1 | Prototype existant et déployé | recette desktop/mobile après corrections |
-| C2.2.2 | Mesures locales API/Web/PostgreSQL disponibles ; shared non isolé | run CI du SHA final et rapports bruts archivés |
-| C2.2.3 | Correctifs sécurité, conformité métier et accessibilité en cours | revue OWASP + audit RGAA manuel/auto |
-| C2.2.4 | Git et production existent, mais ne ciblent pas encore ce correctif | merge, tag, déploiement et smoke du même SHA |
-| C2.3.1 | Inventaire reconstruit ; recette finale non exécutée | exécution traçable de toutes les fonctions |
-| C2.3.2 | Registre enrichi avec les défauts réellement découverts | clôture liée aux tests de non-régression |
-| C2.4.1 | Manuels présents ; procédures non validées depuis un clone vierge | test depuis un clone vierge et paquet final |
+| Compétence | État de la version candidate                                        | Condition de fermeture                         |
+| ---------- | ------------------------------------------------------------------- | ---------------------------------------------- |
+| C2.1.1     | Environnements décrits ; mesures finales à produire                 | rapport performance et preuves datées          |
+| C2.1.2     | CI renforcée dans le code                                           | premier run vert du SHA final                  |
+| C2.2.1     | Prototype existant et déployé                                       | recette desktop/mobile après corrections       |
+| C2.2.2     | Mesures locales API/Web/PostgreSQL disponibles ; shared non isolé   | run CI du SHA final et rapports bruts archivés |
+| C2.2.3     | Correctifs sécurité, conformité métier et accessibilité en cours    | revue OWASP + audit RGAA manuel/auto           |
+| C2.2.4     | Git et production existent, mais ne ciblent pas encore ce correctif | merge, tag, déploiement et smoke du même SHA   |
+| C2.3.1     | Inventaire reconstruit ; recette finale non exécutée                | exécution traçable de toutes les fonctions     |
+| C2.3.2     | Registre enrichi avec les défauts réellement découverts             | clôture liée aux tests de non-régression       |
+| C2.4.1     | Manuels présents ; procédures non validées depuis un clone vierge   | test depuis un clone vierge et paquet final    |
 
 Cette table ne préjuge pas de la décision du jury. Elle distingue volontairement
 le code écrit d'une preuve d'exécution effectivement obtenue.
@@ -45,18 +45,18 @@ le code écrit d'une preuve d'exécution effectivement obtenue.
 
 ### Environnement de développement et de test
 
-| Élément | Choix du projet | Vérification |
-|---|---|---|
-| Gestion de sources | Git et dépôt GitHub | branche, SHA, historique, PR/CI |
-| Gestion monorepo | pnpm workspace | `pnpm install --frozen-lockfile` |
-| Runtime de référence | Node.js 24 LTS en local, CI, conteneurs et Vercel | `node --version` |
-| Compilateur | TypeScript 5.7 via `tsc` | `pnpm typecheck`, `pnpm build` |
-| Serveur Web | Next.js 15 App Router | build et healthcheck Web |
-| Serveur API | Hono sur Node.js | tests routes et health/readiness API |
-| Base | PostgreSQL 16, Drizzle ORM | migrations et tests d'intégration |
-| Tests | Vitest, Testing Library, Playwright, axe | rapports API, Web et navigateur |
-| Conteneurs | Docker multi-stage et Compose | build, migration/seed, healthchecks |
-| Production | Vercel Web/API et Neon PostgreSQL | déploiement et smoke tests |
+| Élément              | Choix du projet                                   | Vérification                         |
+| -------------------- | ------------------------------------------------- | ------------------------------------ |
+| Gestion de sources   | Git et dépôt GitHub                               | branche, SHA, historique, PR/CI      |
+| Gestion monorepo     | pnpm workspace                                    | `pnpm install --frozen-lockfile`     |
+| Runtime de référence | Node.js 24 LTS en local, CI, conteneurs et Vercel | `node --version`                     |
+| Compilateur          | TypeScript 5.7 via `tsc`                          | `pnpm typecheck`, `pnpm build`       |
+| Serveur Web          | Next.js 15 App Router                             | build et healthcheck Web             |
+| Serveur API          | Hono sur Node.js                                  | tests routes et health/readiness API |
+| Base                 | PostgreSQL 16, Drizzle ORM                        | migrations et tests d'intégration    |
+| Tests                | Vitest, Testing Library, Playwright, axe          | rapports API, Web et navigateur      |
+| Conteneurs           | Docker multi-stage et Compose                     | build, migration/seed, healthchecks  |
+| Production           | Vercel Web/API et Neon PostgreSQL                 | déploiement et smoke tests           |
 
 Le candidat doit ajouter dans la version remise le nom et la version de
 l'éditeur effectivement utilisé. Le présent audit a été réalisé sous Windows,
@@ -139,18 +139,18 @@ mémoire non distribué.
 Le prototype vise un utilisateur sportif authentifié et couvre les user stories
 suivantes :
 
-| ID | Besoin attendu | Parcours |
-|---|---|---|
-| US-01 | Se connecter et protéger les données personnelles | OAuth Google, routes privées |
-| US-02 | Générer une séance adaptée | `/generate` puis détail |
-| US-03 | Générer un programme multi-semaines cohérent | `/programs/generate` puis détail |
-| US-04 | Retrouver et filtrer ses séances/programmes | listes, filtres, pagination |
-| US-05 | Exécuter une séance avec pause/reprise | Timer |
-| US-06 | Journaliser effort, feedback et douleur éventuelle | fin de séance |
-| US-07 | Suivre sa progression | dashboard |
-| US-08 | Choisir le modèle OpenAI autorisé | settings |
-| US-09 | Supprimer une ressource avec confirmation | dialogues accessibles |
-| US-10 | Utiliser les parcours au clavier et sur mobile | audit RGAA représentatif |
+| ID    | Besoin attendu                                     | Parcours                         |
+| ----- | -------------------------------------------------- | -------------------------------- |
+| US-01 | Se connecter et protéger les données personnelles  | OAuth Google, routes privées     |
+| US-02 | Générer une séance adaptée                         | `/generate` puis détail          |
+| US-03 | Générer un programme multi-semaines cohérent       | `/programs/generate` puis détail |
+| US-04 | Retrouver et filtrer ses séances/programmes        | listes, filtres, pagination      |
+| US-05 | Exécuter une séance avec pause/reprise             | Timer                            |
+| US-06 | Journaliser effort, feedback et douleur éventuelle | fin de séance                    |
+| US-07 | Suivre sa progression                              | dashboard                        |
+| US-08 | Choisir le modèle OpenAI autorisé                  | settings                         |
+| US-09 | Supprimer une ressource avec confirmation          | dialogues accessibles            |
+| US-10 | Utiliser les parcours au clavier et sur mobile     | audit RGAA représentatif         |
 
 Le prototype de référence demeure `https://ai-sport-web.vercel.app`, mais il ne
 sera une preuve de la version candidate qu'après déploiement du SHA final.
@@ -170,12 +170,12 @@ Le harnais comprend :
 Les rapports API et Web sont publiés séparément. La mesure locale du
 2026-07-20 sur la candidate `0.13.0-rc.1` donne :
 
-| Rapport | Statements | Branches | Functions | Lines | Périmètre/exclusions |
-|---|---:|---:|---:|---:|---|
-| API unitaire | 84,97 % | 80,40 % | 95,38 % | 84,97 % | `src`, hors bootstrap, DB, repositories et routes déclaratives ; repositories mesurés séparément en intégration PostgreSQL |
-| API intégration PostgreSQL | 93,69 % | 80 % | 100 % | 93,69 % | repositories et service d'ownership inclus par `vitest.integration.config.ts` ; 8 tests réels sur PostgreSQL 16.14 |
-| Web | 68,07 % | 77,45 % | 79,38 % | 68,07 % | `app`, `components`, `lib` ; les pages serveur non instanciées apparaissent bien à 0 % |
-| Shared | Non isolé | Non isolé | Non isolé | Non isolé | schémas exercés par 6 tests de contrats API, mais pas de rapport instrumenté autonome |
+| Rapport                    | Statements |  Branches | Functions |     Lines | Périmètre/exclusions                                                                                                       |
+| -------------------------- | ---------: | --------: | --------: | --------: | -------------------------------------------------------------------------------------------------------------------------- |
+| API unitaire               |    84,97 % |   80,40 % |   95,38 % |   84,97 % | `src`, hors bootstrap, DB, repositories et routes déclaratives ; repositories mesurés séparément en intégration PostgreSQL |
+| API intégration PostgreSQL |    93,69 % |      80 % |     100 % |   93,69 % | repositories et service d'ownership inclus par `vitest.integration.config.ts` ; 8 tests réels sur PostgreSQL 16.14         |
+| Web                        |    68,07 % |   77,45 % |   79,38 % |   68,07 % | `app`, `components`, `lib` ; les pages serveur non instanciées apparaissent bien à 0 %                                     |
+| Shared                     |  Non isolé | Non isolé | Non isolé | Non isolé | schémas exercés par 6 tests de contrats API, mais pas de rapport instrumenté autonome                                      |
 
 Les suites locales comptent 86 tests API et 39 tests Web réussis ; leurs sorties
 ont été observées pendant la correction mais ne sont pas encore archivées comme
@@ -291,15 +291,15 @@ réussi et preuve rattachée au SHA final.
 
 ## 12. C2.4.1 — Documentation d'exploitation
 
-| Document | Rôle |
-|---|---|
-| `docs/deployment.md` | déploiement Vercel, Neon et Docker |
-| `docs/ci-cd.md` | séquences CI/CD et rollback |
-| `docs/rncp/bloc2-manuel-utilisateur-alcide.md` | parcours et erreurs utilisateur |
-| `docs/rncp/bloc2-manuel-mise-a-jour.md` | évolution, migrations, rollback |
-| `docs/security/owasp-review.md` | revue sécurité et risques résiduels |
-| `docs/rncp/bloc2-accessibilite-rgaa.md` | référentiel et audit accessibilité |
-| `docs/rncp/MANIFESTE-DEPOT-BLOC2.md` | contenu et identité de la remise |
+| Document                                       | Rôle                                |
+| ---------------------------------------------- | ----------------------------------- |
+| `docs/deployment.md`                           | déploiement Vercel, Neon et Docker  |
+| `docs/ci-cd.md`                                | séquences CI/CD et rollback         |
+| `docs/rncp/bloc2-manuel-utilisateur-alcide.md` | parcours et erreurs utilisateur     |
+| `docs/rncp/bloc2-manuel-mise-a-jour.md`        | évolution, migrations, rollback     |
+| `docs/security/owasp-review.md`                | revue sécurité et risques résiduels |
+| `docs/rncp/bloc2-accessibilite-rgaa.md`        | référentiel et audit accessibilité  |
+| `docs/rncp/MANIFESTE-DEPOT-BLOC2.md`           | contenu et identité de la remise    |
 
 La procédure Docker utilise des services `migrate` et `seed` basés sur le stage
 builder. Elle ne demande plus d'exécuter `drizzle-kit` ou `tsx` dans l'image API
@@ -326,8 +326,8 @@ depuis un clone vierge et le job Docker du SHA final restent à produire.
 
 ## 14. Conclusion
 
-Alcide dispose d'un prototype `0.12.0` historiquement déployé et d'une candidate
-locale `0.13.0-rc.1`. La candidate traite des défauts constatés lors de l'audit
+Alcide dispose d'une candidate `0.13.0-rc.1` historiquement déployée et d'une candidate
+locale `0.13.0-rc.2`. La candidate traite des défauts constatés lors de l'audit
 du 2026-07-20 qui n'étaient pas explicités dans le dossier du 2026-07-16. Elle ne
 doit toutefois pas être annoncée comme « validable » tant
 que les champs `À RENSEIGNER`, la recette complète, l'audit RGAA, la CI/CD et le

@@ -1,5 +1,10 @@
 # Audit final de conformité RNCP39583 - Alcide / alcide
 
+> **Archive historique — ne pas utiliser comme état courant.** Cet audit décrit
+> le dépôt observé le 2026-05-07. Les alertes, versions et écarts qu'il contient
+> sont conservés pour la traçabilité et sont remplacés par les preuves datées du
+> 2026-07-20 dans le dossier et ses annexes.
+
 > Date d'audit : 2026-05-07
 > Projet : Alcide / alcide
 > Répertoire audité : `C:\Users\kevin\OneDrive\Documents\Dev\alcide`
@@ -19,56 +24,56 @@ Le risque n'est pas un manque massif de travail. Le risque est plus précis : le
 
 Ces pourcentages sont une estimation d'audit, pas une garantie de jury.
 
-| Bloc | Verdict audit | Probabilité estimée | Risque principal |
-|---|---:|---:|---|
-| Bloc 1 - Cadrage | OK avec réserves | 80-85% | Commanditaire et demande client fictifs, budget hypothétique |
-| Bloc 2 - Conception et développement | Partiel haut | 70-75% | Recettes incohérentes, E2E authentifié fragile, manuel utilisateur absent, audit sécurité high |
-| Bloc 3 - Pilotage et démonstration | Partiel proche OK | 60-65% | Pilotage reconstitué, absence de vrai outil de suivi, version live API incohérente |
-| Bloc 4 - MCO | Partiel solide | 60-70% | Supervision/alerting externe non prouvé, support client simulé, rollback DB non prouvé |
+| Bloc                                 |     Verdict audit | Probabilité estimée | Risque principal                                                                               |
+| ------------------------------------ | ----------------: | ------------------: | ---------------------------------------------------------------------------------------------- |
+| Bloc 1 - Cadrage                     |  OK avec réserves |              80-85% | Commanditaire et demande client fictifs, budget hypothétique                                   |
+| Bloc 2 - Conception et développement |      Partiel haut |              70-75% | Recettes incohérentes, E2E authentifié fragile, manuel utilisateur absent, audit sécurité high |
+| Bloc 3 - Pilotage et démonstration   | Partiel proche OK |              60-65% | Pilotage reconstitué, absence de vrai outil de suivi, version live API incohérente             |
+| Bloc 4 - MCO                         |    Partiel solide |              60-70% | Supervision/alerting externe non prouvé, support client simulé, rollback DB non prouvé         |
 
 ### Principaux risques restants
 
-| Risque | Bloc | Niveau jury | Pourquoi |
-|---|---|---:|---|
-| API production `/health` répond `version:"0.1.0"` alors que le dossier annonce `0.12.0` | B3/B4 | Élevé | Fragilise la démonstration de la dernière version et la cohérence documentaire |
-| Alerting externe non prouvé | B4 | Élevé | `C4.1.2` est éliminatoire, les healthchecks seuls ne suffisent pas à prouver un système d'alerte |
-| Outil de suivi projet reconstitué | B3 | Moyen/Élevé | `C3.2.1` est éliminatoire ; un dépôt Git ne remplace pas toujours un tableau de pilotage |
-| Planning prévisionnel initial non prouvé | B3 | Élevé | `C3.1` est éliminatoire ; le planning est surtout reconstruit a posteriori |
-| Cahier de recettes partiellement incohérent | B2 | Moyen/Élevé | `C2.3.1` est éliminatoire ; des scénarios ne collent pas au code réel |
-| Audit dépendances high | B2/B4 | Moyen/Élevé | `pnpm audit --audit-level=high` échoue, et le job CI audit est non bloquant |
+| Risque                                                                                  | Bloc  | Niveau jury | Pourquoi                                                                                         |
+| --------------------------------------------------------------------------------------- | ----- | ----------: | ------------------------------------------------------------------------------------------------ |
+| API production `/health` répond `version:"0.1.0"` alors que le dossier annonce `0.12.0` | B3/B4 |       Élevé | Fragilise la démonstration de la dernière version et la cohérence documentaire                   |
+| Alerting externe non prouvé                                                             | B4    |       Élevé | `C4.1.2` est éliminatoire, les healthchecks seuls ne suffisent pas à prouver un système d'alerte |
+| Outil de suivi projet reconstitué                                                       | B3    | Moyen/Élevé | `C3.2.1` est éliminatoire ; un dépôt Git ne remplace pas toujours un tableau de pilotage         |
+| Planning prévisionnel initial non prouvé                                                | B3    |       Élevé | `C3.1` est éliminatoire ; le planning est surtout reconstruit a posteriori                       |
+| Cahier de recettes partiellement incohérent                                             | B2    | Moyen/Élevé | `C2.3.1` est éliminatoire ; des scénarios ne collent pas au code réel                            |
+| Audit dépendances high                                                                  | B2/B4 | Moyen/Élevé | `pnpm audit --audit-level=high` échoue, et le job CI audit est non bloquant                      |
 
 ## 2. Tableau global de couverture
 
-| Bloc | Exigence officielle | Preuve projet | Livrable associé | Statut | Risque jury | Action recommandée |
-|---|---|---|---|---|---|---|
-| B1 | Cartographier parties prenantes | Cartographie + RACI, acteurs techniques et jury identifiés | `bloc1-cadrage-projet-rncp39583.md` | OK | Faible/Moyen | Assumer le contexte solo/fictif à l'oral |
-| B1 | Analyser demande initiale et besoin client | Besoin clair et problématique utilisateur | `bloc1-cadrage-projet-rncp39583.md` | Partiel | Moyen | Ne pas revendiquer d'entretien client réel ; présenter comme cas commanditaire réaliste |
-| B1 | Opportunités, menaces, risques | SWOT, registre de risques, mitigations | `bloc1-cadrage-projet-rncp39583.md` | OK | Faible | Garder les risques majeurs prêts pour les questions |
-| B1 | Faisabilité, veille, comparaison solutions | Comparatifs Next.js/Hono/PostgreSQL/Mistral/Vercel-Neon/GitHub Actions | `bloc1-cadrage-projet-rncp39583.md`, ADR | OK | Faible/Moyen | Citer les ADR et cadrer la veille tarifaire comme hypothèse |
-| B1 | Architecture, charge, coûts, argumentaire | Architecture logique, 81 JH / 567 h, budget estimé, préconisation client | `bloc1-cadrage-projet-rncp39583.md`, support oral | OK/Partiel | Moyen | Préparer justification JH/TJM/marge ; ne pas survendre l'ouverture commerciale |
-| B1 | Oral 20 min + 10 min échange | Plan minuté 12 slides, questions préparées | `bloc1-support-oral-20min.md` | OK | Faible | Préparer preuves code/ADR en appoint |
-| B2 | Environnements test/déploiement et CI | pnpm monorepo, Docker, GitHub Actions, Vercel/Neon | `dossier-professionnel-rncp39583.md`, `.github/workflows/*`, `docs/deployment.md` | OK/Partiel | Moyen | Produire capture CI verte finale et clarifier CD conditionnelle |
-| B2 | Prototype/UI | Pages Next.js, formulaires, dashboard, captures `.codex` | `dossier-professionnel-rncp39583.md`, `apps/web` | Partiel | Moyen | Ajouter captures/storyboard ou prototype annoté |
-| B2 | Développement sécurisé et accessible | Hono, Auth.js, `SERVICE_SECRET`, Zod, headers, tests axe | Code API/Web, `owasp-review.md`, tests Playwright | Partiel | Moyen/Élevé | Corriger ou justifier vulnérabilités high ; limiter promesse sécurité |
-| B2 | Tests unitaires | `pnpm test` OK : API 69 tests, Web 1 test | `apps/api/tests`, `apps/web/components/Timer.test.ts` | OK | Faible | Joindre sortie finale ou capture CI |
-| B2 | Couverture | `pnpm test:coverage` OK côté orchestrateur : 81.57% API | `apps/api/coverage` | Partiel | Moyen | Préciser que la couverture est API uniquement, pas Web/DB |
-| B2 | Tests E2E/accessibilité | 56 tests listés Playwright, smoke documenté | `apps/web/tests/e2e`, `playwright.config.ts` | Partiel | Moyen | Relancer E2E complets ou distinguer clairement smoke passé vs suite complète listée |
-| B2 | Cahier de recettes | 33 scénarios documentés | `docs/bloc2/cahier-recettes.md` | Partiel | Moyen/Élevé | Corriger CR-013, CR-040, CR-044 pour coller au code réel |
-| B2 | Plan de correction bugs | BUG-001/BUG-002 réels, changelog | `docs/bloc4/bugs/*`, `CHANGELOG.md` | Partiel | Moyen | Ajouter un plan global Bloc 2 reliant anomalie, priorité, correction, non-régression |
-| B2 | Documentation technique/utilisateur/MAJ | Déploiement et runbook présents | `docs/deployment.md`, `bloc4-runbook-maintenance.md` | Partiel | Moyen | Ajouter manuel utilisateur autonome ou section finale complète |
-| B3 | Planning | Planning détaillé, jalons, vue Mermaid | `bloc3-pilotage-projet-rncp39583.md` | Partiel | Élevé | Ajouter preuve prévisionnelle ou assumer reconstruction avec justification |
-| B3 | Outil de suivi et pilotage | Sprints, changelog, ADR, bugs, CI, tableau consolidé | `bloc3-pilotage-projet-rncp39583.md`, `docs/sprints` | Partiel | Moyen/Élevé | Ajouter capture/export GitHub Projects/Kanban ou tableau de suivi signé |
-| B3 | Ressources, missions, management | Ressources, RACI, projet individuel expliqué | `bloc3-pilotage-projet-rncp39583.md` | Partiel | Moyen | Cadrer comme mise en situation solo, pas management réel |
-| B3 | Arbitrages et communication | ADR, comptes rendus reconstitués, indicateurs | `bloc3-pilotage-projet-rncp39583.md` | Partiel | Moyen | Identifier un arbitrage lié à dérive/écart avec outil d'aide à décision |
-| B3 | Validation, satisfaction | Grille de validation et satisfaction | `bloc3-pilotage-projet-rncp39583.md` | Partiel | Moyen | Préparer grille signable ou retour commanditaire pilote |
-| B3 | Oral 30 min + démo + 15 min échange | Support 30 min, script démo complet, plans B | `bloc3-support-oral-30min.md`, `bloc3-script-demo-logiciel.md` | OK/Partiel | Élevé | Redéployer API ou éviter d'exposer la version live incohérente |
-| B4 | Mises à jour dépendances | Dependabot + procédure MCO | `.github/dependabot.yml`, `bloc4-mco-rncp39583.md` | Partiel | Moyen | Montrer une PR Dependabot traitée ou simuler proprement le cycle |
-| B4 | Supervision et healthchecks | API `/health`, Web `/api/health`, runbook | `bloc4-mco-rncp39583.md`, routes health | Partiel | Élevé | Ajouter monitoring externe + capture d'alerte ; rendre health Web non cacheable |
-| B4 | Alerting | Alertes CI indirectes ; alerting externe recommandé | `bloc4-mco-rncp39583.md` | Manquant/Partiel | Élevé | Mettre en place UptimeRobot/Better Stack/Vercel Monitoring ou preuve équivalente |
-| B4 | Consignation anomalies | Processus incidents + modèle fiche anomalie | `bloc4-processus-incidents.md`, `bloc4-fiche-anomalie-modele.md` | OK | Faible | Conserver tickets et captures |
-| B4 | Correctifs et journal versions | BUG-001/BUG-002, changelog `0.1.0` à `0.12.0` | `CHANGELOG.md`, `docs/bloc4/bugs/*` | OK | Faible/Moyen | Lier chaque bug à tests de non-régression |
-| B4 | Rollback | Rollback Vercel documenté, DB recommandé | `bloc4-runbook-maintenance.md`, `bloc4-mco-rncp39583.md` | Partiel | Moyen | Produire preuve rollback Vercel et stratégie backup Neon |
-| B4 | Support client | Cas support explicitement simulé | `bloc4-mco-rncp39583.md`, `bloc4-processus-incidents.md` | Partiel | Moyen | Produire un ticket support pilote daté ou garder la mention simulation |
+| Bloc | Exigence officielle                        | Preuve projet                                                            | Livrable associé                                                                  | Statut           | Risque jury  | Action recommandée                                                                      |
+| ---- | ------------------------------------------ | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------- | ---------------- | ------------ | --------------------------------------------------------------------------------------- |
+| B1   | Cartographier parties prenantes            | Cartographie + RACI, acteurs techniques et jury identifiés               | `bloc1-cadrage-projet-rncp39583.md`                                               | OK               | Faible/Moyen | Assumer le contexte solo/fictif à l'oral                                                |
+| B1   | Analyser demande initiale et besoin client | Besoin clair et problématique utilisateur                                | `bloc1-cadrage-projet-rncp39583.md`                                               | Partiel          | Moyen        | Ne pas revendiquer d'entretien client réel ; présenter comme cas commanditaire réaliste |
+| B1   | Opportunités, menaces, risques             | SWOT, registre de risques, mitigations                                   | `bloc1-cadrage-projet-rncp39583.md`                                               | OK               | Faible       | Garder les risques majeurs prêts pour les questions                                     |
+| B1   | Faisabilité, veille, comparaison solutions | Comparatifs Next.js/Hono/PostgreSQL/Mistral/Vercel-Neon/GitHub Actions   | `bloc1-cadrage-projet-rncp39583.md`, ADR                                          | OK               | Faible/Moyen | Citer les ADR et cadrer la veille tarifaire comme hypothèse                             |
+| B1   | Architecture, charge, coûts, argumentaire  | Architecture logique, 81 JH / 567 h, budget estimé, préconisation client | `bloc1-cadrage-projet-rncp39583.md`, support oral                                 | OK/Partiel       | Moyen        | Préparer justification JH/TJM/marge ; ne pas survendre l'ouverture commerciale          |
+| B1   | Oral 20 min + 10 min échange               | Plan minuté 12 slides, questions préparées                               | `bloc1-support-oral-20min.md`                                                     | OK               | Faible       | Préparer preuves code/ADR en appoint                                                    |
+| B2   | Environnements test/déploiement et CI      | pnpm monorepo, Docker, GitHub Actions, Vercel/Neon                       | `dossier-professionnel-rncp39583.md`, `.github/workflows/*`, `docs/deployment.md` | OK/Partiel       | Moyen        | Produire capture CI verte finale et clarifier CD conditionnelle                         |
+| B2   | Prototype/UI                               | Pages Next.js, formulaires, dashboard, captures `.codex`                 | `dossier-professionnel-rncp39583.md`, `apps/web`                                  | Partiel          | Moyen        | Ajouter captures/storyboard ou prototype annoté                                         |
+| B2   | Développement sécurisé et accessible       | Hono, Auth.js, `SERVICE_SECRET`, Zod, headers, tests axe                 | Code API/Web, `owasp-review.md`, tests Playwright                                 | Partiel          | Moyen/Élevé  | Corriger ou justifier vulnérabilités high ; limiter promesse sécurité                   |
+| B2   | Tests unitaires                            | `pnpm test` OK : API 69 tests, Web 1 test                                | `apps/api/tests`, `apps/web/components/Timer.test.ts`                             | OK               | Faible       | Joindre sortie finale ou capture CI                                                     |
+| B2   | Couverture                                 | `pnpm test:coverage` OK côté orchestrateur : 81.57% API                  | `apps/api/coverage`                                                               | Partiel          | Moyen        | Préciser que la couverture est API uniquement, pas Web/DB                               |
+| B2   | Tests E2E/accessibilité                    | 56 tests listés Playwright, smoke documenté                              | `apps/web/tests/e2e`, `playwright.config.ts`                                      | Partiel          | Moyen        | Relancer E2E complets ou distinguer clairement smoke passé vs suite complète listée     |
+| B2   | Cahier de recettes                         | 33 scénarios documentés                                                  | `docs/bloc2/cahier-recettes.md`                                                   | Partiel          | Moyen/Élevé  | Corriger CR-013, CR-040, CR-044 pour coller au code réel                                |
+| B2   | Plan de correction bugs                    | BUG-001/BUG-002 réels, changelog                                         | `docs/bloc4/bugs/*`, `CHANGELOG.md`                                               | Partiel          | Moyen        | Ajouter un plan global Bloc 2 reliant anomalie, priorité, correction, non-régression    |
+| B2   | Documentation technique/utilisateur/MAJ    | Déploiement et runbook présents                                          | `docs/deployment.md`, `bloc4-runbook-maintenance.md`                              | Partiel          | Moyen        | Ajouter manuel utilisateur autonome ou section finale complète                          |
+| B3   | Planning                                   | Planning détaillé, jalons, vue Mermaid                                   | `bloc3-pilotage-projet-rncp39583.md`                                              | Partiel          | Élevé        | Ajouter preuve prévisionnelle ou assumer reconstruction avec justification              |
+| B3   | Outil de suivi et pilotage                 | Sprints, changelog, ADR, bugs, CI, tableau consolidé                     | `bloc3-pilotage-projet-rncp39583.md`, `docs/sprints`                              | Partiel          | Moyen/Élevé  | Ajouter capture/export GitHub Projects/Kanban ou tableau de suivi signé                 |
+| B3   | Ressources, missions, management           | Ressources, RACI, projet individuel expliqué                             | `bloc3-pilotage-projet-rncp39583.md`                                              | Partiel          | Moyen        | Cadrer comme mise en situation solo, pas management réel                                |
+| B3   | Arbitrages et communication                | ADR, comptes rendus reconstitués, indicateurs                            | `bloc3-pilotage-projet-rncp39583.md`                                              | Partiel          | Moyen        | Identifier un arbitrage lié à dérive/écart avec outil d'aide à décision                 |
+| B3   | Validation, satisfaction                   | Grille de validation et satisfaction                                     | `bloc3-pilotage-projet-rncp39583.md`                                              | Partiel          | Moyen        | Préparer grille signable ou retour commanditaire pilote                                 |
+| B3   | Oral 30 min + démo + 15 min échange        | Support 30 min, script démo complet, plans B                             | `bloc3-support-oral-30min.md`, `bloc3-script-demo-logiciel.md`                    | OK/Partiel       | Élevé        | Redéployer API ou éviter d'exposer la version live incohérente                          |
+| B4   | Mises à jour dépendances                   | Dependabot + procédure MCO                                               | `.github/dependabot.yml`, `bloc4-mco-rncp39583.md`                                | Partiel          | Moyen        | Montrer une PR Dependabot traitée ou simuler proprement le cycle                        |
+| B4   | Supervision et healthchecks                | API `/health`, Web `/api/health`, runbook                                | `bloc4-mco-rncp39583.md`, routes health                                           | Partiel          | Élevé        | Ajouter monitoring externe + capture d'alerte ; rendre health Web non cacheable         |
+| B4   | Alerting                                   | Alertes CI indirectes ; alerting externe recommandé                      | `bloc4-mco-rncp39583.md`                                                          | Manquant/Partiel | Élevé        | Mettre en place UptimeRobot/Better Stack/Vercel Monitoring ou preuve équivalente        |
+| B4   | Consignation anomalies                     | Processus incidents + modèle fiche anomalie                              | `bloc4-processus-incidents.md`, `bloc4-fiche-anomalie-modele.md`                  | OK               | Faible       | Conserver tickets et captures                                                           |
+| B4   | Correctifs et journal versions             | BUG-001/BUG-002, changelog `0.1.0` à `0.12.0`                            | `CHANGELOG.md`, `docs/bloc4/bugs/*`                                               | OK               | Faible/Moyen | Lier chaque bug à tests de non-régression                                               |
+| B4   | Rollback                                   | Rollback Vercel documenté, DB recommandé                                 | `bloc4-runbook-maintenance.md`, `bloc4-mco-rncp39583.md`                          | Partiel          | Moyen        | Produire preuve rollback Vercel et stratégie backup Neon                                |
+| B4   | Support client                             | Cas support explicitement simulé                                         | `bloc4-mco-rncp39583.md`, `bloc4-processus-incidents.md`                          | Partiel          | Moyen        | Produire un ticket support pilote daté ou garder la mention simulation                  |
 
 ## 3. Résultat par agent
 
@@ -249,17 +254,17 @@ Action avant dépôt : ajouter une preuve d'alerte externe, rendre le healthchec
 
 ## 5. Analyse administrative
 
-| Élément | Exigence officielle consolidée | Statut projet | Risque |
-|---|---|---|---|
-| Dépôt | Livrables et supports à déposer sur DigiformaCertif avant échéance | Non vérifié localement | Élevé si oubli/retard |
-| Retard | Tout retard rend le livrable non recevable | À gérer hors dépôt local | Élevé |
-| Fraude/plagiat | Dossier écrit soumis anti-plagiat ; seuil cité : 10% | Aucun contrôle anti-plagiat local fourni | Moyen |
-| Bloc 1 | Oral 30 min : 20 min présentation + 10 min échange | Support oral présent | Faible |
-| Bloc 2 | Dossier écrit individuel + code source, max 30 pages | Dossier RNCP présent, page count non vérifié en PDF | Moyen |
-| Bloc 3 | Oral 45 min : 30 min présentation + 15 min échange, avec démo | Support + script présents | Moyen |
-| Bloc 4 | Dossier écrit individuel, max 20 pages | Dossier MCO présent, page count non vérifié en PDF | Moyen |
-| Rattrapage | Règles croisées ambiguës entre supports ; ne pas compter dessus | Non applicable avant jury | Moyen |
-| Absence | Justificatif sous 48 h | Hors périmètre code | Faible |
+| Élément        | Exigence officielle consolidée                                     | Statut projet                                       | Risque                |
+| -------------- | ------------------------------------------------------------------ | --------------------------------------------------- | --------------------- |
+| Dépôt          | Livrables et supports à déposer sur DigiformaCertif avant échéance | Non vérifié localement                              | Élevé si oubli/retard |
+| Retard         | Tout retard rend le livrable non recevable                         | À gérer hors dépôt local                            | Élevé                 |
+| Fraude/plagiat | Dossier écrit soumis anti-plagiat ; seuil cité : 10%               | Aucun contrôle anti-plagiat local fourni            | Moyen                 |
+| Bloc 1         | Oral 30 min : 20 min présentation + 10 min échange                 | Support oral présent                                | Faible                |
+| Bloc 2         | Dossier écrit individuel + code source, max 30 pages               | Dossier RNCP présent, page count non vérifié en PDF | Moyen                 |
+| Bloc 3         | Oral 45 min : 30 min présentation + 15 min échange, avec démo      | Support + script présents                           | Moyen                 |
+| Bloc 4         | Dossier écrit individuel, max 20 pages                             | Dossier MCO présent, page count non vérifié en PDF  | Moyen                 |
+| Rattrapage     | Règles croisées ambiguës entre supports ; ne pas compter dessus    | Non applicable avant jury                           | Moyen                 |
+| Absence        | Justificatif sous 48 h                                             | Hors périmètre code                                 | Faible                |
 
 Action administrative recommandée : générer les PDF finaux des dossiers écrits et vérifier le nombre de pages avant dépôt.
 
@@ -267,21 +272,21 @@ Action administrative recommandée : générer les PDF finaux des dossiers écri
 
 ### Commandes lancées par l'orchestrateur
 
-| Commande | Résultat | Détails utiles | Impact RNCP |
-|---|---|---|---|
-| `pnpm test` | Succès, exit 0, environ 16 s | API : 11 fichiers, 69 tests passés ; Web : 1 fichier, 1 test passé ; total 70 tests | Preuve forte tests unitaires |
-| `pnpm test:coverage` | Succès, exit 0, environ 10 s | API : 69 tests ; coverage globale 81.57% statements/lines, 78.6% branches, 89.23% functions | Preuve coverage API, partielle car pas Web/DB |
-| `pnpm lint` | Succès, exit 0, environ 15 s | Web : aucune erreur/warning ESLint ; API : OK | Preuve qualité statique |
-| `pnpm typecheck` | Succès, exit 0, environ 15 s | `shared`, `api`, `web` : `tsc --noEmit` OK | Preuve TypeScript |
-| `pnpm --filter web exec playwright test --list` | Succès, exit 0 | 56 tests listés dans 5 fichiers, projets Chromium + Firefox | Preuve d'existence E2E, pas d'exécution |
-| `pnpm audit --audit-level=high` | Échec, exit 1 | 12 vulnérabilités : 9 moderate, 3 high (`glob`, deux advisories Next.js/RSC) | Risque sécurité B2/B4 |
+| Commande                                        | Résultat                     | Détails utiles                                                                              | Impact RNCP                                   |
+| ----------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `pnpm test`                                     | Succès, exit 0, environ 16 s | API : 11 fichiers, 69 tests passés ; Web : 1 fichier, 1 test passé ; total 70 tests         | Preuve forte tests unitaires                  |
+| `pnpm test:coverage`                            | Succès, exit 0, environ 10 s | API : 69 tests ; coverage globale 81.57% statements/lines, 78.6% branches, 89.23% functions | Preuve coverage API, partielle car pas Web/DB |
+| `pnpm lint`                                     | Succès, exit 0, environ 15 s | Web : aucune erreur/warning ESLint ; API : OK                                               | Preuve qualité statique                       |
+| `pnpm typecheck`                                | Succès, exit 0, environ 15 s | `shared`, `api`, `web` : `tsc --noEmit` OK                                                  | Preuve TypeScript                             |
+| `pnpm --filter web exec playwright test --list` | Succès, exit 0               | 56 tests listés dans 5 fichiers, projets Chromium + Firefox                                 | Preuve d'existence E2E, pas d'exécution       |
+| `pnpm audit --audit-level=high`                 | Échec, exit 1                | 12 vulnérabilités : 9 moderate, 3 high (`glob`, deux advisories Next.js/RSC)                | Risque sécurité B2/B4                         |
 
 ### Vérifications production effectuées
 
-| URL | Résultat au 2026-05-07 | Impact |
-|---|---|---|
-| `https://alcide-api.vercel.app/health` | HTTP 200, `{"status":"ok","timestamp":"2026-05-07T09:55:37.519Z","version":"0.1.0"}` | Contradiction forte avec version locale `0.12.0` |
-| `https://alcide-web.vercel.app/api/health` | HTTP 200, `X-Vercel-Cache: HIT`, timestamp `2026-05-04T14:12:15.247Z` | Healthcheck Web peu probant comme liveness runtime |
+| URL                                        | Résultat au 2026-05-07                                                               | Impact                                             |
+| ------------------------------------------ | ------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| `https://alcide-api.vercel.app/health`     | HTTP 200, `{"status":"ok","timestamp":"2026-05-07T09:55:37.519Z","version":"0.1.0"}` | Contradiction forte avec version locale `0.12.0`   |
+| `https://alcide-web.vercel.app/api/health` | HTTP 200, `X-Vercel-Cache: HIT`, timestamp `2026-05-04T14:12:15.247Z`                | Healthcheck Web peu probant comme liveness runtime |
 
 ### Nuance Agent 7
 
@@ -291,29 +296,29 @@ L'agent technique indépendant n'a pas lancé `pnpm test:coverage` pour éviter 
 
 Uniquement les éléments pouvant faire échouer un bloc ou une compétence éliminatoire :
 
-| Point bloquant potentiel | Bloc | Compétence concernée | Pourquoi c'est bloquant | Correction minimale |
-|---|---|---|---|---|
-| API live expose `version:"0.1.0"` | B3/B4 | `C3.4.2`, cohérence MCO | La démo peut ne pas apparaître comme dernière version | Redéployer API ou neutraliser/justifier le champ version |
-| Absence de preuve d'alerting externe | B4 | `C4.1.2` éliminatoire | Healthcheck sans alerte ne prouve pas supervision opérationnelle | Créer monitoring externe + capture alerte/notification |
-| Planning prévisionnel initial absent | B3 | `C3.1` éliminatoire | Le pilotage peut être jugé reconstruit après coup | Ajouter preuve datée ou expliquer formellement la reconstruction |
-| Outil de suivi projet non matérialisé | B3 | `C3.2.1` éliminatoire | Le jury peut refuser un simple suivi par dépôt Git | Ajouter board/export backlog/Kanban ou tableau de pilotage daté |
-| Cahier de recettes incohérent | B2 | `C2.3.1` éliminatoire | Des recettes erronées fragilisent la validation logicielle | Corriger CR-013, CR-040, CR-044 |
-| Audit sécurité high non traité | B2/B4 | Sécurité/MCO | Le dossier ne doit pas annoncer une sécurité pleinement maîtrisée | Corriger Next/glob si possible ou documenter risque/mitigation |
+| Point bloquant potentiel              | Bloc  | Compétence concernée    | Pourquoi c'est bloquant                                           | Correction minimale                                              |
+| ------------------------------------- | ----- | ----------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------- |
+| API live expose `version:"0.1.0"`     | B3/B4 | `C3.4.2`, cohérence MCO | La démo peut ne pas apparaître comme dernière version             | Redéployer API ou neutraliser/justifier le champ version         |
+| Absence de preuve d'alerting externe  | B4    | `C4.1.2` éliminatoire   | Healthcheck sans alerte ne prouve pas supervision opérationnelle  | Créer monitoring externe + capture alerte/notification           |
+| Planning prévisionnel initial absent  | B3    | `C3.1` éliminatoire     | Le pilotage peut être jugé reconstruit après coup                 | Ajouter preuve datée ou expliquer formellement la reconstruction |
+| Outil de suivi projet non matérialisé | B3    | `C3.2.1` éliminatoire   | Le jury peut refuser un simple suivi par dépôt Git                | Ajouter board/export backlog/Kanban ou tableau de pilotage daté  |
+| Cahier de recettes incohérent         | B2    | `C2.3.1` éliminatoire   | Des recettes erronées fragilisent la validation logicielle        | Corriger CR-013, CR-040, CR-044                                  |
+| Audit sécurité high non traité        | B2/B4 | Sécurité/MCO            | Le dossier ne doit pas annoncer une sécurité pleinement maîtrisée | Corriger Next/glob si possible ou documenter risque/mitigation   |
 
 ## 8. Liste finale des améliorations non bloquantes
 
-| Amélioration | Bénéfice |
-|---|---|
-| Ajouter un manuel utilisateur autonome | Renforce `C2.4.1` |
-| Ajouter un ticket support pilote | Renforce `C4.3.3` |
-| Ajouter capture CI verte finale | Renforce B2/B4 |
-| Relancer E2E complets Chromium + Firefox | Renforce accessibilité et recettes |
-| Harmoniser `Railway` vers `Neon` dans la veille citée | Réduit les contradictions |
-| Corriger références `vercel.json` racine | Évite liens cassés |
-| Corriger ligne `0.12.0` / `0.13.0` dans support Bloc 3 | Évite question inutile |
-| Ajouter preuve de rollback Vercel et stratégie backup Neon | Renforce MCO |
-| Ajouter mesure coût IA réelle ou estimation à partir de logs | Renforce Bloc 1 |
-| Préparer une grille de validation commanditaire signable | Renforce Bloc 3 |
+| Amélioration                                                 | Bénéfice                           |
+| ------------------------------------------------------------ | ---------------------------------- |
+| Ajouter un manuel utilisateur autonome                       | Renforce `C2.4.1`                  |
+| Ajouter un ticket support pilote                             | Renforce `C4.3.3`                  |
+| Ajouter capture CI verte finale                              | Renforce B2/B4                     |
+| Relancer E2E complets Chromium + Firefox                     | Renforce accessibilité et recettes |
+| Harmoniser `Railway` vers `Neon` dans la veille citée        | Réduit les contradictions          |
+| Corriger références `vercel.json` racine                     | Évite liens cassés                 |
+| Corriger ligne `0.12.0` / `0.13.0` dans support Bloc 3       | Évite question inutile             |
+| Ajouter preuve de rollback Vercel et stratégie backup Neon   | Renforce MCO                       |
+| Ajouter mesure coût IA réelle ou estimation à partir de logs | Renforce Bloc 1                    |
+| Préparer une grille de validation commanditaire signable     | Renforce Bloc 3                    |
 
 ## 9. Verdict final
 
