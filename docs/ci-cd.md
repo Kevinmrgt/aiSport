@@ -78,8 +78,8 @@ migration échouée arrête donc le déploiement. Le workflow manuel
 une reprise. Au relevé du 2026-07-20, l'environnement GitHub `production`
 n'avait ni règle de protection ni approbateur : il ne faut pas présenter ce
 rattachement comme une validation humaine bloquante. L'enchaînement est prouvé
-sur le SHA `4151b80cc6d164c38549e753f7b960ec4914f519` par la CI `29740673466`
-puis la CD `29740979781`. Les tentatives Git de production ont été annulées et
+sur le SHA `3a21e3b2b547e99410388d5b83b62df79a436ea8` par la CI `29747228594`
+puis la CD `29747592571`. Les tentatives Git de production ont été annulées et
 une seule production GitHub Actions est arrivée à l'état `READY` pour l'API et
 le Web.
 
@@ -123,4 +123,4 @@ Après rollback, rejouer liveness, readiness et le parcours métier concerné.
 
 Le run CI `29489995458` et le run CD en échec `29490217892` décrivent l'état du
 2026-07-16 et restent historiques. Les preuves courantes sont la CI
-`29740673466` et la CD `29740979781`, toutes deux réussies le 2026-07-20.
+`29747228594` et la CD `29747592571`, toutes deux réussies le 2026-07-20.
