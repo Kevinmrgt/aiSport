@@ -50,10 +50,10 @@ export function MetricPill({ icon, label, value, tone = 'neutral' }: MetricPillP
       <div className="flex items-center gap-2">
         {icon && <Icon name={icon} className="h-4 w-4 shrink-0" />}
         <div className="min-w-0">
-          <p className="truncate text-[0.65rem] font-bold uppercase tracking-[0.14em] text-zinc-400">
+          <p className="break-words text-[0.65rem] font-bold uppercase leading-tight tracking-[0.14em] text-zinc-400">
             {label}
           </p>
-          <p className="truncate text-sm font-black text-white">{value}</p>
+          <p className="break-words text-sm font-black leading-tight text-white">{value}</p>
         </div>
       </div>
     </div>

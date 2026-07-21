@@ -39,7 +39,7 @@ export function ProgramCard({ program, onDelete }: ProgramCardProps) {
               </span>
               <span className="premium-chip capitalize">{program.sport}</span>
             </div>
-            <h2 className="truncate text-xl font-black text-white transition-colors group-hover:text-primary-200">
+            <h2 className="break-words text-xl font-black leading-snug text-white transition-colors group-hover:text-primary-200">
               {program.title}
             </h2>
           </div>

@@ -42,6 +42,7 @@ SELECTED = [
     "B2-A34-recettes-metier-finales-2026-07-21.md",
     "B2-A35-recettes-securite-finales-2026-07-21.md",
     "B2-A36-audit-accessibilite-final-2026-07-21.md",
+    "B2-A37-controles-accessibilite-humains-2026-07-21.md",
 ]
 
 
@@ -70,6 +71,7 @@ def annex_cover_story():
         "B2-A34": "Recettes métier finales et parcours journalisé",
         "B2-A35": "Recettes sécurité finales OWASP et navigateur",
         "B2-A36": "Audit accessibilité final public et privé",
+        "B2-A37": "Zoom natif, contrastes et contre-recette",
     }
     for filename in SELECTED:
         identifier = filename.split("-")[0] + "-" + filename.split("-")[1]

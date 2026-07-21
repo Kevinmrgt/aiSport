@@ -56,6 +56,8 @@ describe('composants de presentation', () => {
     expect(screen.getByRole('img', { name: 'depart: 0%' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Creer' }).getAttribute('href')).toBe('/generate');
     expect(screen.getByRole('img', { name: 'Athlete' })).toBeTruthy();
+    expect(screen.getByText('Charge').classList.contains('break-words')).toBe(true);
+    expect(screen.getByText('Charge').classList.contains('truncate')).toBe(false);
   });
 
   it('rend les variantes de squelettes avec leurs quantites', () => {
@@ -110,6 +112,11 @@ describe('composants de presentation', () => {
     expect(screen.getByRole('link', { name: /voir le programme/i }).getAttribute('href')).toBe(
       '/programs/program-1',
     );
+    for (const title of ['Fractionne', 'Cycle endurance']) {
+      const heading = screen.getByRole('heading', { name: title });
+      expect(heading.classList.contains('break-words')).toBe(true);
+      expect(heading.classList.contains('truncate')).toBe(false);
+    }
   });
 
   it('navigue entre les semaines avec les fleches, Home et End', () => {
