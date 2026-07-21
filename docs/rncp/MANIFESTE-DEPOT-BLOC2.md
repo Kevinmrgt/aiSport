@@ -13,9 +13,10 @@
 | Baseline applicative déployée      | `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`     |
 | Pull request fermeture finale      | `https://github.com/Kevinmrgt/aiSport/pull/43` |
 | Pull request gel probatoire final  | `https://github.com/Kevinmrgt/aiSport/pull/44` |
+| Pull request validation du paquet  | `https://github.com/Kevinmrgt/aiSport/pull/45` |
 | Correction documentaire antérieure | `https://github.com/Kevinmrgt/aiSport/pull/40` |
 | Version applicative                | `0.13.0-rc.3`                                  |
-| Tag du gel final                   | `rncp-bloc2-2026-07-21-v3`                     |
+| Tag du gel final                   | `rncp-bloc2-2026-07-21-v4`                     |
 | CI baseline `main`                 | run `29832575391` — succès                     |
 | CD baseline `main`                 | run `29832944876` — succès                     |
 | E2E authentifié baseline           | run `29833210488` — 6/6, succès                |
@@ -23,10 +24,10 @@
 | API liveness                       | `https://ai-sport-api.vercel.app/health`       |
 | API readiness                      | `https://ai-sport-api.vercel.app/health/ready` |
 
-Le tag `rncp-bloc2-2026-07-21-v3` identifie le gel final après la fermeture des
-risques C2.3.1 et C2.2.3 par la PR 43 et le gel probatoire associé. Il ne déplace
-ni le tag applicatif `v0.13.0-rc.3`, ni les gels documentaires antérieurs,
-conservés comme historiques.
+Le tag `rncp-bloc2-2026-07-21-v4` identifie le gel final après la fermeture des
+risques C2.3.1 et C2.2.3 par la PR 43, le gel probatoire par la PR 44 et la
+validation du paquet. Il ne déplace ni le tag applicatif `v0.13.0-rc.3`, ni les
+gels documentaires antérieurs, conservés comme historiques.
 
 ## 2. Pièces finales à déposer
 
@@ -39,7 +40,7 @@ conservés comme historiques.
 
 Empreintes des PDF après gel du rendu :
 
-- dossier principal : `F47EA28C5E7270A09E3843A8CE9D6467F600DED3635185E1F3172AE7FEEC7E5A` ;
+- dossier principal : `B3D244F4585FBB1F7A672D945648361CE3ACEC4733079CA2A53E8166A0DD9A3F` ;
 - annexes : `6A0C04581645D075A31127C36C1F1D84DB5658DB1EAD499CB9CFB82A6DA7F4AC`.
 
 Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
