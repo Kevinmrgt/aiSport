@@ -3,10 +3,10 @@
 > Date d'execution : 2026-07-21
 > Application observee : `https://ai-sport-web.vercel.app`
 > Source locale au debut du controle : `bac3b916770cabbbc92e3cda0d58ac3ed7e5e119`
-> Contre-recette après déploiement final : 33/33 sur
-> `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`, après CI `29832575391` et CD
-> `29832944876`.
-> Repère documentaire : tag `rncp-bloc2-2026-07-21-v4`.
+> Contre-recette après déploiement du correctif de reflow : 33/33 et zoom natif
+> 16/16 sur `b002adb0e0e7d8d85ee493d54879e190d77d2078`, après CI `29845956008`
+> et CD `29846343559`.
+> Repère documentaire : tag `rncp-bloc2-2026-07-21-v5`.
 > Le SHA effectivement archivé est porté par le manifeste du paquet de remise.
 > Referentiel de travail : RGAA 4.1.2 et WCAG 2.1 A/AA
 > Statut : preuves renforcees, conformite RGAA exhaustive non revendiquee
@@ -80,7 +80,7 @@ pas un test avec un lecteur d'ecran.
 
 ## Resultats Playwright
 
-Resultat final : **33 tests reussis sur 33**, en 1 minute 6 secondes environ.
+Résultat post-déploiement : **33 tests réussis sur 33**, en 58,7 secondes.
 
 | Controle                               | Pages                   | Resultat                                                      |
 | -------------------------------------- | ----------------------- | ------------------------------------------------------------- |
@@ -141,7 +141,7 @@ internes restent de niveau 2 et continuent de nommer leur formulaire. Resultat :
 | B2-A36-01   | Deux `h1` sur chacune des pages de generation                              | Titres internes passes en `h2` et test de non-regression ajoute                             | Corrige et contre-recette en production 33/33   |
 | B2-A36-02   | Axe ne peut pas calculer les contrastes composites                         | Audit détaillé : 0 violation, 416 nœuds incomplets liés surtout aux gradients/pseudo-éléments ; revue humaine requise | Partiellement couvert, voir B2-A37 |
 | B2-A36-03   | Aucun lecteur d'ecran reel utilise pendant cette campagne                  | Prevoir NVDA ou Narrator avec restitution documentee                                        | Ouvert                                          |
-| B2-A36-04   | Le reflow était simulé par viewport CSS, sans zoom navigateur natif         | Audit natif à 200/400 %, détection puis correction des troncatures de métriques et cartes   | Corrigé localement ; déploiement et contre-recette ouverts, voir B2-A37 |
+| B2-A36-04   | Le reflow était simulé par viewport CSS, sans zoom navigateur natif         | Audit natif à 200/400 %, détection puis correction des troncatures de métriques et cartes   | Clos : correctif `b002adb` déployé, zoom natif production 16/16, voir B2-A37 |
 
 ## Conclusion et limites
 
@@ -153,8 +153,6 @@ remontee.
 Le scénario d'accessibilité ne doit cependant pas être marqué entièrement clos
 tant que les points suivants ne sont pas réalisés et consignés :
 
-- déploiement du correctif de troncature puis contre-recette du zoom navigateur
-  natif à 200 % et 400 % sur la production corrigée ;
 - vérification manuelle des contrastes composites signalés `incomplete` ;
 - parcours avec un vrai lecteur d'ecran, par exemple NVDA ou Narrator.
 

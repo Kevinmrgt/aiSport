@@ -2,8 +2,8 @@
 
 > Concevoir et développer des applications logicielles
 > Version applicative : `0.13.0-rc.3`
-> Baseline applicative testée et déployée : `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`
-> Référence documentaire : tag `rncp-bloc2-2026-07-21-v4`
+> Baseline applicative testée et déployée : `b002adb0e0e7d8d85ee493d54879e190d77d2078`
+> Référence documentaire : tag `rncp-bloc2-2026-07-21-v5`
 > Les empreintes du paquet corrigé sont consignées dans son `MANIFESTE.txt` à la génération.
 > Dossier anonymisé, finalisé le 21 juillet 2026
 
@@ -51,20 +51,20 @@ du jury.
 | Compétence                                     | Preuve principale                                             | État avant dépôt                                        |
 | ---------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------- |
 | C2.1.1 Environnements, qualité, performance    | Node 24, Docker, Vercel, Neon, healthchecks, mesure A29       | étayé                                                   |
-| C2.1.2 Intégration continue                    | CI finale `29832575391`, rapports et images Docker            | étayé                                                   |
+| C2.1.2 Intégration continue                    | CI finale `29845956008`, rapports et images Docker            | étayé                                                   |
 | C2.2.1 Prototype                               | production, recette authentifiée, captures desktop/mobile A30 | étayé                                                   |
 | C2.2.2 Tests unitaires                         | shared 14 tests, API 170, Web 55, PostgreSQL 9 RNCP           | étayé                                                   |
-| C2.2.3 Sécurité, accessibilité, conformité     | OWASP, A35 sécurité, A36/A37 public et authentifié            | étayé ; correctif zoom à déployer, limites humaines explicites |
-| C2.2.4 Déploiement progressif et versionnement | Git, CI, migration, CD final `29832944876`, smoke tests       | étayé                                                   |
-| C2.3.1 Cahier de recettes                      | 60 scénarios, résultats et anomalies reliés, A34 à A36        | étayé ; CI/CD et contre-recette finales réussies        |
+| C2.2.3 Sécurité, accessibilité, conformité     | OWASP, A35 sécurité, A36/A37 public et authentifié            | étayé ; zoom natif clos, deux limites humaines explicites |
+| C2.2.4 Déploiement progressif et versionnement | Git, CI, migration, CD final `29846343559`, smoke tests       | étayé                                                   |
+| C2.3.1 Cahier de recettes                      | 60 scénarios, résultats et anomalies reliés, A34 à A37        | étayé ; CI/CD et contre-recette finales réussies        |
 | C2.3.2 Correction des bogues                   | registre B2-BUG et tests de non-régression                    | étayé                                                   |
 | C2.4.1 Documentation d'exploitation            | trois manuels présents et versionnés                          | étayé                                                   |
 
 Le risque résiduel principal concerne la portée humaine de C2.2.3. Les actions
 d'accessibilité sont démontrées sur un échantillon public/privé. Le zoom natif
-à 200/400 % a détecté quatre troncatures à 400 %, corrigées et contre-testées
-localement ; leur déploiement reste requis. Les fonds composites et un lecteur
-d'écran réel restent nécessaires avant toute déclaration de conformité
+à 200/400 % a détecté quatre troncatures à 400 %, désormais corrigées,
+déployées et contre-testées 16/16 en production. Les fonds composites et un
+lecteur d'écran réel restent nécessaires avant toute déclaration de conformité
 exhaustive au RGAA.
 
 ## 3. C2.1.1 - Environnements, déploiement continu, qualité et performance
@@ -263,8 +263,8 @@ Les preuves automatisées réelles sont :
   arbre d'accessibilité et alertes ;
 - 16 mesures de zoom Chromium natif B2-A37 à 200/400 % sur les huit routes :
   quatre troncatures détectées à 400 %, corrigées par retour à la ligne puis
-  validées par 55 tests Web, typecheck, build, 6/6 local public et 16/16 en
-  prévisualisation corrective ;
+  validées par 55 tests Web, typecheck, build, CI/CD et **16/16 sur la
+  production corrigée** ;
 - 2/2 tests de structure après correction des deux titres de formulaire en
   `h2`, plus le contre-contrôle authentifié de `/programs/generate` ;
 - ratios opaques représentatifs de 17,36:1 en public et 8,19:1 en privé.
@@ -273,9 +273,9 @@ L'attendu officiel porte sur la présentation des actions mises en œuvre pour
 permettre l'accès aux personnes en situation de handicap. Ces actions sont
 désormais mesurées et reproductibles. Limite : axe et l'arbre d'accessibilité
 ne couvrent pas tout le RGAA ni la restitution vocale réelle. Le correctif de
-zoom doit encore être déployé et contre-recetté ; les fonds composites et un
-parcours NVDA/Narrator restent humains. Le dossier ne revendique donc pas de
-conformité exhaustive au RGAA.
+zoom est déployé et contre-recetté ; les fonds composites et un parcours
+NVDA/Narrator restent humains. Le dossier ne revendique donc pas de conformité
+exhaustive au RGAA.
 
 ## 11. C2.2.4 - Historique, dernière version et viabilité
 
@@ -288,13 +288,15 @@ conformité exhaustive au RGAA.
 | finalisation du rendu | OAuth Playwright sécurisé, dépendances corrigées, shared couvert, mobile authentifié |
 
 `CHANGELOG.md`, les commits, les pull requests et les tags conservent
-l'historique. La baseline finale `0d5c6b6...` a passé la CI `29832575391`, la
-migration et les deux déploiements `29832944876`, les smoke tests et l'E2E
-authentifié `29833210488` en 6/6. Les endpoints Web/API répondent en version
-`0.13.0-rc.3`. Le repère documentaire est le tag
-`rncp-bloc2-2026-07-21-v4`. Il ne remplace pas la baseline applicative déployée
-`0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`. Le manifeste du paquet de remise
-porte le SHA effectivement archivé et les empreintes SHA-256 de chaque livrable.
+l'historique. La baseline corrective `b002adb...` a passé la CI `29845956008`,
+la migration, les déploiements API/Web et les smoke tests du CD `29846343559`.
+L'E2E authentifié dédié `29833210488` reste réussi en 6/6 et la contre-recette
+d'accessibilité post-déploiement est verte en 33/33, avec zoom natif 16/16.
+Les endpoints Web/API répondent en version `0.13.0-rc.3`. Le repère documentaire
+est le tag `rncp-bloc2-2026-07-21-v5`. Il ne remplace pas la baseline applicative
+déployée `b002adb0e0e7d8d85ee493d54879e190d77d2078`. Le manifeste du paquet de
+remise porte le SHA effectivement archivé et les empreintes SHA-256 de chaque
+livrable.
 
 ## 12. C2.3.1 - Cahier de recettes
 
