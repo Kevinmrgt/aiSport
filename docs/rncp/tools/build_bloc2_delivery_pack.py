@@ -71,6 +71,7 @@ SOURCE_DOCUMENTS = {
     "docs/rncp/MANIFESTE-DEPOT-BLOC2.md",
     "docs/rncp/bloc2-accessibilite-rgaa.md",
     "docs/rncp/bloc2-dossier-conception-developpement-rncp39583.md",
+    "docs/rncp/bloc2-guide-lecture-jury-rncp39583.md",
     "docs/rncp/bloc2-manuel-mise-a-jour.md",
     "docs/rncp/bloc2-manuel-utilisateur-alcide.md",
     "docs/rncp/bloc2-plan-correction-bogues-rncp39583.md",
@@ -79,6 +80,7 @@ REQUIRED_MANUALS = {
     "docs/deployment.md",
     "docs/rncp/bloc2-manuel-utilisateur-alcide.md",
     "docs/rncp/bloc2-manuel-mise-a-jour.md",
+    "docs/rncp/bloc2-guide-lecture-jury-rncp39583.md",
 }
 
 FORBIDDEN_ARCHIVE_SEGMENTS = {
@@ -147,6 +149,54 @@ def validate_pdf(path: Path, maximum_pages: int | None = None) -> tuple[int, str
         raise ValueError(f"{path.name}: {pages} pages, maximum {maximum_pages}")
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
     return pages, text
+
+
+def validate_pdf_navigation(
+    path: Path,
+    minimum_outlines: int,
+    minimum_internal_links: int,
+) -> tuple[int, int, bool]:
+    from pypdf import PdfReader
+
+    reader = PdfReader(str(path))
+    root = reader.trailer["/Root"]
+    if str(root.get("/Lang", "")) != "fr-FR":
+        raise ValueError(f"{path.name}: langue PDF absente ou incorrecte")
+    if str(root.get("/PageMode", "")) != "/UseOutlines":
+        raise ValueError(f"{path.name}: panneau de signets non demandé à l'ouverture")
+    if str(root.get("/PageLayout", "")) != "/OneColumn":
+        raise ValueError(f"{path.name}: disposition de page inattendue")
+    if not reader.metadata or not reader.metadata.title:
+        raise ValueError(f"{path.name}: titre de document absent")
+
+    def count_outline_items(items: list[object]) -> int:
+        return sum(
+            count_outline_items(item) if isinstance(item, list) else 1
+            for item in items
+        )
+
+    outline_count = count_outline_items(reader.outline)
+    internal_link_count = 0
+    for page in reader.pages:
+        for annotation_ref in page.get("/Annots", []):
+            annotation = annotation_ref.get_object()
+            action = annotation.get("/A")
+            if annotation.get("/Subtype") != "/Link":
+                continue
+            if "/Dest" in annotation or (
+                action is not None and action.get_object().get("/S") == "/GoTo"
+            ):
+                internal_link_count += 1
+
+    if outline_count < minimum_outlines:
+        raise ValueError(
+            f"{path.name}: {outline_count} signets, minimum {minimum_outlines}"
+        )
+    if internal_link_count < minimum_internal_links:
+        raise ValueError(
+            f"{path.name}: {internal_link_count} liens internes, minimum {minimum_internal_links}"
+        )
+    return outline_count, internal_link_count, "/StructTreeRoot" in root
 
 
 def is_allowed_source(path: str) -> bool:
@@ -311,7 +361,7 @@ def validate_source_archive(path: Path) -> None:
         for manual in sorted(REQUIRED_MANUALS):
             expected = f"{prefix}/{manual}"
             if expected not in archived_names:
-                problems.append(f"manuel obligatoire absent : {manual}")
+                problems.append(f"document obligatoire absent : {manual}")
     if problems:
         raise ValueError("Archive source non sûre : " + "; ".join(problems[:20]))
 
@@ -355,6 +405,16 @@ def build_delivery_pack() -> None:
 
     dossier_pages, dossier_text = validate_pdf(DOSSIER, maximum_pages=30)
     annex_pages, annex_text = validate_pdf(ANNEXES)
+    dossier_outlines, dossier_links, dossier_tagged = validate_pdf_navigation(
+        DOSSIER,
+        minimum_outlines=10,
+        minimum_internal_links=10,
+    )
+    annex_outlines, annex_links, annex_tagged = validate_pdf_navigation(
+        ANNEXES,
+        minimum_outlines=20,
+        minimum_internal_links=10,
+    )
     combined_text = dossier_text + "\n" + annex_text
     for expected in [
         "B2-A26",
@@ -365,6 +425,7 @@ def build_delivery_pack() -> None:
         "B2-A35",
         "B2-A36",
         "B2-A37",
+        "B2-A38",
         "29833210488",
         APPLICATION_SHA[:7],
         FINAL_CI_RUN,
@@ -372,6 +433,7 @@ def build_delivery_pack() -> None:
         "Manuel de déploiement complet",
         "Manuel utilisateur complet",
         "Manuel de mise à jour complet",
+        "Guide de lecture du jury",
     ]:
         if expected not in combined_text:
             raise ValueError(f"Preuve absente des PDF : {expected}")
@@ -409,7 +471,7 @@ def build_delivery_pack() -> None:
                 "",
                 "Ordre de lecture :",
                 "1. 01-dossier-bloc2-alcide.pdf (30 pages maximum hors annexes)",
-                "2. 02-annexes-bloc2-alcide.pdf (preuves sélectionnées puis trois manuels complets)",
+                "2. 02-annexes-bloc2-alcide.pdf (guide jury, preuves sélectionnées puis trois manuels complets)",
                 f"3. 03-code-source-alcide-{VERSION}.zip (archive source anonymisée et filtrée)",
                 "4. MANIFESTE.txt (empreintes et limites)",
                 "",
@@ -417,6 +479,7 @@ def build_delivery_pack() -> None:
                 "- docs/deployment.md",
                 "- docs/rncp/bloc2-manuel-utilisateur-alcide.md",
                 "- docs/rncp/bloc2-manuel-mise-a-jour.md",
+                "Le guide de lecture du jury ouvre les annexes et reste aussi présent dans l'archive source.",
                 "",
                 "Avant dépôt : confirmer les règles de nommage, de taille, de délai",
                 "et d'anonymisation avec le campus.",
@@ -438,6 +501,8 @@ def build_delivery_pack() -> None:
         f"SHA Git documentaire et source archivé : {head}",
         f"Dossier principal : {dossier_pages} pages (maximum officiel : 30 hors annexes)",
         f"Annexes sélectionnées : {annex_pages} pages",
+        f"Navigation dossier : {dossier_outlines} signets ; {dossier_links} liens internes ; langue fr-FR",
+        f"Navigation annexes : {annex_outlines} signets ; {annex_links} liens internes ; langue fr-FR",
         "",
         "FICHIERS ET EMPREINTES SHA-256",
     ]
@@ -448,6 +513,7 @@ def build_delivery_pack() -> None:
             "",
             "LIMITES À NE PAS MASQUER",
             "- les contrôles d'accessibilité ne constituent pas une déclaration de conformité exhaustive au RGAA ;",
+            f"- PDF balisés/PDF-UA : {'oui' if dossier_tagged and annex_tagged else 'non'} ; les signets, liens, métadonnées et sources Markdown fournissent une navigation de repli, sans remplacer un balisage structurel ;",
             "- date, nommage, taille et anonymisation à confirmer avec le campus.",
         ]
     )

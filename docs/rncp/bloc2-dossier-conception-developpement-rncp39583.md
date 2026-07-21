@@ -3,7 +3,7 @@
 > Concevoir et développer des applications logicielles
 > Version applicative : `0.13.0-rc.3`
 > Baseline applicative testée et déployée : `b002adb0e0e7d8d85ee493d54879e190d77d2078`
-> Référence documentaire finale : tag `rncp-bloc2-2026-07-21-v6`
+> Référence documentaire finale : tag `rncp-bloc2-2026-07-21-v7`
 > Les empreintes du paquet corrigé sont consignées dans son `MANIFESTE.txt` à la génération.
 > Dossier anonymisé, finalisé le 21 juillet 2026
 
@@ -56,7 +56,7 @@ du jury.
 | C2.2.2 Tests unitaires                         | shared 14 tests, API 170, Web 55, PostgreSQL 9 RNCP           | étayé                                                   |
 | C2.2.3 Sécurité, accessibilité, conformité     | OWASP, A35 sécurité, A36/A37 public et authentifié            | étayé ; zoom natif clos, deux limites humaines explicites |
 | C2.2.4 Déploiement progressif et versionnement | Git, CI, migration, CD final `29846343559`, smoke tests       | étayé                                                   |
-| C2.3.1 Cahier de recettes                      | 59 scénarios : 57 clos, 2 réservés ; A34 à A37                | étayé avec réserves CR-055 et CR-062                     |
+| C2.3.1 Cahier de recettes                      | 59 scénarios : 58 clos, 1 réservé ; A34 à A38                 | étayé avec réserve humaine CR-055                        |
 | C2.3.2 Correction des bogues                   | registre B2-BUG et tests de non-régression                    | étayé                                                   |
 | C2.4.1 Documentation d'exploitation            | trois manuels présents et versionnés                          | étayé                                                   |
 
@@ -297,7 +297,7 @@ la migration, les déploiements API/Web et les smoke tests du CD `29846343559`.
 L'E2E authentifié dédié `29833210488` reste réussi en 6/6 et la contre-recette
 d'accessibilité post-déploiement est verte en 33/33, avec zoom natif 16/16.
 Les endpoints Web/API répondent en version `0.13.0-rc.3`. Le repère documentaire
-est le tag `rncp-bloc2-2026-07-21-v6`. Il ne remplace pas la baseline applicative
+est le tag `rncp-bloc2-2026-07-21-v7`. Il ne remplace pas la baseline applicative
 déployée `b002adb0e0e7d8d85ee493d54879e190d77d2078`. Le manifeste du paquet de
 remise porte le SHA effectivement archivé et les empreintes SHA-256 de chaque
 livrable.
@@ -319,8 +319,9 @@ La campagne de fermeture B2-A34 à B2-A37 ajoute les erreurs OpenAI, pagination,
 suppression en erreur, journal avec notes de douleur, modèle interdit,
 dashboard vide/alimenté, parcours Timer/journal/dashboard de production,
 injection, XSS, secrets, CORS, CSP et audit accessibilité multi-page. Le cahier
-compte 59 scénarios de recette : 57 sont clos et CR-055 ainsi que CR-062
-conservent une réserve explicite. CR-063 est fermé par la gate reproductible du
+compte 59 scénarios de recette : 58 sont clos et CR-055 conserve une réserve
+humaine explicite. CR-062 est fermé par la preuve négative isolée B2-A38 et
+CR-063 par la gate reproductible du
 paquet et son manifeste ; CR-049 est suivi séparément comme risque architectural,
 hors dénominateur. La candidate applicative a passé la CI/CD,
 les smoke tests, l'E2E OAuth 6/6 et la contre-recette accessibilité de

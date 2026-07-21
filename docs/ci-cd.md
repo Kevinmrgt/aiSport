@@ -88,7 +88,7 @@ applicatif de `b002adb`, a ensuite passé la CI `29847808450` et la CD
 et accessibilité de `b002adb` ; elle confirme que le snapshot documentaire
 n'introduit aucune régression dans la chaîne complète.
 
-### Preuve négative et limite de CR-062
+### Preuve négative et clôture maîtrisée de CR-062
 
 Une exécution historique apporte une preuve dynamique de la condition d'échec :
 
@@ -98,19 +98,25 @@ Une exécution historique apporte une preuve dynamique de la condition d'échec 
 - ses jobs `Deploy API to Vercel` et `Deploy Web to Vercel` sont `skipped` et
   ne contiennent aucune étape exécutée.
 
-Ces éléments prouvent l'absence d'exécution du CD GitHub Actions. Aucun relevé
-Vercel avant/après ce run historique n'est conservé pour démontrer séparément
-que l'inventaire de production est resté identique.
+Ces éléments prouvent l'absence d'exécution du CD GitHub Actions historique.
+La version courante a été contre-recettée sans pousser de commit défaillant sur
+`main` : la PR brouillon isolée `#46`, SHA `ef393f8`, a produit la CI rouge
+`29856584668` sur l'erreur ESLint volontaire. Les jobs tests, build, E2E et
+Docker sont `skipped`, aucun run CD n'est associé au SHA et la PR a été fermée
+sans fusion.
 
-Cette preuve du 2026-07-01 ne suffit pas, seule, à déclarer la politique
-courante entièrement contre-recettée : la version du workflow à cette date
-acceptait encore `workflow_dispatch`, donc un lancement manuel pouvait
-contourner la provenance CI. Dans la version actuelle, ce déclencheur a été
-supprimé et les trois jobs `migrate-db`, `deploy-api` et `deploy-web` portent la
-condition `workflow_run.conclusion == 'success'` avec
-`ENABLE_GHA_VERCEL_CD=true`. Le chemin positif actuel est exécuté ; le chemin
-rouge actuel est vérifié statiquement mais n'a pas été provoqué pour la remise.
-CR-062 reste donc documenté avec cette réserve, sans fabriquer de CI rouge.
+Les inventaires Vercel `production` ont été relevés avant et après : le dernier
+déploiement API reste `ai-sport-beo6pvdnl-kevinmrgts-projects.vercel.app`, et le
+dernier Web reste `ai-sport-hbjk1xwvs-kevinmrgts-projects.vercel.app`, tous deux
+sur `b3ca385`, avec les mêmes dates de création. Aucune production n'a été
+ajoutée. La preview de PR est distincte de la cible production.
+
+Enfin, `pnpm test:cd-policy` passe 6/6 et vérifie le déclencheur `workflow_run`
+sur `main`, l'absence de `workflow_dispatch`, la condition de succès, la gate
+d'activation et le checkout du `head_sha` sur `migrate-db`, `deploy-api` et
+`deploy-web`. B2-A38 conserve les sorties et les limites. CR-062 est fermé par
+cette combinaison de preuves, sans prétendre qu'un commit rouge a été poussé
+sur `main`.
 
 ## Secrets et variables
 
@@ -154,6 +160,7 @@ Après rollback, rejouer liveness, readiness et le parcours métier concerné.
 | ------ | --- | -- | -- | ------ |
 | Baseline applicative corrective | `b002adb0e0e7d8d85ee493d54879e190d77d2078` | `29845956008` succès | `29846343559` succès | Preuve canonique du correctif de reflow et de son déploiement |
 | Snapshot documentaire `v5` | `b3ca385c0014c6acfd5c29ebbe14fa38ca766c02` | `29847808450` succès | `29848187523` succès | Diff avec `b002adb` limité aux documents/PDF ; chaîne complète rejouée avant la correction documentaire `v6` |
+| Chemin rouge courant isolé | `ef393f873ce3337c4ba83b84cf75eb5ce07549b4` | `29856584668` échec | aucun run associé, conformément au filtre de branche | PR `#46` fermée sans fusion ; quatre jobs aval ignorés et inventaires Vercel production inchangés, B2-A38 |
 | Chemin rouge historique | `5c2cf08c56794bcf2885e69713b7bddd8521ae87` | `28506873066` échec | `28506912686` skipped | API/Web non exécutés dans GitHub Actions ; pas de relevé Vercel avant/après ; ancien workflow encore lançable manuellement |
 
 Le run CI `29489995458` et le run CD en échec `29490217892` décrivent un ancien

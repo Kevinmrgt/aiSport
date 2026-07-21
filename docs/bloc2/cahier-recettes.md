@@ -4,7 +4,7 @@
 > Version consolidée : 2026-07-21
 > Baseline applicative déployée : `b002adb0e0e7d8d85ee493d54879e190d77d2078`.
 > Pull request applicative finale : `#43`.
-> Repère documentaire final : tag `rncp-bloc2-2026-07-21-v6`.
+> Repère documentaire final : tag `rncp-bloc2-2026-07-21-v7`.
 > Le tag `rncp-bloc2-2026-07-21-v5` reste le snapshot documentaire antérieur validé en CI/CD.
 > Le SHA réellement archivé et les empreintes des livrables figurent dans le `MANIFESTE.txt` du paquet.
 
@@ -27,18 +27,18 @@ artefact et anomalie éventuelle.
 | Élément                             | Valeur                                                                                                                         |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | Scénarios de recette comptabilisés  | 59 ; CR-049 est un risque architectural suivi séparément et n'entre pas dans le dénominateur                                  |
-| Scénarios clos                      | 57 : 41 résultats exécutés/observés et 16 contrôles automatisés, dont la gate du paquet final                                  |
-| Scénarios non clos                  | CR-055 partiel ; CR-062 étayé par une preuve négative historique et la gate courante                                           |
+| Scénarios clos                      | 58 : 42 résultats exécutés/observés et 16 contrôles automatisés, dont la gate du paquet final                                  |
+| Scénarios non clos                  | CR-055 partiel : lecteur d'écran réel et qualification humaine des contrastes composites                                       |
 | Échecs fonctionnels finaux          | Aucun connu ; quatre écarts reproduits sur `rc.2` ont été corrigés puis contre-recettés sur `rc.3`                             |
-| SHA/tag testé                       | application `b002adb0e0e7d8d85ee493d54879e190d77d2078` ; repère documentaire final `rncp-bloc2-2026-07-21-v6` ; SHA archivé porté par le manifeste |
+| SHA/tag testé                       | application `b002adb0e0e7d8d85ee493d54879e190d77d2078` ; repère documentaire final `rncp-bloc2-2026-07-21-v7` ; SHA archivé porté par le manifeste |
 | Environnement                       | Local/CI Node 24 + PostgreSQL de test, puis production Vercel/Neon                                                             |
 | Artefacts                           | annexes A20, A25 à A31 et A34 à A37, rapports CI/CD, captures authentifiées et paquet de remise daté du 2026-07-21             |
 
 Les 59 scénarios ne sont pas tous des manipulations manuelles : le statut
 `🧪 Automatisé` désigne un cas réellement exécuté par la CI. Le statut
-`✅ Exécuté` désigne une recette ou une observation conservée. CR-055 et CR-062
-ne sont pas inclus dans les 57 scénarios clos tant que leur réserve respective
-n'est pas levée. La clôture de CR-063 est portée par le `MANIFESTE.txt` produit
+`✅ Exécuté` désigne une recette ou une observation conservée. CR-055 n'est pas
+inclus dans les 58 scénarios clos tant que sa réserve humaine n'est pas levée.
+La clôture de CR-063 est portée par le `MANIFESTE.txt` produit
 avec le paquet : le builder refuse un état suivi sale ou un livrable incohérent.
 
 ### Matrice fonctionnalités → scénarios → preuves
@@ -52,8 +52,8 @@ avec le paquet : le builder refuse un état suivi sale ou un livrable incohéren
 | Paramètres et dashboard | CR-036 à CR-041 (6) | 6 clos | B2-A25, B2-A34 |
 | Sécurité fonctionnelle | CR-042 à CR-048 et CR-050 (8) | 8 clos | B2-A35, audit `low`, CI finale |
 | Accessibilité | CR-051 à CR-055 (5) | 4 clos ; CR-055 partiel | B2-A25, B2-A36, B2-A37 |
-| Qualité, intégration et déploiement | CR-056 à CR-065 (10) | 9 clos ; CR-062 réservé | B2-A19, B2-A22, CI/CD, manifeste |
-| **Total** | **59** | **57 clos ; 2 non clos** | **index des annexes et présent cahier** |
+| Qualité, intégration et déploiement | CR-056 à CR-065 (10) | 10 clos | B2-A19, B2-A22, B2-A38, CI/CD, manifeste |
+| **Total** | **59** | **58 clos ; 1 non clos** | **index des annexes et présent cahier** |
 
 CR-049 est conservé sous son identifiant pour assurer la traçabilité du risque,
 mais il ne correspond pas à une fonctionnalité livrée ni à une recette exécutée.
@@ -91,7 +91,7 @@ différents et ne se contredisent pas.
 | CI finale `main`               | Succès des six jobs        | run `29845956008` sur `b002adb` : audit, qualité, tests API/Web/shared, PostgreSQL, Playwright, build et Docker                           |
 | CD final Vercel                | Succès                     | run `29846343559` : migration, API, Web et smoke tests                                                                                   |
 | Snapshot documentaire `v5`     | Succès CI/CD                | `b3ca385` : diff applicatif nul depuis `b002adb`, CI `29847808450`, CD `29848187523` ; preuve antérieure, ne remplace pas la contre-recette de `b002adb` |
-| Repère documentaire final `v6` | Contrôles locaux du paquet  | corrections de cohérence, réserves et manuels ; SHA archivé et empreintes portés par le manifeste final                               |
+| Repère documentaire final `v7` | Contrôles locaux du paquet  | corrections de cohérence, réserves et manuels ; SHA archivé et empreintes portés par le manifeste final                               |
 | E2E OAuth post-déploiement     | 6/6                        | run `29833210488` : session dédiée restaurée puis supprimée du runner                                                                    |
 | Accessibilité post-déploiement | 33/33 + zoom natif 16/16   | production `b002adb` : 3 pages publiques et 5 privées, reflow, clavier, contraste axe, arbre AX et zoom Chromium 200/400 %              |
 
@@ -227,7 +227,7 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 | CR-059 | Docker                    | construire API/Web et contrôler la procédure migrate/seed                | images Node 24 non-root ; migrate/seed fonctionnels                                 | CI + B2-A22         | ✅ Images finales construites en CI ; migrate/seed validés localement ; clone vierge non archivé                  |
 | CR-060 | Readiness API             | DB/clé disponibles puis indisponibles                                    | 200 prêt ; 503 avec dépendance défaillante                                          | tests route + curl  | ✅ Cas automatisés verts ; readiness production 200, DB/IA `ok`                                                   |
 | CR-061 | CI complète               | pousser le SHA final                                                     | tous les jobs obligatoires verts                                                    | run GitHub          | ✅ Run final `29845956008` réussi sur `b002adb`                                                                   |
-| CR-062 | CD sans contournement     | CI échoue puis réussit                                                   | aucun déploiement après échec ; déploiement après succès                            | runs GitHub         | 📎 Réserve explicite : CI rouge `28506873066` sur `5c2cf08` → CD `28506912686` `skipped`, mêmes SHA et jobs API/Web sans étape ; aucun relevé Vercel avant/après n'est conservé. Cette preuve date d'un workflow qui autorisait encore le lancement manuel. La version courante supprime ce déclencheur, conditionne migration/API/Web au succès et passe `test:vercel-ignore`, mais le chemin rouge courant n'a pas été rejoué. Chemin vert final : `29845956008` → `29846343559`. |
+| CR-062 | CD sans contournement     | CI échoue puis réussit                                                   | aucun déploiement après échec ; déploiement après succès                            | runs GitHub + B2-A38 | ✅ Fermé sans toucher à `main` : CI courante `29856584668` rouge sur PR isolée, quatre jobs aval ignorés, aucun run CD associé et inventaires Vercel production API/Web identiques avant/après ; politique YAML 6/6. Chemin vert `29845956008` → `29846343559`. Limite : aucun commit volontairement rouge sur `main`. |
 | CR-063 | Version immuable          | construire le paquet depuis un état Git propre et vérifier PDF, source, SHA et empreintes | build refusé si fichiers suivis modifiés ; PDF principal ≤ 30 pages ; preuves requises présentes ; conclusion reflow non obsolète ; archive source filtrée/anonymisée ; SHA-256 consignés | `build_bloc2_delivery_pack.py` + manifeste | ✅ Gate automatisée du paquet final : le verdict, le SHA archivé, les pages et les empreintes sont consignés dans `MANIFESTE.txt` ; le ZIP est décompressé et ses empreintes comparées avant remise. |
 | CR-064 | Production API/Web        | déployer le SHA final                                                    | liveness/readiness/Web en 200                                                       | curl daté           | ✅ CD final `29846343559`, HTTP 200 `rc.3`, DB et configuration IA `ok`                                           |
 | CR-065 | Parcours post-déploiement | login, séance, programme, Timer, journal, dashboard                      | parcours complet sans erreur                                                        | recette production  | ✅ Session OAuth, Programmes, Timer, effort/feedback/douleur, journal et dashboard `3 → 4` en production ; B2-A34 |
@@ -235,7 +235,8 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 ## Critère de clôture C2.3.1
 
 Les 59 scénarios de recette sont reliés à une preuve ou à une réserve explicite :
-57 sont clos, CR-055 reste partiel et CR-062 combine preuve négative historique
-et gate statique courante. CR-063 est fermé par la génération contrôlée du paquet
+58 sont clos et CR-055 reste partiel. CR-062 combine désormais une CI rouge
+courante isolée, un inventaire Vercel avant/après et six tests de politique.
+CR-063 est fermé par la génération contrôlée du paquet
 et son manifeste. CR-049 demeure un risque architectural hors dénominateur. Les tests
 Vitest/Playwright ne sont pas présentés comme un audit RGAA exhaustif.

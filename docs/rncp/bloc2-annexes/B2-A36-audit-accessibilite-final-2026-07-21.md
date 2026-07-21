@@ -6,7 +6,7 @@
 > Contre-recette après déploiement du correctif de reflow : 33/33 et zoom natif
 > 16/16 sur `b002adb0e0e7d8d85ee493d54879e190d77d2078`, après CI `29845956008`
 > et CD `29846343559`.
-> Repère documentaire final : tag `rncp-bloc2-2026-07-21-v6`.
+> Repère documentaire final : tag `rncp-bloc2-2026-07-21-v7`.
 > Le SHA effectivement archivé est porté par le manifeste du paquet de remise.
 > Referentiel de travail : RGAA 4.1.2 et WCAG 2.1 A/AA
 > Statut : preuves renforcees, conformite RGAA exhaustive non revendiquee
@@ -122,6 +122,14 @@ des fonds composites, transparences ou images. Les ratios ci-dessus sont donc
 des mesures representatives, pas une mesure exhaustive de chaque texte, et ne
 suffisent pas a declarer une conformite RGAA complete.
 
+Le script `scripts/rncp-a11y-contrast-sampling.ps1` a ensuite regroupe les 416
+occurrences par cause axe, couleurs CSS, fond, graisse, corps et seuil WCAG. Il
+produit **79 signatures de rendu**, dont **34 P1** et **45 P2**, et **166
+contextes route-signature**. Ce tri rend la revue humaine bornée et
+reproductible ; toutes les signatures conservent le statut
+`human_review_required` tant qu'un operateur n'a pas saisi le ratio mesure, sa
+decision et la preuve.
+
 ## Structure et annonces
 
 Les huit pages de l'echantillon exposent dans l'arbre d'accessibilite une
@@ -134,8 +142,8 @@ Le controle independant a detecte deux `h1` sur `/generate` et
 `/programs/generate` : un titre de page et un titre de formulaire. Le titre de
 chaque formulaire a ete corrige en `h2` dans `WorkoutForm.tsx` et
 `ProgramForm.tsx`. Le test de non-regression
-`components/rncp-accessibility-structure.test.tsx` verifie que les deux titres
-internes restent de niveau 2 et continuent de nommer leur formulaire. Resultat :
+`apps/web/components/rncp-accessibility-structure.test.tsx` verifie que les deux
+titres internes restent de niveau 2 et continuent de nommer leur formulaire. Resultat :
 **2 tests reussis sur 2**. Cette correction a ete integree a la baseline
 `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`, puis verifiee par la CI
 `29832575391`, le CD `29832944876` et la contre-recette de production 33/33.
@@ -145,8 +153,8 @@ internes restent de niveau 2 et continuent de nommer leur formulaire. Resultat :
 | Identifiant | Observation                                                                | Action                                                                                      | Etat                                            |
 | ----------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------- |
 | B2-A36-01   | Deux `h1` sur chacune des pages de generation                              | Titres internes passes en `h2` et test de non-regression ajoute                             | Corrige et contre-recette en production 33/33   |
-| B2-A36-02   | Axe ne peut pas calculer les contrastes composites                         | Audit detaille rejoue : 0 violation, 19 nœuds calcules conformes et 416 nœuds incomplets ; revue humaine requise | Partiellement couvert, voir B2-A37 |
-| B2-A36-03   | Aucun lecteur d'ecran reel utilise pendant cette campagne                  | Prevoir NVDA ou Narrator avec restitution documentee                                        | Ouvert                                          |
+| B2-A36-02   | Axe ne peut pas calculer les contrastes composites                         | Audit detaille rejoue : 0 violation, 19 nœuds calcules conformes et 416 nœuds incomplets regroupes en 79 signatures ; revue humaine requise | Partiellement couvert, voir B2-A37 |
+| B2-A36-03   | Aucun lecteur d'ecran reel utilise pendant cette campagne                  | Narrator disponible, NVDA absent ; grille operateur prete pour une restitution documentee | Ouvert : aucune ecoute realisee |
 | B2-A36-04   | Limite historique : le reflow initial reposait uniquement sur des viewports CSS | Audit natif à 200/400 %, détection puis correction des troncatures de métriques et cartes | Clos : correctif `b002adb` déployé, zoom natif production 16/16, voir B2-A37 |
 
 ## Conclusion et limites

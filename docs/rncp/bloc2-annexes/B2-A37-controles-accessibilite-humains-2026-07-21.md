@@ -29,8 +29,9 @@ désactivées afin de ne pas enregistrer la session.
 
 ## 2. Zoom navigateur natif à 200 % et 400 %
 
-Le test `scripts/e2e-native-zoom-audit.mjs` charge une extension Chromium locale
-réservée à l'audit. Elle applique le zoom natif avec `chrome.tabs.setZoom`, puis
+Le test `apps/web/scripts/e2e-native-zoom-audit.mjs` charge une extension
+Chromium locale réservée à l'audit. Elle applique le zoom natif avec
+`chrome.tabs.setZoom`, puis
 contrôle le facteur réellement obtenu, le `devicePixelRatio`, la largeur CSS,
 les débordements et les éléments textuels rognés. Aucun cookie ni identifiant
 n'est consigné.
@@ -78,8 +79,8 @@ débordement horizontal, aucun texte ni contrôle rogné sur les huit routes.
 
 ## 3. Contrastes opaques et composites
 
-Le script `scripts/e2e-contrast-incomplete-audit.mjs` a rejoué la règle axe
-`color-contrast` sur les huit routes avec la session réelle :
+Le script `apps/web/scripts/e2e-contrast-incomplete-audit.mjs` a rejoué la règle
+axe `color-contrast` sur les huit routes avec la session réelle :
 
 - **0 violation** ;
 - 416 nœuds classés `incomplete` : 331 à cause de gradients, 69 à cause de
@@ -95,15 +96,84 @@ peut pas calculer automatiquement le fond composite final. Les mesures opaques
 représentatives déjà consignées dans B2-A36 restent conformes, mais la revue
 visuelle exhaustive des fonds composites n'est pas déclarée close.
 
+### 3.1 Préqualification reproductible des composites
+
+Le script `scripts/rncp-a11y-contrast-sampling.ps1` transforme le rapport
+détaillé en une liste de contrôle JSON et CSV :
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File `
+  .\scripts\rncp-a11y-contrast-sampling.ps1
+```
+
+Le regroupement exclut volontairement le texte littéral, le sélecteur et la
+route de sa clé. Une signature correspond à une même cause axe, aux mêmes
+couleurs et fonds CSS, à la même typographie et au même seuil WCAG. Chaque
+route concernée conserve cependant son propre contexte à vérifier.
+
+| Résultat du tri | Valeur |
+| --- | ---: |
+| Occurrences axe `incomplete` | 416 |
+| Signatures de rendu distinctes | 79 |
+| Contextes route-signature à revoir | 166 |
+| Signatures P1 | 34, soit 74 contextes |
+| Signatures P2 | 45, soit 92 contextes |
+| Gradients | 331 occurrences |
+| Pseudo-éléments | 69 occurrences |
+| Textes trop courts pour axe | 15 occurrences |
+| Élément recouvert | 1 occurrence (`Routine active`, page `/`) |
+
+Les priorités P1 couvrent notamment les textes atténués au seuil 4,5:1, les
+pseudo-éléments et l'élément recouvert. P1/P2 ordonnent la revue ; elles ne
+qualifient pas à elles seules une non-conformité. Les fichiers produits sont
+`contrast-review-sampling.json` et `contrast-review-sampling.csv`, sous
+`tmp/accessibility-final/contrast/`. Ils ne contiennent ni cookie ni identité.
+
+Ce tri ne clôt aucune signature automatiquement. Pour chaque contexte, un
+opérateur doit mesurer le pixel composite le plus défavorable, renseigner le
+ratio, la décision et la preuve, puis contre-recetter les corrections éventuelles.
+
 ## 4. Lecteur d'écran
 
-Windows Narrator est disponible sur le poste, mais aucune restitution vocale ne
-peut être évaluée de manière fiable dans la session automatisée. Le contrôle de
-l'arbre d'accessibilité Chromium est réussi sur les huit routes ; il ne remplace
-pas un parcours humain capable de juger l'ordre, les annonces et le confort
-d'écoute.
+La détection locale en lecture seule donne l'état suivant :
+
+| Outil | Disponibilité constatée | Portée réelle |
+| --- | --- | --- |
+| Narrator | Présent : `C:\Windows\System32\Narrator.exe`, version `10.0.22621.6133` | Lecteur utilisable par un opérateur ; aucune écoute réalisée |
+| NVDA | Absent des emplacements système usuels et non trouvé comme commande | Aucun essai NVDA possible sur ce poste sans installation |
+| Magnifier | Présent, même version de fichier que Narrator | Utile au grossissement visuel, pas à la restitution vocale |
+| Gestion des couleurs Windows | `ColorCpl.exe` présent | Ne mesure pas le contraste texte/fond d'une page Web |
+
+Le contrôle de l'arbre d'accessibilité Chromium est réussi sur les huit routes ;
+il ne remplace pas un parcours humain capable de juger l'ordre, les annonces et
+le confort d'écoute.
 
 Aucun test réel NVDA, Narrator, JAWS ou VoiceOver n'est donc revendiqué.
+
+### 4.1 Grille Narrator/NVDA prête à exécuter
+
+Préconditions opérateur : navigateur à 100 %, son actif, langue française,
+session de test sans données sensibles et captures limitées aux anomalies. Avec
+Narrator, démarrer ou arrêter par `Windows` + `Ctrl` + `Entrée`. Pour chaque
+ligne, consigner navigateur, lecteur et version, heure, données affichées,
+résultat, verbatim utile de l'annonce et chemin de preuve.
+
+| ID | Parcours et points d'écoute obligatoires | Résultat | Preuve/anomalie |
+| --- | --- | --- | --- |
+| SR-01 | `/login` : langue, titre, ordre, nom/rôle du bouton et absence de répétition parasite | À renseigner | À renseigner |
+| SR-02 | `/dashboard` : lien d'évitement, `main`, navigation nommée, ordre et lien courant | À renseigner | À renseigner |
+| SR-03 | `/generate` vide : label, aide, requis, valeur et annonce immédiate des erreurs | À renseigner | À renseigner |
+| SR-04 | Génération valide : attente, erreur API éventuelle, résultat et maintien du focus | À renseigner | À renseigner |
+| SR-05 | Programme, onglets et séance : titres, nom/état, contenu actif et liens distincts | À renseigner | À renseigner |
+| SR-06 | `/workouts` : filtre, nombre ou état de résultats et lecture de la chronologie | À renseigner | À renseigner |
+| SR-07 | Timer : commandes, temps sans bavardage et changements `status`/`live` | À renseigner | À renseigner |
+| SR-08 | `/settings` : label/champ, option sélectionnée et confirmation ou erreur | À renseigner | À renseigner |
+| SR-09 | Suppression : titre, focus initial, piège, retour du focus et annonce finale | À renseigner | À renseigner |
+| SR-10 | Déconnexion : nom de l'action, changement de page, focus et titre de destination | À renseigner | À renseigner |
+
+Critère de fermeture : les dix lignes doivent être décidées par un opérateur,
+les anomalies reliées au plan de correction, puis rejouées après correctif. Un
+simple lancement de Narrator sans écoute consignée ne satisfait pas ce critère.
 
 ## 5. Décision de clôture
 
@@ -125,8 +195,8 @@ La conformité RGAA exhaustive reste non revendiquée.
 | Clavier et focus | Inventaire tabulable et cycle `Tab` | 8/8 routes | Clos sur l'échantillon |
 | Structure exposée | Arbre AX Chromium et tests de titres | 8/8 routes et 2/2 tests | Clos structurellement |
 | Contrastes calculables | axe `color-contrast` et ratios sRGB | 0 violation, 19 passes | Clos pour les nœuds calculables |
-| Contrastes composites | axe signale 416 `incomplete` | aucune décision humaine exhaustive | **Ouvert** |
-| Restitution vocale | aucun test audio observable | non réalisé | **Ouvert** |
+| Contrastes composites | axe signale 416 `incomplete`, regroupés en 79 signatures (34 P1, 45 P2) | liste de revue produite, aucune décision humaine exhaustive | **Ouvert** |
+| Restitution vocale | Narrator présent et grille SR-01 à SR-10 prête | aucune écoute consignée | **Ouvert** |
 
 Cette matrice distingue un résultat automatisé positif d'une appréciation
 humaine. Elle ne transforme ni un résultat `incomplete` ni l'arbre AX en preuve
