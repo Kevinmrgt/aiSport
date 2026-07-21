@@ -55,7 +55,9 @@ test.describe('Formulaire de generation (session OAuth de test requise)', () => 
 
   test('tous les champs ont un label associe', async ({ page }) => {
     await page.goto('/generate');
-    const inputs = page.locator('input, select, textarea');
+    const form = page.getByRole('form', { name: 'Construire le training' });
+    await expect(form).toBeVisible();
+    const inputs = form.locator('input:not([type="hidden"]), select, textarea');
     const count = await inputs.count();
     expect(count).toBeGreaterThan(0);
 
@@ -70,11 +72,18 @@ test.describe('Formulaire de generation (session OAuth de test requise)', () => 
   test('signale le champ sport vide', async ({ page }) => {
     await page.goto('/generate');
     await page.getByRole('button', { name: /generer la seance/i }).click();
-    await expect(page.getByRole('alert')).toBeVisible();
+    const sportError = page.locator('#input-sport-error');
+    await expect(sportError).toBeVisible();
+    await expect(sportError).toContainText('Le sport ne peut pas être vide');
   });
 
-  test('annonce les erreurs de formulaire via aria-live', async ({ page }) => {
+  test('annonce chaque erreur de champ avec role alert', async ({ page }) => {
     await page.goto('/generate');
-    await expect(page.locator('[aria-live]').first()).toBeAttached();
+    await page.getByRole('button', { name: /generer la seance/i }).click();
+    await expect(page.locator('#input-sport-error')).toHaveAttribute('role', 'alert');
+    const goalsError = page.locator('#goals-error');
+    await expect(goalsError).toHaveAttribute('role', 'alert');
+    await expect(goalsError).toBeVisible();
+    await expect(goalsError).toContainText('L’objectif ne peut pas être vide');
   });
 });
