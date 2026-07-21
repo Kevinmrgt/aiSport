@@ -6,6 +6,9 @@
 > État testé : copie de travail contenant les correctifs décrits ci-dessous ; les
 > contrôles de production portent encore sur la version Vercel déployée au moment
 > du test.
+> Gel final : correctifs fusionnés par la PR 43 dans
+> `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`, puis CI `29832575391`, CD
+> `29832944876` et E2E OAuth `29833210488` réussis.
 
 ## 1. Environnements et données
 

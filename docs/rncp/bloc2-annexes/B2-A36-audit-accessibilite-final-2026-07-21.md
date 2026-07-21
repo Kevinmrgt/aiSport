@@ -3,6 +3,9 @@
 > Date d'execution : 2026-07-21
 > Application observee : `https://ai-sport-web.vercel.app`
 > Source locale au debut du controle : `bac3b916770cabbbc92e3cda0d58ac3ed7e5e119`
+> Contre-recette après déploiement final : 33/33 sur
+> `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`, après CI `29832575391` et CD
+> `29832944876`.
 > Referentiel de travail : RGAA 4.1.2 et WCAG 2.1 A/AA
 > Statut : preuves renforcees, conformite RGAA exhaustive non revendiquee
 

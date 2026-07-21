@@ -33,6 +33,7 @@ absent de la CSP de production.
 | ------------------------------------- | ----------------------------------------------------------- |
 | Date et heure de fin des observations | 2026-07-21, 14:26 CEST / 12:26 UTC                          |
 | Révision de base locale               | `bac3b916770cabbbc92e3cda0d58ac3ed7e5e119` (`main`)         |
+| Gel applicatif final                  | `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`, CI/CD réussies  |
 | État local                            | révision de base avec tests et documents RNCP non commités  |
 | Système                               | Windows NT 10.0.22631                                       |
 | Node.js                               | 24.14.0                                                     |

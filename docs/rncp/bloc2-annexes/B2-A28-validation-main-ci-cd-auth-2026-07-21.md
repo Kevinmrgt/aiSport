@@ -1,24 +1,30 @@
 # B2-A28 - Validation de la baseline `main`, CI, CD et OAuth
 
 > Date : 2026-07-21
-> Baseline applicative : `ac02d219802614d1da4064e542f8de6c5487e5eb`
+> Baseline applicative finale : `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`
 > Version annoncée par les services : `0.13.0-rc.3`
 
 ## Chaîne réellement exécutée
 
-| Contrôle               | Exécution                                                                        | Résultat                                   |
-| ---------------------- | -------------------------------------------------------------------------------- | ------------------------------------------ |
-| CI complète `main`     | [run 29817362423](https://github.com/Kevinmrgt/aiSport/actions/runs/29817362423) | 6 jobs réussis                             |
-| Migration et CD Vercel | [run 29817698665](https://github.com/Kevinmrgt/aiSport/actions/runs/29817698665) | migration, API, Web et smoke tests réussis |
-| Playwright OAuth       | [run 29817741589](https://github.com/Kevinmrgt/aiSport/actions/runs/29817741589) | 4/4 scénarios réussis en 56 s              |
-| Web health             | `GET https://ai-sport-web.vercel.app/api/health`                                 | HTTP 200, `status=ok`                      |
-| API readiness          | `GET https://ai-sport-api.vercel.app/health/ready`                               | HTTP 200, DB `ok`, IA `ok`                 |
+| Contrôle                       | Exécution                                                                        | Résultat                                   |
+| ------------------------------ | -------------------------------------------------------------------------------- | ------------------------------------------ |
+| CI complète `main`             | [run 29832575391](https://github.com/Kevinmrgt/aiSport/actions/runs/29832575391) | 6 jobs réussis                             |
+| Migration et CD Vercel         | [run 29832944876](https://github.com/Kevinmrgt/aiSport/actions/runs/29832944876) | migration, API, Web et smoke tests réussis |
+| Playwright OAuth               | [run 29833210488](https://github.com/Kevinmrgt/aiSport/actions/runs/29833210488) | 6/6 scénarios réussis en 9,8 s             |
+| Playwright accessibilité final | exécution locale sur la production finale                                        | 33/33 sur 3 pages publiques et 5 privées   |
+| Web health                     | `GET https://ai-sport-web.vercel.app/api/health`                                 | HTTP 200, `status=ok`                      |
+| API readiness                  | `GET https://ai-sport-api.vercel.app/health/ready`                               | HTTP 200, DB `ok`, IA `ok`                 |
 
-La CI a exécuté lint, typecheck, tests de politiques, couvertures, tests
-PostgreSQL, Playwright public et axe, builds de production, audit de
-dépendances et images Docker. Le CD n'a démarré qu'après le succès de la CI.
+La CI a exécuté lint, typecheck, tests de politiques, 170 tests API, 55 Web,
+14 shared, couvertures, tests PostgreSQL, Playwright public et axe, builds de
+production, audit de dépendances et images Docker. Le CD n'a démarré qu'après
+le succès de la CI.
 
-## Artefacts de couverture du run `29817362423`
+## Artefacts de couverture détaillée du run antérieur `29817362423`
+
+Les métriques ci-dessous ont été extraites du premier run consolidé et restent
+conservées pour leur granularité. Le run final `29832575391` republie les quatre
+rapports après l'ajout des recettes finales.
 
 Les artefacts suivants ont été listés puis téléchargés depuis GitHub Actions :
 

@@ -77,7 +77,9 @@ contrastes axe sans filtrage de sévérité, arbre d'accessibilité Chromium et
 annonces d'erreur. Un contrôle indépendant a ajouté `/programs/generate`.
 Deux titres internes de formulaire détectés en `h1` ont été corrigés en `h2` et
 protégés par 2/2 tests de structure. Les détails reproductibles figurent dans
-B2-A36.
+B2-A36. Après fusion et déploiement de la baseline `0d5c6b6...`, les 33
+contrôles ont été rejoués avec le même résultat ; la CI `29832575391`, le CD
+`29832944876` et l'E2E OAuth `29833210488` sont également verts.
 
 Les ratios opaques représentatifs mesurés sont de 17,36:1 sur les pages
 publiques et 8,19:1 sur les pages privées, au-dessus du seuil AA de 4,5:1.
