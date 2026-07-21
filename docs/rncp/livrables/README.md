@@ -8,8 +8,11 @@ Le fichier historique `dossier-bloc2-candidat-corrige-2026-07-20.pdf` est un
 export de travail antérieur à la livraison `0.13.0-rc.3`. Le livrable courant
 est généré sous
 `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.3.pdf`. Le manifeste
-reste la source de vérité : la recette authentifiée B2-A25 y est distinguée de
-l'audit humain RGAA, qui n'est pas déclaré validé.
+reste la source de vérité : la recette authentifiée B2-A25, la suite
+Playwright OAuth B2-A26 et l'audit actualisé B2-A27 y sont distingués de
+l'audit humain RGAA, qui n'est pas déclaré validé. Le PDF `0.13.0-rc.3`
+précède B2-A26/B2-A27 et doit être régénéré avant remise si ces nouvelles
+preuves doivent apparaître dans le livrable PDF.
 
 Le PDF courant a été régénéré après :
 
