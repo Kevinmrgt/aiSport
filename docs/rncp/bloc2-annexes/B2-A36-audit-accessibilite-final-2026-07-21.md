@@ -6,6 +6,8 @@
 > Contre-recette après déploiement final : 33/33 sur
 > `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`, après CI `29832575391` et CD
 > `29832944876`.
+> Repère documentaire : tag `rncp-bloc2-2026-07-21-v4`.
+> Le SHA effectivement archivé est porté par le manifeste du paquet de remise.
 > Referentiel de travail : RGAA 4.1.2 et WCAG 2.1 A/AA
 > Statut : preuves renforcees, conformite RGAA exhaustive non revendiquee
 
@@ -128,17 +130,18 @@ chaque formulaire a ete corrige en `h2` dans `WorkoutForm.tsx` et
 `ProgramForm.tsx`. Le test de non-regression
 `components/rncp-accessibility-structure.test.tsx` verifie que les deux titres
 internes restent de niveau 2 et continuent de nommer leur formulaire. Resultat :
-**2 tests reussis sur 2**. Cette correction est verifiee dans la source locale ;
-elle devra etre redeployee avant d'etre attribuee a la production.
+**2 tests reussis sur 2**. Cette correction a ete integree a la baseline
+`0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`, puis verifiee par la CI
+`29832575391`, le CD `29832944876` et la contre-recette de production 33/33.
 
 ## Anomalies et corrections
 
 | Identifiant | Observation                                                                | Action                                                                                      | Etat                                            |
 | ----------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| B2-A36-01   | Deux `h1` sur chacune des pages de generation                              | Titres internes passes en `h2` et test de non-regression ajoute                             | Corrige dans la source, deploiement a confirmer |
-| B2-A36-02   | Axe ne peut pas calculer un contraste composite par page                   | Mesure sRGB du bouton opaque ajoutee ; controle visuel/manuel exhaustif requis              | Partiellement couvert                           |
+| B2-A36-01   | Deux `h1` sur chacune des pages de generation                              | Titres internes passes en `h2` et test de non-regression ajoute                             | Corrige et contre-recette en production 33/33   |
+| B2-A36-02   | Axe ne peut pas calculer les contrastes composites                         | Audit détaillé : 0 violation, 416 nœuds incomplets liés surtout aux gradients/pseudo-éléments ; revue humaine requise | Partiellement couvert, voir B2-A37 |
 | B2-A36-03   | Aucun lecteur d'ecran reel utilise pendant cette campagne                  | Prevoir NVDA ou Narrator avec restitution documentee                                        | Ouvert                                          |
-| B2-A36-04   | Le reflow est simule par viewport CSS, sans commande de zoom du navigateur | Conserver les tests 640/320 et realiser un essai manuel Ctrl+zoom pour une preuve litterale | Partiellement couvert                           |
+| B2-A36-04   | Le reflow était simulé par viewport CSS, sans zoom navigateur natif         | Audit natif à 200/400 %, détection puis correction des troncatures de métriques et cartes   | Corrigé localement ; déploiement et contre-recette ouverts, voir B2-A37 |
 
 ## Conclusion et limites
 
@@ -147,11 +150,12 @@ annonces d'erreur sont couverts sur l'echantillon. Les contrastes opaques
 representatifs respectent largement le seuil AA et aucune violation axe n'est
 remontee.
 
-Le scenario d'accessibilite ne doit cependant pas etre marque entierement clos
-tant que les trois points suivants ne sont pas realises et consignes :
+Le scénario d'accessibilité ne doit cependant pas être marqué entièrement clos
+tant que les points suivants ne sont pas réalisés et consignés :
 
-- essai reel du zoom navigateur a 200 % et 400 % ;
-- verification manuelle des contrastes composites signales `incomplete` ;
+- déploiement du correctif de troncature puis contre-recette du zoom navigateur
+  natif à 200 % et 400 % sur la production corrigée ;
+- vérification manuelle des contrastes composites signalés `incomplete` ;
 - parcours avec un vrai lecteur d'ecran, par exemple NVDA ou Narrator.
 
 En particulier, **aucun test NVDA, Narrator, JAWS ou VoiceOver n'a ete realise**

@@ -1,13 +1,12 @@
 from __future__ import annotations
 
+import argparse
 import hashlib
+import re
 import shutil
 import subprocess
 import zipfile
-from pathlib import Path
-
-from pypdf import PdfReader
-
+from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[3]
 VERSION = "0.13.0-rc.3"
@@ -15,6 +14,7 @@ DATE = "2026-07-21"
 PACK_NAME = f"alcide-bloc2-rncp39583-{VERSION}-final-{DATE}"
 PACK_DIR = ROOT / "output" / PACK_NAME
 PACK_ZIP = ROOT / "output" / f"{PACK_NAME}.zip"
+CANDIDATE_DIR = ROOT / "tmp" / "archive-candidate"
 
 DOSSIER = (
     ROOT
@@ -27,6 +27,84 @@ ANNEXES = (
     / "output"
     / "pdf"
     / f"annexes-bloc2-rncp39583-alcide-v{VERSION}-final-{DATE}.pdf"
+)
+
+# L'archive source est volontairement construite par liste positive. Les dossiers
+# de build, les anciens livrables et les documents des autres blocs ne peuvent
+# donc pas y entrer par accident, même s'ils sont suivis par Git.
+SOURCE_ROOT_FILES = {
+    ".dockerignore",
+    ".env.example",
+    ".eslintrc.js",
+    ".gitattributes",
+    ".gitignore",
+    ".nvmrc",
+    ".prettierrc",
+    ".vercelignore",
+    "CHANGELOG.md",
+    "README.md",
+    "docker-compose.yml",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "tsconfig.base.json",
+}
+SOURCE_PREFIXES = (
+    ".github/workflows/",
+    "apps/api/",
+    "apps/web/",
+    "packages/shared/",
+    "scripts/",
+    "docs/adr/",
+    "docs/rncp/bloc2-annexes/",
+)
+SOURCE_DOCUMENTS = {
+    "docs/bloc2/cahier-recettes.md",
+    "docs/ci-cd.md",
+    "docs/deployment.md",
+    "docs/security/owasp-review.md",
+    "docs/testing-authenticated-e2e.md",
+    "docs/rncp/CHECKLIST-AVANT-DEPOT-BLOC2.md",
+    "docs/rncp/MANIFESTE-DEPOT-BLOC2.md",
+    "docs/rncp/bloc2-accessibilite-rgaa.md",
+    "docs/rncp/bloc2-dossier-conception-developpement-rncp39583.md",
+    "docs/rncp/bloc2-manuel-mise-a-jour.md",
+    "docs/rncp/bloc2-manuel-utilisateur-alcide.md",
+    "docs/rncp/bloc2-plan-correction-bogues-rncp39583.md",
+}
+
+FORBIDDEN_ARCHIVE_SEGMENTS = {
+    ".auth",
+    ".git",
+    ".next",
+    ".vercel",
+    "coverage",
+    "dist",
+    "node_modules",
+    "output",
+    "playwright-report",
+    "test-results",
+    "tmp",
+}
+FORBIDDEN_ARCHIVE_FILES = {
+    ".env",
+    ".env.local",
+    ".env.production",
+    "credentials.json",
+    "google-e2e.json",
+    "service-account.json",
+}
+IDENTITY_PATTERNS = (
+    re.compile(rb"kevinmrgt", re.IGNORECASE),
+    re.compile(rb"c:\\\\users\\\\kevin(?:\\\\documents\\\\aisport)?", re.IGNORECASE),
+    re.compile(rb"\bkevin\b", re.IGNORECASE),
+)
+SECRET_PATTERNS = (
+    ("clé privée PEM", re.compile(rb"-----BEGIN [A-Z ]*PRIVATE KEY-----")),
+    ("jeton GitHub", re.compile(rb"\bgh[pousr]_[A-Za-z0-9]{20,}\b")),
+    ("clé OpenAI", re.compile(rb"\bsk-[A-Za-z0-9_-]{20,}\b")),
+    ("secret OAuth Google", re.compile(rb"\bGOCSPX-[A-Za-z0-9_-]{16,}\b")),
+    ("JWT signé", re.compile(rb"\beyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b")),
 )
 
 
@@ -51,6 +129,8 @@ def sha256(path: Path) -> str:
 
 
 def validate_pdf(path: Path, maximum_pages: int | None = None) -> tuple[int, str]:
+    from pypdf import PdfReader
+
     if not path.is_file():
         raise FileNotFoundError(path)
     reader = PdfReader(str(path))
@@ -61,20 +141,200 @@ def validate_pdf(path: Path, maximum_pages: int | None = None) -> tuple[int, str
     return pages, text
 
 
+def is_allowed_source(path: str) -> bool:
+    normalized = PurePosixPath(path).as_posix()
+    return (
+        normalized in SOURCE_ROOT_FILES
+        or normalized in SOURCE_DOCUMENTS
+        or normalized.startswith(SOURCE_PREFIXES)
+    )
+
+
+def tracked_source_files() -> list[str]:
+    tracked = git("ls-files").splitlines()
+    selected = sorted(path for path in tracked if is_allowed_source(path))
+    if not selected:
+        raise RuntimeError("La liste positive de l'archive source est vide.")
+    return selected
+
+
+def sanitize_text(text: str) -> str:
+    # Les références GitHub perdent leur cible publique mais conservent le numéro
+    # de run/PR dans le libellé et le chemin, afin de garder la correspondance avec
+    # les preuves remises séparément.
+    text = re.sub(
+        r"https://github\.com/kevinmrgt/aisport",
+        "https://github.com/compte-anonymise/depot-anonymise",
+        text,
+        flags=re.IGNORECASE,
+    )
+    text = re.sub(
+        r"C:\\Users\\Kevin(?:\\Documents\\AISport)?",
+        "<workspace-anonymise>",
+        text,
+        flags=re.IGNORECASE,
+    )
+    text = re.sub(r"Kevinmrgt", "compte-anonymise", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bKevin\b", "Candidat anonymisé", text, flags=re.IGNORECASE)
+    return text
+
+
+def sanitized_bytes(source: Path) -> bytes:
+    payload = source.read_bytes()
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError:
+        return payload
+    return sanitize_text(text).encode("utf-8")
+
+
+def safe_reset_candidate_directory(path: Path) -> None:
+    resolved = path.resolve()
+    candidate_root = CANDIDATE_DIR.resolve()
+    if resolved == candidate_root or candidate_root not in resolved.parents:
+        raise RuntimeError(f"Nettoyage refusé hors d'un sous-dossier candidat : {resolved}")
+    if path.exists():
+        shutil.rmtree(path)
+    path.mkdir(parents=True, exist_ok=False)
+
+
+def modified_selected_sources() -> list[str]:
+    modified = git("diff", "--name-only", "HEAD").splitlines()
+    return sorted(path for path in modified if is_allowed_source(path))
+
+
+def write_source_manifest(
+    staging: Path,
+    head: str,
+    source_paths: list[str],
+    modified_sources: list[str],
+) -> None:
+    lines = [
+        "ALCIDE - MANIFESTE DE L'ARCHIVE SOURCE BLOC 2",
+        f"Version applicative : {VERSION}",
+        f"Révision Git HEAD de référence (pas une empreinte du contenu) : {head}",
+        "Mode de capture : fichiers suivis copiés depuis l'espace de travail courant",
+        f"Fichiers issus de la liste positive : {len(source_paths)}",
+        f"Fichiers sélectionnés modifiés par rapport à HEAD : {len(modified_sources)}",
+        "",
+        "TRAÇABILITÉ ET ANONYMISATION",
+        "- aucun historique .git n'est inclus ; la révision ci-dessus sert de point de référence ;",
+        "- les noms du candidat, du compte et les chemins de poste sont remplacés dans les fichiers texte ;",
+        "- les URL GitHub sont neutralisées ; les numéros de PR et de runs restent consultables dans le dossier/les annexes officiels ;",
+        "- l'absence de secret est contrôlée par noms de fichiers et signatures usuelles ; ce contrôle ne remplace pas une revue humaine.",
+        "",
+        "FICHIERS SÉLECTIONNÉS MODIFIÉS PAR RAPPORT À HEAD",
+        *(modified_sources or ["(aucun)"]),
+        "",
+        "FICHIERS (SHA-256 après anonymisation)",
+    ]
+    for relative in sorted(source_paths):
+        path = staging / Path(relative)
+        lines.append(f"{relative}\t{path.stat().st_size}\t{sha256(path)}")
+    (staging / "MANIFESTE-SOURCE.txt").write_text(
+        "\n".join(lines) + "\n", encoding="utf-8"
+    )
+
+
+def create_source_archive(target: Path, staging: Path) -> tuple[int, int]:
+    source_paths = tracked_source_files()
+    modified_sources = modified_selected_sources()
+    safe_reset_candidate_directory(staging)
+    for relative in source_paths:
+        source = ROOT / Path(relative)
+        if not source.is_file() or source.is_symlink():
+            raise RuntimeError(f"Source absente ou lien symbolique refusé : {relative}")
+        destination = staging / Path(relative)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(sanitized_bytes(source))
+
+    write_source_manifest(
+        staging,
+        git("rev-parse", "HEAD"),
+        source_paths,
+        modified_sources,
+    )
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if target.exists():
+        target.unlink()
+    prefix = f"alcide-source-{VERSION}"
+    with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+        for path in sorted(staging.rglob("*")):
+            if path.is_file():
+                relative = path.relative_to(staging).as_posix()
+                # Fixer les métadonnées évite qu'une régénération à contenu
+                # identique produise une empreinte différente à cause des dates.
+                info = zipfile.ZipInfo(f"{prefix}/{relative}", (1980, 1, 1, 0, 0, 0))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                info.external_attr = 0o100644 << 16
+                archive.writestr(info, path.read_bytes(), compresslevel=9)
+
+    validate_source_archive(target)
+    total_size = sum(path.stat().st_size for path in staging.rglob("*") if path.is_file())
+    return len(source_paths) + 1, total_size
+
+
 def validate_source_archive(path: Path) -> None:
-    forbidden_segments = {"node_modules", ".auth", "tmp"}
-    forbidden_files = {".env", ".env.local", ".env.production", "google-e2e.json"}
+    problems: list[str] = []
     with zipfile.ZipFile(path) as archive:
-        unsafe = []
-        for name in archive.namelist():
-            parts = set(Path(name).parts)
-            if parts & forbidden_segments or Path(name).name in forbidden_files:
-                unsafe.append(name)
-        if unsafe:
-            raise ValueError(f"Archive source non sûre : {unsafe[:10]}")
+        for info in archive.infolist():
+            pure_path = PurePosixPath(info.filename)
+            lowered_parts = {part.lower() for part in pure_path.parts}
+            if pure_path.is_absolute() or ".." in pure_path.parts:
+                problems.append(f"chemin non sûr : {info.filename}")
+                continue
+            if lowered_parts & FORBIDDEN_ARCHIVE_SEGMENTS:
+                problems.append(f"segment interdit : {info.filename}")
+            if pure_path.name.lower() in FORBIDDEN_ARCHIVE_FILES:
+                problems.append(f"fichier confidentiel interdit : {info.filename}")
+            if info.is_dir():
+                continue
+            payload = archive.read(info)
+            for pattern in IDENTITY_PATTERNS:
+                if pattern.search(payload):
+                    problems.append(f"marqueur d'identité : {info.filename}")
+                    break
+            for label, pattern in SECRET_PATTERNS:
+                if pattern.search(payload):
+                    problems.append(f"{label} potentiel : {info.filename}")
+                    break
+    if problems:
+        raise ValueError("Archive source non sûre : " + "; ".join(problems[:20]))
 
 
-def main() -> None:
+def build_candidate_source_archive() -> None:
+    CANDIDATE_DIR.mkdir(parents=True, exist_ok=True)
+    staging = CANDIDATE_DIR / f"alcide-source-{VERSION}"
+    target = CANDIDATE_DIR / f"03-code-source-alcide-{VERSION}.zip"
+    file_count, uncompressed_size = create_source_archive(target, staging)
+    report = CANDIDATE_DIR / "VALIDATION-ARCHIVE-SOURCE.txt"
+    modified_sources = modified_selected_sources()
+    report.write_text(
+        "\n".join(
+            [
+                "ALCIDE - VALIDATION CANDIDATE ARCHIVE SOURCE BLOC 2",
+                f"Archive : {target.name}",
+                f"Fichiers : {file_count}",
+                f"Taille non compressée : {uncompressed_size} octets",
+                f"Taille ZIP : {target.stat().st_size} octets",
+                f"SHA-256 : {sha256(target)}",
+                "Provenance : copie des fichiers suivis depuis l'espace de travail courant ; le SHA HEAD n'est qu'une référence.",
+                f"Fichiers sélectionnés modifiés par rapport à HEAD : {len(modified_sources)}",
+                *(f"- {path}" for path in modified_sources),
+                "Contrôles : liste positive, chemins interdits, identifiants évidents et signatures usuelles de secrets : OK",
+                "Attention : régénérer cette candidate après toute correction documentaire ou applicative.",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    print(f"Candidate source : {target}")
+    print(f"Fichiers : {file_count}")
+    print(f"Taille ZIP : {target.stat().st_size} octets")
+    print(f"SHA-256 : {sha256(target)}")
+
+
+def build_delivery_pack() -> None:
     tracked_changes = git("status", "--porcelain", "--untracked-files=no")
     if tracked_changes:
         raise RuntimeError("Les fichiers suivis doivent être commités avant de figer le paquet.")
@@ -89,6 +349,7 @@ def main() -> None:
         "B2-A34",
         "B2-A35",
         "B2-A36",
+        "B2-A37",
         "29833210488",
     ]:
         if expected not in dossier_text + annex_text:
@@ -110,20 +371,8 @@ def main() -> None:
     shutil.copy2(ANNEXES, annexes_target)
 
     head = git("rev-parse", "HEAD")
-    subprocess.run(
-        [
-            "git",
-            "archive",
-            "--format=zip",
-            f"--prefix=alcide-source-{VERSION}/",
-            "--output",
-            str(source_target),
-            head,
-        ],
-        cwd=ROOT,
-        check=True,
-    )
-    validate_source_archive(source_target)
+    source_staging = CANDIDATE_DIR / f"pack-source-{VERSION}"
+    create_source_archive(source_target, source_staging)
 
     readme = PACK_DIR / "LISEZ-MOI.txt"
     readme.write_text(
@@ -134,7 +383,7 @@ def main() -> None:
                 "Ordre de lecture :",
                 "1. 01-dossier-bloc2-alcide.pdf (30 pages maximum hors annexes)",
                 "2. 02-annexes-bloc2-alcide.pdf (preuves sélectionnées)",
-                f"3. 03-code-source-alcide-{VERSION}.zip (archive Git du SHA indiqué)",
+                f"3. 03-code-source-alcide-{VERSION}.zip (archive source anonymisée et filtrée)",
                 "4. MANIFESTE.txt (empreintes et limites)",
                 "",
                 "Avant dépôt : confirmer les règles de nommage, de taille, de délai",
@@ -172,6 +421,24 @@ def main() -> None:
     shutil.make_archive(str(PACK_ZIP.with_suffix("")), "zip", PACK_DIR.parent, PACK_DIR.name)
     print(f"Paquet : {PACK_ZIP}")
     print(f"SHA-256 paquet : {sha256(PACK_ZIP)}")
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Construit le paquet de remise du Bloc 2.")
+    parser.add_argument(
+        "--source-candidate",
+        action="store_true",
+        help="construit uniquement une archive source candidate sous tmp/archive-candidate",
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    if args.source_candidate:
+        build_candidate_source_archive()
+        return
+    build_delivery_pack()
 
 
 if __name__ == "__main__":

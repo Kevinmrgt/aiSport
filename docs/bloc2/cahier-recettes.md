@@ -4,7 +4,8 @@
 > Version consolidée : 2026-07-21
 > Baseline applicative déployée : `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`.
 > Pull request applicative finale : `#43`.
-> Tag de remise final : `rncp-bloc2-2026-07-21-v4`.
+> Repère documentaire : tag `rncp-bloc2-2026-07-21-v4`.
+> Le SHA réellement archivé et les empreintes des livrables figurent dans le `MANIFESTE.txt` du paquet.
 
 ## Règles de preuve
 
@@ -28,7 +29,7 @@ artefact et anomalie éventuelle.
 | Scénarios exécutés sur le SHA final | Gel Git confirmé après CI/CD ; chaque scénario possède un résultat ou une limite reliée au plan de correction                  |
 | Scénarios réussis                   | Non convertis en pourcentage : 170 tests API, 55 Web, 14 shared, 9 PostgreSQL RNCP et les parcours authentifiés sont détaillés |
 | Scénarios en échec                  | Quatre écarts ont été reproduits sur `rc.2`, corrigés puis contre-recettés sur `rc.3` ; aucune gate CI/CD finale en échec      |
-| SHA/tag testé                       | baseline `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b` ; tag final `rncp-bloc2-2026-07-21-v4`                                     |
+| SHA/tag testé                       | application `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b` ; repère documentaire `rncp-bloc2-2026-07-21-v4` ; SHA archivé porté par le manifeste |
 | Environnement                       | Local/CI Node 24 + PostgreSQL de test, puis production Vercel/Neon                                                             |
 | Artefacts                           | annexes finales A20 et A25 à A31, rapports CI, captures authentifiées et paquet de remise daté du 2026-07-21                   |
 
@@ -45,6 +46,12 @@ ont passé la CI `29832575391`, le CD `29832944876`, les smoke tests et la
 contre-recette OAuth `29833210488` sur la baseline finale. CR-055 reste partiel
 pour les trois vérifications humaines décrites dans B2-A36 ; cette limite n'est
 pas transformée en fausse conformité RGAA.
+
+Les rapports de couverture instrumentent 155 tests API, 43 Web, 8 PostgreSQL et
+14 shared. Les suites complètes comptent 170 tests API, 55 Web et 14 shared ; le
+neuvième contrôle PostgreSQL RNCP est la recette de sécurité SQL exécutée hors
+du rapport de couverture. Ces deux présentations mesurent donc des périmètres
+différents et ne se contredisent pas.
 
 ### Compléments automatisés du 2026-07-21
 
@@ -176,7 +183,7 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 | CR-052 | Pages authentifiées     | axe sur generate, programmes, listes, détail, dashboard, settings | aucune violation applicable non traitée                   | Playwright avec vrai storage state | ✅ Cinq pages privées auditées sans violation de contraste axe, arbre AX contrôlé ; `/programs/generate` contre-vérifié ; B2-A36                                  |
 | CR-053 | Clavier                 | parcourir navigation, formulaires, tabs, suppressions, Timer      | toutes actions atteignables, ordre/focus cohérents        | audit manuel + tests composants    | ✅ Cycle Tab complet et focus perceptible sur 3 pages publiques et 5 privées ; dialogues/Timer couverts séparément ; B2-A25/B2-A36                                |
 | CR-054 | Reflow/mobile           | 320 px CSS et viewport mobile                                     | aucune perte d'information/action ni scroll 2D injustifié | captures + audit manuel            | ✅ Reflow 640/320 px sur 3 pages publiques et 5 privées, plus `/programs/generate`, sans débordement ; B2-A36                                                     |
-| CR-055 | Zoom/contraste/annonces | zoom 200/400 %, contraste, lecteur d'écran                        | contenu lisible et annonces compréhensibles               | grille RGAA manuelle               | 🧪 Partiel documenté : proxy 200/400 %, ratios 17,36:1/8,19:1, alertes et arbre AX réussis ; zoom UI, composites et vrai lecteur d'écran restent humains ; B2-A36 |
+| CR-055 | Zoom/contraste/annonces | zoom 200/400 %, contraste, lecteur d'écran                        | contenu lisible et annonces compréhensibles               | grille RGAA manuelle               | 🧪 Zoom natif exécuté : quatre défauts à 400 % corrigés localement et 16/16 en prévisualisation ; déploiement, composites et vrai lecteur d'écran restent ouverts ; B2-A36/A37 |
 
 ## Qualité, intégration et déploiement
 
@@ -189,7 +196,7 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 | CR-060 | Readiness API             | DB/clé disponibles puis indisponibles                                    | 200 prêt ; 503 avec dépendance défaillante                                          | tests route + curl  | ✅ Cas automatisés verts ; readiness production 200, DB/IA `ok`                                                   |
 | CR-061 | CI complète               | pousser le SHA final                                                     | tous les jobs obligatoires verts                                                    | run GitHub          | ✅ Run final `29832575391` réussi sur `0d5c6b6`                                                                   |
 | CR-062 | CD sans contournement     | CI échoue puis réussit                                                   | aucun déploiement après échec ; déploiement après succès                            | runs GitHub         | 🧪 Chemin de succès et chaînage `workflow_run` prouvés ; scénario d'échec non rejoué pour cette remise            |
-| CR-063 | Version immuable          | comparer package, tag, SHA, health et changelog                          | version cohérente et distinction explicite entre SHA applicatif et gel documentaire | manifeste           | ✅ Version `0.13.0-rc.3`, SHA `0d5c6b6` et tag documentaire final `rncp-bloc2-2026-07-21-v4` distingués           |
+| CR-063 | Version immuable          | comparer package, tag, SHA, health et changelog                          | version cohérente et distinction explicite entre SHA applicatif, repère documentaire et SHA archivé | manifeste           | 🧪 Distinction documentée ; contrôle final du SHA archivé et des empreintes à faire après régénération du paquet corrigé |
 | CR-064 | Production API/Web        | déployer le SHA final                                                    | liveness/readiness/Web en 200                                                       | curl daté           | ✅ CD final `29832944876`, HTTP 200 `rc.3`, DB et configuration IA `ok`                                           |
 | CR-065 | Parcours post-déploiement | login, séance, programme, Timer, journal, dashboard                      | parcours complet sans erreur                                                        | recette production  | ✅ Session OAuth, Programmes, Timer, effort/feedback/douleur, journal et dashboard `3 → 4` en production ; B2-A34 |
 
@@ -197,6 +204,6 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 
 Les 60 scénarios sont maintenant renseignés par un résultat exécuté, une limite
 ou un risque accepté relié au plan de correction. Les correctifs ont passé la
-CI/CD finale et la contre-recette de production. CR-055 conserve trois contrôles
-humains explicites ; les tests Vitest/Playwright ne sont pas présentés comme un
-audit RGAA exhaustif.
+CI/CD finale et la contre-recette de production. CR-055 conserve une
+contre-recette post-déploiement et deux contrôles humains explicites ; les tests
+Vitest/Playwright ne sont pas présentés comme un audit RGAA exhaustif.
