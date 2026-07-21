@@ -111,12 +111,17 @@ Commandes recommandées avant dépôt RNCP ou livraison importante :
 
 ```powershell
 pnpm test:e2e:smoke
-$env:PLAYWRIGHT_AUTH_STORAGE='C:\chemin\session-auth.json'
-pnpm --filter web test:e2e:authenticated
+$env:E2E_AUTH_EMAIL='adresse-du-compte-dedie@example.com'
+$env:E2E_BASE_URL='https://ai-sport-web.vercel.app'
+pnpm test:e2e:auth:browser
+# Après la connexion Google et le retour sur /generate :
+pnpm test:e2e:auth:capture
+pnpm test:e2e:authenticated
 ```
 
 `test:e2e:smoke` couvre le public. La commande authentifiée exige un
-`storageState` Auth.js réel, local, non committé. `pnpm test:e2e` seul marque la
+`storageState` Auth.js réel, local, non committé. La procédure sécurisée complète
+est décrite dans `docs/testing-authenticated-e2e.md`. `pnpm test:e2e` seul marque la
 suite authentifiée ignorée si cette variable manque ; il ne prouve donc pas le
 parcours OAuth. Si les E2E ne sont pas relancés, la documentation doit conserver
 le statut "à relancer" au lieu d'annoncer une réussite.

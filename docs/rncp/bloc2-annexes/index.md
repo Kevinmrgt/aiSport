@@ -46,6 +46,7 @@ comme preuves du SHA final.
 | B2-A23 | C2.1.2 / C2.2.2 / C2.2.3          | Audit low propre, overrides ciblés, compatibilité lint/types/tests/build/Drizzle et règle de CD Vercel testée | Réussi localement, en CI et en production sur `0.13.0-rc.2`                                           | `docs/rncp/bloc2-annexes/B2-A23-securite-dependances-et-cd-2026-07-20.md`                          |
 | B2-A24 | C2.1.1 / C2.2.3 / C2.3.1          | Démarrage OAuth Google réel depuis la production jusqu'au formulaire Google                                   | Redirection, PKCE, scopes et callback validés ; session authentifiée obtenue ultérieurement dans B2-A25 | `docs/rncp/bloc2-annexes/B2-A24-demarrage-oauth-production-2026-07-20.md`                         |
 | B2-A25 | C2.2.1 / C2.2.2 / C2.2.3 / C2.3.1 / C2.3.2 | Recette authentifiée réelle, anomalies, correctifs et contre-recette de production | Séance/programme/Timer/dashboard/settings/suppressions/déconnexion observés ; limites RGAA et stockage de session conservées | `docs/rncp/bloc2-annexes/B2-A25-recette-authentifiee-production-et-correctifs-2026-07-20.md` |
+| B2-A26 | C2.2.1 / C2.2.2 / C2.2.3 / C2.3.1 / C2.3.2 | Suite Playwright authentifiée avec session OAuth réelle, stockage hors Git et CI dédiée | 4/4 localement et 4/4 dans le run GitHub Actions `29815416652` ; limites du compte et du périmètre explicites | `docs/rncp/bloc2-annexes/B2-A26-playwright-authentifie-compte-dedie-2026-07-21.md` |
 
 ## Règles de nommage
 

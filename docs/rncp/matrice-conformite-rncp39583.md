@@ -69,7 +69,7 @@ Risque : Élevé. Le projet contient beaucoup de matière technique, mais les co
 
 ### Synthèse Bloc 2
 
-Risque actuel : élevé tant que C2.2.2, C2.2.3 et C2.3.1 ne sont pas fermées par des preuves du SHA final. Le produit et les correctifs sont sérieux, mais ces trois compétences sont éliminatoires. La matrice ne doit revenir à un risque faible qu'après couverture représentative, revue OWASP, audit RGAA, E2E authentifiés, recette exhaustive, CI/CD et déploiement alignés.
+Risque actuel : élevé tant que C2.2.2, C2.2.3 et C2.3.1 ne sont pas fermées par des preuves du SHA final. Le produit et les correctifs sont sérieux, mais ces trois compétences sont éliminatoires. L'écart E2E authentifié est fermé par B2-A26 (4/4 local et CI `29815416652`) ; la couverture représentative, l'audit RGAA humain, la recette exhaustive et l'alignement du SHA final restent à consolider avant de ramener le risque global à faible.
 
 ## Bloc 3 — Coordonner et piloter un projet de développement d'applications logicielles
 
