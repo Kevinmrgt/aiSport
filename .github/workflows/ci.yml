@@ -55,6 +55,9 @@ jobs:
       - name: Test Vercel deployment policy
         run: pnpm test:vercel-ignore
 
+      - name: Test CD workflow policy
+        run: pnpm test:cd-policy
+
       - name: Test authenticated E2E storage policy
         run: pnpm test:e2e:auth-policy
 

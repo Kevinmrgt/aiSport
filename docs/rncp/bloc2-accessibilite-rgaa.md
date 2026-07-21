@@ -50,7 +50,7 @@ finale de production.
 | --- | --- | --- | --- |
 | 1. Images | Images Next.js publiques et décoratives | axe public, inspection des noms accessibles | **Partiel** : présence d'alternatives contrôlée automatiquement ; pertinence éditoriale non auditée image par image |
 | 2. Cadres | Aucun `iframe` ou `frame` dans les composants observés | recherche source et échantillon navigateur | **Non applicable observé** |
-| 3. Couleurs | Textes, boutons, focus, fonds opaques et composites | axe `color-contrast`, calculs sRGB, focus visible | **Partiel** : 0 violation calculable ; 416 nœuds `incomplete` exigent une décision humaine sur les composites |
+| 3. Couleurs | Textes, boutons, focus, fonds opaques et composites | axe `color-contrast`, calculs sRGB, regroupement par signature de rendu | **Partiel** : 0 violation calculable ; 416 nœuds `incomplete` ramenés à 79 signatures à décider humainement |
 | 4. Multimédia | Aucun lecteur audio ou vidéo dans les composants observés | recherche source et échantillon navigateur | **Non applicable observé** |
 | 5. Tableaux | Aucun tableau de données dans les états observés | recherche source et échantillon navigateur | **Non applicable observé** |
 | 6. Liens | Navigation, lien d'évitement, cartes et actions | axe public, inventaire tabulable, cycle `Tab` | **Couvert sur l'échantillon** ; pertinence de tous les intitulés futurs à maintenir |
@@ -79,11 +79,16 @@ stockage OAuth local :
   obtenu 2×/4×, aucun débordement horizontal et aucun texte ou contrôle rogné ;
 - contraste détaillé en production : **8 routes, 0 violation, 19 nœuds
   calculés conformes et 416 nœuds `incomplete`** ;
+- préqualification des contrastes composites : **416 occurrences regroupées en
+  79 signatures de rendu et 166 contextes route-signature**, dont 34 signatures
+  P1 et 45 P2 pour la revue humaine ;
 - tests de structure des deux formulaires : **2/2 réussis**.
 
 Les 416 résultats `incomplete` ne sont pas 416 non-conformités : axe ne sait
 pas calculer le fond composite final. Ils ne sont pas davantage considérés
-comme conformes sans vérification humaine.
+comme conformes sans vérification humaine. Le regroupement reproductible par
+cause axe, couleur, fond, graisse, corps et seuil WCAG réduit la liste de revue,
+mais ne remplace pas la mesure sur le pixel composite le plus défavorable.
 
 ## Contrôles humains et règles de preuve
 
@@ -99,6 +104,12 @@ de l'arbre d'accessibilité. Ils ne permettent pas d'évaluer seuls :
 Chaque contrôle humain futur doit préciser date, navigateur, page, état de
 données, technologie d'assistance, critère, résultat, anomalie et preuve. Toute
 anomalie doit être reliée au plan de correction et à une contre-recette.
+
+Le poste de contrôle contient Narrator (`Narrator.exe`, version de fichier
+`10.0.22621.6133`) mais pas NVDA dans les emplacements système usuels. La
+présence de l'exécutable ne constitue pas un essai : aucune restitution vocale
+n'a été écoutée ou évaluée. B2-A37 fournit la grille opérateur à exécuter et la
+liste des 79 signatures, soit 166 contextes de contraste à renseigner.
 
 ## Conclusion pour C2.2.3
 

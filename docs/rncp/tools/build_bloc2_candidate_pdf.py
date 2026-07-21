@@ -202,6 +202,17 @@ def styles():
             textColor=MUTED,
         )
     )
+    sheet.add(
+        ParagraphStyle(
+            name="TOC2",
+            parent=sheet["BodyText"],
+            fontSize=7.2,
+            leading=9,
+            leftIndent=27,
+            firstLineIndent=0,
+            textColor=MUTED,
+        )
+    )
     sheet["Code"].fontName = "Courier"
     sheet["Code"].fontSize = 7.4
     sheet["Code"].leading = 9.2
@@ -214,18 +225,41 @@ STYLES = styles()
 
 
 class CandidateDocument(SimpleDocTemplate):
+    def __init__(self, *args, toc_max_level: int = 2, **kwargs):
+        self.toc_max_level = toc_max_level
+        super().__init__(*args, **kwargs)
+
+    def beforeDocument(self):
+        super().beforeDocument()
+        self._last_outline_level = 0
+        self.canv.showOutline()
+        self.canv._doc._catalog.setPageLayout("OneColumn")
+
     def afterFlowable(self, flowable):
         if not isinstance(flowable, Paragraph):
             return
-        level_by_style = {"H1x": 0, "H2x": 1}
+        if flowable.style.name == "TOCTitle":
+            key = "sommaire"
+            self.canv.bookmarkPage(key)
+            self.canv.addOutlineEntry(flowable.getPlainText(), key, level=0, closed=False)
+            self._last_outline_level = 0
+            return
+
+        level_by_style = {"H1x": 0, "H2x": 1, "H3x": 2}
         level = level_by_style.get(flowable.style.name)
         if level is None:
             return
+        # ReportLab interdit de sauter un niveau de signet. La limitation rend
+        # le générateur robuste aux sources Markdown contenant directement un
+        # titre de niveau 4 après un titre de niveau 2.
+        level = min(level, self._last_outline_level + 1)
         text = flowable.getPlainText()
         key = f"heading-{level}-{self.seq.nextf('heading')}"
         self.canv.bookmarkPage(key)
         self.canv.addOutlineEntry(text, key, level=level, closed=False)
-        self.notify("TOCEntry", (level, text, self.page, key))
+        if level <= self.toc_max_level:
+            self.notify("TOCEntry", (level, text, self.page, key))
+        self._last_outline_level = level
 
 
 def cover_page(canvas, _doc):
@@ -381,7 +415,7 @@ def parse_markdown(source: str, base_dir: Path, skip_preamble: bool = False):
         elif line.startswith("### "):
             flush_paragraph()
             story.append(CondPageBreak(3 * cm))
-            story.append(Paragraph(inline_markdown(line[4:]), STYLES["H3x"]))
+            story.append(Paragraph(inline_markdown(line[4:]), STYLES["H2x"]))
         elif line.startswith("> "):
             flush_paragraph()
             story.append(Paragraph(inline_markdown(line[2:]), STYLES["Metax"]))
@@ -448,7 +482,7 @@ def cover_story():
 
 def toc_story():
     toc = TableOfContents()
-    toc.levelStyles = [STYLES["TOC0"], STYLES["TOC1"]]
+    toc.levelStyles = [STYLES["TOC0"], STYLES["TOC1"], STYLES["TOC2"]]
     return [
         Paragraph("Sommaire", STYLES["TOCTitle"]),
         Spacer(1, 0.25 * cm),
@@ -469,6 +503,10 @@ def build_pdf(source: Path = SOURCE, output: Path = OUTPUT) -> Path:
         title="Dossier Bloc 2 RNCP39583 - Alcide - final 2026-07-21",
         author="Candidat RNCP39583 - dossier anonymisé",
         subject="Code source et documentation associée - Bloc 2",
+        creator="Générateur documentaire Alcide - ReportLab",
+        keywords="RNCP39583, Bloc 2, conception, développement, Alcide, certification",
+        lang="fr-FR",
+        displayDocTitle=True,
     )
     story = cover_story()
     story.extend(toc_story())
