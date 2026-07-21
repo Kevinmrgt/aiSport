@@ -71,7 +71,6 @@ SOURCE_DOCUMENTS = {
     "docs/rncp/MANIFESTE-DEPOT-BLOC2.md",
     "docs/rncp/bloc2-accessibilite-rgaa.md",
     "docs/rncp/bloc2-dossier-conception-developpement-rncp39583.md",
-    "docs/rncp/bloc2-guide-lecture-jury-rncp39583.md",
     "docs/rncp/bloc2-manuel-mise-a-jour.md",
     "docs/rncp/bloc2-manuel-utilisateur-alcide.md",
     "docs/rncp/bloc2-plan-correction-bogues-rncp39583.md",
@@ -80,7 +79,6 @@ REQUIRED_MANUALS = {
     "docs/deployment.md",
     "docs/rncp/bloc2-manuel-utilisateur-alcide.md",
     "docs/rncp/bloc2-manuel-mise-a-jour.md",
-    "docs/rncp/bloc2-guide-lecture-jury-rncp39583.md",
 }
 
 FORBIDDEN_ARCHIVE_SEGMENTS = {
@@ -104,6 +102,16 @@ FORBIDDEN_ARCHIVE_FILES = {
     "google-e2e.json",
     "service-account.json",
 }
+FORBIDDEN_BLOC2_PATH_MARKERS = (
+    "soutenance",
+    "preparation-orale",
+    "preparation_orale",
+    "bloc2-guide-lecture-jury",
+)
+FORBIDDEN_BLOC2_PDF_PATTERN = re.compile(
+    r"\b(?:oral(?:e|es|s)?|soutenance(?:s)?)\b",
+    re.IGNORECASE,
+)
 IDENTITY_PATTERNS = (
     re.compile(rb"kevinmrgt", re.IGNORECASE),
     re.compile(rb"c:\\\\users\\\\kevin(?:\\\\documents\\\\aisport)?", re.IGNORECASE),
@@ -339,9 +347,12 @@ def validate_source_archive(path: Path) -> None:
         for info in archive.infolist():
             pure_path = PurePosixPath(info.filename)
             lowered_parts = {part.lower() for part in pure_path.parts}
+            lowered_name = pure_path.as_posix().lower()
             if pure_path.is_absolute() or ".." in pure_path.parts:
                 problems.append(f"chemin non sûr : {info.filename}")
                 continue
+            if any(marker in lowered_name for marker in FORBIDDEN_BLOC2_PATH_MARKERS):
+                problems.append(f"support hors périmètre du Bloc 2 : {info.filename}")
             if lowered_parts & FORBIDDEN_ARCHIVE_SEGMENTS:
                 problems.append(f"segment interdit : {info.filename}")
             if pure_path.name.lower() in FORBIDDEN_ARCHIVE_FILES:
@@ -416,6 +427,12 @@ def build_delivery_pack() -> None:
         minimum_internal_links=10,
     )
     combined_text = dossier_text + "\n" + annex_text
+    forbidden_match = FORBIDDEN_BLOC2_PDF_PATTERN.search(combined_text)
+    if forbidden_match:
+        raise ValueError(
+            "Le paquet Bloc 2 écrit contient un terme hors périmètre : "
+            f"{forbidden_match.group(0)!r}."
+        )
     for expected in [
         "B2-A26",
         "B2-A27",
@@ -433,7 +450,6 @@ def build_delivery_pack() -> None:
         "Manuel de déploiement complet",
         "Manuel utilisateur complet",
         "Manuel de mise à jour complet",
-        "Guide de lecture du jury",
     ]:
         if expected not in combined_text:
             raise ValueError(f"Preuve absente des PDF : {expected}")
@@ -471,7 +487,7 @@ def build_delivery_pack() -> None:
                 "",
                 "Ordre de lecture :",
                 "1. 01-dossier-bloc2-alcide.pdf (30 pages maximum hors annexes)",
-                "2. 02-annexes-bloc2-alcide.pdf (guide jury, preuves sélectionnées puis trois manuels complets)",
+                "2. 02-annexes-bloc2-alcide.pdf (preuves sélectionnées puis trois manuels complets)",
                 f"3. 03-code-source-alcide-{VERSION}.zip (archive source anonymisée et filtrée)",
                 "4. MANIFESTE.txt (empreintes et limites)",
                 "",
@@ -479,7 +495,6 @@ def build_delivery_pack() -> None:
                 "- docs/deployment.md",
                 "- docs/rncp/bloc2-manuel-utilisateur-alcide.md",
                 "- docs/rncp/bloc2-manuel-mise-a-jour.md",
-                "Le guide de lecture du jury ouvre les annexes et reste aussi présent dans l'archive source.",
                 "",
                 "Avant dépôt : confirmer les règles de nommage, de taille, de délai",
                 "et d'anonymisation avec le campus.",

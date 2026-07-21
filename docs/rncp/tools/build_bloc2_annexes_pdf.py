@@ -64,15 +64,6 @@ MANUALS = [
     ),
 ]
 
-JURY_GUIDES = [
-    (
-        "GUIDE-01",
-        ROOT / "docs" / "rncp" / "bloc2-guide-lecture-jury-rncp39583.md",
-        "Guide de lecture du jury",
-    ),
-]
-
-
 def annex_footer(canvas, doc):
     canvas.saveState()
     canvas.setStrokeColor(colors.HexColor("#D7DED0"))
@@ -104,8 +95,6 @@ def annex_cover_story():
     for filename in SELECTED:
         identifier = filename.split("-")[0] + "-" + filename.split("-")[1]
         rows.append([identifier, descriptions[identifier]])
-    for identifier, _path, description in JURY_GUIDES:
-        rows.append([identifier, description])
     for identifier, _path, description in MANUALS:
         rows.append([identifier, description])
 
@@ -135,7 +124,7 @@ def annex_cover_story():
         Paragraph("ANNEXES DE PREUVES", STYLES["CoverSub"]),
         Paragraph("Bloc 2", STYLES["CoverTitle"]),
         Paragraph(
-            "Guide de lecture, preuves sélectionnées et documentation d'exploitation complète - hors limite des 30 pages du dossier",
+            "Preuves sélectionnées et documentation d'exploitation complète - hors limite des 30 pages du dossier",
             STYLES["CoverSub"],
         ),
         Spacer(1, 5.4 * cm),
@@ -177,7 +166,6 @@ def nested_manual_sections(source: str) -> str:
 
 def build_pdf(output: Path = OUTPUT) -> Path:
     missing = [filename for filename in SELECTED if not (ANNEXES / filename).is_file()]
-    missing.extend(str(path.relative_to(ROOT)) for _identifier, path, _description in JURY_GUIDES if not path.is_file())
     missing.extend(str(path.relative_to(ROOT)) for _identifier, path, _description in MANUALS if not path.is_file())
     if missing:
         raise FileNotFoundError(f"Annexes manquantes : {missing}")
@@ -203,17 +191,9 @@ def build_pdf(output: Path = OUTPUT) -> Path:
     story = annex_cover_story()
     story.extend(toc_story())
 
-    for identifier, path, description in JURY_GUIDES:
-        story.append(Paragraph(f"{identifier} - {description}", STYLES["H1x"]))
-        story.extend(
-            parse_markdown(
-                nested_manual_sections(path.read_text(encoding="utf-8")),
-                path.parent,
-            )
-        )
-
     for index, filename in enumerate(SELECTED):
-        story.append(PageBreak())
+        if index:
+            story.append(PageBreak())
         path = ANNEXES / filename
         story.extend(parse_markdown(shift_headings(path.read_text(encoding="utf-8")), path.parent))
 
