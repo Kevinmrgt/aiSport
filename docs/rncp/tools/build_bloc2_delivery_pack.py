@@ -20,13 +20,13 @@ DOSSIER = (
     ROOT
     / "output"
     / "pdf"
-    / f"dossier-bloc2-rncp39583-alcide-{VERSION}-final-{DATE}.pdf"
+    / f"dossier-bloc2-rncp39583-alcide-v{VERSION}-final-{DATE}.pdf"
 )
 ANNEXES = (
     ROOT
     / "output"
     / "pdf"
-    / f"annexes-bloc2-rncp39583-alcide-{VERSION}-final-{DATE}.pdf"
+    / f"annexes-bloc2-rncp39583-alcide-v{VERSION}-final-{DATE}.pdf"
 )
 
 
