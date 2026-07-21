@@ -30,6 +30,10 @@ dans `MANIFESTE.txt`.
       des secrets, états OAuth, `.env`, `node_modules` et fichiers temporaires ;
 - [x] dossier limité à 30 pages hors annexes et contrôles de rendu prévus dans
       le processus de génération ;
+- [x] sommaires cliquables, signets hiérarchiques, langue et métadonnées des
+      deux PDF contrôlés ; absence de balisage PDF/UA signalée sans ambiguïté ;
+- [x] chemin CI négatif courant prouvé sur PR isolée, sans CD ni modification
+      de l'inventaire de production ;
 - [x] SHA Git et empreintes SHA-256 générés dans le manifeste du paquet.
 
 Après toute nouvelle correction documentaire, le paquet doit être reconstruit :

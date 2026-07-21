@@ -17,8 +17,8 @@
 | Pull request validation du paquet  | `https://github.com/Kevinmrgt/aiSport/pull/45` |
 | Correction documentaire antérieure | `https://github.com/Kevinmrgt/aiSport/pull/40` |
 | Version applicative                | `0.13.0-rc.3`                                  |
-| Tag du gel final corrigé           | `rncp-bloc2-2026-07-21-v6`                     |
-| Snapshot documentaire antérieur    | `rncp-bloc2-2026-07-21-v5` — CI/CD verte       |
+| Tag du gel final corrigé           | `rncp-bloc2-2026-07-21-v7`                     |
+| Snapshot documentaire antérieur    | `rncp-bloc2-2026-07-21-v6` — paquet final précédent |
 | CI baseline `main`                 | run `29845956008` — succès                     |
 | CD baseline `main`                 | run `29846343559` — succès                     |
 | CI/CD de consolidation antérieures | runs `29832575391` / `29832944876` — succès    |
@@ -27,9 +27,9 @@
 | API liveness                       | `https://ai-sport-api.vercel.app/health`       |
 | API readiness                      | `https://ai-sport-api.vercel.app/health/ready` |
 
-Le tag `rncp-bloc2-2026-07-21-v6` identifie le gel final corrigé après la fermeture de
-l'anomalie de reflow au zoom natif, son déploiement et sa contre-recette de
-production. Il ne déplace ni le tag applicatif `v0.13.0-rc.3`, ni les gels
+Le tag `rncp-bloc2-2026-07-21-v7` identifie le gel final enrichi par la preuve
+négative CI/CD courante B2-A38, la navigation PDF et les supports de soutenance.
+Il ne déplace ni le tag applicatif `v0.13.0-rc.3`, ni les gels
 documentaires antérieurs, conservés comme historiques. Le SHA de l'archive de
 remise peut être postérieur à `b002adb` lorsqu'il ne contient que des corrections
 documentaires ; la baseline applicative déployée reste alors explicitement
@@ -40,7 +40,7 @@ documentaires ; la baseline applicative déployée reste alors explicitement
 |  N° | Pièce                | Fichier                                                                       | Contrôle                                                                                                   |
 | --: | -------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 |  01 | Dossier écrit        | `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.3-final-2026-07-21.pdf` | maximum officiel de 30 pages hors annexes ; pagination, sommaire, liens et rendu visuel contrôlés          |
-|  02 | Annexes techniques   | `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.3-final-2026-07-21.pdf` | preuves sélectionnées A20, A25 à A31 et A34 à A37 ; limites explicites                                     |
+|  02 | Annexes techniques   | `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.3-final-2026-07-21.pdf` | guide jury, preuves A20, A25 à A31 et A34 à A38, trois manuels ; limites explicites                            |
 |  03 | Code source          | archive Git produite par `docs/rncp/tools/build_bloc2_delivery_pack.py`       | fichiers suivis du commit de remise, dont les trois manuels complets ; aucun secret, état OAuth, `.env` ou dépendance locale |
 |  04 | Notice et empreintes | `LISEZ-MOI.txt` et `MANIFESTE.txt` dans le paquet                             | ordre de lecture, SHA Git et SHA-256 de chaque pièce                                                       |
 
@@ -64,10 +64,10 @@ Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 | Frameworks et paradigmes                         | dossier §6 et ADR                                             |
 | Tests unitaires                                  | dossier §8, rapports API/Web/PostgreSQL/shared, B2-A31        |
 | Sécurité                                         | dossier §9, revue OWASP, B2-A35 et audit de dépendances       |
-| Accessibilité                                    | dossier §10, B2-A20/B2-A36/B2-A37, axe, zoom, clavier et limites humaines |
+| Accessibilité                                    | dossier §10, B2-A20/B2-A36/B2-A37, axe, zoom, clavier, tri contraste et limites humaines |
 | Historique des versions                          | dossier §11, Git et `CHANGELOG.md`                            |
 | Dernière version fonctionnelle, fiable et viable | dossier §11, CI/CD/healthchecks et B2-A28/B2-A37              |
-| Plan de tests et recette                         | dossier §12, cahier et B2-A34 à B2-A37                        |
+| Plan de tests et recette                         | dossier §12, cahier et B2-A34 à B2-A38                        |
 | Plan de correction des bogues                    | dossier §13 et registre B2-BUG                                |
 | Manuel de déploiement                            | dossier §14 et `docs/deployment.md`                           |
 | Manuel utilisateur                               | dossier §15 et manuel utilisateur autonome                    |
@@ -85,6 +85,9 @@ Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
       absence de débordement horizontal et axe sans violation critique/sérieuse ;
 - [x] images Docker API et Web construites dans la CI ;
 - [x] baseline `main` `b002adb` déployée avec migration et smoke tests par le run `29846343559` ;
+- [x] chemin négatif courant isolé : CI `29856584668` rouge, quatre jobs aval
+      ignorés, aucun CD associé et inventaires Vercel production inchangés ;
+- [x] politique de blocage du workflow CD testée localement : 6/6 ;
 - [x] 50 requêtes séquentielles sur chacun des trois endpoints de santé :
       150/150 réponses valides, p95 Web 508,63 ms, API liveness 339,66 ms et
       readiness 267,11 ms, sous l'objectif de 1 000 ms ;

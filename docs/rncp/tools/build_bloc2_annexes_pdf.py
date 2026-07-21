@@ -43,6 +43,7 @@ SELECTED = [
     "B2-A35-recettes-securite-finales-2026-07-21.md",
     "B2-A36-audit-accessibilite-final-2026-07-21.md",
     "B2-A37-controles-accessibilite-humains-2026-07-21.md",
+    "B2-A38-preuve-negative-ci-cd-2026-07-21.md",
 ]
 
 MANUALS = [
@@ -60,6 +61,14 @@ MANUALS = [
         "DOC-03",
         ROOT / "docs" / "rncp" / "bloc2-manuel-mise-a-jour.md",
         "Manuel de mise à jour complet",
+    ),
+]
+
+JURY_GUIDES = [
+    (
+        "GUIDE-01",
+        ROOT / "docs" / "rncp" / "bloc2-guide-lecture-jury-rncp39583.md",
+        "Guide de lecture du jury",
     ),
 ]
 
@@ -90,10 +99,13 @@ def annex_cover_story():
         "B2-A35": "Recettes sécurité finales OWASP et navigateur",
         "B2-A36": "Audit accessibilité final public et privé",
         "B2-A37": "Zoom natif, contrastes et contre-recette",
+        "B2-A38": "Preuve négative dynamique du blocage CI vers CD",
     }
     for filename in SELECTED:
         identifier = filename.split("-")[0] + "-" + filename.split("-")[1]
         rows.append([identifier, descriptions[identifier]])
+    for identifier, _path, description in JURY_GUIDES:
+        rows.append([identifier, description])
     for identifier, _path, description in MANUALS:
         rows.append([identifier, description])
 
@@ -113,8 +125,8 @@ def annex_cover_story():
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
                 ("LEFTPADDING", (0, 0), (-1, -1), 7),
                 ("RIGHTPADDING", (0, 0), (-1, -1), 7),
-                ("TOPPADDING", (0, 0), (-1, -1), 6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
             ]
         )
     )
@@ -123,7 +135,7 @@ def annex_cover_story():
         Paragraph("ANNEXES DE PREUVES", STYLES["CoverSub"]),
         Paragraph("Bloc 2", STYLES["CoverTitle"]),
         Paragraph(
-            "Preuves sélectionnées et documentation d'exploitation complète - hors limite des 30 pages du dossier",
+            "Guide de lecture, preuves sélectionnées et documentation d'exploitation complète - hors limite des 30 pages du dossier",
             STYLES["CoverSub"],
         ),
         Spacer(1, 5.4 * cm),
@@ -151,8 +163,21 @@ def shift_headings(source: str) -> str:
     return "\n".join(shifted)
 
 
+def nested_manual_sections(source: str) -> str:
+    """Retire le préambule du manuel puis imbrique ses sections sous DOC-xx."""
+    lines = source.splitlines()
+    first_section = next(
+        (index for index, line in enumerate(lines) if line.startswith("## ")),
+        None,
+    )
+    if first_section is None:
+        raise ValueError("Manuel sans section Markdown de niveau 2")
+    return shift_headings("\n".join(lines[first_section:]))
+
+
 def build_pdf(output: Path = OUTPUT) -> Path:
     missing = [filename for filename in SELECTED if not (ANNEXES / filename).is_file()]
+    missing.extend(str(path.relative_to(ROOT)) for _identifier, path, _description in JURY_GUIDES if not path.is_file())
     missing.extend(str(path.relative_to(ROOT)) for _identifier, path, _description in MANUALS if not path.is_file())
     if missing:
         raise FileNotFoundError(f"Annexes manquantes : {missing}")
@@ -165,16 +190,30 @@ def build_pdf(output: Path = OUTPUT) -> Path:
         rightMargin=1.5 * cm,
         topMargin=1.45 * cm,
         bottomMargin=1.55 * cm,
+        toc_max_level=0,
         title="Annexes Bloc 2 RNCP39583 - Alcide - final 2026-07-21",
         author="Candidat RNCP39583 - dossier anonymisé",
         subject="Preuves sélectionnées et documentation d'exploitation du dossier Bloc 2",
+        creator="Générateur documentaire Alcide - ReportLab",
+        keywords="RNCP39583, Bloc 2, annexes, preuves, manuels, Alcide, certification",
+        lang="fr-FR",
+        displayDocTitle=True,
     )
 
     story = annex_cover_story()
     story.extend(toc_story())
+
+    for identifier, path, description in JURY_GUIDES:
+        story.append(Paragraph(f"{identifier} - {description}", STYLES["H1x"]))
+        story.extend(
+            parse_markdown(
+                nested_manual_sections(path.read_text(encoding="utf-8")),
+                path.parent,
+            )
+        )
+
     for index, filename in enumerate(SELECTED):
-        if index:
-            story.append(PageBreak())
+        story.append(PageBreak())
         path = ANNEXES / filename
         story.extend(parse_markdown(shift_headings(path.read_text(encoding="utf-8")), path.parent))
 
@@ -183,9 +222,8 @@ def build_pdf(output: Path = OUTPUT) -> Path:
         story.append(Paragraph(f"{identifier} - {description}", STYLES["H1x"]))
         story.extend(
             parse_markdown(
-                path.read_text(encoding="utf-8"),
+                nested_manual_sections(path.read_text(encoding="utf-8")),
                 path.parent,
-                skip_preamble=True,
             )
         )
 

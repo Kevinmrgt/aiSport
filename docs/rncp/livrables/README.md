@@ -18,6 +18,11 @@ empreintes SHA-256. L'archive source exclut les fichiers non suivis : aucun
 secret, `.env`, `storageState`, cookie OAuth, `node_modules` ou artefact local
 n'y est ajouté.
 
+Le support `output/preparation-orale/kit-soutenance-bloc2-rncp39583-alcide-2026-07-21.pdf`
+regroupe le guide, le script chronométré, le plan de secours et les réponses
+aux questions probables. Il sert à la préparation du candidat et ne fait pas
+partie des pièces à déposer, sauf demande explicite du campus.
+
 ## Versions historiques
 
 Tous les PDF datés du `2026-07-16`, le fichier

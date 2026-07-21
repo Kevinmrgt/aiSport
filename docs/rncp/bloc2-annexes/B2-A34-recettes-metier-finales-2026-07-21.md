@@ -8,7 +8,7 @@
 > `29832944876` et E2E OAuth `29833210488` réussis.
 > Baseline canonique après le correctif de reflow, sans modification de ces règles métier :
 > `b002adb0e0e7d8d85ee493d54879e190d77d2078`, CI `29845956008`, CD `29846343559`.
-> Repère documentaire final : tag `rncp-bloc2-2026-07-21-v6`.
+> Repère documentaire final : tag `rncp-bloc2-2026-07-21-v7`.
 > Le SHA effectivement archivé est porté par le manifeste du paquet de remise.
 
 ## 1. Environnements et données
