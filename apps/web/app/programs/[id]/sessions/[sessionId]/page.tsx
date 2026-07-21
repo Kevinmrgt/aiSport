@@ -72,7 +72,6 @@ export default async function ProgramSessionPage({ params }: SessionPageProps) {
       });
       revalidatePath('/dashboard');
       revalidatePath(`/programs/${id}`);
-      revalidatePath(`/programs/${id}/sessions/${sessionId}`);
     } catch (error) {
       return {
         error: error instanceof Error ? error.message : "Impossible d'enregistrer la seance",

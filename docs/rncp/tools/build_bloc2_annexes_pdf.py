@@ -39,6 +39,9 @@ SELECTED = [
     "B2-A29-performance-production-2026-07-21.md",
     "B2-A30-prototype-authentifie-desktop-mobile-2026-07-21.md",
     "B2-A31-couverture-shared-2026-07-21.md",
+    "B2-A34-recettes-metier-finales-2026-07-21.md",
+    "B2-A35-recettes-securite-finales-2026-07-21.md",
+    "B2-A36-audit-accessibilite-final-2026-07-21.md",
 ]
 
 
@@ -64,6 +67,9 @@ def annex_cover_story():
         "B2-A29": "Performance des healthchecks de production",
         "B2-A30": "Prototype final desktop/mobile et axe privé",
         "B2-A31": "Couverture autonome du package shared",
+        "B2-A34": "Recettes métier finales et parcours journalisé",
+        "B2-A35": "Recettes sécurité finales OWASP et navigateur",
+        "B2-A36": "Audit accessibilité final public et privé",
     }
     for filename in SELECTED:
         identifier = filename.split("-")[0] + "-" + filename.split("-")[1]

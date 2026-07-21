@@ -86,9 +86,9 @@ export function WorkoutForm({ onSubmit, costEstimate }: WorkoutFormProps) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="section-kicker mb-3">Brief seance</p>
-          <h1 id="form-title" className="break-words text-3xl font-black text-white">
+          <h2 id="form-title" className="break-words text-3xl font-black text-white">
             Construire le training
-          </h1>
+          </h2>
         </div>
         <span className="icon-bubble bg-primary-300 text-zinc-950">
           <Icon name="zap" className="h-4 w-4" />

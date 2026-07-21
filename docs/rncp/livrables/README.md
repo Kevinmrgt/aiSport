@@ -23,7 +23,8 @@ n'y est ajouté.
 Tous les PDF datés du `2026-07-16`, le fichier
 `dossier-bloc2-candidat-corrige-2026-07-20.pdf` et le PDF non suffixé
 `final-2026-07-21` sont des versions de travail obsolètes. Ils précèdent tout ou
-partie des preuves B2-A26 à B2-A31 et ne doivent pas être remis au jury.
+partie des preuves B2-A26 à B2-A31 et B2-A34 à B2-A36 et ne doivent pas être
+remis au jury.
 
 Le manifeste de contrôle est
 `docs/rncp/MANIFESTE-DEPOT-BLOC2.md`. Il recense uniquement les contrôles
