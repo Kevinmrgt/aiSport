@@ -4,7 +4,7 @@
 >
 > Environnement testé : `https://ai-sport-web.vercel.app`
 >
-> Commit applicatif testé : `d0a6f0d5501b46ac6b80789e769b760e7bb076c6`
+> Commit applicatif testé : `d149076e32b6e48c1bd0811060a5ad726451ed83`
 >
 > Compétences : C2.2.1, C2.2.2, C2.2.3, C2.3.1 et C2.3.2
 
@@ -60,7 +60,8 @@ Commande :
 pnpm test:e2e:authenticated
 ```
 
-Résultat observé le 2026-07-21 : **4 tests réussis sur 4** en 10,7 s. Chaque
+Résultat observé le 2026-07-21 après la correction des dépendances : **4 tests
+réussis sur 4** en 13,4 s. Chaque
 scénario vérifie d'abord que `/api/auth/session` retourne exactement l'identité
 configurée.
 
@@ -74,9 +75,9 @@ Les contrôles qualité exécutés avant publication ont aussi réussi :
 ### GitHub Actions avec GitHub Secrets
 
 - Workflow : `E2E authentifié - compte Google dédié`
-- Run : [`29815416652`](https://github.com/Kevinmrgt/aiSport/actions/runs/29815416652)
+- Run : [`29816721099`](https://github.com/Kevinmrgt/aiSport/actions/runs/29816721099)
 - Job : `Parcours authentifié sans session personnelle`
-- Commit : `d0a6f0d5501b46ac6b80789e769b760e7bb076c6`
+- Commit : `d149076e32b6e48c1bd0811060a5ad726451ed83`
 - Conclusion : **success**
 
 Faits visibles dans le journal du run :
@@ -84,9 +85,9 @@ Faits visibles dans le journal du run :
 - les secrets `E2E_AUTH_EMAIL` et `E2E_AUTH_STORAGE_B64` sont présents ;
 - l'identité est masquée par GitHub dans la sortie ;
 - la session est restaurée dans un fichier hors suivi Git ;
-- `Running 4 tests using 1 worker` puis `4 passed (6.1s)` ;
+- `Running 4 tests using 1 worker` puis `4 passed (5.5s)` ;
 - l'étape de suppression de la session du runner réussit ;
-- le job complet réussit en 54 s.
+- le job complet réussit en 51 s.
 
 ## Limites conservées
 

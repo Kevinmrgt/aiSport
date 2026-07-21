@@ -70,7 +70,7 @@ et la contre-recette authentifiée ont été exécutés sur le SHA applicatif
 `3a21e3b2b547e99410388d5b83b62df79a436ea8`. B2-A25 distingue les anomalies
 reproduites sur `rc.2` de leur validation finale sur `rc.3`. B2-A26 ajoute la
 suite authentifiée exécutée sur le commit
-`d0a6f0d5501b46ac6b80789e769b760e7bb076c6` :
+`d149076e32b6e48c1bd0811060a5ad726451ed83` :
 
 - aucune erreur ESLint ;
 - aucune erreur TypeScript ;
@@ -80,7 +80,7 @@ suite authentifiée exécutée sur le commit
 - build de production réussi sous Node 24 ;
 - audit bloquant dès le niveau low ;
 - Playwright public réussi ; recette authentifiée manuelle réussie ; suite avec
-  `storageState` OAuth réel réussie 4/4 localement et dans la CI `29815416652`
+  `storageState` OAuth réel réussie 4/4 localement et dans la CI `29816721099`
   (B2-A26) ;
 - build Docker et procédure de migration/seed exécutables.
 
