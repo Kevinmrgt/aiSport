@@ -76,5 +76,4 @@ Aucun journal console n'a été observé durant la contre-recette `rc.3`.
 - il ne s'agit pas d'une suite Playwright authentifiée réutilisable avec
   `storageState` ;
 - le lecteur d'écran, le zoom 200/400 %, les ratios de contraste exhaustifs et
-  la recette mobile authentifiée restent à exécuter ;
-- aucun test utilisateur autonome distinct du candidat n'a été organisé.
+  la recette mobile authentifiée restent à exécuter.

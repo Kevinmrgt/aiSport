@@ -78,6 +78,6 @@ captures desktop/mobile sont consignées dans B2-A30. Cette preuve améliore le
 périmètre automatisé mais ne couvre pas toutes les pages privées, les niveaux
 axe `minor`/`moderate`, le zoom, les contrastes mesurés ou le lecteur d'écran.
 
-Le statut de conformité reste **non déterminé** tant que l'échantillon complet
-ci-dessus n'a pas été audité par une personne. La grille B2-A32 est fournie vide
-dans `docs/rncp/templates/` et ne doit être jointe qu'après exécution réelle.
+Le statut de conformité reste **non déterminé** : les contrôles exécutés
+démontrent des actions d'accessibilité, mais pas la conformité exhaustive au
+RGAA. Aucune déclaration « conforme RGAA » n'est donc formulée dans le dossier.
