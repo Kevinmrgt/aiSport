@@ -1,7 +1,7 @@
 # Revue de sécurité OWASP Top 10 — Alcide
 
 > Livrable transversal utilisé par le Bloc 2, compétence C2.2.3
-> Revue de code : 2026-07-20 — résultats d'exécution à rattacher au SHA final
+> Revue de code : 2026-07-21 - baseline de production `ac02d219...`
 
 ## Méthode et échelle
 
@@ -14,7 +14,7 @@ Cette revue suit les dix catégories OWASP Top 10 2021. Elle distingue :
 `pnpm audit` ne couvre que les vulnérabilités connues des dépendances. Il ne
 constitue pas à lui seul une revue OWASP Top 10.
 
-## A01 — Broken Access Control — à prouver
+## A01 — Broken Access Control — contrôlé
 
 Contrôles :
 
@@ -26,11 +26,11 @@ Contrôles :
   métadonnées depuis la ressource détenue par l'utilisateur ;
 - UUID validés avant PostgreSQL.
 
-Preuve locale intermédiaire : B2-A19 consigne 8/8 tests PostgreSQL réels avec
+Preuve : B2-A19 consigne 8/8 tests PostgreSQL réels avec
 deux utilisateurs, dont l'isolation et l'ownership workout/program/session-log.
-Les tests middleware et controllers sont exécutés dans la suite unitaire locale.
-Ces résultats portent sur `69b21ef-dirty` et restent à rejouer en CI sur le SHA
-final. L'existence d'une FK seule ne prouve pas l'ownership.
+Les tests ont été rejoués dans le job PostgreSQL de la CI `29817362423` sur
+`main`. Les tests middleware et controllers sont aussi exécutés dans la suite
+unitaire. L'existence d'une FK seule n'est pas utilisée comme preuve d'ownership.
 
 Risque résiduel : `SERVICE_SECRET` est une frontière de confiance à fort impact.
 Sa rotation et son stockage Vercel/GitHub doivent être documentés.
@@ -48,7 +48,7 @@ liés à l'identité. Une page de confidentialité informe l'utilisateur, mais l
 durée de conservation, l'export et la suppression de compte doivent être
 formalisés et, s'ils sont annoncés, réellement implémentés.
 
-## A03 — Injection — contrôlé à confirmer en intégration
+## A03 — Injection — contrôlé
 
 Les chaînes utilisateur ne sont pas nécessairement rejetées parce qu'elles
 ressemblent à du SQL. La protection repose sur les requêtes paramétrées Drizzle,
@@ -85,7 +85,7 @@ Risques résiduels :
 - les secrets et callbacks OAuth de production restent une configuration
   externe à vérifier.
 
-## A06 — Vulnerable and Outdated Components — à prouver
+## A06 — Vulnerable and Outdated Components — contrôlé
 
 Contrôles : lockfile, installation figée, audit dès le niveau low rendu bloquant en
 CI, versions Next.js/React situées sur une ligne corrigée.
@@ -104,7 +104,7 @@ transitives `brace-expansion` et `shell-quote` ont fait échouer la CI
 `29816347653` est verte. B2-A27 conserve l'échec, la correction et la
 contre-vérification.
 
-## A07 — Identification and Authentication Failures — à prouver
+## A07 — Identification and Authentication Failures — contrôlé avec limites
 
 Contrôles de code : Google OAuth, stratégie de session JWT Auth.js avec durée
 maximale configurée et vérification serveur sur chaque parcours protégé. Les
@@ -114,24 +114,26 @@ déployée ; ils ne sont pas considérés comme prouvés par la seule configurat
 La suite Playwright authentifiée n'utilise plus une fixture vide. B2-A26 prouve
 la capture d'un vrai `storageState` Auth.js après connexion Google manuelle, la
 vérification de l'identité, le filtrage des cookies sur le domaine Alcide et
-4/4 scénarios en CI. La déconnexion et l'accès sans session sont couverts par
-B2-A25 ; l'expiration et la rotation automatique restent à tester.
+4/4 scénarios en CI `29817741589`. La déconnexion et l'accès sans session sont
+couverts par B2-A25. La branche de finalisation ajoute le reflow mobile et axe,
+6/6 localement. L'expiration et la rotation automatique restent à tester.
 
-## A08 — Software and Data Integrity Failures — partiel
+## A08 — Software and Data Integrity Failures — contrôlé
 
 Contrôles : lockfile, `--frozen-lockfile`, CI avant CD, migrations versionnées,
 validation Zod des sorties OpenAI et images construites depuis le SHA.
 
-Le CD manuel contournant la CI est supprimé. La CLI Vercel doit être figée à une
-version explicite, les actions GitHub révisées périodiquement et le SHA déployé
-conservé dans le manifeste.
+Le CD manuel contournant la CI est supprimé. Les actions GitHub sont épinglées
+par SHA, la CLI Vercel est appelée avec une version explicite et le SHA déployé
+est conservé dans le manifeste. La CI `29817362423` puis la CD `29817698665`
+prouvent l'enchaînement sur la baseline `ac02d219...`.
 
 ## A09 — Security Logging and Monitoring Failures — partiel
 
 Les tentatives d'auth invalides, erreurs applicatives, appels IA et erreurs DB
-disposent d'appels de journalisation dans le code. Un monitoring de healthchecks
-a réellement tourné sur la production historique `0.12.0` ; son exécution sur
-la candidate reste à prouver.
+disposent d'appels de journalisation dans le code. Le monitoring planifié de
+production a réussi sur la candidate et la mesure B2-A29 a obtenu 150/150
+réponses valides sur les trois healthchecks.
 
 Risque résiduel : `console.*` n'offre ni corrélation systématique, ni rétention,
 ni alerte sécurité dédiée. Un logger structuré, un identifiant de requête, une
@@ -150,17 +152,17 @@ Preuves : tests timeout/retry et revue des appels réseau serveur.
 
 | Catégorie                 | État candidat | Preuve finale requise                            |
 | ------------------------- | ------------- | ------------------------------------------------ |
-| A01 Accès                 | À prouver     | PostgreSQL multi-utilisateur + API               |
+| A01 Accès                 | Contrôlé      | PostgreSQL multi-utilisateur + API               |
 | A02 Cryptographie/données | Partiel       | politique données et secrets                     |
-| A03 Injection             | À confirmer   | DB réelle + navigateur                           |
+| A03 Injection             | Contrôlé      | DB réelle + navigateur                           |
 | A04 Conception            | Partiel       | stratégie rate limit distribué ou risque accepté |
-| A05 Configuration         | Partiel       | headers et readiness de production               |
-| A06 Composants            | À prouver     | audit brut du lockfile final                     |
-| A07 Authentification      | À prouver     | Playwright avec vrai état Auth.js                |
-| A08 Intégrité             | Partiel       | CI/CD et SHA final                               |
+| A05 Configuration         | Partiel       | CSP à nonce et configuration externe             |
+| A06 Composants            | Contrôlé      | audit brut du lockfile final                     |
+| A07 Authentification      | Contrôlé      | Playwright avec vrai état Auth.js                |
+| A08 Intégrité             | Contrôlé      | CI/CD, actions épinglées et SHA                  |
 | A09 Logs                  | Partiel       | preuve monitoring et limites documentées         |
 | A10 SSRF                  | Contrôlé      | tests timeout + revue URL fixe                   |
 
-La revue ne conclut pas « 10/10 couvert ». Elle fournit au jury les contrôles,
-preuves et risques résiduels, puis sera figée après les exécutions de la version
-finale.
+La revue ne conclut pas « 10/10 sans risque ». Elle fournit au jury les
+contrôles exécutés et les risques résiduels : confidentialité, rate limit
+distribué, CSP à nonce, expiration de session et observabilité structurée.

@@ -1,354 +1,367 @@
-# Dossier Bloc 2 RNCP39583 — Alcide
+# Dossier Bloc 2 RNCP39583 - Alcide
 
 > Concevoir et développer des applications logicielles
-> Version candidate déployée : `0.13.0-rc.3` — 2026-07-20
-> Statut : **CI/CD, production et recette authentifiée desktop validées ; audit humain RGAA et mobile authentifié encore à exécuter**
+> Version applicative : `0.13.0-rc.3`
+> Baseline de production contrôlée : `ac02d219802614d1da4064e542f8de6c5487e5eb`
+> Dossier anonymisé, finalisé le 21 juillet 2026
 
-## 1. Cadre officiel et règle de validation
+## 1. Cadre officiel et composition du rendu
 
-Le présent dossier répond au référentiel RNCP39583 et non à une grille interne
-au projet. L'épreuve demande le code source, la documentation associée et un
-dossier écrit de 30 pages maximum. Les pièces attendues couvrent notamment CI,
-CD, architecture, prototype, tests unitaires, sécurité, accessibilité,
-versions, recette, correction des bogues et trois manuels d'exploitation.
+L'évaluation du Bloc 2 est une mise en situation professionnelle sous la forme
+d'un projet individuel. Le candidat remet le code source du logiciel, la
+documentation associée et un dossier écrit de 30 pages maximum hors annexes.
+Le référentiel public France Compétences et le règlement spécial Ynov
+identifient seize éléments à présenter.
 
-Le bloc comporte neuf compétences. Il faut en acquérir au moins cinq et les
-quatre compétences éliminatoires doivent toutes être acquises :
+| Attendu officiel                                 | Emplacement principal dans ce rendu           |
+| ------------------------------------------------ | --------------------------------------------- |
+| Protocole de déploiement continu                 | section 3 et manuel de déploiement            |
+| Critères de qualité et de performance            | section 3, annexes B2-A28 et B2-A29           |
+| Protocole d'intégration continue                 | section 4                                     |
+| Architecture maintenable                         | section 5                                     |
+| Présentation d'un prototype                      | section 7 et annexe B2-A30                    |
+| Frameworks et paradigmes                         | section 6                                     |
+| Jeu de tests unitaires                           | section 8 et annexe B2-A31                    |
+| Mesures de sécurité                              | section 9 et revue OWASP                      |
+| Accessibilité aux personnes handicapées          | section 10                                    |
+| Historique des versions                          | section 11 et `CHANGELOG.md`                  |
+| Dernière version fonctionnelle, fiable et viable | sections 7 et 11                              |
+| Cahier de recettes                               | section 12 et `docs/bloc2/cahier-recettes.md` |
+| Plan de correction des bogues                    | section 13                                    |
+| Manuel de déploiement                            | section 14                                    |
+| Manuel utilisateur                               | section 15                                    |
+| Manuel de mise à jour                            | section 16                                    |
 
-- C2.2.1 — prototype ;
-- C2.2.2 — harnais de tests unitaires couvrant la majorité du code développé ;
-- C2.2.3 — logiciel évolutif, sécurisé, accessible et conforme ;
-- C2.3.1 — cahier de recettes couvrant l'ensemble des fonctionnalités attendues.
+Le jury est composé de deux professionnels externes. Un bloc est validé si au
+moins 50 % des neuf compétences sont acquises et si aucune compétence
+éliminatoire n'est non acquise. Les quatre compétences éliminatoires sont
+C2.2.1, C2.2.2, C2.2.3 et C2.3.1.
 
-Il n'existe pas de « seuil RNCP de 70 % ». Les seuils Vitest sont des gates de
-projet ; la réponse à C2.2.2 doit s'appuyer sur le périmètre réellement
-instrumenté et sur la représentativité des tests.
+Sources : [fiche RNCP39583](https://www.francecompetences.fr/recherche/rncp/39583/),
+référentiel officiel pages 7 à 10 et règlement spécial Ynov version 1.01 du
+15 septembre 2025 fournis avec le dossier.
 
-## 2. Synthèse de la version candidate
+## 2. Synthèse de conformité factuelle
 
-| Compétence | État de la version candidate                                                            | Condition de fermeture                                  |
-| ---------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| C2.1.1     | Environnements décrits                                                                  | rapport de performance final et preuves datées          |
-| C2.1.2     | CI du SHA applicatif `3a21e3b` verte                                                    | aucune sur le périmètre automatisé                      |
-| C2.2.1     | Prototype `0.13.0-rc.3` déployé ; parcours publics et authentifiés desktop vérifiés      | recette authentifiée mobile et utilisateur autonome     |
-| C2.2.2     | Tests API/Web/PostgreSQL exécutés localement et en CI ; shared non isolé                | archiver les rapports bruts de couverture du SHA déposé |
-| C2.2.3     | Revue OWASP, audit des dépendances, axe public et interactions authentifiées réalisés   | audit RGAA humain complet                               |
-| C2.2.4     | Merge, migration, CD et smoke tests du SHA applicatif réussis                           | tag du gel documentaire final                           |
-| C2.3.1     | Recettes publiques automatisées exécutées                                               | recettes authentifiées et validation humaine            |
-| C2.3.2     | Registre enrichi avec les défauts réellement découverts et tests de non-régression liés | clôture des réserves issues de la recette humaine       |
-| C2.4.1     | Manuels présents ; procédures non validées depuis un clone vierge                       | test depuis un clone vierge et paquet final             |
+Cette synthèse décrit les preuves disponibles. Elle ne remplace pas la décision
+du jury.
 
-Cette table ne préjuge pas de la décision du jury. Elle distingue volontairement
-le code écrit d'une preuve d'exécution effectivement obtenue.
+| Compétence                                     | Preuve principale                                             | État avant dépôt                       |
+| ---------------------------------------------- | ------------------------------------------------------------- | -------------------------------------- |
+| C2.1.1 Environnements, qualité, performance    | Node 24, Docker, Vercel, Neon, healthchecks, mesure A29       | étayé                                  |
+| C2.1.2 Intégration continue                    | CI `29817362423`, rapports et images Docker                   | étayé                                  |
+| C2.2.1 Prototype                               | production, recette authentifiée, captures desktop/mobile A30 | étayé                                  |
+| C2.2.2 Tests unitaires                         | shared 14 tests, API 155, Web 43, PostgreSQL 8                | étayé                                  |
+| C2.2.3 Sécurité, accessibilité, conformité     | OWASP, audit dépendances, axe public/authentifié              | audit humain RGAA à joindre            |
+| C2.2.4 Déploiement progressif et versionnement | Git, CI, migration, CD `29817698665`, smoke tests             | étayé                                  |
+| C2.3.1 Cahier de recettes                      | inventaire fonctionnel, résultats et anomalies reliés         | étayé, contrôle humain final conseillé |
+| C2.3.2 Correction des bogues                   | registre B2-BUG et tests de non-régression                    | étayé                                  |
+| C2.4.1 Documentation d'exploitation            | trois manuels présents et versionnés                          | étayé                                  |
 
-## 3. C2.1.1 — Environnements, qualité et performance
+Le risque résiduel principal concerne C2.2.3. Les contrôles axe, clavier et
+reflow mobile ne doivent pas être présentés comme un audit humain RGAA complet.
+La grille humaine à signer avant dépôt est fournie séparément.
 
-### Environnement de développement et de test
+## 3. C2.1.1 - Environnements, déploiement continu, qualité et performance
 
-| Élément              | Choix du projet                                   | Vérification                         |
-| -------------------- | ------------------------------------------------- | ------------------------------------ |
-| Gestion de sources   | Git et dépôt GitHub                               | branche, SHA, historique, PR/CI      |
-| Gestion monorepo     | pnpm workspace                                    | `pnpm install --frozen-lockfile`     |
-| Runtime de référence | Node.js 24 LTS en local, CI, conteneurs et Vercel | `node --version`                     |
-| Compilateur          | TypeScript 5.7 via `tsc`                          | `pnpm typecheck`, `pnpm build`       |
-| Serveur Web          | Next.js 15 App Router                             | build et healthcheck Web             |
-| Serveur API          | Hono sur Node.js                                  | tests routes et health/readiness API |
-| Base                 | PostgreSQL 16, Drizzle ORM                        | migrations et tests d'intégration    |
-| Tests                | Vitest, Testing Library, Playwright, axe          | rapports API, Web et navigateur      |
-| Conteneurs           | Docker multi-stage et Compose                     | build, migration/seed, healthchecks  |
-| Production           | Vercel Web/API et Neon PostgreSQL                 | déploiement et smoke tests           |
+### Environnements de développement et de test
 
-Le candidat doit ajouter dans la version remise le nom et la version de
-l'éditeur effectivement utilisé. Le présent audit a été réalisé sous Windows,
-PowerShell et Codex desktop ; cette information ne doit pas être remplacée par
-un éditeur fictif.
+| Composant              | Choix réel                               | Contrôle                                          |
+| ---------------------- | ---------------------------------------- | ------------------------------------------------- |
+| Poste candidat         | Windows, PowerShell, Codex desktop       | commandes et traces datées                        |
+| Gestion de sources     | Git et GitHub                            | branches, commits, pull requests, tags            |
+| Monorepo               | pnpm workspaces 11.9                     | lockfile figé et installation `--frozen-lockfile` |
+| Runtime et compilation | Node.js 24, TypeScript 5.7               | typecheck et builds CI                            |
+| Web                    | Next.js 15 App Router                    | build et healthcheck Web                          |
+| API                    | Hono sur Node.js                         | tests HTTP, liveness et readiness                 |
+| Données                | PostgreSQL 16 et Drizzle ORM             | migrations et tests d'intégration réels           |
+| IA                     | OpenAI côté serveur                      | validation Zod, timeout et gestion des erreurs    |
+| Tests                  | Vitest, Testing Library, Playwright, axe | quatre rapports de couverture et rapports E2E     |
+| Production             | Vercel Web/API et Neon                   | CD, smoke tests et monitoring                     |
 
-### Gates qualité visées
+Le déploiement continu commence uniquement après une CI verte sur `main` :
+migration Drizzle, déploiement API, smoke test API, déploiement Web puis smoke
+test Web. Le run `29817698665` a exécuté cette séquence sur la baseline
+`ac02d219...`. Les healthchecks ont ensuite répondu HTTP 200 avec la version
+`0.13.0-rc.3`, PostgreSQL `ok` et configuration IA `ok`.
 
-La liste ci-dessous décrit les conditions de fermeture. Les contrôles publics
-et la contre-recette authentifiée ont été exécutés sur le SHA applicatif
-`3a21e3b2b547e99410388d5b83b62df79a436ea8`. B2-A25 distingue les anomalies
-reproduites sur `rc.2` de leur validation finale sur `rc.3`. B2-A26 ajoute la
-suite authentifiée exécutée sur le commit
-`d149076e32b6e48c1bd0811060a5ad726451ed83` :
+### Critères mesurables retenus
 
-- aucune erreur ESLint ;
-- aucune erreur TypeScript ;
-- tests API et Web réussis, contrats shared exercés et périmètre shared
-  explicitement documenté ;
-- rapport de couverture API et Web conservé sans exclusions opportunistes ;
-- build de production réussi sous Node 24 ;
-- audit bloquant dès le niveau low ;
-- Playwright public réussi ; recette authentifiée manuelle réussie ; suite avec
-  `storageState` OAuth réel réussie 4/4 localement et dans la CI `29816721099`
-  (B2-A26) ;
-- build Docker et procédure de migration/seed exécutables.
+| Critère                                | Objectif                                            | Résultat observé                                           |
+| -------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------- |
+| Lint et typecheck                      | aucune erreur                                       | réussi                                                     |
+| Tests                                  | 100 % des suites sélectionnées réussies             | réussi                                                     |
+| Couverture de chaque périmètre runtime | majorité des lignes, seuils CI respectés            | shared 100 %, API 85,64 %, Web 69,04 %, PostgreSQL 93,70 % |
+| Audit de dépendances                   | aucune vulnérabilité connue au niveau low           | réussi                                                     |
+| Production Web/API                     | 100 % de réponses valides sur 50 requêtes par route | 150/150                                                    |
+| Latence healthchecks                   | p95 inférieur ou égal à 1 000 ms                    | Web 508,63 ms, API 339,66 ms, readiness 267,11 ms          |
+| Build Web                              | bundle initial partagé documenté                    | 102 kB sur le build local final                            |
 
-### Performance
+La mesure A29 est une mesure séquentielle depuis le poste candidat. Elle ne
+constitue pas un test de charge distribué et ne mesure pas le temps d'une
+génération IA payante. Les timeouts et erreurs fournisseur sont couverts par
+les tests API ; la génération réelle et le nettoyage des données sont décrits
+dans B2-A25.
 
-Un simple HTTP 200 ne constitue pas une mesure de performance. La preuve finale
-doit au minimum conserver : durée build/CI, latence des healthchecks, durée des
-générations IA, timeout observé, taille des pages ou Web Vitals et résultat d'un
-petit test de charge sur les routes sans coût IA. Les objectifs doivent être
-reliés à l'usage : navigation réactive, absence de 504 et retour d'erreur clair
-avant la limite Vercel.
+## 4. C2.1.2 - Protocole d'intégration continue
 
-Une première mesure locale réelle est consignée dans B2-A21 : sur 50 requêtes
-séquentielles, le p95 observé est de 8,18 ms pour `/health` et 36,35 ms pour
-`/health/ready`. Elle couvre PostgreSQL local, mais ni Vercel/Neon ni OpenAI, et
-ne remplace donc pas la mesure du SHA final en production.
+Le workflow `.github/workflows/ci.yml` applique les étapes suivantes :
 
-## 4. C2.1.2 — Intégration continue
+1. checkout du commit et installation figée par `pnpm-lock.yaml` ;
+2. compilation du package partagé ;
+3. lint, typecheck et tests de politiques de déploiement/session ;
+4. tests et couvertures shared, API et Web ;
+5. migrations et tests d'intégration PostgreSQL 16 ;
+6. tests Playwright publics et accessibilité axe ;
+7. build de tous les packages ;
+8. audit des dépendances bloquant dès le niveau low ;
+9. construction des images Docker API et Web ;
+10. publication des rapports de couverture et du rapport Playwright.
 
-Le protocole cible est :
+Le run `29817362423` sur `main` a réussi les six jobs. Les rapports bruts API,
+Web, PostgreSQL et Playwright sont disponibles comme artefacts GitHub Actions.
+La branche de finalisation ajoute le rapport autonome `shared` afin que ce
+périmètre ne soit plus seulement exercé indirectement par l'API.
 
-1. checkout du SHA ;
-2. installation figée par lockfile ;
-3. build du package partagé ;
-4. lint et typecheck ;
-5. tests et couverture API/Web ;
-6. build des packages ;
-7. tests Playwright et accessibilité ;
-8. audit de dépendances bloquant dès le niveau low ;
-9. build des images Docker ;
-10. migration Drizzle bloquante après une CI verte sur `main` ;
-11. déploiement API puis Web, avec smoke tests, seulement si la migration réussit.
-
-Le workflow CD manuel qui permettait de contourner la CI est supprimé de la
-version candidate. Le déploiement reste conditionné par la variable de projet
-et par un `workflow_run` réussi. `deploy-api` dépend de `migrate-db`, puis
-`deploy-web` dépend de `deploy-api`. La preuve réelle finale est la CI `29747228594`
-puis la CD `29747592571`, toutes deux réussies. Pour le même SHA, les builds Git
-de production ont été annulés et une seule production GitHub Actions a abouti
-par projet.
-
-## 5. Architecture maintenable
+## 5. Architecture logicielle maintenable
 
 ```text
 Navigateur
-  -> Next.js Server Components / Server Actions
+  -> Next.js App Router et Server Actions
   -> API Hono protégée par secret interservice et identité utilisateur
   -> controllers -> services métier -> repositories
   -> PostgreSQL / OpenAI
+
+GitHub Actions
+  -> qualité et tests -> migration -> API -> Web -> smoke tests
 ```
 
-Les contrats partagés sont placés dans `packages/shared`. Les entrées HTTP et
-les sorties IA sont validées par Zod. Les accès aux ressources sont contrôlés
-avec l'identité de l'utilisateur. Les corrections de cette version introduisent
-notamment une couche service pour les journaux de séance afin de ne plus faire
-porter l'ownership au seul contrôleur.
+Les responsabilités sont séparées : interface et orchestration serveur dans
+`apps/web`, API dans `apps/api`, contrats Zod et types dans `packages/shared`.
+Les contrôleurs traduisent HTTP, les services portent les règles métier et les
+repositories isolent PostgreSQL. Les contrôles d'ownership sont effectués avec
+l'identité utilisateur reçue du Web et non avec un identifiant fourni librement
+par le navigateur.
 
-Écarts architecturaux restant à suivre : duplication de certains schémas
-d'entrée entre API et shared, observabilité fondée sur `console.*` et rate limit
-mémoire non distribué.
+Les décisions d'architecture sont tracées dans huit ADR. Les risques résiduels
+connus sont l'observabilité encore fondée sur des logs simples et le rate limit
+en mémoire, non partagé entre instances.
 
-## 6. C2.2.1 — Prototype et besoins couverts
+## 6. Frameworks, bibliothèques et paradigmes
 
-Le prototype vise un utilisateur sportif authentifié et couvre les user stories
-suivantes :
+| Élément                   | Usage                                            | Justification                                       |
+| ------------------------- | ------------------------------------------------ | --------------------------------------------------- |
+| Next.js et React          | interface, rendu serveur, actions                | séparation serveur/client et routage structuré      |
+| Hono                      | API HTTP                                         | surface légère, middlewares explicites, testabilité |
+| Drizzle ORM               | accès PostgreSQL et migrations                   | schéma typé et requêtes paramétrées                 |
+| Zod                       | validation des entrées et sorties IA             | contrats exécutables et erreurs structurées         |
+| Vitest et Testing Library | tests unitaires/composants                       | tests rapides centrés sur le comportement           |
+| Playwright et axe         | recettes navigateur et accessibilité automatisée | validation du rendu réel                            |
 
-| ID    | Besoin attendu                                     | Parcours                         |
-| ----- | -------------------------------------------------- | -------------------------------- |
-| US-01 | Se connecter et protéger les données personnelles  | OAuth Google, routes privées     |
-| US-02 | Générer une séance adaptée                         | `/generate` puis détail          |
-| US-03 | Générer un programme multi-semaines cohérent       | `/programs/generate` puis détail |
-| US-04 | Retrouver et filtrer ses séances/programmes        | listes, filtres, pagination      |
-| US-05 | Exécuter une séance avec pause/reprise             | Timer                            |
-| US-06 | Journaliser effort, feedback et douleur éventuelle | fin de séance                    |
-| US-07 | Suivre sa progression                              | dashboard                        |
-| US-08 | Choisir le modèle OpenAI autorisé                  | settings                         |
-| US-09 | Supprimer une ressource avec confirmation          | dialogues accessibles            |
-| US-10 | Utiliser les parcours au clavier et sur mobile     | audit RGAA représentatif         |
+Le projet applique une architecture en couches, l'injection de dépendances dans
+les services testés, des fonctions pures pour les calculs et statistiques, des
+contrats partagés, des composants React composables et une stratégie
+fail-fast dans la CI/CD.
 
-Le prototype de référence `https://ai-sport-web.vercel.app` sert la version
-`0.13.0-rc.3`. Les healthchecks Web et API, la readiness PostgreSQL/IA, la
-session privée, les créations/suppressions métier, le Timer, le dashboard, les
-paramètres et la déconnexion ont été contrôlés après le déploiement du SHA
-applicatif `3a21e3b2b547e99410388d5b83b62df79a436ea8` (B2-A25).
+## 7. C2.2.1 - Prototype fonctionnel, ergonomique et sécurisé
 
-## 7. C2.2.2 — Harnais de tests unitaires
+Le prototype cible une application Web responsive. Il couvre la connexion
+OAuth, la génération d'une séance ou d'un programme, les listes et filtres, le
+détail, le Timer, le journal de séance, le dashboard, les paramètres et la
+suppression contrôlée. Les routes privées redirigent sans session et les données
+sont filtrées par propriétaire.
 
-Le harnais comprend :
+![Formulaire de génération d'une séance, production authentifiée, bureau, 21 juillet 2026](./bloc2-annexes/screenshots/final-2026-07-21/B2-A30-generation-seance-desktop-2026-07-21.png)
 
-- tests des schémas et invariants métier partagés ;
-- tests des services IA, erreurs, retry et timeout global ;
-- tests controllers et validation UUID ;
-- tests d'ownership pour workout, programme et journaux ;
-- tests Web de logique, composants et erreurs utilisateur ;
-- tests d'intégration PostgreSQL ou preuve explicitement séparée ;
-- tests Playwright, qui complètent mais ne remplacent pas les unitaires.
+![Même formulaire à 390 px sans débordement horizontal, production authentifiée, 21 juillet 2026](./bloc2-annexes/screenshots/final-2026-07-21/B2-A30-generation-seance-mobile-2026-07-21.png)
 
-Les rapports API et Web sont publiés séparément. La mesure locale du
-2026-07-20 sur la candidate `0.13.0-rc.1` donne :
+La recette B2-A25 a créé une séance et un programme réels, vérifié leur durée,
+le Timer, les onglets, les listes, le dashboard et les paramètres, puis supprimé
+uniquement les données de recette. B2-A30 ajoute des captures actuelles sans
+adresse électronique ni donnée personnelle affichée.
 
-| Rapport                    | Statements |  Branches | Functions |     Lines | Périmètre/exclusions                                                                                                       |
-| -------------------------- | ---------: | --------: | --------: | --------: | -------------------------------------------------------------------------------------------------------------------------- |
-| API unitaire               |    84,97 % |   80,40 % |   95,38 % |   84,97 % | `src`, hors bootstrap, DB, repositories et routes déclaratives ; repositories mesurés séparément en intégration PostgreSQL |
-| API intégration PostgreSQL |    93,69 % |      80 % |     100 % |   93,69 % | repositories et service d'ownership inclus par `vitest.integration.config.ts` ; 8 tests réels sur PostgreSQL 16.14         |
-| Web                        |    68,07 % |   77,45 % |   79,38 % |   68,07 % | `app`, `components`, `lib` ; les pages serveur non instanciées apparaissent bien à 0 %                                     |
-| Shared                     |  Non isolé | Non isolé | Non isolé | Non isolé | schémas exercés par 6 tests de contrats API, mais pas de rapport instrumenté autonome                                      |
+## 8. C2.2.2 - Harnais de tests unitaires
 
-Les suites locales de `0.13.0-rc.3` comptent 155 tests API et 43 tests Web
-réussis. Un PostgreSQL 16.14 réel a également exécuté 8/8 tests d'intégration
-sur la candidate locale `69b21ef-dirty`, preuve séparée consignée dans B2-A19.
-Le job PostgreSQL, les tests Playwright publics et axe ont ensuite réussi sur le
-SHA applicatif final dans la CI `29747228594`. Les rapports bruts de couverture
-du SHA déposé ne sont pas archivés et les cas Playwright ne sont pas comptés
-comme tests unitaires.
+| Rapport        | Tests |  Lignes | Branches | Fonctions | Périmètre                                               |
+| -------------- | ----: | ------: | -------: | --------: | ------------------------------------------------------- |
+| Shared         |    14 |   100 % |  92,85 % |     100 % | schémas workout, programme, journal                     |
+| API unitaire   |   155 | 85,64 % |  80,40 % |   95,38 % | controllers, services, middlewares, schémas             |
+| API PostgreSQL |     8 | 93,70 % |     80 % |     100 % | repositories et ownership sur PostgreSQL 16             |
+| Web            |    43 | 69,04 % |  78,03 % |   80,88 % | composants, formulaires, utilitaires et pages publiques |
 
-Le nombre de tests ou un pourcentage API isolé ne suffit pas. Cette mesure
-montre une majorité sur les périmètres instrumentés, avec une faiblesse visible
-sur plusieurs pages serveur Web. La clôture C2.2.2 reste donc conditionnée au
-run CI du SHA final et à l'archivage de tous les rapports bruts.
+Les rapports distinguent volontairement les tests unitaires des tests
+d'intégration et E2E. Les pages serveur Web difficiles à instancier restent
+visibles à 0 % dans le rapport ; elles sont complétées par les recettes
+Playwright, sans gonfler artificiellement le taux unitaire. Les seuils de chaque
+périmètre runtime dépassent la majorité demandée par le référentiel.
 
-## 8. C2.2.3 — Conformité fonctionnelle, sécurité et accessibilité
+Le harnais couvre notamment validation des formulaires, invariants de durée IA,
+retry et timeout, erreurs 401/403/404/429/503, ownership, Timer, focus des
+dialogues, statistiques, contrats partagés et accès PostgreSQL.
 
-### Conformité fonctionnelle
+## 9. C2.2.3 - Sécurité et conformité fonctionnelle
 
-Les sorties IA ne sont plus acceptées uniquement parce que le JSON est valide.
-Les schémas et services vérifient les invariants utiles : durée, structure,
-numérotation et quantité de semaines/séances. Les cas force/répétitions et les
-tolérances retenues doivent rester couverts par des tests métier.
+La revue `docs/security/owasp-review.md` relie les contrôles aux catégories
+OWASP Top 10. Les mesures effectivement mises en oeuvre comprennent :
 
-Le Timer mesure le temps actif et non le temps mural incluant les pauses. Les
-erreurs réseau ne sont plus transformées silencieusement en fausses 404 ou en
-paramètres prétendument enregistrés.
-
-### Sécurité OWASP Top 10
-
-La revue détaillée se trouve dans `docs/security/owasp-review.md`. Les preuves
-ne doivent pas réduire l'OWASP Top 10 à `pnpm audit`. Les points centraux sont :
-
-- contrôle d'accès et ownership de chaque ressource liée ;
-- secrets utilisés dans les modules serveur ; l'absence dans les bundles et le
-  réseau de la candidate déployée reste à vérifier ;
+- OAuth via Auth.js et routes privées côté serveur ;
+- secret interservice et propagation contrôlée de l'identité ;
+- ownership sur chaque ressource utilisateur ;
+- validation Zod des entrées HTTP et sorties IA ;
 - requêtes Drizzle paramétrées ;
-- validation des entrées et des IDs ;
-- timeout global inférieur à la limite de la fonction ;
-- configuration CSP/CORS/headers ;
-- audit de dépendances bloquant ;
-- intégrité de la CI et versions d'outils figées ;
-- logs/monitoring et traitement des incidents ;
-- URL OpenAI fixe pour prévenir la SSRF.
+- CSP, CORS et en-têtes de sécurité ;
+- secrets exclus du navigateur et du dépôt ;
+- rate limiting, timeout et erreurs explicites ;
+- audit de dépendances bloquant en CI ;
+- actions GitHub épinglées et chaîne CI/CD testée ;
+- journalisation des erreurs d'authentification, limites et appels IA.
 
-Les risques résiduels, notamment rate limit mémoire et absence de SIEM, sont
-présentés comme tels et non comme des contrôles complets.
+B2-A27 consigne la correction de vulnérabilités de dépendances découvertes par
+la CI. L'audit final local ne remonte aucune vulnérabilité connue. Les risques
+non masqués sont le rate limit mémoire et l'absence de SIEM centralisé.
 
-### Accessibilité
+## 10. C2.2.3 - Accessibilité et handicap
 
-Le référentiel choisi est le RGAA 4.1.2, fondé sur WCAG 2.1 A/AA. Le choix,
-l'échantillon et la méthode figurent dans
-`docs/rncp/bloc2-accessibilite-rgaa.md`.
+Le référentiel choisi est le RGAA 4.1.2, fondé sur WCAG 2.1 A/AA. Les actions
+implémentées comprennent structure sémantique, lien d'évitement, labels,
+messages `role="alert"`, navigation clavier, gestion du focus des dialogues et
+du Timer, noms accessibles, reflow responsive et contrastes corrigés.
 
-La recette instrumentée locale B2-A20 a réussi 12/12 contrôles sur Chromium et
-12/12 sur Firefox. Elle couvre quatre pages publiques à 320 px, axe ciblé,
-console et erreurs JavaScript, le lien d'évitement, le nom du bouton Google et
-quatre redirections sans session. Elle a conduit à corriger deux défauts de
-focus/nom accessible et un contraste visuellement faible. Après déploiement,
-la redirection `/dashboard` vers `/login`, le lien d'évitement et le démarrage
-OAuth jusqu'au formulaire Google ont aussi été observés sur `0.13.0-rc.2`.
-B2-A25 ajoute une session authentifiée réelle : formulaires, création séance et
-programme, Timer, onglets, suppressions, dashboard, paramètres et déconnexion.
-Cette recette a découvert quatre anomalies, corrigées et contre-recettées sur
-`0.13.0-rc.3`. Les contrôles humains complets — zoom, ratios de contraste,
-lecteur d'écran et mobile authentifié — restent à consigner. Le statut
-« conforme RGAA » reste interdit tant que l'audit humain final n'est pas terminé.
+Les preuves automatisées réelles sont :
 
-## 9. C2.2.4 — Version, déploiement et viabilité
+- 12/12 contrôles Chromium et 12/12 Firefox sur le périmètre public B2-A20 ;
+- redirections sans session et démarrage OAuth réel B2-A24 ;
+- interactions authentifiées et corrections de focus B2-A25 ;
+- six tests Playwright authentifiés, dont reflow à 390 px et axe sur le
+  formulaire privé B2-A30 ;
+- aucune violation axe critique ou sérieuse dans ce dernier contrôle.
 
-La séquence technique de `0.13.0-rc.3` est tracée : merge sur `main`, gates CI,
-SHA immuable, migration, déploiement de ce SHA puis healthchecks et démarrage
-OAuth. Le tag `v0.13.0-rc.3` identifie le gel documentaire final qui contient
-ce dossier et son PDF. La session obtenue par le candidat et les parcours
-métier authentifiés sont consignés dans B2-A25 ; B2-A26 prouve le filtrage et
-l'usage CI d'un `storageState` réel. L'expiration/rotation automatique de la
-session et le test d'utilisation autonome restent hors des preuves acquises.
+Limite : axe ne couvre pas tout le RGAA. Avant dépôt, un humain doit encore
+consigner le zoom 200/400 %, les contrastes exhaustifs, la restitution avec un
+lecteur d'écran et un parcours privé représentatif. Cette réserve concerne une
+compétence éliminatoire et figure donc explicitement dans la checklist finale.
 
-Le changelog identifie `0.13.0-rc.3` comme préversion datée. Les anciens domaines
-`alcide-*` ne sont plus des cibles de production.
+## 11. C2.2.4 - Historique, dernière version et viabilité
 
-## 10. C2.3.1 — Cahier de recettes
+| Jalons                | Contenu vérifiable                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------ |
+| 0.10 à 0.12           | programmes, Timer, journaux, dashboard et durcissement progressif                    |
+| 0.13.0-rc.1           | PostgreSQL et chaîne Docker validés                                                  |
+| 0.13.0-rc.2           | audit dépendances et CD Vercel canonique                                             |
+| 0.13.0-rc.3           | corrections issues de la recette authentifiée                                        |
+| finalisation du rendu | OAuth Playwright sécurisé, dépendances corrigées, shared couvert, mobile authentifié |
 
-Le cahier de recettes est `docs/bloc2/cahier-recettes.md`. Son inventaire couvre
-les familles fonctionnelles identifiées : authentification, séances, programmes,
-listes, détail,
-suppression, Timer, journaux, dashboard, paramètres, sécurité, accessibilité,
-healthchecks, CI/CD et déploiement.
+`CHANGELOG.md`, les commits, les pull requests et les tags conservent
+l'historique. La baseline `ac02d219...` a passé la CI, la migration, les deux
+déploiements et les smoke tests. Les endpoints Web/API répondent en version
+`0.13.0-rc.3`. Le tag de remise sera créé après fusion, calcul des empreintes et
+création de l'archive.
 
-Pour chaque cas, il distingue :
+## 12. C2.3.1 - Cahier de recettes
 
-- attendu ;
-- obtenu ;
-- environnement et date ;
-- exécution manuelle, automatique ou inspection ;
-- preuve ;
-- anomalie associée.
+Le cahier `docs/bloc2/cahier-recettes.md` couvre authentification, séances,
+programmes, listes, filtres, détail, suppression, Timer, journaux, dashboard,
+paramètres, erreurs IA, sécurité, accessibilité, healthchecks et déploiement.
+Chaque ligne distingue attendu, résultat, méthode, environnement, preuve et
+anomalie associée.
 
-Une inspection du repository ou le comportement supposé de React/Zod n'est pas
-considéré comme une recette exécutée.
+Les résultats reposent sur trois niveaux complémentaires : tests unitaires et
+d'intégration, Playwright public/authentifié, puis recette manuelle de
+production B2-A25. Une simple lecture du code n'est jamais enregistrée comme
+une recette exécutée.
 
-## 11. C2.3.2 — Correction des bogues
+## 13. C2.3.2 - Plan de correction des bogues
 
-Le registre se trouve dans
-`docs/rncp/bloc2-plan-correction-bogues-rncp39583.md`. Les défauts découverts le
-2026-07-20 y sont traités comme de vraies anomalies : couverture partielle,
-fixture E2E vide, ownership session-log, invariants IA, Timer, accessibilité,
-CSP, Docker, CI sécurité, versionnement et incohérences documentaires.
+Le plan `docs/rncp/bloc2-plan-correction-bogues-rncp39583.md` décrit détection,
+qualification, priorité, cause, correctif, non-régression et preuve. Les défauts
+réellement trouvés concernent notamment ownership, invariants IA, Timer,
+accessibilité, CSP, Docker, CI/CD, dépendances, messages de formulaire, filtres
+et cohérence documentaire.
 
-Une anomalie ne passe à « corrigée » qu'après correctif, test de non-régression
-réussi et preuve rattachée au SHA final.
+Une anomalie n'est déclarée corrigée qu'après modification et contre-recette.
+Les éléments encore humains ou externes restent des réserves, pas des bogues
+fictivement clôturés.
 
-## 12. C2.4.1 — Documentation d'exploitation
+## 14. C2.4.1 - Manuel de déploiement
 
-| Document                                       | Rôle                                |
-| ---------------------------------------------- | ----------------------------------- |
-| `docs/deployment.md`                           | déploiement Vercel, Neon et Docker  |
-| `docs/ci-cd.md`                                | séquences CI/CD et rollback         |
-| `docs/rncp/bloc2-manuel-utilisateur-alcide.md` | parcours et erreurs utilisateur     |
-| `docs/rncp/bloc2-manuel-mise-a-jour.md`        | évolution, migrations, rollback     |
-| `docs/security/owasp-review.md`                | revue sécurité et risques résiduels |
-| `docs/rncp/bloc2-accessibilite-rgaa.md`        | référentiel et audit accessibilité  |
-| `docs/rncp/MANIFESTE-DEPOT-BLOC2.md`           | contenu et identité de la remise    |
+Le manuel `docs/deployment.md` décrit prérequis, variables d'environnement,
+installation, migrations, seed, déploiement Vercel/Neon, Docker Compose,
+healthchecks et rollback. La CI empêche le déploiement si les contrôles ou la
+migration échouent. Les secrets sont stockés dans les environnements dédiés et
+ne sont pas inclus dans l'archive source.
 
-La procédure Docker utilise des services `migrate` et `seed` basés sur le stage
-builder. Elle ne demande plus d'exécuter `drizzle-kit` ou `tsx` dans l'image API
-de production qui ne les contient pas.
+Séquence résumée : installer depuis le lockfile, valider les variables, migrer,
+construire, déployer l'API, vérifier sa readiness, déployer le Web puis lancer
+les smoke tests.
 
-B2-A22 consigne l'exécution locale réelle des deux builds Node 24/pnpm 11.9,
-des runtimes non-root, de `migrate`, de `seed` et du nettoyage ciblé. La CI
-`29747228594` confirme aussi le build Docker du SHA applicatif final. Le contrôle
-depuis un clone vierge n'a pas été archivé.
+## 15. C2.4.1 - Manuel utilisateur
 
-## 13. État des annexes et preuves résiduelles
+Le manuel `docs/rncp/bloc2-manuel-utilisateur-alcide.md` présente la connexion,
+la génération, la consultation, le Timer, le journal, le dashboard, les
+paramètres, les suppressions et les messages d'erreur. Il est destiné à un
+utilisateur non technique et sépare les actions métier des opérations
+d'administration.
 
-Sont acquises et référencées : lint, typecheck, tests, build, PostgreSQL,
-Playwright public, axe, Playwright authentifié avec `storageState` OAuth réel,
-build Docker, audit de dépendances au niveau `low`, CI, CD, healthchecks,
-démarrage OAuth, recette authentifiée desktop, anomalies et contre-recette,
-manifeste et PDF contrôlé.
+La démonstration de production B2-A25 montre que ces parcours sont
+manipulables. Un retour signé d'un utilisateur distinct du candidat reste une
+preuve complémentaire utile, mais n'est pas inventé dans ce dossier.
 
-Restent à produire sans les simuler :
+## 16. C2.4.1 - Manuel de mise à jour
 
-- rapports bruts de couverture du SHA déposé, dont une mesure autonome du
-  package `shared` ;
-- instrumentation des écrans de compte et de consentement Google ;
-- grille d'audit RGAA humain, captures desktop/mobile associées et lecteur
-  d'écran ;
-- rapport de performance final ;
-- retour d'un utilisateur autonome ;
-- contrôle archivé depuis un clone vierge.
+Le manuel `docs/rncp/bloc2-manuel-mise-a-jour.md` décrit branche, pull request,
+tests, dépendances, migration, déploiement, vérification et rollback. Il impose
+une sauvegarde avant opération sensible, des migrations non destructrices et
+la rotation des secrets si nécessaire.
 
-## 14. Conclusion
+La mise à jour des dépendances est contrôlée par lockfile, audit local, audit CI
+et tests complets. B2-A27 fournit un exemple réel où une nouvelle alerte a fait
+échouer la CI puis a été corrigée sans relâcher le seuil de sécurité.
 
-Alcide `0.13.0-rc.3` est déployée après CI, migration et CD réussies. Les
-healthchecks API/Web annoncent cette version, PostgreSQL et la configuration IA
-sont prêts, l'audit de dépendances ne remonte aucune vulnérabilité connue et la
-CD n'effectue plus de double production. La recette authentifiée a réellement
-généré puis supprimé ses données de test et a conduit à quatre corrections
-contre-recettées. La candidate ne doit toutefois pas être annoncée comme
-« prête au dépôt sans réserve » tant que l'audit humain RGAA et les contrôles
-personnels résiduels ne sont pas exécutés.
+## 17. Matrice finale des preuves
 
-Cette formulation vise à distinguer ce qui est implémenté, ce qui est prouvé et
-ce qui reste à exécuter, sans abaisser les
-critères officiels des compétences éliminatoires.
+| Compétence | Annexes principales        | Démonstration                     |
+| ---------- | -------------------------- | --------------------------------- |
+| C2.1.1     | B2-A21, A22, A28, A29      | healthchecks et protocole CD      |
+| C2.1.2     | B2-A16, A23, A27, A28      | run CI et artefacts               |
+| C2.2.1     | B2-A25, A26, A30           | production desktop/mobile         |
+| C2.2.2     | B2-A19, A28, A31           | rapports de couverture séparés    |
+| C2.2.3     | B2-A20, A23 à A30          | OWASP, axe, OAuth, mobile         |
+| C2.2.4     | B2-A22, A25, A28           | Git, migration, CD, smoke tests   |
+| C2.3.1     | B2-A12, A20, A25, A26, A30 | cahier et recettes exécutées      |
+| C2.3.2     | B2-A13, A25, A27           | anomalies et non-régressions      |
+| C2.4.1     | manuels et B2-A22          | déployer, utiliser, mettre à jour |
+
+L'index détaillé et les pièces complètes figurent dans le PDF d'annexes. Les
+preuves historiques sont conservées dans le dépôt mais ne sont pas incluses
+comme preuves finales du paquet jury.
+
+## 18. Contrôles humains restant avant dépôt
+
+Les actions suivantes ne peuvent pas être déclarées réalisées par un agent ou
+un test automatique :
+
+1. faire exécuter par une personne un parcours privé sans aide, puis conserver
+   date, appareil, scénario, observations et accord de conservation ;
+2. compléter la grille RGAA humaine sur un échantillon public et privé : zoom
+   200/400 %, clavier, focus, contrastes et lecteur d'écran ;
+3. corriger puis contre-recetter toute anomalie découverte ;
+4. demander au campus la date et l'heure exactes, le nommage, la taille maximale
+   et le niveau d'anonymisation attendu sur DigiformaCertif ;
+5. déposer le dossier, les annexes et l'archive source avant l'échéance.
+
+Ces points sont fournis sous forme de checklist dans le paquet final. Ils ne
+sont pas remplacés par des résultats automatisés.
+
+## 19. Conclusion
+
+Alcide dispose d'un code source versionné, d'une architecture structurée, de
+tests couvrant majoritairement chaque périmètre runtime, d'une CI/CD réelle,
+d'une production contrôlée, d'un cahier de recettes, d'un plan de correction et
+des trois manuels demandés. Les preuves finales incluent désormais la session
+Playwright hors Git, la couverture autonome de `shared`, le reflow authentifié
+mobile, les captures actuelles et une mesure de performance reproductible.
+
+Le dossier est techniquement consolidé. Il ne doit toutefois être qualifié de
+prêt à déposer sans réserve qu'après l'audit RGAA humain, le test utilisateur
+autonome et la vérification administrative du dépôt. Cette limite protège la
+crédibilité du rendu et la compétence éliminatoire C2.2.3.

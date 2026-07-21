@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 import { existsSync, readFileSync } from 'node:fs';
 
 const sessionFile = process.env['PLAYWRIGHT_AUTH_STORAGE'];
@@ -85,5 +86,32 @@ test.describe('Formulaire de generation (session OAuth de test requise)', () => 
     await expect(goalsError).toHaveAttribute('role', 'alert');
     await expect(goalsError).toBeVisible();
     await expect(goalsError).toContainText('L’objectif ne peut pas être vide');
+  });
+
+  test('reste utilisable sans débordement horizontal sur un écran mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/generate');
+    const form = page.getByRole('form', { name: 'Construire le training' });
+    await expect(form).toBeVisible();
+
+    const dimensions = await page.evaluate(() => ({
+      viewportWidth: document.documentElement.clientWidth,
+      contentWidth: document.documentElement.scrollWidth,
+    }));
+    expect(dimensions.contentWidth).toBeLessThanOrEqual(dimensions.viewportWidth);
+    await expect(page.getByRole('button', { name: /generer la seance/i })).toBeVisible();
+  });
+
+  test('ne présente aucune violation axe critique ou sérieuse sur le formulaire authentifié', async ({
+    page,
+  }) => {
+    await page.goto('/generate');
+    await expect(page.getByRole('form', { name: 'Construire le training' })).toBeVisible();
+
+    const results = await new AxeBuilder({ page }).analyze();
+    const blockingViolations = results.violations.filter(({ impact }) =>
+      ['critical', 'serious'].includes(impact ?? ''),
+    );
+    expect(blockingViolations).toEqual([]);
   });
 });
