@@ -70,14 +70,31 @@ du bouton Google et les redirections de `/generate`, `/programs`, `/workouts` et
 `/settings` sans session. Les résultats détaillés et les limites figurent dans
 `B2-A20-recette-navigateur-accessibilite-publique-2026-07-20.md`.
 
-Le 2026-07-21, la suite Playwright authentifiée a été étendue sur `/generate` :
-viewport mobile 390 × 844, contrôle d'absence de débordement horizontal et
-analyse axe sans violation `critical` ou `serious`. Les six tests locaux ont
-réussi avec un `storageState` OAuth réel conservé uniquement hors Git. Les
-captures desktop/mobile sont consignées dans B2-A30. Cette preuve améliore le
-périmètre automatisé mais ne couvre pas toutes les pages privées, les niveaux
-axe `minor`/`moderate`, le zoom, les contrastes mesurés ou le lecteur d'écran.
+Le 2026-07-21, une campagne finale dédiée a ensuite exécuté **33/33 contrôles
+Playwright en production authentifiée** sur trois pages publiques et cinq pages
+privées : reflow 640/320 pixels CSS, cycle clavier complet, focus visible,
+contrastes axe sans filtrage de sévérité, arbre d'accessibilité Chromium et
+annonces d'erreur. Un contrôle indépendant a ajouté `/programs/generate`.
+Deux titres internes de formulaire détectés en `h1` ont été corrigés en `h2` et
+protégés par 2/2 tests de structure. Les détails reproductibles figurent dans
+B2-A36.
 
-Le statut de conformité reste **non déterminé** : les contrôles exécutés
-démontrent des actions d'accessibilité, mais pas la conformité exhaustive au
-RGAA. Aucune déclaration « conforme RGAA » n'est donc formulée dans le dossier.
+Les ratios opaques représentatifs mesurés sont de 17,36:1 sur les pages
+publiques et 8,19:1 sur les pages privées, au-dessus du seuil AA de 4,5:1.
+Axe conserve toutefois un contrôle `incomplete` par page pour des fonds
+composites. Le reflow 640/320 est une équivalence CSS du zoom 200/400 %, pas une
+preuve de raccourci de zoom réel. L'arbre d'accessibilité n'est pas assimilé à
+une restitution NVDA, Narrator, JAWS ou VoiceOver.
+
+## Conclusion pour C2.2.3
+
+L'exigence RNCP de **présenter les actions mises en œuvre pour permettre
+l'accès aux personnes en situation de handicap** est étayée par des
+correctifs, des tests reproductibles, un échantillon public/privé et des
+résultats mesurés. Le périmètre automatisable est contrôlé.
+
+Le statut réglementaire de conformité exhaustive au RGAA reste **non
+déterminé**, ce qui est volontaire et distinct de l'état de la compétence :
+il manque un essai réel de zoom navigateur, la vérification humaine des fonds
+composites et un parcours avec un vrai lecteur d'écran. Aucune déclaration
+« conforme RGAA » n'est formulée avant ces trois opérations.
