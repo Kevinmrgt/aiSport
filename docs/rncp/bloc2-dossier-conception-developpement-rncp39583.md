@@ -271,7 +271,7 @@ l'historique. La baseline finale `0d5c6b6...` a passé la CI `29832575391`, la
 migration et les deux déploiements `29832944876`, les smoke tests et l'E2E
 authentifié `29833210488` en 6/6. Les endpoints Web/API répondent en version
 `0.13.0-rc.3`. Le gel final est identifié par le tag
-`rncp-bloc2-2026-07-21-v3` ; les deux premiers gels restent historiques.
+`rncp-bloc2-2026-07-21-v4` ; les gels antérieurs restent historiques.
 
 ## 12. C2.3.1 - Cahier de recettes
 
