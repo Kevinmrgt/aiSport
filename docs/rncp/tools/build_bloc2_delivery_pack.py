@@ -81,7 +81,16 @@ def main() -> None:
 
     dossier_pages, dossier_text = validate_pdf(DOSSIER, maximum_pages=30)
     annex_pages, annex_text = validate_pdf(ANNEXES)
-    for expected in ["B2-A26", "B2-A27", "B2-A30", "B2-A31", "29817741589"]:
+    for expected in [
+        "B2-A26",
+        "B2-A27",
+        "B2-A30",
+        "B2-A31",
+        "B2-A34",
+        "B2-A35",
+        "B2-A36",
+        "29833210488",
+    ]:
         if expected not in dossier_text + annex_text:
             raise ValueError(f"Preuve absente des PDF : {expected}")
 
