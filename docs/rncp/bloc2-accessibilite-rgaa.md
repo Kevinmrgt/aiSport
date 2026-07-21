@@ -1,102 +1,115 @@
-# Référentiel et plan de vérification accessibilité — Bloc 2
+# Référentiel et périmètre de vérification accessibilité — Bloc 2
 
-> Compétence : C2.2.3 — état consolidé du 2026-07-21.
+> Compétence : C2.2.3 — état vérifié le 2026-07-21.
 
-## Référentiel choisi et justification
+## Référentiel choisi et portée de l'évaluation
 
-Alcide retient le **RGAA 4.1.2**, méthode française actuellement publiée,
-adossée aux critères A et AA de WCAG 2.1 :
+Alcide retient le **RGAA 4.1.2**, méthode française en vigueur au moment de
+l'évaluation, adossée aux critères A et AA de WCAG 2.1 :
 
 - [RGAA 4.1.2](https://accessibilite.numerique.gouv.fr/) ;
-- [méthode technique RGAA](https://accessibilite.numerique.gouv.fr/methode/introduction/) ;
+- [critères et tests RGAA](https://accessibilite.numerique.gouv.fr/methode/criteres-et-tests/) ;
 - [WCAG 2.1](https://www.w3.org/TR/WCAG21/).
 
-Ce choix est pertinent pour un service Web en français et fournit des critères
-et tests reproductibles. Axe et Playwright servent de détecteurs de régression ;
-ils ne remplacent pas un audit humain. Aucune mention « conforme RGAA » ne doit
-être utilisée avant l'évaluation manuelle d'un échantillon représentatif.
+Ce choix fournit des critères et des tests reproductibles pour un service Web
+en français. La matrice ci-dessous décrit le **périmètre effectivement
+contrôlé** pour le Bloc 2 ; elle n'est ni un audit réglementaire exhaustif des
+106 critères, ni une déclaration d'accessibilité.
+
+Les statuts employés signifient :
+
+- **couvert sur l'échantillon** : les contrôles annoncés ont été exécutés et
+  ont réussi sur les pages indiquées ;
+- **partiel** : une preuve automatique ou manuelle existe, mais une
+  appréciation humaine reste nécessaire ;
+- **non applicable observé** : aucun composant de cette famille n'a été trouvé
+  dans les états inspectés ; ce statut ne préjuge pas d'un futur contenu ;
+- **ouvert** : aucun résultat positif n'est revendiqué.
 
 ## Échantillon représentatif
 
-| Page ou état          | Enjeu                             | Automatique        | Manuel                       |
-| --------------------- | --------------------------------- | ------------------ | ---------------------------- |
-| `/`                   | structure, navigation, contrastes | Playwright + axe   | clavier, zoom 200/400 %      |
-| `/login`              | authentification                  | Playwright + axe   | intitulé et retour d'erreur  |
-| `/generate` séance    | formulaire métier                 | Playwright + axe   | erreurs, ordre de tabulation |
-| `/programs/generate`  | formulaire métier                 | Playwright + axe   | erreurs, attente longue      |
-| `/workouts`           | liste, filtres, pagination        | Playwright + axe   | clavier et reflow mobile     |
-| `/workouts/[id]`      | contenu généré et Timer           | Playwright + axe   | annonces, pause, plein écran |
-| `/programs` et détail | onglets et contenu complexe       | Playwright + axe   | flèches clavier, focus       |
-| `/dashboard`          | statistiques                      | Playwright + axe   | compréhension hors couleur   |
-| `/settings`           | formulaire de préférences         | Playwright + axe   | erreur et confirmation       |
-| dialogue suppression  | modale destructive                | test composant/E2E | focus, Échap, restauration   |
+| Page ou état | Enjeu principal | Contrôle exécuté |
+| --- | --- | --- |
+| `/` | structure, navigation, images, contrastes | axe, clavier, arbre AX, zoom natif |
+| `/login` | authentification | axe, clavier, arbre AX, zoom natif |
+| `/confidentialite` | contenu éditorial | axe, clavier, arbre AX, zoom natif |
+| `/dashboard` | statistiques et états dynamiques | axe, clavier, arbre AX, zoom natif |
+| `/generate` | formulaire métier et erreurs | axe, clavier, alertes, arbre AX, zoom natif |
+| `/programs` | liste et contenu complexe | axe, clavier, arbre AX, zoom natif |
+| `/workouts` | liste et filtres | axe, clavier, arbre AX, zoom natif |
+| `/settings` | formulaire de préférences | axe, clavier, arbre AX, zoom natif |
 
-## Contrôles manuels obligatoires
+Des contrôles complémentaires historiques couvrent `/programs/generate`, le
+détail d'une séance, le Timer, les onglets de programme et les dialogues de
+suppression. Ils sont distingués des huit routes rejouées dans la campagne
+finale de production.
 
-- navigation complète au clavier, sans piège et avec focus visible ;
-- ordre de focus cohérent et retour du focus après fermeture d'une modale ;
-- titres, régions, listes, tableaux et formulaires sémantiquement structurés ;
-- noms accessibles et messages d'erreur reliés aux champs ;
-- annonces des changements dynamiques sans répétition excessive ;
-- contraste des textes, composants, focus et états désactivés ;
-- zoom texte 200 %, zoom navigateur 400 % et reflow à 320 px CSS ;
-- absence de contenu ou d'action disponible uniquement à la souris ;
-- Timer utilisable avec lecteur d'écran et sans dépendre uniquement du temps ;
-- contenu généré par IA lisible même lorsque sa longueur varie.
+## Matrice de périmètre RGAA exploitable
 
-## Règles de preuve
+| Thématique RGAA | Éléments observés et preuve | Méthode | Statut et limite |
+| --- | --- | --- | --- |
+| 1. Images | Images Next.js publiques et décoratives | axe public, inspection des noms accessibles | **Partiel** : présence d'alternatives contrôlée automatiquement ; pertinence éditoriale non auditée image par image |
+| 2. Cadres | Aucun `iframe` ou `frame` dans les composants observés | recherche source et échantillon navigateur | **Non applicable observé** |
+| 3. Couleurs | Textes, boutons, focus, fonds opaques et composites | axe `color-contrast`, calculs sRGB, focus visible | **Partiel** : 0 violation calculable ; 416 nœuds `incomplete` exigent une décision humaine sur les composites |
+| 4. Multimédia | Aucun lecteur audio ou vidéo dans les composants observés | recherche source et échantillon navigateur | **Non applicable observé** |
+| 5. Tableaux | Aucun tableau de données dans les états observés | recherche source et échantillon navigateur | **Non applicable observé** |
+| 6. Liens | Navigation, lien d'évitement, cartes et actions | axe public, inventaire tabulable, cycle `Tab` | **Couvert sur l'échantillon** ; pertinence de tous les intitulés futurs à maintenir |
+| 7. Scripts | Formulaires, erreurs, dialogues, Timer, onglets | tests composants, alertes `role="alert"`, clavier, arbre AX | **Partiel** : nom/rôle/état et focus sont testés ; restitution vocale réelle ouverte |
+| 8. Éléments obligatoires | Langue, titres de pages et structure HTML | axe public, arbre AX, tests de structure | **Couvert sur l'échantillon** |
+| 9. Structuration | `main`, navigation nommée, titres, listes, formulaires | arbre AX sur huit routes, tests `h1`/`h2` | **Couvert sur l'échantillon** ; deux titres internes ont été corrigés de `h1` vers `h2` |
+| 10. Présentation | Reflow, zoom, focus, longueur variable des contenus | zoom Chromium natif 200/400 %, reflow CSS, contrôle des rectangles | **Partiel** : zoom 16/16 sans rognage ; contraste composite humain encore ouvert |
+| 11. Formulaires | Labels, erreurs reliées, contrôles de séance et de paramètres | axe, tests composants, clavier, alertes | **Couvert sur les formulaires échantillonnés** |
+| 12. Navigation | Skip link, menu, ordre de tabulation, absence de piège | cycles clavier complets sur huit routes | **Couvert sur l'échantillon** |
+| 13. Consultation | Contenus générés, changements dynamiques, Timer | tests composants/E2E et arbre AX | **Partiel** : structure et annonces DOM contrôlées ; confort de restitution par lecteur d'écran ouvert |
 
-Chaque contrôle final doit préciser : date, navigateur, viewport, technologie
-d'assistance éventuelle, page, critère, résultat, anomalie et preuve. Les
-violations `minor` et `moderate` ne sont pas filtrées du rapport final. Toute
-anomalie est reliée au plan de correction Bloc 2 et à un test de non-régression.
+Cette matrice doit être mise à jour dès qu'un nouveau type de contenu apparaît.
+Un statut « non applicable observé » devient à réévaluer si un cadre, un média
+ou un tableau est ajouté.
 
-## État courant
+## Résultats automatisés rejoués
 
-Les composants disposent déjà de bases utiles : langue française, skip link,
-HTML sémantique, labels, focus visible, états de chargement et zones dynamiques.
-Une campagne automatisée locale a produit 24 fichiers JSON et 8 captures pour
-Chromium et Firefox dans
-`docs/rncp/bloc2-annexes/browser-evidence-2026-07-20/`. Les deux runs finaux ont
-réussi, 12/12 sur Chromium puis 12/12 sur Firefox. À 320 × 720 px, les quatre
-pages observées (`/`, `/login`, `/confidentialite` et la page 404) ont une
-largeur de document de 320 px et aucune `pageerror` JavaScript. Axe ne rapporte
-aucune violation pour les tags WCAG 2.1 A/AA sélectionnés. Le statut HTTP 404 et
-le message console réseau émis uniquement par Chromium sont conservés comme
-observations attendues, pas supprimés du rapport.
+Les contrôles suivants ont été rejoués le 2026-07-21 sans exposer le contenu du
+stockage OAuth local :
 
-La campagne couvre aussi le lien d'évitement sur trois pages, le nom accessible
-du bouton Google et les redirections de `/generate`, `/programs`, `/workouts` et
-`/settings` sans session. Les résultats détaillés et les limites figurent dans
-`B2-A20-recette-navigateur-accessibilite-publique-2026-07-20.md`.
+- suite publique locale Chromium et Firefox : **48 tests lancés, commande
+  terminée avec le code 0** ;
+- suite RNCP de production authentifiée : **33 tests lancés, commande terminée
+  avec le code 0** sur les huit routes de l'échantillon ;
+- zoom Chromium natif en production : **16/16 mesures** à 200 % et 400 %, zoom
+  obtenu 2×/4×, aucun débordement horizontal et aucun texte ou contrôle rogné ;
+- contraste détaillé en production : **8 routes, 0 violation, 19 nœuds
+  calculés conformes et 416 nœuds `incomplete`** ;
+- tests de structure des deux formulaires : **2/2 réussis**.
 
-Le 2026-07-21, une campagne finale dédiée a ensuite exécuté **33/33 contrôles
-Playwright en production authentifiée** sur trois pages publiques et cinq pages
-privées : reflow 640/320 pixels CSS, cycle clavier complet, focus visible,
-contrastes axe sans filtrage de sévérité, arbre d'accessibilité Chromium et
-annonces d'erreur. Un contrôle indépendant a ajouté `/programs/generate`.
-Deux titres internes de formulaire détectés en `h1` ont été corrigés en `h2` et
-protégés par 2/2 tests de structure. Les détails reproductibles figurent dans
-B2-A36. Après fusion et déploiement de la baseline `0d5c6b6...`, les 33
-contrôles ont été rejoués avec le même résultat ; la CI `29832575391`, le CD
-`29832944876` et l'E2E OAuth `29833210488` sont également verts.
+Les 416 résultats `incomplete` ne sont pas 416 non-conformités : axe ne sait
+pas calculer le fond composite final. Ils ne sont pas davantage considérés
+comme conformes sans vérification humaine.
 
-Les ratios opaques représentatifs mesurés sont de 17,36:1 sur les pages
-publiques et 8,19:1 sur les pages privées, au-dessus du seuil AA de 4,5:1.
-Axe conserve toutefois un contrôle `incomplete` par page pour des fonds
-composites. Le reflow 640/320 est une équivalence CSS du zoom 200/400 %, pas une
-preuve de raccourci de zoom réel. L'arbre d'accessibilité n'est pas assimilé à
-une restitution NVDA, Narrator, JAWS ou VoiceOver.
+## Contrôles humains et règles de preuve
+
+Les contrôles automatisés couvrent le reflow, le zoom natif, une partie des
+contrastes, l'ordre de tabulation, le focus visible, les alertes et la structure
+de l'arbre d'accessibilité. Ils ne permettent pas d'évaluer seuls :
+
+- la pertinence de chaque alternative et de chaque intitulé ;
+- chaque contraste sur gradient, image ou pseudo-élément ;
+- l'ordre, la concision et le confort d'une restitution vocale réelle ;
+- l'ensemble des critères RGAA sur toutes les variantes de données.
+
+Chaque contrôle humain futur doit préciser date, navigateur, page, état de
+données, technologie d'assistance, critère, résultat, anomalie et preuve. Toute
+anomalie doit être reliée au plan de correction et à une contre-recette.
 
 ## Conclusion pour C2.2.3
 
-L'exigence RNCP de **présenter les actions mises en œuvre pour permettre
-l'accès aux personnes en situation de handicap** est étayée par des
-correctifs, des tests reproductibles, un échantillon public/privé et des
-résultats mesurés. Le périmètre automatisable est contrôlé.
+L'exigence RNCP de présenter les actions mises en œuvre pour permettre l'accès
+aux personnes en situation de handicap est étayée par des correctifs, des
+tests reproductibles, un échantillon public/privé et un véritable zoom
+navigateur à 200 % et 400 %.
 
-Le statut réglementaire de conformité exhaustive au RGAA reste **non
-déterminé**, ce qui est volontaire et distinct de l'état de la compétence :
-il manque un essai réel de zoom navigateur, la vérification humaine des fonds
-composites et un parcours avec un vrai lecteur d'écran. Aucune déclaration
-« conforme RGAA » n'est formulée avant ces trois opérations.
+Deux limites restent volontairement explicites : la qualification humaine des
+fonds composites signalés `incomplete` et un parcours avec un vrai lecteur
+d'écran. **Aucun test NVDA, Narrator, JAWS ou VoiceOver n'a été réalisé ou
+observé dans cette campagne.** L'arbre AX Chromium n'est pas assimilé à une
+restitution vocale. La conformité RGAA exhaustive reste donc non déterminée et
+n'est pas revendiquée.

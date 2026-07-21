@@ -11,11 +11,19 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+> Correctifs de stabilisation postérieurs au gel nominal `0.13.0-rc.3`, mais
+> déjà déployés sous la même version de service. La baseline applicative
+> canonique est `b002adb0e0e7d8d85ee493d54879e190d77d2078`, validée par la CI
+> `29845956008` et le CD `29846343559`.
+
 ### Fixed
 
 - Validation serveur des modèles OpenAI alignée sur l'allowlist de l'interface ; une valeur arbitraire renvoie désormais HTTP 400 sans persistance.
 - Confirmation de journalisation préservée en évitant la revalidation inutile de la page Timer courante.
 - Hiérarchie des pages de génération corrigée : un seul `h1` de page et titres internes de formulaire en `h2`.
+- Reflow au zoom natif 400 % corrigé : remplacement des troncatures par des
+  retours à la ligne dans `MetricPill`, `ProgramCard` et `WorkoutCard`, puis
+  contre-recette de production réussie à 200/400 % sur huit routes, 16/16.
 
 ### Added
 

@@ -23,6 +23,10 @@ Les contrôles couvrent le reflow 640/320 pixels CSS, le cycle clavier, la
 visibilité du focus, `color-contrast`, l'arbre d'accessibilité Chromium et les
 alertes du formulaire de génération.
 
+Un nouveau rejeu le 2026-07-21 a lancé les **33 tests** sur la même production
+et s'est terminé avec le code 0. Les traces, captures et vidéos sont restées
+désactivées afin de ne pas enregistrer la session.
+
 ## 2. Zoom navigateur natif à 200 % et 400 %
 
 Le test `scripts/e2e-native-zoom-audit.mjs` charge une extension Chromium locale
@@ -67,6 +71,11 @@ séparés sous `tmp/accessibility-final/native-zoom/` afin de ne pas les
 confondre. Le rapport post-déploiement est
 `native-zoom-production.json`.
 
+Le contrôle a été rejoué le 2026-07-21 à `16:56:26Z` sur Chromium
+`147.0.7727.15`. Résultat : **16/16 mesures**, facteurs réels 2× et 4×,
+`devicePixelRatio` cohérent, contenu principal et titre visibles, aucun
+débordement horizontal, aucun texte ni contrôle rogné sur les huit routes.
+
 ## 3. Contrastes opaques et composites
 
 Le script `scripts/e2e-contrast-incomplete-audit.mjs` a rejoué la règle axe
@@ -75,6 +84,11 @@ Le script `scripts/e2e-contrast-incomplete-audit.mjs` a rejoué la règle axe
 - **0 violation** ;
 - 416 nœuds classés `incomplete` : 331 à cause de gradients, 69 à cause de
   pseudo-éléments, 15 textes trop courts et un élément recouvert.
+
+Le rejeu du 2026-07-21 à `16:55:46Z`, avec Chromium `147.0.7727.15`, confirme
+le même résultat route par route : **0 violation**, **19 nœuds calculés et
+classés conformes**, **416 nœuds `incomplete`**. Le rapport JSON temporaire ne
+contient ni cookie ni identité de compte.
 
 Ces 416 occurrences ne sont pas 416 non-conformités : elles indiquent qu'axe ne
 peut pas calculer automatiquement le fond composite final. Les mesures opaques
@@ -101,3 +115,19 @@ Il reste à traiter séparément :
 2. un parcours avec un lecteur d'écran réel et la consignation de la restitution.
 
 La conformité RGAA exhaustive reste non revendiquée.
+
+## 6. Matrice de décision
+
+| Contrôle | Méthode réellement exécutée | Résultat | Décision |
+| --- | --- | --- | --- |
+| Reflow CSS | Playwright à 640/320 pixels | 8/8 routes sans débordement | Clos sur l'échantillon |
+| Zoom navigateur réel | Extension locale et `chrome.tabs.setZoom` à 200/400 % | 16/16, aucun rognage | Clos sur l'échantillon |
+| Clavier et focus | Inventaire tabulable et cycle `Tab` | 8/8 routes | Clos sur l'échantillon |
+| Structure exposée | Arbre AX Chromium et tests de titres | 8/8 routes et 2/2 tests | Clos structurellement |
+| Contrastes calculables | axe `color-contrast` et ratios sRGB | 0 violation, 19 passes | Clos pour les nœuds calculables |
+| Contrastes composites | axe signale 416 `incomplete` | aucune décision humaine exhaustive | **Ouvert** |
+| Restitution vocale | aucun test audio observable | non réalisé | **Ouvert** |
+
+Cette matrice distingue un résultat automatisé positif d'une appréciation
+humaine. Elle ne transforme ni un résultat `incomplete` ni l'arbre AX en preuve
+de conformité avec un lecteur d'écran.

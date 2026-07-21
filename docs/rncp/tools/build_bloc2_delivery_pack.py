@@ -11,6 +11,9 @@ from pathlib import Path, PurePosixPath
 ROOT = Path(__file__).resolve().parents[3]
 VERSION = "0.13.0-rc.3"
 DATE = "2026-07-21"
+APPLICATION_SHA = "b002adb0e0e7d8d85ee493d54879e190d77d2078"
+FINAL_CI_RUN = "29845956008"
+FINAL_CD_RUN = "29846343559"
 PACK_NAME = f"alcide-bloc2-rncp39583-{VERSION}-final-{DATE}"
 PACK_DIR = ROOT / "output" / PACK_NAME
 PACK_ZIP = ROOT / "output" / f"{PACK_NAME}.zip"
@@ -71,6 +74,11 @@ SOURCE_DOCUMENTS = {
     "docs/rncp/bloc2-manuel-mise-a-jour.md",
     "docs/rncp/bloc2-manuel-utilisateur-alcide.md",
     "docs/rncp/bloc2-plan-correction-bogues-rncp39583.md",
+}
+REQUIRED_MANUALS = {
+    "docs/deployment.md",
+    "docs/rncp/bloc2-manuel-utilisateur-alcide.md",
+    "docs/rncp/bloc2-manuel-mise-a-jour.md",
 }
 
 FORBIDDEN_ARCHIVE_SEGMENTS = {
@@ -277,6 +285,7 @@ def create_source_archive(target: Path, staging: Path) -> tuple[int, int]:
 def validate_source_archive(path: Path) -> None:
     problems: list[str] = []
     with zipfile.ZipFile(path) as archive:
+        archived_names = {PurePosixPath(info.filename).as_posix() for info in archive.infolist()}
         for info in archive.infolist():
             pure_path = PurePosixPath(info.filename)
             lowered_parts = {part.lower() for part in pure_path.parts}
@@ -298,6 +307,11 @@ def validate_source_archive(path: Path) -> None:
                 if pattern.search(payload):
                     problems.append(f"{label} potentiel : {info.filename}")
                     break
+        prefix = f"alcide-source-{VERSION}"
+        for manual in sorted(REQUIRED_MANUALS):
+            expected = f"{prefix}/{manual}"
+            if expected not in archived_names:
+                problems.append(f"manuel obligatoire absent : {manual}")
     if problems:
         raise ValueError("Archive source non sûre : " + "; ".join(problems[:20]))
 
@@ -341,6 +355,7 @@ def build_delivery_pack() -> None:
 
     dossier_pages, dossier_text = validate_pdf(DOSSIER, maximum_pages=30)
     annex_pages, annex_text = validate_pdf(ANNEXES)
+    combined_text = dossier_text + "\n" + annex_text
     for expected in [
         "B2-A26",
         "B2-A27",
@@ -351,9 +366,21 @@ def build_delivery_pack() -> None:
         "B2-A36",
         "B2-A37",
         "29833210488",
+        APPLICATION_SHA[:7],
+        FINAL_CI_RUN,
+        FINAL_CD_RUN,
+        "Manuel de déploiement complet",
+        "Manuel utilisateur complet",
+        "Manuel de mise à jour complet",
     ]:
-        if expected not in dossier_text + annex_text:
+        if expected not in combined_text:
             raise ValueError(f"Preuve absente des PDF : {expected}")
+    if re.search(
+        r"reste\s+à\s+déployer\s+et\s+contre-recetter\s+le\s+correctif\s+de\s+reflow",
+        combined_text,
+        flags=re.IGNORECASE,
+    ):
+        raise ValueError("Le dossier contient encore la conclusion obsolète sur le correctif de reflow.")
 
     resolved_output = (ROOT / "output").resolve()
     if PACK_DIR.parent.resolve() != resolved_output or PACK_ZIP.parent.resolve() != resolved_output:
@@ -382,9 +409,14 @@ def build_delivery_pack() -> None:
                 "",
                 "Ordre de lecture :",
                 "1. 01-dossier-bloc2-alcide.pdf (30 pages maximum hors annexes)",
-                "2. 02-annexes-bloc2-alcide.pdf (preuves sélectionnées)",
+                "2. 02-annexes-bloc2-alcide.pdf (preuves sélectionnées puis trois manuels complets)",
                 f"3. 03-code-source-alcide-{VERSION}.zip (archive source anonymisée et filtrée)",
                 "4. MANIFESTE.txt (empreintes et limites)",
+                "",
+                "Les trois manuels sont lisibles à la fin du PDF d'annexes et présents dans l'archive source :",
+                "- docs/deployment.md",
+                "- docs/rncp/bloc2-manuel-utilisateur-alcide.md",
+                "- docs/rncp/bloc2-manuel-mise-a-jour.md",
                 "",
                 "Avant dépôt : confirmer les règles de nommage, de taille, de délai",
                 "et d'anonymisation avec le campus.",
@@ -400,7 +432,10 @@ def build_delivery_pack() -> None:
         "ALCIDE - MANIFESTE DU PAQUET BLOC 2 RNCP39583",
         f"Date de génération : {DATE}",
         f"Version applicative : {VERSION}",
-        f"SHA Git archivé : {head}",
+        f"SHA applicatif déployé : {APPLICATION_SHA}",
+        f"CI applicative finale : {FINAL_CI_RUN}",
+        f"CD applicatif final : {FINAL_CD_RUN}",
+        f"SHA Git documentaire et source archivé : {head}",
         f"Dossier principal : {dossier_pages} pages (maximum officiel : 30 hors annexes)",
         f"Annexes sélectionnées : {annex_pages} pages",
         "",
