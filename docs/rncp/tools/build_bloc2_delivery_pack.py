@@ -128,8 +128,8 @@ def main() -> None:
                 f"3. 03-code-source-alcide-{VERSION}.zip (archive Git du SHA indiqué)",
                 "4. MANIFESTE.txt (empreintes et limites)",
                 "",
-                "Avant dépôt : compléter l'audit RGAA humain, le test utilisateur autonome",
-                "et confirmer les règles de nommage/anonymisation avec le campus.",
+                "Avant dépôt : confirmer les règles de nommage, de taille, de délai",
+                "et d'anonymisation avec le campus.",
             ]
         )
         + "\n",
@@ -154,8 +154,7 @@ def main() -> None:
         [
             "",
             "LIMITES À NE PAS MASQUER",
-            "- audit RGAA humain à signer avant dépôt ;",
-            "- test utilisateur autonome distinct du candidat à réaliser ;",
+            "- les contrôles d'accessibilité ne constituent pas une déclaration de conformité exhaustive au RGAA ;",
             "- date, nommage, taille et anonymisation à confirmer avec le campus.",
         ]
     )

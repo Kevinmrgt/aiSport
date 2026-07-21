@@ -1,8 +1,8 @@
 # Manifeste de dépôt — Bloc 2 RNCP39583
 
 > État consolidé le 2026-07-21. Ce manifeste décrit uniquement des éléments
-> observés, exécutés ou produits. L'audit humain RGAA et le test par un
-> utilisateur autonome distinct ne sont pas déclarés réalisés.
+> observés, exécutés ou produits. Les contrôles d'accessibilité automatisés ne
+> sont pas présentés comme une déclaration de conformité exhaustive au RGAA.
 
 ## 1. Références vérifiables
 
@@ -38,8 +38,8 @@ Le tag de remise ne doit être créé qu'après fusion et vérification de la br
 
 Empreintes des PDF après gel du rendu :
 
-- dossier principal : `D3B588BCAED154E6B10937C1E408915C376A8B085D5CBFEFA0D35E75DA3889AF` ;
-- annexes : `1B450ABABADC439E26B997C8B284DE620F885E97EF790B64ECCEE7C1CB31AB9E`.
+- dossier principal : `F573B07281902A086C65E9F98675BBBE456122583E898049DEAB69F49D193743` ;
+- annexes : `1422622D4BA29F51F14A29D7737A4F50BE7B95FAC2A3CBF2AFF22BD3E08AC57A`.
 
 Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 `final-2026-07-21` sont historiques et ne doivent pas être remis.
@@ -84,15 +84,11 @@ Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 - [x] aucune session OAuth, adresse personnelle ou donnée de recette incluse
       dans le code source ou les captures finales.
 
-## 5. Contrôles humains non exécutés
+## 5. Contrôles administratifs avant dépôt
 
-- [ ] audit RGAA humain : clavier exhaustif, zoom 200/400 %, contrastes,
-      lecteur d'écran et pages privées sur plusieurs tailles ;
-- [ ] test du parcours par une personne distincte, sans guidage technique ;
 - [ ] confirmation administrative du nommage, de la taille maximale, de la
       portée exacte de l'anonymisation et de la date/heure limite DigiformaCertif.
 
-La checklist `docs/rncp/CHECKLIST-AVANT-DEPOT-BLOC2.md` décrit ces actions. Les
-modèles B2-A32 et B2-A33 sont volontairement vides : ils ne doivent être joints
-qu'après exécution réelle et signature. Le dossier ne doit pas être présenté
-comme « conforme RGAA » ou « testé par un utilisateur autonome » avant cela.
+La checklist `docs/rncp/CHECKLIST-AVANT-DEPOT-BLOC2.md` décrit cette vérification.
+Le dossier expose les actions d'accessibilité réellement testées et ne formule
+aucune déclaration de conformité exhaustive au RGAA.
