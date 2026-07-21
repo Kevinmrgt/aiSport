@@ -4,7 +4,7 @@
 > Version consolidée : 2026-07-21
 > Baseline applicative déployée : `b002adb0e0e7d8d85ee493d54879e190d77d2078`.
 > Pull request applicative finale : `#43`.
-> Repère documentaire final : tag `rncp-bloc2-2026-07-21-v7`.
+> Repère documentaire final : tag `rncp-bloc2-2026-07-21-v8`.
 > Le tag `rncp-bloc2-2026-07-21-v5` reste le snapshot documentaire antérieur validé en CI/CD.
 > Le SHA réellement archivé et les empreintes des livrables figurent dans le `MANIFESTE.txt` du paquet.
 
@@ -30,7 +30,7 @@ artefact et anomalie éventuelle.
 | Scénarios clos                      | 58 : 42 résultats exécutés/observés et 16 contrôles automatisés, dont la gate du paquet final                                  |
 | Scénarios non clos                  | CR-055 partiel : lecteur d'écran réel et qualification humaine des contrastes composites                                       |
 | Échecs fonctionnels finaux          | Aucun connu ; quatre écarts reproduits sur `rc.2` ont été corrigés puis contre-recettés sur `rc.3`                             |
-| SHA/tag testé                       | application `b002adb0e0e7d8d85ee493d54879e190d77d2078` ; repère documentaire final `rncp-bloc2-2026-07-21-v7` ; SHA archivé porté par le manifeste |
+| SHA/tag testé                       | application `b002adb0e0e7d8d85ee493d54879e190d77d2078` ; repère documentaire final `rncp-bloc2-2026-07-21-v8` ; SHA archivé porté par le manifeste |
 | Environnement                       | Local/CI Node 24 + PostgreSQL de test, puis production Vercel/Neon                                                             |
 | Artefacts                           | annexes A20, A25 à A31 et A34 à A37, rapports CI/CD, captures authentifiées et paquet de remise daté du 2026-07-21             |
 
@@ -91,7 +91,7 @@ différents et ne se contredisent pas.
 | CI finale `main`               | Succès des six jobs        | run `29845956008` sur `b002adb` : audit, qualité, tests API/Web/shared, PostgreSQL, Playwright, build et Docker                           |
 | CD final Vercel                | Succès                     | run `29846343559` : migration, API, Web et smoke tests                                                                                   |
 | Snapshot documentaire `v5`     | Succès CI/CD                | `b3ca385` : diff applicatif nul depuis `b002adb`, CI `29847808450`, CD `29848187523` ; preuve antérieure, ne remplace pas la contre-recette de `b002adb` |
-| Repère documentaire final `v7` | Contrôles locaux du paquet  | corrections de cohérence, réserves et manuels ; SHA archivé et empreintes portés par le manifeste final                               |
+| Repère documentaire final `v8` | Contrôles locaux du paquet  | corrections de cohérence, réserves et manuels ; SHA archivé et empreintes portés par le manifeste final                               |
 | E2E OAuth post-déploiement     | 6/6                        | run `29833210488` : session dédiée restaurée puis supprimée du runner                                                                    |
 | Accessibilité post-déploiement | 33/33 + zoom natif 16/16   | production `b002adb` : 3 pages publiques et 5 privées, reflow, clavier, contraste axe, arbre AX et zoom Chromium 200/400 %              |
 

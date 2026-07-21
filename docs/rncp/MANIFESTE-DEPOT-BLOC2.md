@@ -17,8 +17,8 @@
 | Pull request validation du paquet  | `https://github.com/Kevinmrgt/aiSport/pull/45` |
 | Correction documentaire antérieure | `https://github.com/Kevinmrgt/aiSport/pull/40` |
 | Version applicative                | `0.13.0-rc.3`                                  |
-| Tag du gel final corrigé           | `rncp-bloc2-2026-07-21-v7`                     |
-| Snapshot documentaire antérieur    | `rncp-bloc2-2026-07-21-v6` — paquet final précédent |
+| Tag du gel final corrigé           | `rncp-bloc2-2026-07-21-v8`                     |
+| Snapshot documentaire antérieur    | `rncp-bloc2-2026-07-21-v7` — retiré, contenu hors périmètre |
 | CI baseline `main`                 | run `29845956008` — succès                     |
 | CD baseline `main`                 | run `29846343559` — succès                     |
 | CI/CD de consolidation antérieures | runs `29832575391` / `29832944876` — succès    |
@@ -27,8 +27,9 @@
 | API liveness                       | `https://ai-sport-api.vercel.app/health`       |
 | API readiness                      | `https://ai-sport-api.vercel.app/health/ready` |
 
-Le tag `rncp-bloc2-2026-07-21-v7` identifie le gel final enrichi par la preuve
-négative CI/CD courante B2-A38, la navigation PDF et les supports de soutenance.
+Le tag `rncp-bloc2-2026-07-21-v8` identifie le gel final strictement écrit,
+enrichi par la preuve négative CI/CD courante B2-A38 et la navigation PDF.
+Le gel `v7` est retiré : il ajoutait à tort des supports hors périmètre au Bloc 2.
 Il ne déplace ni le tag applicatif `v0.13.0-rc.3`, ni les gels
 documentaires antérieurs, conservés comme historiques. Le SHA de l'archive de
 remise peut être postérieur à `b002adb` lorsqu'il ne contient que des corrections
@@ -40,7 +41,7 @@ documentaires ; la baseline applicative déployée reste alors explicitement
 |  N° | Pièce                | Fichier                                                                       | Contrôle                                                                                                   |
 | --: | -------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 |  01 | Dossier écrit        | `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.3-final-2026-07-21.pdf` | maximum officiel de 30 pages hors annexes ; pagination, sommaire, liens et rendu visuel contrôlés          |
-|  02 | Annexes techniques   | `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.3-final-2026-07-21.pdf` | guide jury, preuves A20, A25 à A31 et A34 à A38, trois manuels ; limites explicites                            |
+|  02 | Annexes techniques   | `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.3-final-2026-07-21.pdf` | preuves A20, A25 à A31 et A34 à A38, trois manuels ; limites explicites                                       |
 |  03 | Code source          | archive Git produite par `docs/rncp/tools/build_bloc2_delivery_pack.py`       | fichiers suivis du commit de remise, dont les trois manuels complets ; aucun secret, état OAuth, `.env` ou dépendance locale |
 |  04 | Notice et empreintes | `LISEZ-MOI.txt` et `MANIFESTE.txt` dans le paquet                             | ordre de lecture, SHA Git et SHA-256 de chaque pièce                                                       |
 

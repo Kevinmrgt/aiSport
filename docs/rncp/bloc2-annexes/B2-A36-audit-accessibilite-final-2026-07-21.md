@@ -6,7 +6,7 @@
 > Contre-recette après déploiement du correctif de reflow : 33/33 et zoom natif
 > 16/16 sur `b002adb0e0e7d8d85ee493d54879e190d77d2078`, après CI `29845956008`
 > et CD `29846343559`.
-> Repère documentaire final : tag `rncp-bloc2-2026-07-21-v7`.
+> Repère documentaire final : tag `rncp-bloc2-2026-07-21-v8`.
 > Le SHA effectivement archivé est porté par le manifeste du paquet de remise.
 > Referentiel de travail : RGAA 4.1.2 et WCAG 2.1 A/AA
 > Statut : preuves renforcees, conformite RGAA exhaustive non revendiquee
