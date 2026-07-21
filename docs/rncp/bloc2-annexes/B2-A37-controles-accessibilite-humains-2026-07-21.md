@@ -4,14 +4,17 @@
 > Production observée : `https://ai-sport-web.vercel.app`
 > Chromium : `147.0.7727.15`
 > Playwright : `1.59.1`
-> Statut : anomalie de reflow corrigée localement, déploiement et lecteur d'écran réel encore ouverts
+> Baseline corrective déployée : `b002adb0e0e7d8d85ee493d54879e190d77d2078`
+> CI : `29845956008` — succès ; CD Vercel : `29846343559` — succès
+> Statut : anomalie de reflow corrigée et contre-recettée en production ; contrastes composites et lecteur d'écran réel encore ouverts
 
 ## 1. Rejeu complet public et authentifié
 
 La suite `rncp-accessibility-final.spec.ts` a été rejouée avec une vraie session
 OAuth locale, ignorée par Git et jamais imprimée dans les sorties.
 
-Résultat : **33 tests réussis sur 33 en 52,5 secondes** sur les routes suivantes :
+Contre-recette après déploiement : **33 tests réussis sur 33 en 58,7 secondes**
+sur les routes suivantes :
 
 - publiques : `/`, `/login`, `/confidentialite` ;
 - privées : `/dashboard`, `/generate`, `/programs`, `/workouts`, `/settings`.
@@ -28,10 +31,10 @@ contrôle le facteur réellement obtenu, le `devicePixelRatio`, la largeur CSS,
 les débordements et les éléments textuels rognés. Aucun cookie ni identifiant
 n'est consigné.
 
-La production a exécuté **16 mesures sur 16** : huit routes multipliées par les
-deux niveaux de zoom. Le facteur obtenu vaut bien `2` puis `4`, sans débordement
-horizontal global. Le contrôle renforcé a toutefois détecté quatre échecs à
-400 % :
+L'audit initial de la production précédente a exécuté **16 mesures sur 16** :
+huit routes multipliées par les deux niveaux de zoom. Le facteur obtenu valait
+bien `2` puis `4`, sans débordement horizontal global. Le contrôle renforcé a
+toutefois détecté quatre échecs à 400 % :
 
 | Route | Texte visuellement rogné |
 | --- | --- |
@@ -44,19 +47,25 @@ Cause : les composants `MetricPill`, `ProgramCard` et `WorkoutCard` utilisaient
 la classe Tailwind `truncate`, donc `overflow: hidden` et une ellipse sans retour
 à la ligne.
 
-Correctif local : remplacement de la troncature par `break-words` et un
+Correctif : remplacement de la troncature par `break-words` et un
 interligne compact. Résultats après correction :
 
 - **55 tests Web sur 55** ;
 - typecheck réussi ;
 - build Next.js réussi ;
 - **6 mesures sur 6** sur les pages publiques de la version locale ;
-- **16 mesures sur 16** sur une prévisualisation du correctif appliquée aux
-  données et pages de production, sans texte ni commande rognés.
+- **16 mesures sur 16** sur une prévisualisation corrective, sans texte ni
+  commande rognés ;
+- CI `29845956008` entièrement verte sur le commit `b002adb` ;
+- CD Vercel `29846343559` réussi : migration, API, Web et smoke tests ;
+- **16 mesures sur 16 sur la production corrigée**, sans prévisualisation,
+  avec zoom Chromium natif à 200 % et 400 % ;
+- **33/33 tests d'accessibilité de production** après déploiement.
 
-La production non modifiée reste en échec jusqu'au déploiement du correctif.
-Le rapport brut et la prévisualisation corrective sont séparés sous
-`tmp/accessibility-final/native-zoom/` afin de ne pas les confondre.
+Les rapports avant correction, de prévisualisation et de contre-recette sont
+séparés sous `tmp/accessibility-final/native-zoom/` afin de ne pas les
+confondre. Le rapport post-déploiement est
+`native-zoom-production.json`.
 
 ## 3. Contrastes opaques et composites
 
@@ -84,11 +93,11 @@ Aucun test réel NVDA, Narrator, JAWS ou VoiceOver n'est donc revendiqué.
 
 ## 5. Décision de clôture
 
-Le reflow natif a désormais une méthode reproductible et le défaut découvert est
-corrigé dans le code local. Pour clore définitivement l'anomalie, il reste à :
+Le reflow natif a désormais une méthode reproductible. Le défaut découvert est
+corrigé, déployé et contre-recetté : B2-A36-04 et B2-BUG-034 sont clos.
+Il reste à traiter séparément :
 
-1. déployer le correctif puis rejouer le test de zoom natif sans prévisualisation ;
-2. réaliser la vérification humaine des fonds composites ;
-3. effectuer un parcours avec un lecteur d'écran réel et consigner la restitution.
+1. la vérification humaine exhaustive des fonds composites ;
+2. un parcours avec un lecteur d'écran réel et la consignation de la restitution.
 
 La conformité RGAA exhaustive reste non revendiquée.

@@ -10,38 +10,38 @@
 | ---------------------------------- | ---------------------------------------------- |
 | Dépôt                              | `https://github.com/Kevinmrgt/aiSport`         |
 | Branche de remise                  | `main`                                         |
-| Baseline applicative déployée      | `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`     |
+| Baseline applicative déployée      | `b002adb0e0e7d8d85ee493d54879e190d77d2078`     |
 | Pull request fermeture finale      | `https://github.com/Kevinmrgt/aiSport/pull/43` |
 | Pull request gel probatoire final  | `https://github.com/Kevinmrgt/aiSport/pull/44` |
 | Pull request validation du paquet  | `https://github.com/Kevinmrgt/aiSport/pull/45` |
 | Correction documentaire antérieure | `https://github.com/Kevinmrgt/aiSport/pull/40` |
 | Version applicative                | `0.13.0-rc.3`                                  |
-| Tag du gel final                   | `rncp-bloc2-2026-07-21-v4`                     |
-| CI baseline `main`                 | run `29832575391` — succès                     |
-| CD baseline `main`                 | run `29832944876` — succès                     |
+| Tag du gel final                   | `rncp-bloc2-2026-07-21-v5`                     |
+| CI baseline `main`                 | run `29845956008` — succès                     |
+| CD baseline `main`                 | run `29846343559` — succès                     |
 | E2E authentifié baseline           | run `29833210488` — 6/6, succès                |
 | Web                                | `https://ai-sport-web.vercel.app`              |
 | API liveness                       | `https://ai-sport-api.vercel.app/health`       |
 | API readiness                      | `https://ai-sport-api.vercel.app/health/ready` |
 
-Le tag `rncp-bloc2-2026-07-21-v4` identifie le gel final après la fermeture des
-risques C2.3.1 et C2.2.3 par la PR 43, le gel probatoire par la PR 44 et la
-validation du paquet. Il ne déplace ni le tag applicatif `v0.13.0-rc.3`, ni les
-gels documentaires antérieurs, conservés comme historiques.
+Le tag `rncp-bloc2-2026-07-21-v5` identifie le gel final après la fermeture de
+l'anomalie de reflow au zoom natif, son déploiement et sa contre-recette de
+production. Il ne déplace ni le tag applicatif `v0.13.0-rc.3`, ni les gels
+documentaires antérieurs, conservés comme historiques.
 
 ## 2. Pièces finales à déposer
 
 |  N° | Pièce                | Fichier                                                                       | Contrôle                                                                                                   |
 | --: | -------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 |  01 | Dossier écrit        | `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.3-final-2026-07-21.pdf` | maximum officiel de 30 pages hors annexes ; pagination, sommaire, liens et rendu visuel contrôlés          |
-|  02 | Annexes techniques   | `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.3-final-2026-07-21.pdf` | preuves sélectionnées A20, A25 à A31 et A34 à A36 ; limites explicites                                     |
+|  02 | Annexes techniques   | `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.3-final-2026-07-21.pdf` | preuves sélectionnées A20, A25 à A31 et A34 à A37 ; limites explicites                                     |
 |  03 | Code source          | archive Git produite par `docs/rncp/tools/build_bloc2_delivery_pack.py`       | uniquement les fichiers suivis du commit de remise ; aucun secret, état OAuth, `.env` ou dépendance locale |
 |  04 | Notice et empreintes | `LISEZ-MOI.txt` et `MANIFESTE.txt` dans le paquet                             | ordre de lecture, SHA Git et SHA-256 de chaque pièce                                                       |
 
 Empreintes des PDF après gel du rendu :
 
-- dossier principal : `B3D244F4585FBB1F7A672D945648361CE3ACEC4733079CA2A53E8166A0DD9A3F` ;
-- annexes : `6A0C04581645D075A31127C36C1F1D84DB5658DB1EAD499CB9CFB82A6DA7F4AC`.
+- dossier principal : `A27F794BE6ECD511ECCE6A50F808FBE9E3139264EB24BC86A05CEA9B3482D2E1` ;
+- annexes : `A658EA9E36DE4EF9AC37F04282B9E6677A818175DBBAA524AD0C5076B6793DE6`.
 
 Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 `final-2026-07-21` sont historiques et ne doivent pas être remis.
@@ -58,10 +58,10 @@ Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 | Frameworks et paradigmes                         | dossier §8 et ADR                                             |
 | Tests unitaires                                  | dossier §9, rapports API/Web/PostgreSQL/shared, B2-A31        |
 | Sécurité                                         | dossier §10, revue OWASP, B2-A35 et audit de dépendances      |
-| Accessibilité                                    | dossier §11, B2-A20/B2-A36, axe, clavier et limites humaines  |
+| Accessibilité                                    | dossier §11, B2-A20/B2-A36/B2-A37, axe, zoom, clavier et limites humaines |
 | Historique des versions                          | dossier §12, Git et `CHANGELOG.md`                            |
 | Dernière version fonctionnelle, fiable et viable | dossier §13, CI/CD/healthchecks et B2-A28                     |
-| Plan de tests et recette                         | dossier §14, cahier et B2-A34 à B2-A36                        |
+| Plan de tests et recette                         | dossier §14, cahier et B2-A34 à B2-A37                        |
 | Plan de correction des bogues                    | dossier §15 et registre B2-BUG                                |
 | Manuel de déploiement                            | dossier §16 et `docs/deployment.md`                           |
 | Manuel utilisateur                               | dossier §17 et manuel utilisateur autonome                    |
@@ -78,7 +78,7 @@ Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 - [x] Playwright authentifié local et CI finale `29833210488` : 6/6, dont viewport mobile 390 × 844,
       absence de débordement horizontal et axe sans violation critique/sérieuse ;
 - [x] images Docker API et Web construites dans la CI ;
-- [x] baseline `main` `0d5c6b6` déployée avec migration et smoke tests par le run `29832944876` ;
+- [x] baseline `main` `b002adb` déployée avec migration et smoke tests par le run `29846343559` ;
 - [x] 50 requêtes séquentielles sur chacun des trois endpoints de santé :
       150/150 réponses valides, p95 Web 508,63 ms, API liveness 339,66 ms et
       readiness 267,11 ms, sous l'objectif de 1 000 ms ;
@@ -86,7 +86,8 @@ Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 - [x] sécurité finale : SQL-like sur PostgreSQL réel, XSS Chromium/Firefox,
       secrets/CORS/CSP/headers de production contrôlés ;
 - [x] accessibilité finale : 33/33 Playwright sur 3 pages publiques et 5
-      privées, 2/2 structure, clavier/focus/reflow/contrastes/arbre AX ;
+      privées, 2/2 structure, clavier/focus/reflow/contrastes/arbre AX et zoom
+      Chromium natif 200/400 % en production 16/16 ;
 - [x] parcours CR-065 de production avec journal et dashboard `3 → 4` ;
 - [x] aucune session OAuth, adresse personnelle ou donnée de recette incluse
       dans le code source ou les captures finales.
