@@ -3,13 +3,17 @@
 ## Garantie recherchée
 
 La suite utilise une vraie session Google OAuth émise par Auth.js. Elle ne simule pas
-l’authentification et ne réutilise jamais le profil Chrome personnel du développeur.
+l’authentification et ne réutilise jamais le profil Chrome personnel du développeur. Google
+refusant les navigateurs directement automatisés sur sa page de connexion, le processus utilise
+un vrai Google Chrome avec un profil temporaire, puis Playwright s’y rattache après OAuth.
 
 Le fichier `apps/web/playwright/.auth/google-e2e.json` contient des cookies actifs. Il est :
 
 - ignoré explicitement par Git ;
 - contrôlé par un préflight avant toute capture et toute exécution ;
 - écrit seulement après vérification de l’adresse du compte dédié ;
+- limité aux cookies du domaine Alcide : aucun cookie Google n’est conservé ;
+- protégé pour le seul utilisateur courant (`0700`/`0600` sous Unix, ACL NTFS dédiée sous Windows) ;
 - exclu des traces et des artefacts CI.
 
 ## 1. Créer le compte Google dédié
@@ -25,16 +29,25 @@ screen > Test users** si l’application OAuth est encore en mode test.
 
 ## 2. Capturer la session sans toucher au profil personnel
 
-Depuis PowerShell, à la racine du dépôt :
+Depuis PowerShell, à la racine du dépôt, ouvrir d’abord le navigateur temporaire :
 
 ```powershell
 $env:E2E_AUTH_EMAIL='adresse-du-compte-dedie@example.com'
 $env:E2E_BASE_URL='https://ai-sport-web.vercel.app'
+pnpm test:e2e:auth:browser
+```
+
+Un vrai Google Chrome isolé s’ouvre. Cliquer sur **Continuer avec Google**, se connecter uniquement
+avec le compte dédié et attendre le retour sur `/generate`. Puis, dans le même terminal :
+
+```powershell
 pnpm test:e2e:auth:capture
 ```
 
-Une fenêtre Chromium isolée s’ouvre. Se connecter uniquement avec le compte dédié. La capture est
-refusée si l’adresse retournée par `/api/auth/session` diffère de `E2E_AUTH_EMAIL`.
+La capture est refusée si l’adresse retournée par `/api/auth/session` diffère de
+`E2E_AUTH_EMAIL`. Playwright conserve seulement les cookies Alcide, ferme Chrome et supprime le
+profil temporaire. Le nettoyage est aussi tenté en cas d’échec et toute impossibilité de supprimer
+le profil est signalée comme une erreur bloquante.
 
 Vérifier ensuite que Git ignore bien le fichier :
 
