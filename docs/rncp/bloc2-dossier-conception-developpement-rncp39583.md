@@ -49,12 +49,12 @@ du jury.
 | Compétence                                     | Preuve principale                                             | État avant dépôt                                        |
 | ---------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------- |
 | C2.1.1 Environnements, qualité, performance    | Node 24, Docker, Vercel, Neon, healthchecks, mesure A29       | étayé                                                   |
-| C2.1.2 Intégration continue                    | CI `29817362423`, rapports et images Docker                   | étayé                                                   |
+| C2.1.2 Intégration continue                    | CI finale `29832575391`, rapports et images Docker            | étayé                                                   |
 | C2.2.1 Prototype                               | production, recette authentifiée, captures desktop/mobile A30 | étayé                                                   |
-| C2.2.2 Tests unitaires                         | shared 14 tests, API 155, Web 43, PostgreSQL 8                | étayé                                                   |
+| C2.2.2 Tests unitaires                         | shared 14 tests, API 170, Web 55, PostgreSQL 9 RNCP           | étayé                                                   |
 | C2.2.3 Sécurité, accessibilité, conformité     | OWASP, A35 sécurité, A36 public/authentifié                   | étayé sur l'automatisable ; limites humaines explicites |
-| C2.2.4 Déploiement progressif et versionnement | Git, CI, migration, CD `29817698665`, smoke tests             | étayé                                                   |
-| C2.3.1 Cahier de recettes                      | 60 scénarios, résultats et anomalies reliés, A34 à A36        | étayé ; gel CI/CD à confirmer                           |
+| C2.2.4 Déploiement progressif et versionnement | Git, CI, migration, CD final `29832944876`, smoke tests       | étayé                                                   |
+| C2.3.1 Cahier de recettes                      | 60 scénarios, résultats et anomalies reliés, A34 à A36        | étayé ; CI/CD et contre-recette finales réussies        |
 | C2.3.2 Correction des bogues                   | registre B2-BUG et tests de non-régression                    | étayé                                                   |
 | C2.4.1 Documentation d'exploitation            | trois manuels présents et versionnés                          | étayé                                                   |
 
@@ -82,8 +82,8 @@ avant toute déclaration de conformité exhaustive au RGAA.
 
 Le déploiement continu commence uniquement après une CI verte sur `main` :
 migration Drizzle, déploiement API, smoke test API, déploiement Web puis smoke
-test Web. Le run `29817698665` a exécuté cette séquence sur la baseline
-`ac02d219...`. Les healthchecks ont ensuite répondu HTTP 200 avec la version
+test Web. Le run `29832944876` a exécuté cette séquence sur la baseline finale
+`0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`. Les healthchecks ont ensuite répondu HTTP 200 avec la version
 `0.13.0-rc.3`, PostgreSQL `ok` et configuration IA `ok`.
 
 ### Critères mesurables retenus
@@ -119,10 +119,11 @@ Le workflow `.github/workflows/ci.yml` applique les étapes suivantes :
 9. construction des images Docker API et Web ;
 10. publication des rapports de couverture et du rapport Playwright.
 
-Le run `29817362423` sur `main` a réussi les six jobs. Les rapports bruts API,
-Web, PostgreSQL et Playwright sont disponibles comme artefacts GitHub Actions.
-La branche de finalisation ajoute le rapport autonome `shared` afin que ce
-périmètre ne soit plus seulement exercé indirectement par l'API.
+Le run final `29832575391` sur `main` a réussi les six jobs. Les rapports bruts
+API, Web, PostgreSQL, shared et Playwright sont disponibles comme artefacts
+GitHub Actions. Cette chaîne finale a exécuté 170 tests API, 55 Web, 14 shared,
+les recettes PostgreSQL, le smoke Playwright public, les builds et les deux
+images Docker.
 
 ## 5. Architecture logicielle maintenable
 
@@ -266,10 +267,11 @@ donc pas de conformité exhaustive au RGAA.
 | finalisation du rendu | OAuth Playwright sécurisé, dépendances corrigées, shared couvert, mobile authentifié |
 
 `CHANGELOG.md`, les commits, les pull requests et les tags conservent
-l'historique. La baseline `10596d2...` a passé la CI, la migration, les deux
-déploiements, les smoke tests et l'E2E authentifié 6/6. Les endpoints Web/API
-répondent en version `0.13.0-rc.3`. Le gel documentaire corrigé est identifié
-par le tag `rncp-bloc2-2026-07-21-v2` ; le premier gel reste historique.
+l'historique. La baseline finale `0d5c6b6...` a passé la CI `29832575391`, la
+migration et les deux déploiements `29832944876`, les smoke tests et l'E2E
+authentifié `29833210488` en 6/6. Les endpoints Web/API répondent en version
+`0.13.0-rc.3`. Le gel final est identifié par le tag
+`rncp-bloc2-2026-07-21-v3` ; les deux premiers gels restent historiques.
 
 ## 12. C2.3.1 - Cahier de recettes
 
@@ -289,7 +291,8 @@ suppression en erreur, journal avec notes de douleur, modèle interdit,
 dashboard vide/alimenté, parcours Timer/journal/dashboard de production,
 injection, XSS, secrets, CORS, CSP et audit accessibilité multi-page. Les 60
 scénarios disposent maintenant d'un résultat, d'une limite ou d'un risque
-accepté ; la candidate doit encore passer par la CI/CD avant gel définitif.
+accepté. La candidate a passé la CI/CD, les smoke tests, l'E2E OAuth 6/6 et la
+contre-recette accessibilité de production 33/33 avant le gel définitif.
 
 ## 13. C2.3.2 - Plan de correction des bogues
 
