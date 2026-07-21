@@ -26,6 +26,6 @@ Tous les PDF datés du `2026-07-16`, le fichier
 partie des preuves B2-A26 à B2-A31 et ne doivent pas être remis au jury.
 
 Le manifeste de contrôle est
-`docs/rncp/MANIFESTE-DEPOT-BLOC2.md`. Il distingue les contrôles automatisés
-réellement réussis de l'audit RGAA humain et du test utilisateur autonome, qui
-restent à organiser et ne sont pas déclarés accomplis.
+`docs/rncp/MANIFESTE-DEPOT-BLOC2.md`. Il recense uniquement les contrôles
+réellement réussis et distingue les actions d'accessibilité démontrées d'une
+conformité exhaustive au RGAA, qui n'est pas revendiquée.

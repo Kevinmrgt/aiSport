@@ -439,7 +439,7 @@ def cover_story():
         summary,
         Spacer(1, 1.1 * cm),
         Paragraph(
-            "Le dossier distingue les preuves exécutées, les limites résiduelles et les contrôles humains à réaliser avant le dépôt.",
+            "Le dossier distingue les preuves exécutées, leurs limites et les vérifications administratives restant avant le dépôt.",
             STYLES["CoverMeta"],
         ),
         PageBreak(),
