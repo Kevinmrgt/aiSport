@@ -3,7 +3,7 @@
 > Concevoir et développer des applications logicielles
 > Version applicative : `0.13.0-rc.3`
 > Baseline applicative testée et déployée : `b002adb0e0e7d8d85ee493d54879e190d77d2078`
-> Référence documentaire finale : tag `rncp-bloc2-2026-07-21-v7`
+> Référence documentaire finale : tag `rncp-bloc2-2026-07-21-v8`
 > Les empreintes du paquet corrigé sont consignées dans son `MANIFESTE.txt` à la génération.
 > Dossier anonymisé, finalisé le 21 juillet 2026
 
@@ -297,7 +297,7 @@ la migration, les déploiements API/Web et les smoke tests du CD `29846343559`.
 L'E2E authentifié dédié `29833210488` reste réussi en 6/6 et la contre-recette
 d'accessibilité post-déploiement est verte en 33/33, avec zoom natif 16/16.
 Les endpoints Web/API répondent en version `0.13.0-rc.3`. Le repère documentaire
-est le tag `rncp-bloc2-2026-07-21-v7`. Il ne remplace pas la baseline applicative
+est le tag `rncp-bloc2-2026-07-21-v8`. Il ne remplace pas la baseline applicative
 déployée `b002adb0e0e7d8d85ee493d54879e190d77d2078`. Le manifeste du paquet de
 remise porte le SHA effectivement archivé et les empreintes SHA-256 de chaque
 livrable.
