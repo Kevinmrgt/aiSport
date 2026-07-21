@@ -13,6 +13,7 @@
 | Baseline applicative déployée      | `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`     |
 | Pull request fermeture finale      | `https://github.com/Kevinmrgt/aiSport/pull/43` |
 | Pull request gel probatoire final  | `https://github.com/Kevinmrgt/aiSport/pull/44` |
+| Pull request validation du paquet  | `https://github.com/Kevinmrgt/aiSport/pull/45` |
 | Correction documentaire antérieure | `https://github.com/Kevinmrgt/aiSport/pull/40` |
 | Version applicative                | `0.13.0-rc.3`                                  |
 | Tag du gel final                   | `rncp-bloc2-2026-07-21-v4`                     |
