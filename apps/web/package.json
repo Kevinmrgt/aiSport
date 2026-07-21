@@ -17,6 +17,7 @@
     "test:e2e:auth:browser": "node scripts/e2e-auth-preflight.mjs capture && node scripts/e2e-auth-launch-browser.mjs",
     "test:e2e:auth:capture": "node scripts/e2e-auth-preflight.mjs capture && node scripts/e2e-auth-capture-cdp.mjs",
     "test:e2e:authenticated": "node scripts/e2e-auth-preflight.mjs run && playwright test --config=playwright.auth.config.ts",
+    "evidence:rncp-prototype": "node scripts/capture-rncp-prototype.mjs",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
   },
