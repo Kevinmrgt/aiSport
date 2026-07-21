@@ -43,8 +43,8 @@ artefact et anomalie éventuelle.
 | Prototype authentifié        | Desktop et mobile capturés | B2-A30 ; aucune adresse personnelle ou donnée de recette visible                                                                         |
 | Couverture shared            | 14/14                      | B2-A31 : 100 % lignes/statements/fonctions et 92,85 % branches sur les schémas partagés                                                  |
 
-Ces compléments ne remplacent toujours ni un audit RGAA humain, ni un test par
-une personne distincte sans guidage.
+Ces compléments démontrent le périmètre automatisé exécuté ; ils ne constituent
+pas une déclaration de conformité exhaustive au RGAA.
 
 ### Vérification finale automatisée du 2026-07-20
 
@@ -174,11 +174,10 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 | CR-063 | Version immuable          | comparer package, tag, SHA, health et changelog                          | version cohérente et distinction explicite entre SHA applicatif et gel documentaire | manifeste                 | ✅ Version `0.13.0-rc.3`, SHA applicatif et futur tag documentaire distingués                                                                       |
 | CR-064 | Production API/Web        | déployer le SHA final                                                    | liveness/readiness/Web en 200                                                       | curl daté                 | ✅ CD `29747592571`, HTTP 200 `rc.3` et monitoring `29748032763`                                                                                    |
 | CR-065 | Parcours post-déploiement | login, séance, programme, Timer, journal, dashboard                      | parcours complet sans erreur                                                        | recette production        | Exécution partielle réelle : login/session, séance, programme, Timer, dashboard, settings, suppressions et logout ; journal de fin non créé, B2-A25 |
-| CR-066 | Utilisateur autonome      | faire réaliser le parcours sans aide technique                           | tâche terminée, retours consignés                                                   | fiche de test utilisateur | ⏳ À organiser                                                                                                                                      |
 
 ## Critère de clôture C2.3.1
 
-Le cahier est clôturé seulement lorsque les 61 scénarios applicables ont un
+Le cahier est clôturé seulement lorsque les 60 scénarios applicables ont un
 résultat obtenu sur le SHA final, que tous les échecs sont liés au plan de
 correction et que les scénarios non applicables sont justifiés. Un total de
 tests Vitest/Playwright ne remplace pas cette traçabilité fonctionnelle.

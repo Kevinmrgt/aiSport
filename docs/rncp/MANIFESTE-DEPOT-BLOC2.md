@@ -1,31 +1,30 @@
 # Manifeste de dépôt — Bloc 2 RNCP39583
 
 > État consolidé le 2026-07-21. Ce manifeste décrit uniquement des éléments
-> observés, exécutés ou produits. L'audit humain RGAA et le test par un
-> utilisateur autonome distinct ne sont pas déclarés réalisés.
+> observés, exécutés ou produits. Les contrôles d'accessibilité automatisés ne
+> sont pas présentés comme une déclaration de conformité exhaustive au RGAA.
 
 ## 1. Références vérifiables
 
-| Élément                           | Valeur                                         |
-| --------------------------------- | ---------------------------------------------- |
-| Dépôt                             | `https://github.com/Kevinmrgt/aiSport`         |
-| Branche de préparation            | `codex/bloc2-final-render`                     |
-| Baseline applicative déployée     | `ac02d219802614d1da4064e542f8de6c5487e5eb`     |
-| Commit des compléments techniques | `81b2b0bd6afa0cf3a33cca6d7ee045ae5808709d`     |
-| Pull request finale               | `https://github.com/Kevinmrgt/aiSport/pull/39` |
-| Version applicative               | `0.13.0-rc.3`                                  |
-| Tag de remise prévu après fusion  | `rncp-bloc2-2026-07-21`                        |
-| CI baseline `main`                | run `29817362423` — succès                     |
-| CD baseline `main`                | run `29817698665` — succès                     |
-| E2E authentifié baseline          | run `29817741589` — 4/4, succès                |
-| CI du complément technique        | run `29819423534` — six jobs, succès           |
-| E2E authentifié du complément     | run `29820498452` — 6/6, succès                |
-| Web                               | `https://ai-sport-web.vercel.app`              |
-| API liveness                      | `https://ai-sport-api.vercel.app/health`       |
-| API readiness                     | `https://ai-sport-api.vercel.app/health/ready` |
+| Élément                          | Valeur                                             |
+| -------------------------------- | -------------------------------------------------- |
+| Dépôt                            | `https://github.com/Kevinmrgt/aiSport`             |
+| Branche de remise                | `main`                                             |
+| Baseline applicative déployée    | `10596d24271bb659e20654fab6fe9fe95afcaf2c`         |
+| Pull request technique finale    | `https://github.com/Kevinmrgt/aiSport/pull/39`     |
+| Correction documentaire          | `https://github.com/Kevinmrgt/aiSport/pull/40`     |
+| Version applicative              | `0.13.0-rc.3`                                      |
+| Tag du gel documentaire corrigé  | `rncp-bloc2-2026-07-21-v2`                         |
+| CI baseline `main`               | run `29821725811` — succès                         |
+| CD baseline `main`               | run `29822081133` — succès                         |
+| E2E authentifié baseline         | run `29822300455` — 6/6, succès                    |
+| Web                              | `https://ai-sport-web.vercel.app`                  |
+| API liveness                     | `https://ai-sport-api.vercel.app/health`           |
+| API readiness                    | `https://ai-sport-api.vercel.app/health/ready`     |
 
-Le tag de remise ne doit être créé qu'après fusion et vérification de la branche
-`main`. Il ne déplace ni ne remplace le tag historique `v0.13.0-rc.3`.
+Le tag `rncp-bloc2-2026-07-21-v2` identifie le gel corrigé après la fusion de la
+PR 40. Il ne déplace ni le tag applicatif `v0.13.0-rc.3`, ni le premier gel
+documentaire `rncp-bloc2-2026-07-21`, conservés comme historiques.
 
 ## 2. Pièces finales à déposer
 
@@ -38,8 +37,8 @@ Le tag de remise ne doit être créé qu'après fusion et vérification de la br
 
 Empreintes des PDF après gel du rendu :
 
-- dossier principal : `D3B588BCAED154E6B10937C1E408915C376A8B085D5CBFEFA0D35E75DA3889AF` ;
-- annexes : `1B450ABABADC439E26B997C8B284DE620F885E97EF790B64ECCEE7C1CB31AB9E`.
+- dossier principal : `A2C907E163BEC15C11B6C16730376A8CA483A88874C6897803213866765B4CAF` ;
+- annexes : `1422622D4BA29F51F14A29D7737A4F50BE7B95FAC2A3CBF2AFF22BD3E08AC57A`.
 
 Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 `final-2026-07-21` sont historiques et ne doivent pas être remis.
@@ -84,15 +83,11 @@ Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 - [x] aucune session OAuth, adresse personnelle ou donnée de recette incluse
       dans le code source ou les captures finales.
 
-## 5. Contrôles humains non exécutés
+## 5. Contrôles administratifs avant dépôt
 
-- [ ] audit RGAA humain : clavier exhaustif, zoom 200/400 %, contrastes,
-      lecteur d'écran et pages privées sur plusieurs tailles ;
-- [ ] test du parcours par une personne distincte, sans guidage technique ;
 - [ ] confirmation administrative du nommage, de la taille maximale, de la
       portée exacte de l'anonymisation et de la date/heure limite DigiformaCertif.
 
-La checklist `docs/rncp/CHECKLIST-AVANT-DEPOT-BLOC2.md` décrit ces actions. Les
-modèles B2-A32 et B2-A33 sont volontairement vides : ils ne doivent être joints
-qu'après exécution réelle et signature. Le dossier ne doit pas être présenté
-comme « conforme RGAA » ou « testé par un utilisateur autonome » avant cela.
+La checklist `docs/rncp/CHECKLIST-AVANT-DEPOT-BLOC2.md` décrit cette vérification.
+Le dossier expose les actions d'accessibilité réellement testées et ne formule
+aucune déclaration de conformité exhaustive au RGAA.

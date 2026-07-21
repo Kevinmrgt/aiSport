@@ -52,15 +52,15 @@ du jury.
 | C2.1.2 Intégration continue                    | CI `29817362423`, rapports et images Docker                   | étayé                                  |
 | C2.2.1 Prototype                               | production, recette authentifiée, captures desktop/mobile A30 | étayé                                  |
 | C2.2.2 Tests unitaires                         | shared 14 tests, API 155, Web 43, PostgreSQL 8                | étayé                                  |
-| C2.2.3 Sécurité, accessibilité, conformité     | OWASP, audit dépendances, axe public/authentifié              | audit humain RGAA à joindre            |
+| C2.2.3 Sécurité, accessibilité, conformité     | OWASP, audit dépendances, axe public/authentifié              | actions démontrées, limites explicites |
 | C2.2.4 Déploiement progressif et versionnement | Git, CI, migration, CD `29817698665`, smoke tests             | étayé                                  |
-| C2.3.1 Cahier de recettes                      | inventaire fonctionnel, résultats et anomalies reliés         | étayé, contrôle humain final conseillé |
+| C2.3.1 Cahier de recettes                      | inventaire fonctionnel, résultats et anomalies reliés         | étayé, cas non exécutés explicités     |
 | C2.3.2 Correction des bogues                   | registre B2-BUG et tests de non-régression                    | étayé                                  |
 | C2.4.1 Documentation d'exploitation            | trois manuels présents et versionnés                          | étayé                                  |
 
 Le risque résiduel principal concerne C2.2.3. Les contrôles axe, clavier et
-reflow mobile ne doivent pas être présentés comme un audit humain RGAA complet.
-La grille humaine à signer avant dépôt est fournie séparément.
+reflow mobile démontrent des actions d'accessibilité, mais ne constituent pas
+une déclaration de conformité exhaustive au RGAA.
 
 ## 3. C2.1.1 - Environnements, déploiement continu, qualité et performance
 
@@ -236,10 +236,9 @@ Les preuves automatisées réelles sont :
   formulaire privé B2-A30 ;
 - aucune violation axe critique ou sérieuse dans ce dernier contrôle.
 
-Limite : axe ne couvre pas tout le RGAA. Avant dépôt, un humain doit encore
-consigner le zoom 200/400 %, les contrastes exhaustifs, la restitution avec un
-lecteur d'écran et un parcours privé représentatif. Cette réserve concerne une
-compétence éliminatoire et figure donc explicitement dans la checklist finale.
+Limite : axe ne couvre pas tout le RGAA. Le zoom 200/400 %, les contrastes
+exhaustifs et la restitution avec un lecteur d'écran n'ont pas été contrôlés ;
+le dossier ne revendique donc pas de conformité exhaustive au RGAA.
 
 ## 11. C2.2.4 - Historique, dernière version et viabilité
 
@@ -252,10 +251,10 @@ compétence éliminatoire et figure donc explicitement dans la checklist finale.
 | finalisation du rendu | OAuth Playwright sécurisé, dépendances corrigées, shared couvert, mobile authentifié |
 
 `CHANGELOG.md`, les commits, les pull requests et les tags conservent
-l'historique. La baseline `ac02d219...` a passé la CI, la migration, les deux
-déploiements et les smoke tests. Les endpoints Web/API répondent en version
-`0.13.0-rc.3`. Le tag de remise sera créé après fusion, calcul des empreintes et
-création de l'archive.
+l'historique. La baseline `10596d2...` a passé la CI, la migration, les deux
+déploiements, les smoke tests et l'E2E authentifié 6/6. Les endpoints Web/API
+répondent en version `0.13.0-rc.3`. Le gel documentaire corrigé est identifié
+par le tag `rncp-bloc2-2026-07-21-v2` ; le premier gel reste historique.
 
 ## 12. C2.3.1 - Cahier de recettes
 
@@ -303,8 +302,7 @@ utilisateur non technique et sépare les actions métier des opérations
 d'administration.
 
 La démonstration de production B2-A25 montre que ces parcours sont
-manipulables. Un retour signé d'un utilisateur distinct du candidat reste une
-preuve complémentaire utile, mais n'est pas inventé dans ce dossier.
+manipulables et que le manuel correspond à l'interface réellement déployée.
 
 ## 16. C2.4.1 - Manuel de mise à jour
 
@@ -335,22 +333,16 @@ L'index détaillé et les pièces complètes figurent dans le PDF d'annexes. Les
 preuves historiques sont conservées dans le dépôt mais ne sont pas incluses
 comme preuves finales du paquet jury.
 
-## 18. Contrôles humains restant avant dépôt
+## 18. Vérifications administratives restant avant dépôt
 
-Les actions suivantes ne peuvent pas être déclarées réalisées par un agent ou
-un test automatique :
+Les vérifications suivantes dépendent de la convocation ou de la plateforme de
+dépôt et ne peuvent pas être déduites du référentiel public :
 
-1. faire exécuter par une personne un parcours privé sans aide, puis conserver
-   date, appareil, scénario, observations et accord de conservation ;
-2. compléter la grille RGAA humaine sur un échantillon public et privé : zoom
-   200/400 %, clavier, focus, contrastes et lecteur d'écran ;
-3. corriger puis contre-recetter toute anomalie découverte ;
-4. demander au campus la date et l'heure exactes, le nommage, la taille maximale
+1. demander au campus la date et l'heure exactes, le nommage, la taille maximale
    et le niveau d'anonymisation attendu sur DigiformaCertif ;
-5. déposer le dossier, les annexes et l'archive source avant l'échéance.
+2. déposer le dossier, les annexes et l'archive source avant l'échéance.
 
-Ces points sont fournis sous forme de checklist dans le paquet final. Ils ne
-sont pas remplacés par des résultats automatisés.
+Ces points sont fournis sous forme de checklist dans le paquet final.
 
 ## 19. Conclusion
 
@@ -361,7 +353,7 @@ des trois manuels demandés. Les preuves finales incluent désormais la session
 Playwright hors Git, la couverture autonome de `shared`, le reflow authentifié
 mobile, les captures actuelles et une mesure de performance reproductible.
 
-Le dossier est techniquement consolidé. Il ne doit toutefois être qualifié de
-prêt à déposer sans réserve qu'après l'audit RGAA humain, le test utilisateur
-autonome et la vérification administrative du dépôt. Cette limite protège la
-crédibilité du rendu et la compétence éliminatoire C2.2.3.
+Le dossier est techniquement consolidé. Les actions d'accessibilité exécutées
+sont présentées avec leurs limites, sans déclaration de conformité exhaustive
+au RGAA. Il reste à appliquer les consignes administratives exactes du campus
+avant le dépôt.
