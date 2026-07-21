@@ -1,6 +1,7 @@
 # Manuel utilisateur - Alcide
 
 > Livrable Bloc 2 RNCP39583 - Documentation d'exploitation utilisateur.
+> Version observée en production : `0.13.0-rc.3` - baseline `b002adb0e0e7d8d85ee493d54879e190d77d2078`.
 
 ## 1. Présentation
 
@@ -132,6 +133,11 @@ L'application prévoit :
 - informations dynamiques pour le timer.
 
 Pour vérifier l'accessibilité en démonstration, utiliser la touche `Tab` pour parcourir l'interface et contrôler que chaque action reste atteignable.
+
+Le reflow a été contre-recetté en production avec un zoom Chromium natif à
+200 % et 400 % sur huit routes, soit 16 contrôles réussis sur 16. Cette preuve
+ne remplace pas une revue humaine exhaustive des fonds composites ni un parcours
+avec un lecteur d'écran réel.
 
 ## 12. Problèmes courants
 

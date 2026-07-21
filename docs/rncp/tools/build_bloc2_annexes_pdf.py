@@ -45,6 +45,24 @@ SELECTED = [
     "B2-A37-controles-accessibilite-humains-2026-07-21.md",
 ]
 
+MANUALS = [
+    (
+        "DOC-01",
+        ROOT / "docs" / "deployment.md",
+        "Manuel de déploiement complet",
+    ),
+    (
+        "DOC-02",
+        ROOT / "docs" / "rncp" / "bloc2-manuel-utilisateur-alcide.md",
+        "Manuel utilisateur complet",
+    ),
+    (
+        "DOC-03",
+        ROOT / "docs" / "rncp" / "bloc2-manuel-mise-a-jour.md",
+        "Manuel de mise à jour complet",
+    ),
+]
+
 
 def annex_footer(canvas, doc):
     canvas.saveState()
@@ -76,6 +94,8 @@ def annex_cover_story():
     for filename in SELECTED:
         identifier = filename.split("-")[0] + "-" + filename.split("-")[1]
         rows.append([identifier, descriptions[identifier]])
+    for identifier, _path, description in MANUALS:
+        rows.append([identifier, description])
 
     table = Table(rows, colWidths=[3.2 * cm, 13.5 * cm], repeatRows=1)
     table.setStyle(
@@ -102,7 +122,10 @@ def annex_cover_story():
         Spacer(1, 1.8 * cm),
         Paragraph("ANNEXES DE PREUVES", STYLES["CoverSub"]),
         Paragraph("Bloc 2", STYLES["CoverTitle"]),
-        Paragraph("Sélection finale - hors limite des 30 pages du dossier", STYLES["CoverSub"]),
+        Paragraph(
+            "Preuves sélectionnées et documentation d'exploitation complète - hors limite des 30 pages du dossier",
+            STYLES["CoverSub"],
+        ),
         Spacer(1, 5.4 * cm),
         table,
         Spacer(1, 0.8 * cm),
@@ -130,6 +153,7 @@ def shift_headings(source: str) -> str:
 
 def build_pdf(output: Path = OUTPUT) -> Path:
     missing = [filename for filename in SELECTED if not (ANNEXES / filename).is_file()]
+    missing.extend(str(path.relative_to(ROOT)) for _identifier, path, _description in MANUALS if not path.is_file())
     if missing:
         raise FileNotFoundError(f"Annexes manquantes : {missing}")
 
@@ -143,7 +167,7 @@ def build_pdf(output: Path = OUTPUT) -> Path:
         bottomMargin=1.55 * cm,
         title="Annexes Bloc 2 RNCP39583 - Alcide - final 2026-07-21",
         author="Candidat RNCP39583 - dossier anonymisé",
-        subject="Preuves sélectionnées hors pagination du dossier Bloc 2",
+        subject="Preuves sélectionnées et documentation d'exploitation du dossier Bloc 2",
     )
 
     story = annex_cover_story()
@@ -153,6 +177,17 @@ def build_pdf(output: Path = OUTPUT) -> Path:
             story.append(PageBreak())
         path = ANNEXES / filename
         story.extend(parse_markdown(shift_headings(path.read_text(encoding="utf-8")), path.parent))
+
+    for identifier, path, description in MANUALS:
+        story.append(PageBreak())
+        story.append(Paragraph(f"{identifier} - {description}", STYLES["H1x"]))
+        story.extend(
+            parse_markdown(
+                path.read_text(encoding="utf-8"),
+                path.parent,
+                skip_preamble=True,
+            )
+        )
 
     document.multiBuild(story, onFirstPage=cover_page, onLaterPages=annex_footer)
     return output

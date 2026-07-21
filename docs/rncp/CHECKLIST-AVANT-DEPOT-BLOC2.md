@@ -16,20 +16,24 @@ réellement exécutée et avoir conservé la preuve associée.
 Le calendrier général mentionne août 2026, mais il ne remplace pas la date de
 la convocation.
 
-## 2. Gel technique et paquet final
+## 2. Gel technique consolidé
 
-- [ ] Attendre la fusion de la PR de finalisation et noter le SHA final.
-- [ ] Vérifier que la CI, la CD éventuelle et la suite OAuth sont vertes.
-- [ ] Mettre à jour le manifeste avec le SHA, les runs et les empreintes.
-- [ ] Générer le dossier et vérifier qu'il contient au maximum 30 pages hors
-      annexes.
-- [ ] Rendre toutes les pages en PNG et les inspecter à 100 %.
-- [ ] Générer l'archive source avec `git archive`, jamais avec le répertoire de
-      travail ; vérifier l'absence de `.env`, session OAuth, `node_modules` et
-      fichiers temporaires.
-- [ ] Calculer les SHA-256 du dossier, des annexes et de l'archive source.
-- [ ] Vérifier que le répertoire de remise ne contient aucun ancien PDF.
-- [ ] Créer le tag documentaire final sans déplacer les tags historiques.
+Les contrôles techniques ne sont plus présentés comme des actions administratives
+encore ouvertes : ils sont exécutés par le constructeur du paquet et consignés
+dans `MANIFESTE.txt`.
+
+- [x] baseline applicative `b002adb` validée par la CI `29845956008` et le CD
+      `29846343559` ;
+- [x] reflow contre-recetté en production : zoom natif 16/16 et accessibilité
+      33/33 ;
+- [x] archive construite par liste positive de fichiers suivis, avec filtrage
+      des secrets, états OAuth, `.env`, `node_modules` et fichiers temporaires ;
+- [x] dossier limité à 30 pages hors annexes et contrôles de rendu prévus dans
+      le processus de génération ;
+- [x] SHA Git et empreintes SHA-256 générés dans le manifeste du paquet.
+
+Après toute nouvelle correction documentaire, le paquet doit être reconstruit :
+le manifeste produit par cette dernière exécution, et lui seul, fait foi.
 
 ## 3. Dépôt
 

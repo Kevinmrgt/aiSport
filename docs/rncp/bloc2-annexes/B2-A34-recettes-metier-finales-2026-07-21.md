@@ -3,10 +3,12 @@
 > Compétence : C2.3.1 — cahier de recettes.
 > Exécution : 21 juillet 2026, de 14 h 23 à 14 h 40 (Europe/Paris).
 > Révision de départ : `bac3b916770cabbbc92e3cda0d58ac3ed7e5e119`.
-> Baseline applicative testée et déployée : correctifs fusionnés par la PR 43 dans
+> Baseline du lot de recettes métier testée et déployée : correctifs fusionnés par la PR 43 dans
 > `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`, puis CI `29832575391`, CD
 > `29832944876` et E2E OAuth `29833210488` réussis.
-> Repère documentaire : tag `rncp-bloc2-2026-07-21-v5`.
+> Baseline canonique après le correctif de reflow, sans modification de ces règles métier :
+> `b002adb0e0e7d8d85ee493d54879e190d77d2078`, CI `29845956008`, CD `29846343559`.
+> Repère documentaire final : tag `rncp-bloc2-2026-07-21-v6`.
 > Le SHA effectivement archivé est porté par le manifeste du paquet de remise.
 
 ## 1. Environnements et données
@@ -200,7 +202,9 @@ recette. Les champs contiennent uniquement les marqueurs de test suivants :
 - Le verrouillage CR-038 et les suppressions de revalidation ont été intégrés à
   la baseline `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`, puis ont passé la CI
   `29832575391`, le CD `29832944876`, les smoke tests et la contre-recette OAuth
-  `29833210488`. Leur déploiement final n'est donc plus à confirmer.
+  `29833210488`. Le correctif de reflow ultérieur n'a pas modifié ce périmètre
+  métier ; la baseline canonique `b002adb` a ensuite passé la CI `29845956008`
+  et le CD `29846343559`. Leur déploiement final n'est donc plus à confirmer.
 
 ## 7. Pièces techniques
 

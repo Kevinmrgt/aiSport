@@ -11,23 +11,29 @@
 | Dépôt                              | `https://github.com/Kevinmrgt/aiSport`         |
 | Branche de remise                  | `main`                                         |
 | Baseline applicative déployée      | `b002adb0e0e7d8d85ee493d54879e190d77d2078`     |
+| Baseline de consolidation antérieure | `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`   |
 | Pull request fermeture finale      | `https://github.com/Kevinmrgt/aiSport/pull/43` |
 | Pull request gel probatoire final  | `https://github.com/Kevinmrgt/aiSport/pull/44` |
 | Pull request validation du paquet  | `https://github.com/Kevinmrgt/aiSport/pull/45` |
 | Correction documentaire antérieure | `https://github.com/Kevinmrgt/aiSport/pull/40` |
 | Version applicative                | `0.13.0-rc.3`                                  |
-| Tag du gel final                   | `rncp-bloc2-2026-07-21-v5`                     |
+| Tag du gel final corrigé           | `rncp-bloc2-2026-07-21-v6`                     |
+| Snapshot documentaire antérieur    | `rncp-bloc2-2026-07-21-v5` — CI/CD verte       |
 | CI baseline `main`                 | run `29845956008` — succès                     |
 | CD baseline `main`                 | run `29846343559` — succès                     |
+| CI/CD de consolidation antérieures | runs `29832575391` / `29832944876` — succès    |
 | E2E authentifié baseline           | run `29833210488` — 6/6, succès                |
 | Web                                | `https://ai-sport-web.vercel.app`              |
 | API liveness                       | `https://ai-sport-api.vercel.app/health`       |
 | API readiness                      | `https://ai-sport-api.vercel.app/health/ready` |
 
-Le tag `rncp-bloc2-2026-07-21-v5` identifie le gel final après la fermeture de
+Le tag `rncp-bloc2-2026-07-21-v6` identifie le gel final corrigé après la fermeture de
 l'anomalie de reflow au zoom natif, son déploiement et sa contre-recette de
 production. Il ne déplace ni le tag applicatif `v0.13.0-rc.3`, ni les gels
-documentaires antérieurs, conservés comme historiques.
+documentaires antérieurs, conservés comme historiques. Le SHA de l'archive de
+remise peut être postérieur à `b002adb` lorsqu'il ne contient que des corrections
+documentaires ; la baseline applicative déployée reste alors explicitement
+`b002adb`.
 
 ## 2. Pièces finales à déposer
 
@@ -35,13 +41,13 @@ documentaires antérieurs, conservés comme historiques.
 | --: | -------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 |  01 | Dossier écrit        | `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.3-final-2026-07-21.pdf` | maximum officiel de 30 pages hors annexes ; pagination, sommaire, liens et rendu visuel contrôlés          |
 |  02 | Annexes techniques   | `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.3-final-2026-07-21.pdf` | preuves sélectionnées A20, A25 à A31 et A34 à A37 ; limites explicites                                     |
-|  03 | Code source          | archive Git produite par `docs/rncp/tools/build_bloc2_delivery_pack.py`       | uniquement les fichiers suivis du commit de remise ; aucun secret, état OAuth, `.env` ou dépendance locale |
+|  03 | Code source          | archive Git produite par `docs/rncp/tools/build_bloc2_delivery_pack.py`       | fichiers suivis du commit de remise, dont les trois manuels complets ; aucun secret, état OAuth, `.env` ou dépendance locale |
 |  04 | Notice et empreintes | `LISEZ-MOI.txt` et `MANIFESTE.txt` dans le paquet                             | ordre de lecture, SHA Git et SHA-256 de chaque pièce                                                       |
 
-Empreintes des PDF après gel du rendu :
-
-- dossier principal : `A27F794BE6ECD511ECCE6A50F808FBE9E3139264EB24BC86A05CEA9B3482D2E1` ;
-- annexes : `A658EA9E36DE4EF9AC37F04282B9E6677A818175DBBAA524AD0C5076B6793DE6`.
+Les empreintes qui font foi sont calculées après chaque régénération et inscrites
+dans le `MANIFESTE.txt` du paquet. Elles ne sont pas dupliquées ici afin d'éviter
+qu'une correction documentaire laisse une empreinte historique présentée comme
+courante.
 
 Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 `final-2026-07-21` sont historiques et ne doivent pas être remis.
@@ -50,22 +56,22 @@ Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 
 | Exigence du Bloc 2                               | Preuve principale                                             |
 | ------------------------------------------------ | ------------------------------------------------------------- |
-| Protocole de déploiement continu                 | dossier §3, `.github/workflows/cd.yml`, manuel de déploiement |
-| Qualité et performance                           | dossier §4, B2-A29, CI `29819423534`                          |
-| Protocole d'intégration continue                 | dossier §5, `.github/workflows/ci.yml`                        |
-| Architecture maintenable                         | dossier §6, ADR et arborescence du monorepo                   |
+| Protocole de déploiement continu                 | dossier §3, `.github/workflows/deploy-vercel.yml`, manuel de déploiement |
+| Qualité et performance                           | dossier §3, B2-A29, CI `29845956008`                          |
+| Protocole d'intégration continue                 | dossier §4, `.github/workflows/ci.yml`                        |
+| Architecture maintenable                         | dossier §5, ADR et arborescence du monorepo                   |
 | Prototype                                        | dossier §7, B2-A30 et captures desktop/mobile authentifiées   |
-| Frameworks et paradigmes                         | dossier §8 et ADR                                             |
-| Tests unitaires                                  | dossier §9, rapports API/Web/PostgreSQL/shared, B2-A31        |
-| Sécurité                                         | dossier §10, revue OWASP, B2-A35 et audit de dépendances      |
-| Accessibilité                                    | dossier §11, B2-A20/B2-A36/B2-A37, axe, zoom, clavier et limites humaines |
-| Historique des versions                          | dossier §12, Git et `CHANGELOG.md`                            |
-| Dernière version fonctionnelle, fiable et viable | dossier §13, CI/CD/healthchecks et B2-A28                     |
-| Plan de tests et recette                         | dossier §14, cahier et B2-A34 à B2-A37                        |
-| Plan de correction des bogues                    | dossier §15 et registre B2-BUG                                |
-| Manuel de déploiement                            | dossier §16 et `docs/deployment.md`                           |
-| Manuel utilisateur                               | dossier §17 et manuel utilisateur autonome                    |
-| Manuel de mise à jour                            | dossier §18 et manuel de mise à jour autonome                 |
+| Frameworks et paradigmes                         | dossier §6 et ADR                                             |
+| Tests unitaires                                  | dossier §8, rapports API/Web/PostgreSQL/shared, B2-A31        |
+| Sécurité                                         | dossier §9, revue OWASP, B2-A35 et audit de dépendances       |
+| Accessibilité                                    | dossier §10, B2-A20/B2-A36/B2-A37, axe, zoom, clavier et limites humaines |
+| Historique des versions                          | dossier §11, Git et `CHANGELOG.md`                            |
+| Dernière version fonctionnelle, fiable et viable | dossier §11, CI/CD/healthchecks et B2-A28/B2-A37              |
+| Plan de tests et recette                         | dossier §12, cahier et B2-A34 à B2-A37                        |
+| Plan de correction des bogues                    | dossier §13 et registre B2-BUG                                |
+| Manuel de déploiement                            | dossier §14 et `docs/deployment.md`                           |
+| Manuel utilisateur                               | dossier §15 et manuel utilisateur autonome                    |
+| Manuel de mise à jour                            | dossier §16 et manuel de mise à jour autonome                 |
 
 ## 4. Contrôles techniques exécutés
 
