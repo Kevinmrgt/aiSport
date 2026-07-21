@@ -6,7 +6,7 @@
 > Baseline applicative testée et déployée : correctifs fusionnés par la PR 43 dans
 > `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`, puis CI `29832575391`, CD
 > `29832944876` et E2E OAuth `29833210488` réussis.
-> Repère documentaire : tag `rncp-bloc2-2026-07-21-v4`.
+> Repère documentaire : tag `rncp-bloc2-2026-07-21-v5`.
 > Le SHA effectivement archivé est porté par le manifeste du paquet de remise.
 
 ## 1. Environnements et données
