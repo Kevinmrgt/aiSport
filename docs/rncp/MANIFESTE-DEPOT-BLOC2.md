@@ -6,25 +6,27 @@
 
 ## 1. Références vérifiables
 
-| Élément                         | Valeur                                         |
-| ------------------------------- | ---------------------------------------------- |
-| Dépôt                           | `https://github.com/Kevinmrgt/aiSport`         |
-| Branche de remise               | `main`                                         |
-| Baseline applicative déployée   | `10596d24271bb659e20654fab6fe9fe95afcaf2c`     |
-| Pull request technique finale   | `https://github.com/Kevinmrgt/aiSport/pull/39` |
-| Correction documentaire         | `https://github.com/Kevinmrgt/aiSport/pull/40` |
-| Version applicative             | `0.13.0-rc.3`                                  |
-| Tag du gel documentaire corrigé | `rncp-bloc2-2026-07-21-v2`                     |
-| CI baseline `main`              | run `29821725811` — succès                     |
-| CD baseline `main`              | run `29822081133` — succès                     |
-| E2E authentifié baseline        | run `29822300455` — 6/6, succès                |
-| Web                             | `https://ai-sport-web.vercel.app`              |
-| API liveness                    | `https://ai-sport-api.vercel.app/health`       |
-| API readiness                   | `https://ai-sport-api.vercel.app/health/ready` |
+| Élément                            | Valeur                                         |
+| ---------------------------------- | ---------------------------------------------- |
+| Dépôt                              | `https://github.com/Kevinmrgt/aiSport`         |
+| Branche de remise                  | `main`                                         |
+| Baseline applicative déployée      | `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`     |
+| Pull request fermeture finale      | `https://github.com/Kevinmrgt/aiSport/pull/43` |
+| Pull request gel probatoire final  | `https://github.com/Kevinmrgt/aiSport/pull/44` |
+| Correction documentaire antérieure | `https://github.com/Kevinmrgt/aiSport/pull/40` |
+| Version applicative                | `0.13.0-rc.3`                                  |
+| Tag du gel final                   | `rncp-bloc2-2026-07-21-v3`                     |
+| CI baseline `main`                 | run `29832575391` — succès                     |
+| CD baseline `main`                 | run `29832944876` — succès                     |
+| E2E authentifié baseline           | run `29833210488` — 6/6, succès                |
+| Web                                | `https://ai-sport-web.vercel.app`              |
+| API liveness                       | `https://ai-sport-api.vercel.app/health`       |
+| API readiness                      | `https://ai-sport-api.vercel.app/health/ready` |
 
-Le tag `rncp-bloc2-2026-07-21-v2` identifie le gel corrigé après la fusion de la
-PR 40. Il ne déplace ni le tag applicatif `v0.13.0-rc.3`, ni le premier gel
-documentaire `rncp-bloc2-2026-07-21`, conservés comme historiques.
+Le tag `rncp-bloc2-2026-07-21-v3` identifie le gel final après la fermeture des
+risques C2.3.1 et C2.2.3 par la PR 43 et le gel probatoire associé. Il ne déplace
+ni le tag applicatif `v0.13.0-rc.3`, ni les gels documentaires antérieurs,
+conservés comme historiques.
 
 ## 2. Pièces finales à déposer
 
@@ -37,8 +39,8 @@ documentaire `rncp-bloc2-2026-07-21`, conservés comme historiques.
 
 Empreintes des PDF après gel du rendu :
 
-- dossier principal : `A4BA0121CE37A9542FE96CBD9590363E79312E4E91FDBF6BFAAB1C001C6EC364` ;
-- annexes : `B034C7E0A0F9D013B3FB95B3E5CE520C559BDC682CC215F69021063A3CCA6283`.
+- dossier principal : `F47EA28C5E7270A09E3843A8CE9D6467F600DED3635185E1F3172AE7FEEC7E5A` ;
+- annexes : `6A0C04581645D075A31127C36C1F1D84DB5658DB1EAD499CB9CFB82A6DA7F4AC`.
 
 Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 `final-2026-07-21` sont historiques et ne doivent pas être remis.
@@ -72,10 +74,10 @@ Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 - [x] couverture API, Web, PostgreSQL et shared publiée séparément ;
 - [x] audit des dépendances au niveau `low` sans vulnérabilité connue ;
 - [x] Playwright public et axe dans la CI ;
-- [x] Playwright authentifié local et CI `29820498452` : 6/6, dont viewport mobile 390 × 844,
+- [x] Playwright authentifié local et CI finale `29833210488` : 6/6, dont viewport mobile 390 × 844,
       absence de débordement horizontal et axe sans violation critique/sérieuse ;
 - [x] images Docker API et Web construites dans la CI ;
-- [x] baseline `main` déployée avec migration et smoke tests ;
+- [x] baseline `main` `0d5c6b6` déployée avec migration et smoke tests par le run `29832944876` ;
 - [x] 50 requêtes séquentielles sur chacun des trois endpoints de santé :
       150/150 réponses valides, p95 Web 508,63 ms, API liveness 339,66 ms et
       readiness 267,11 ms, sous l'objectif de 1 000 ms ;

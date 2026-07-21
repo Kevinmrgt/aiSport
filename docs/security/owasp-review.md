@@ -1,7 +1,7 @@
 # Revue de sécurité OWASP Top 10 — Alcide
 
 > Livrable transversal utilisé par le Bloc 2, compétence C2.2.3
-> Revue de code : 2026-07-21 - baseline de production `ac02d219...`
+> Revue de code : 2026-07-21 - baseline finale de production `0d5c6b6...`
 
 ## Méthode et échelle
 
@@ -28,7 +28,7 @@ Contrôles :
 
 Preuve : B2-A19 consigne 8/8 tests PostgreSQL réels avec
 deux utilisateurs, dont l'isolation et l'ownership workout/program/session-log.
-Les tests ont été rejoués dans le job PostgreSQL de la CI `29817362423` sur
+Les tests ont été rejoués dans le job PostgreSQL de la CI finale `29832575391` sur
 `main`. Les tests middleware et controllers sont aussi exécutés dans la suite
 unitaire. L'existence d'une FK seule n'est pas utilisée comme preuve d'ownership.
 
@@ -113,7 +113,8 @@ transitives `brace-expansion` et `shell-quote` ont fait échouer la CI
 `29815728217`. Les overrides ont été déplacés vers 1.1.16, 2.1.2, 5.0.7 et
 1.9.0. L'audit local ne remonte plus de vulnérabilité connue et la CI complète
 `29816347653` est verte. B2-A27 conserve l'échec, la correction et la
-contre-vérification.
+contre-vérification. L'audit bloquant au niveau `low` est de nouveau vert dans
+la CI finale `29832575391`.
 
 ## A07 — Identification and Authentication Failures — contrôlé avec limites
 
@@ -126,8 +127,9 @@ La suite Playwright authentifiée n'utilise plus une fixture vide. B2-A26 prouve
 la capture d'un vrai `storageState` Auth.js après connexion Google manuelle, la
 vérification de l'identité, le filtrage des cookies sur le domaine Alcide et
 4/4 scénarios en CI `29817741589`. La déconnexion et l'accès sans session sont
-couverts par B2-A25. La branche de finalisation ajoute le reflow mobile et axe,
-6/6 localement. L'expiration et la rotation automatique restent à tester.
+couverts par B2-A25. La suite finale ajoute le reflow mobile et axe : 6/6 dans
+la CI post-déploiement `29833210488`. L'expiration et la rotation automatique
+restent à tester.
 
 ## A08 — Software and Data Integrity Failures — contrôlé
 
@@ -136,8 +138,8 @@ validation Zod des sorties OpenAI et images construites depuis le SHA.
 
 Le CD manuel contournant la CI est supprimé. Les actions GitHub sont épinglées
 par SHA, la CLI Vercel est appelée avec une version explicite et le SHA déployé
-est conservé dans le manifeste. La CI `29817362423` puis la CD `29817698665`
-prouvent l'enchaînement sur la baseline `ac02d219...`.
+est conservé dans le manifeste. La CI finale `29832575391` puis le CD
+`29832944876` prouvent l'enchaînement sur la baseline `0d5c6b6...`.
 
 ## A09 — Security Logging and Monitoring Failures — contrôlé avec limites
 
@@ -163,18 +165,18 @@ Preuves : tests timeout/retry et revue des appels réseau serveur.
 
 ## Synthèse des risques
 
-| Catégorie                 | État candidat | Preuve finale requise                            |
-| ------------------------- | ------------- | ------------------------------------------------ |
-| A01 Accès                 | Contrôlé      | PostgreSQL multi-utilisateur + API               |
-| A02 Cryptographie/données | Contrôlé avec limites | inspection ressources navigateur et politique données |
-| A03 Injection             | Contrôlé      | DB réelle + navigateur                           |
-| A04 Conception            | Partiel       | stratégie rate limit distribué ou risque accepté |
-| A05 Configuration         | Contrôlé avec risque résiduel | CSP/headers/CORS effectifs ; nonce à étudier |
-| A06 Composants            | Contrôlé      | audit brut du lockfile final                     |
-| A07 Authentification      | Contrôlé      | Playwright avec vrai état Auth.js                |
-| A08 Intégrité             | Contrôlé      | CI/CD, actions épinglées et SHA                  |
-| A09 Logs                  | Contrôlé avec limites | événement 401 et monitoring ; SIEM absent   |
-| A10 SSRF                  | Contrôlé      | tests timeout + revue URL fixe                   |
+| Catégorie                 | État candidat                 | Preuve finale requise                                 |
+| ------------------------- | ----------------------------- | ----------------------------------------------------- |
+| A01 Accès                 | Contrôlé                      | PostgreSQL multi-utilisateur + API                    |
+| A02 Cryptographie/données | Contrôlé avec limites         | inspection ressources navigateur et politique données |
+| A03 Injection             | Contrôlé                      | DB réelle + navigateur                                |
+| A04 Conception            | Partiel                       | stratégie rate limit distribué ou risque accepté      |
+| A05 Configuration         | Contrôlé avec risque résiduel | CSP/headers/CORS effectifs ; nonce à étudier          |
+| A06 Composants            | Contrôlé                      | audit brut du lockfile final                          |
+| A07 Authentification      | Contrôlé                      | Playwright avec vrai état Auth.js                     |
+| A08 Intégrité             | Contrôlé                      | CI/CD, actions épinglées et SHA                       |
+| A09 Logs                  | Contrôlé avec limites         | événement 401 et monitoring ; SIEM absent             |
+| A10 SSRF                  | Contrôlé                      | tests timeout + revue URL fixe                        |
 
 La revue ne conclut pas « 10/10 sans risque ». Elle fournit au jury les
 contrôles exécutés et les risques résiduels : confidentialité, rate limit

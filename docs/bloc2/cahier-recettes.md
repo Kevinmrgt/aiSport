@@ -2,9 +2,9 @@
 
 > Bloc 2 RNCP39583 — C2.3.1, compétence éliminatoire
 > Version consolidée : 2026-07-21
-> Baseline applicative déployée : `ac02d219802614d1da4064e542f8de6c5487e5eb`.
-> Complément de preuves techniques : `81b2b0bd6afa0cf3a33cca6d7ee045ae5808709d`.
-> Le tag de remise `rncp-bloc2-2026-07-21` sera créé après fusion et contrôle de `main`.
+> Baseline applicative déployée : `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`.
+> Pull request applicative finale : `#43`.
+> Tag de remise final : `rncp-bloc2-2026-07-21-v3`.
 
 ## Règles de preuve
 
@@ -25,10 +25,10 @@ artefact et anomalie éventuelle.
 | Élément                             | Valeur                                                                                                                         |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | Scénarios inventoriés               | 60                                                                                                                             |
-| Scénarios exécutés sur le SHA final | Gel Git à confirmer après CI/CD ; chaque scénario possède désormais un résultat ou une limite reliée au plan de correction     |
+| Scénarios exécutés sur le SHA final | Gel Git confirmé après CI/CD ; chaque scénario possède un résultat ou une limite reliée au plan de correction                  |
 | Scénarios réussis                   | Non convertis en pourcentage : 170 tests API, 55 Web, 14 shared, 9 PostgreSQL RNCP et les parcours authentifiés sont détaillés |
 | Scénarios en échec                  | Quatre écarts ont été reproduits sur `rc.2`, corrigés puis contre-recettés sur `rc.3` ; aucune gate CI/CD finale en échec      |
-| SHA/tag testé                       | baseline `ac02d219802614d1da4064e542f8de6c5487e5eb` ; compléments `81b2b0bd6afa0cf3a33cca6d7ee045ae5808709d`                   |
+| SHA/tag testé                       | baseline `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b` ; tag final `rncp-bloc2-2026-07-21-v3`                                     |
 | Environnement                       | Local/CI Node 24 + PostgreSQL de test, puis production Vercel/Neon                                                             |
 | Artefacts                           | annexes finales A20 et A25 à A31, rapports CI, captures authentifiées et paquet de remise daté du 2026-07-21                   |
 
@@ -41,21 +41,25 @@ artefact et anomalie éventuelle.
 | Accessibilité automatisable | 33/33 Playwright production authentifiée et 2/2 tests de structure ; 3 publiques et 5 privées, plus contre-contrôle | B2-A36 |
 
 Les correctifs CR-038, confirmation de journalisation et hiérarchie des titres
-sont validés dans la candidate locale. Leur présence en production sera
-attribuée seulement après passage par la CI/CD. CR-055 reste partiel pour les
-trois vérifications humaines décrites dans B2-A36 ; cette limite n'est pas
-transformée en fausse conformité RGAA.
+ont passé la CI `29832575391`, le CD `29832944876`, les smoke tests et la
+contre-recette OAuth `29833210488` sur la baseline finale. CR-055 reste partiel
+pour les trois vérifications humaines décrites dans B2-A36 ; cette limite n'est
+pas transformée en fausse conformité RGAA.
 
 ### Compléments automatisés du 2026-07-21
 
-| Contrôle                     | Résultat                   | Preuve et limite                                                                                                                         |
-| ---------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| CI du complément             | Succès des six jobs        | run `29819423534` : lint/typecheck, audit, 155 tests API, 43 Web, 14 shared, couvertures, PostgreSQL, Playwright public, build et Docker |
-| Playwright authentifié local | 6/6                        | session OAuth réelle locale non versionnée ; génération, mobile 390 × 844, débordement horizontal et axe critique/sérieux                |
-| Playwright authentifié CI    | 6/6                        | run `29820498452` : session dédiée restaurée depuis GitHub Secrets, puis supprimée du runner                                             |
-| Performance production       | 150/150 réponses valides   | B2-A29 : 50 requêtes par endpoint, p95 de 267,11 à 508,63 ms ; mesure ponctuelle, pas un test de charge                                  |
-| Prototype authentifié        | Desktop et mobile capturés | B2-A30 ; aucune adresse personnelle ou donnée de recette visible                                                                         |
-| Couverture shared            | 14/14                      | B2-A31 : 100 % lignes/statements/fonctions et 92,85 % branches sur les schémas partagés                                                  |
+| Contrôle                       | Résultat                   | Preuve et limite                                                                                                                         |
+| ------------------------------ | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| CI du complément               | Succès des six jobs        | run `29819423534` : lint/typecheck, audit, 155 tests API, 43 Web, 14 shared, couvertures, PostgreSQL, Playwright public, build et Docker |
+| Playwright authentifié local   | 6/6                        | session OAuth réelle locale non versionnée ; génération, mobile 390 × 844, débordement horizontal et axe critique/sérieux                |
+| Playwright authentifié CI      | 6/6                        | run `29820498452` : session dédiée restaurée depuis GitHub Secrets, puis supprimée du runner                                             |
+| Performance production         | 150/150 réponses valides   | B2-A29 : 50 requêtes par endpoint, p95 de 267,11 à 508,63 ms ; mesure ponctuelle, pas un test de charge                                  |
+| Prototype authentifié          | Desktop et mobile capturés | B2-A30 ; aucune adresse personnelle ou donnée de recette visible                                                                         |
+| Couverture shared              | 14/14                      | B2-A31 : 100 % lignes/statements/fonctions et 92,85 % branches sur les schémas partagés                                                  |
+| CI finale `main`               | Succès des six jobs        | run `29832575391` sur `0d5c6b6` : audit, qualité, 239 tests API/Web/shared, PostgreSQL, Playwright, build et Docker                      |
+| CD final Vercel                | Succès                     | run `29832944876` : migration, API, Web et smoke tests                                                                                   |
+| E2E OAuth post-déploiement     | 6/6                        | run `29833210488` : session dédiée restaurée puis supprimée du runner                                                                    |
+| Accessibilité post-déploiement | 33/33                      | production : 3 pages publiques et 5 privées, reflow, clavier, contraste axe et arbre AX                                                  |
 
 Ces compléments démontrent le périmètre automatisé exécuté ; ils ne constituent
 pas une déclaration de conformité exhaustive au RGAA.
@@ -183,17 +187,16 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 | CR-058 | Qualité/build             | lint, typecheck, build sous Node 24                                      | toutes commandes réussies                                                           | logs CI             | ✅ Exécuté dans `29742672052`                                                                                     |
 | CR-059 | Docker                    | construire API/Web et contrôler la procédure migrate/seed                | images Node 24 non-root ; migrate/seed fonctionnels                                 | CI + B2-A22         | ✅ Images finales construites en CI ; migrate/seed validés localement ; clone vierge non archivé                  |
 | CR-060 | Readiness API             | DB/clé disponibles puis indisponibles                                    | 200 prêt ; 503 avec dépendance défaillante                                          | tests route + curl  | ✅ Cas automatisés verts ; readiness production 200, DB/IA `ok`                                                   |
-| CR-061 | CI complète               | pousser le SHA final                                                     | tous les jobs obligatoires verts                                                    | run GitHub          | ✅ Run `29747228594` réussi sur `3a21e3b`                                                                         |
+| CR-061 | CI complète               | pousser le SHA final                                                     | tous les jobs obligatoires verts                                                    | run GitHub          | ✅ Run final `29832575391` réussi sur `0d5c6b6`                                                                   |
 | CR-062 | CD sans contournement     | CI échoue puis réussit                                                   | aucun déploiement après échec ; déploiement après succès                            | runs GitHub         | 🧪 Chemin de succès et chaînage `workflow_run` prouvés ; scénario d'échec non rejoué pour cette remise            |
-| CR-063 | Version immuable          | comparer package, tag, SHA, health et changelog                          | version cohérente et distinction explicite entre SHA applicatif et gel documentaire | manifeste           | ✅ Version `0.13.0-rc.3`, SHA applicatif et futur tag documentaire distingués                                     |
-| CR-064 | Production API/Web        | déployer le SHA final                                                    | liveness/readiness/Web en 200                                                       | curl daté           | ✅ CD `29747592571`, HTTP 200 `rc.3` et monitoring `29748032763`                                                  |
+| CR-063 | Version immuable          | comparer package, tag, SHA, health et changelog                          | version cohérente et distinction explicite entre SHA applicatif et gel documentaire | manifeste           | ✅ Version `0.13.0-rc.3`, SHA `0d5c6b6` et tag documentaire final `rncp-bloc2-2026-07-21-v3` distingués           |
+| CR-064 | Production API/Web        | déployer le SHA final                                                    | liveness/readiness/Web en 200                                                       | curl daté           | ✅ CD final `29832944876`, HTTP 200 `rc.3`, DB et configuration IA `ok`                                           |
 | CR-065 | Parcours post-déploiement | login, séance, programme, Timer, journal, dashboard                      | parcours complet sans erreur                                                        | recette production  | ✅ Session OAuth, Programmes, Timer, effort/feedback/douleur, journal et dashboard `3 → 4` en production ; B2-A34 |
 
 ## Critère de clôture C2.3.1
 
 Les 60 scénarios sont maintenant renseignés par un résultat exécuté, une limite
-ou un risque accepté relié au plan de correction. La clôture du gel final reste
-conditionnée au passage des correctifs locaux par la CI/CD et à leur
-contre-recette de production. CR-055 conserve en outre trois contrôles humains
-explicites ; les tests Vitest/Playwright ne sont pas présentés comme un audit
-RGAA exhaustif.
+ou un risque accepté relié au plan de correction. Les correctifs ont passé la
+CI/CD finale et la contre-recette de production. CR-055 conserve trois contrôles
+humains explicites ; les tests Vitest/Playwright ne sont pas présentés comme un
+audit RGAA exhaustif.

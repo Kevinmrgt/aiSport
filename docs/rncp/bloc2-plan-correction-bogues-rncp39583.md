@@ -68,9 +68,9 @@ Il complète :
 | B2-BUG-028 | Couverture shared 2026-07-21               |       P0 | Le paquet de contrats partagé n'avait aucun rapport autonome                                            | Les schémas étaient exercés indirectement par l'API et le Web                   | Ajouter Vitest au paquet shared, des tests de contrats et un artefact CI distinct                                             | 14 tests, couverture et CI `29819423534`                                       | Clos : 100 % lignes/statements/fonctions, 92,85 % branches, B2-A31                                                                                       |
 | B2-BUG-029 | Rendu final 2026-07-21                     |       P1 | Le PDF, le manifeste et le README des livrables désignaient des états et fichiers différents            | Plusieurs exports intermédiaires conservés sans désignation finale unique       | Générer un dossier et des annexes datés, les inspecter, puis produire un paquet avec empreintes                               | builders PDF, contrôle visuel et script de paquet                              | Clos : seules les pièces suffixées `final-2026-07-21` sont candidates au dépôt                                                                           |
 | B2-BUG-030 | Authentifié mobile/axe 2026-07-21          |       P0 | Aucun contrôle automatisé mobile ou axe avec session réelle n'était archivé                             | Suite authentifiée limitée aux parcours fonctionnels desktop                    | Ajouter viewport 390 × 844, contrôle de largeur et axe critique/sérieux sur `/generate`                                       | Playwright authentifié 6/6 local                                               | Clos sur le périmètre automatisé ; audit humain multi-page reste ouvert                                                                                  |
-| B2-BUG-031 | Recette CR-038 2026-07-21                  |       P0 | L'API acceptait tout modèle commençant par `gpt-` alors que l'UI en autorisait trois                    | Validation serveur plus permissive que le contrat d'interface                   | Ajouter une allowlist Zod partagée par lecture et écriture                                                                    | requête HTTP avec `gpt-modele-interdit`, statut 400 et repository non appelé   | Corrigé dans la candidate ; 9/9 recettes API ciblées et suite API 170/170, déploiement à confirmer, B2-A34                                               |
-| B2-BUG-032 | Recette journal 2026-07-21                 |       P0 | La revalidation de la page Timer pouvait masquer la confirmation après création du journal              | La page courante était invalidée alors que seule la donnée du dashboard change  | Ne revalider que le dashboard et, pour une séance de programme, la fiche programme parente                                    | test UI confirmation + parcours production Timer/journal/dashboard             | Corrigé dans la candidate ; parcours production CR-065 réussi et dashboard `3 → 4`, déploiement à confirmer, B2-A34                                      |
-| B2-BUG-033 | Audit structure 2026-07-21                 |       P1 | `/generate` et `/programs/generate` exposaient chacun deux titres `h1`                                  | Le titre interne du formulaire utilisait le même niveau que le titre de page    | Passer les titres de formulaire en `h2` sans perdre leur association `aria-labelledby`                                        | 2/2 tests de structure et arbre d'accessibilité                                | Corrigé dans la candidate ; déploiement à confirmer, B2-A36                                                                                              |
+| B2-BUG-031 | Recette CR-038 2026-07-21                  |       P0 | L'API acceptait tout modèle commençant par `gpt-` alors que l'UI en autorisait trois                    | Validation serveur plus permissive que le contrat d'interface                   | Ajouter une allowlist Zod partagée par lecture et écriture                                                                    | requête HTTP avec `gpt-modele-interdit`, statut 400 et repository non appelé   | Clos : 9/9 recettes API ciblées, suite API 170/170, CI `29832575391` et CD `29832944876`, B2-A34                                                         |
+| B2-BUG-032 | Recette journal 2026-07-21                 |       P0 | La revalidation de la page Timer pouvait masquer la confirmation après création du journal              | La page courante était invalidée alors que seule la donnée du dashboard change  | Ne revalider que le dashboard et, pour une séance de programme, la fiche programme parente                                    | test UI confirmation + parcours production Timer/journal/dashboard             | Clos : parcours CR-065 réussi, dashboard `3 → 4`, suites finales et CD `29832944876`, B2-A34                                                             |
+| B2-BUG-033 | Audit structure 2026-07-21                 |       P1 | `/generate` et `/programs/generate` exposaient chacun deux titres `h1`                                  | Le titre interne du formulaire utilisait le même niveau que le titre de page    | Passer les titres de formulaire en `h2` sans perdre leur association `aria-labelledby`                                        | 2/2 tests de structure et arbre d'accessibilité                                | Clos : 2/2 tests de structure, 33/33 post-déploiement et CD `29832944876`, B2-A36                                                                        |
 
 ## 5. Fiches bugs réelles déjà disponibles
 
@@ -93,13 +93,14 @@ Une anomalie est clôturée lorsque :
 
 ## 7. Suivi avant dépôt
 
-Actions restantes avant dépôt :
+État avant dépôt :
 
-1. Fusionner les correctifs candidats, vérifier la CI/CD et rejouer les
-   contrôles de production sur le nouveau SHA.
-2. Réaliser et consigner le zoom navigateur réel, les fonds composites et un
-   parcours NVDA/Narrator ; ces trois actions n'empêchent pas de présenter les
-   actions d'accessibilité déjà démontrées, mais interdisent de revendiquer une
-   conformité RGAA exhaustive.
-3. Générer le paquet depuis un commit propre, contrôler les empreintes et
-   appliquer les consignes administratives exactes de DigiformaCertif.
+1. [x] Correctifs fusionnés par la PR 43 ; CI `29832575391`, CD
+       `29832944876`, E2E OAuth `29833210488` et accessibilité 33/33 réussis sur le
+       nouveau SHA.
+2. [ ] Réaliser et consigner le zoom navigateur réel, les fonds composites et un
+       parcours NVDA/Narrator ; ces trois actions n'empêchent pas de présenter les
+       actions d'accessibilité déjà démontrées, mais interdisent de revendiquer une
+       conformité RGAA exhaustive.
+3. [ ] Générer le paquet depuis un commit propre, contrôler les empreintes et
+       appliquer les consignes administratives exactes de DigiformaCertif.
