@@ -61,7 +61,6 @@ export default async function WorkoutDetailPage({ params }: WorkoutPageProps) {
         ...(payload.notes ? { notes: payload.notes } : {}),
       });
       revalidatePath('/dashboard');
-      revalidatePath(`/workouts/${id}`);
     } catch (error) {
       return {
         error: error instanceof Error ? error.message : "Impossible d'enregistrer la seance",

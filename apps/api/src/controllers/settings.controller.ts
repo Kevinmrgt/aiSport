@@ -6,13 +6,16 @@ import type { AiProvider } from '../services/ai.service.js';
 
 const DEFAULT_AI_PROVIDER: AiProvider = 'openai';
 const DEFAULT_OPENAI_MODEL = 'gpt-5.4-mini';
+const ALLOWED_OPENAI_MODELS = ['gpt-5.4-mini', 'gpt-5.4', 'gpt-5.5'] as const;
+const OpenAiModelSchema = z.enum(ALLOWED_OPENAI_MODELS);
 
 const SaveSettingsSchema = z.object({
-  model: z.string().optional(),
+  model: OpenAiModelSchema.optional(),
 });
 
 function normalizeOpenAiModel(model?: string | null): string {
-  return model?.startsWith('gpt-') ? model : DEFAULT_OPENAI_MODEL;
+  const parsed = OpenAiModelSchema.safeParse(model);
+  return parsed.success ? parsed.data : DEFAULT_OPENAI_MODEL;
 }
 
 export async function handleGetSettings(ctx: Context): Promise<Response> {
@@ -53,7 +56,9 @@ export async function handleSaveSettings(ctx: Context): Promise<Response> {
     });
   } catch (err) {
     console.error('[Settings] Erreur upsertSettings:', err);
-    throw AppError.internal('Impossible de sauvegarder les parametres. Reessayez dans quelques instants.');
+    throw AppError.internal(
+      'Impossible de sauvegarder les parametres. Reessayez dans quelques instants.',
+    );
   }
 
   return ctx.json({ ok: true });

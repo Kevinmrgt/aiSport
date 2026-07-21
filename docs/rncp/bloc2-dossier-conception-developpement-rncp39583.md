@@ -46,21 +46,22 @@ référentiel officiel pages 7 à 10 et règlement spécial Ynov version 1.01 du
 Cette synthèse décrit les preuves disponibles. Elle ne remplace pas la décision
 du jury.
 
-| Compétence                                     | Preuve principale                                             | État avant dépôt                       |
-| ---------------------------------------------- | ------------------------------------------------------------- | -------------------------------------- |
-| C2.1.1 Environnements, qualité, performance    | Node 24, Docker, Vercel, Neon, healthchecks, mesure A29       | étayé                                  |
-| C2.1.2 Intégration continue                    | CI `29817362423`, rapports et images Docker                   | étayé                                  |
-| C2.2.1 Prototype                               | production, recette authentifiée, captures desktop/mobile A30 | étayé                                  |
-| C2.2.2 Tests unitaires                         | shared 14 tests, API 155, Web 43, PostgreSQL 8                | étayé                                  |
-| C2.2.3 Sécurité, accessibilité, conformité     | OWASP, audit dépendances, axe public/authentifié              | actions démontrées, limites explicites |
-| C2.2.4 Déploiement progressif et versionnement | Git, CI, migration, CD `29817698665`, smoke tests             | étayé                                  |
-| C2.3.1 Cahier de recettes                      | inventaire fonctionnel, résultats et anomalies reliés         | étayé, cas non exécutés explicités     |
-| C2.3.2 Correction des bogues                   | registre B2-BUG et tests de non-régression                    | étayé                                  |
-| C2.4.1 Documentation d'exploitation            | trois manuels présents et versionnés                          | étayé                                  |
+| Compétence                                     | Preuve principale                                             | État avant dépôt                                        |
+| ---------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------- |
+| C2.1.1 Environnements, qualité, performance    | Node 24, Docker, Vercel, Neon, healthchecks, mesure A29       | étayé                                                   |
+| C2.1.2 Intégration continue                    | CI `29817362423`, rapports et images Docker                   | étayé                                                   |
+| C2.2.1 Prototype                               | production, recette authentifiée, captures desktop/mobile A30 | étayé                                                   |
+| C2.2.2 Tests unitaires                         | shared 14 tests, API 155, Web 43, PostgreSQL 8                | étayé                                                   |
+| C2.2.3 Sécurité, accessibilité, conformité     | OWASP, A35 sécurité, A36 public/authentifié                   | étayé sur l'automatisable ; limites humaines explicites |
+| C2.2.4 Déploiement progressif et versionnement | Git, CI, migration, CD `29817698665`, smoke tests             | étayé                                                   |
+| C2.3.1 Cahier de recettes                      | 60 scénarios, résultats et anomalies reliés, A34 à A36        | étayé ; gel CI/CD à confirmer                           |
+| C2.3.2 Correction des bogues                   | registre B2-BUG et tests de non-régression                    | étayé                                                   |
+| C2.4.1 Documentation d'exploitation            | trois manuels présents et versionnés                          | étayé                                                   |
 
-Le risque résiduel principal concerne C2.2.3. Les contrôles axe, clavier et
-reflow mobile démontrent des actions d'accessibilité, mais ne constituent pas
-une déclaration de conformité exhaustive au RGAA.
+Le risque résiduel principal concerne la portée humaine de C2.2.3. Les actions
+d'accessibilité sont démontrées sur un échantillon public/privé, mais un zoom
+navigateur réel, les fonds composites et un lecteur d'écran restent requis
+avant toute déclaration de conformité exhaustive au RGAA.
 
 ## 3. C2.1.1 - Environnements, déploiement continu, qualité et performance
 
@@ -220,6 +221,12 @@ B2-A27 consigne la correction de vulnérabilités de dépendances découvertes p
 la CI. L'audit final local ne remonte aucune vulnérabilité connue. Les risques
 non masqués sont le rate limit mémoire et l'absence de SIEM centralisé.
 
+B2-A35 complète cette revue par des exécutions ciblées : charge SQL-like
+insérée et relue sur PostgreSQL 16.14 avec table intacte, XSS inerte dans React
+et deux navigateurs, HTML et neuf scripts de production sans marqueur de
+secret, CORS hostile refusé et CSP/headers effectifs contrôlés. La CSP n'autorise
+pas `unsafe-eval` mais conserve `unsafe-inline`, présenté comme risque résiduel.
+
 ## 10. C2.2.3 - Accessibilité et handicap
 
 Le référentiel choisi est le RGAA 4.1.2, fondé sur WCAG 2.1 A/AA. Les actions
@@ -234,11 +241,19 @@ Les preuves automatisées réelles sont :
 - interactions authentifiées et corrections de focus B2-A25 ;
 - six tests Playwright authentifiés, dont reflow à 390 px et axe sur le
   formulaire privé B2-A30 ;
-- aucune violation axe critique ou sérieuse dans ce dernier contrôle.
+- 33/33 contrôles B2-A36 sur trois pages publiques et cinq privées : reflow
+  640/320 pixels CSS, cycle clavier complet, focus visible, contrastes axe,
+  arbre d'accessibilité et alertes ;
+- 2/2 tests de structure après correction des deux titres de formulaire en
+  `h2`, plus le contre-contrôle authentifié de `/programs/generate` ;
+- ratios opaques représentatifs de 17,36:1 en public et 8,19:1 en privé.
 
-Limite : axe ne couvre pas tout le RGAA. Le zoom 200/400 %, les contrastes
-exhaustifs et la restitution avec un lecteur d'écran n'ont pas été contrôlés ;
-le dossier ne revendique donc pas de conformité exhaustive au RGAA.
+L'attendu officiel porte sur la présentation des actions mises en œuvre pour
+permettre l'accès aux personnes en situation de handicap. Ces actions sont
+désormais mesurées et reproductibles. Limite : axe et l'arbre d'accessibilité
+ne couvrent pas tout le RGAA ni la restitution vocale réelle. Le zoom UI, les
+fonds composites et NVDA/Narrator restent à exécuter ; le dossier ne revendique
+donc pas de conformité exhaustive au RGAA.
 
 ## 11. C2.2.4 - Historique, dernière version et viabilité
 
@@ -269,13 +284,22 @@ d'intégration, Playwright public/authentifié, puis recette manuelle de
 production B2-A25. Une simple lecture du code n'est jamais enregistrée comme
 une recette exécutée.
 
+La campagne de fermeture B2-A34 à B2-A36 ajoute les erreurs OpenAI, pagination,
+suppression en erreur, journal avec notes de douleur, modèle interdit,
+dashboard vide/alimenté, parcours Timer/journal/dashboard de production,
+injection, XSS, secrets, CORS, CSP et audit accessibilité multi-page. Les 60
+scénarios disposent maintenant d'un résultat, d'une limite ou d'un risque
+accepté ; la candidate doit encore passer par la CI/CD avant gel définitif.
+
 ## 13. C2.3.2 - Plan de correction des bogues
 
 Le plan `docs/rncp/bloc2-plan-correction-bogues-rncp39583.md` décrit détection,
 qualification, priorité, cause, correctif, non-régression et preuve. Les défauts
 réellement trouvés concernent notamment ownership, invariants IA, Timer,
 accessibilité, CSP, Docker, CI/CD, dépendances, messages de formulaire, filtres
-et cohérence documentaire.
+et cohérence documentaire. La campagne finale ajoute l'allowlist serveur des
+modèles IA, la préservation de la confirmation de journalisation et la
+hiérarchie des titres de formulaire.
 
 Une anomalie n'est déclarée corrigée qu'après modification et contre-recette.
 Les éléments encore humains ou externes restent des réserves, pas des bogues
@@ -317,17 +341,17 @@ et tests complets. B2-A27 fournit un exemple réel où une nouvelle alerte a fai
 
 ## 17. Matrice finale des preuves
 
-| Compétence | Annexes principales        | Démonstration                     |
-| ---------- | -------------------------- | --------------------------------- |
-| C2.1.1     | B2-A21, A22, A28, A29      | healthchecks et protocole CD      |
-| C2.1.2     | B2-A16, A23, A27, A28      | run CI et artefacts               |
-| C2.2.1     | B2-A25, A26, A30           | production desktop/mobile         |
-| C2.2.2     | B2-A19, A28, A31           | rapports de couverture séparés    |
-| C2.2.3     | B2-A20, A23 à A30          | OWASP, axe, OAuth, mobile         |
-| C2.2.4     | B2-A22, A25, A28           | Git, migration, CD, smoke tests   |
-| C2.3.1     | B2-A12, A20, A25, A26, A30 | cahier et recettes exécutées      |
-| C2.3.2     | B2-A13, A25, A27           | anomalies et non-régressions      |
-| C2.4.1     | manuels et B2-A22          | déployer, utiliser, mettre à jour |
+| Compétence | Annexes principales                   | Démonstration                                    |
+| ---------- | ------------------------------------- | ------------------------------------------------ |
+| C2.1.1     | B2-A21, A22, A28, A29                 | healthchecks et protocole CD                     |
+| C2.1.2     | B2-A16, A23, A27, A28                 | run CI et artefacts                              |
+| C2.2.1     | B2-A25, A26, A30                      | production desktop/mobile                        |
+| C2.2.2     | B2-A19, A28, A31                      | rapports de couverture séparés                   |
+| C2.2.3     | B2-A20, A23 à A30, A35, A36           | OWASP, sécurité navigateur, axe, clavier, reflow |
+| C2.2.4     | B2-A22, A25, A28                      | Git, migration, CD, smoke tests                  |
+| C2.3.1     | B2-A12, A20, A25, A26, A30, A34 à A36 | cahier et recettes exécutées                     |
+| C2.3.2     | B2-A13, A25, A27, A34, A36            | anomalies et non-régressions                     |
+| C2.4.1     | manuels et B2-A22                     | déployer, utiliser, mettre à jour                |
 
 L'index détaillé et les pièces complètes figurent dans le PDF d'annexes. Les
 preuves historiques sont conservées dans le dépôt mais ne sont pas incluses
@@ -350,8 +374,9 @@ Alcide dispose d'un code source versionné, d'une architecture structurée, de
 tests couvrant majoritairement chaque périmètre runtime, d'une CI/CD réelle,
 d'une production contrôlée, d'un cahier de recettes, d'un plan de correction et
 des trois manuels demandés. Les preuves finales incluent désormais la session
-Playwright hors Git, la couverture autonome de `shared`, le reflow authentifié
-mobile, les captures actuelles et une mesure de performance reproductible.
+Playwright hors Git, la couverture autonome de `shared`, les recettes métier et
+sécurité finales, le reflow/clavier authentifié multi-page, les captures
+actuelles et une mesure de performance reproductible.
 
 Le dossier est techniquement consolidé. Les actions d'accessibilité exécutées
 sont présentées avec leurs limites, sans déclaration de conformité exhaustive
