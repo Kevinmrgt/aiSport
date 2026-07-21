@@ -2,8 +2,8 @@
 
 > **Archive historique — ne pas utiliser comme état courant.** Cet audit décrit
 > le dépôt observé le 2026-05-07. Les alertes, versions et écarts qu'il contient
-> sont conservés pour la traçabilité et sont remplacés par les preuves datées du
-> 2026-07-20 dans le dossier et ses annexes.
+> sont conservés pour la traçabilité et sont remplacés par le dossier final, le
+> manifeste de dépôt et les preuves A20/A25 à A31 consolidés le 2026-07-21.
 
 > Date d'audit : 2026-05-07
 > Projet : Alcide / alcide

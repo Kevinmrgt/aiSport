@@ -1,6 +1,6 @@
 # Référentiel et plan de vérification accessibilité — Bloc 2
 
-> Compétence : C2.2.3 — version de travail du 2026-07-20.
+> Compétence : C2.2.3 — état consolidé du 2026-07-21.
 
 ## Référentiel choisi et justification
 
@@ -18,18 +18,18 @@ ils ne remplacent pas un audit humain. Aucune mention « conforme RGAA » ne doi
 
 ## Échantillon représentatif
 
-| Page ou état | Enjeu | Automatique | Manuel |
-|---|---|---|---|
-| `/` | structure, navigation, contrastes | Playwright + axe | clavier, zoom 200/400 % |
-| `/login` | authentification | Playwright + axe | intitulé et retour d'erreur |
-| `/generate` séance | formulaire métier | Playwright + axe | erreurs, ordre de tabulation |
-| `/programs/generate` | formulaire métier | Playwright + axe | erreurs, attente longue |
-| `/workouts` | liste, filtres, pagination | Playwright + axe | clavier et reflow mobile |
-| `/workouts/[id]` | contenu généré et Timer | Playwright + axe | annonces, pause, plein écran |
-| `/programs` et détail | onglets et contenu complexe | Playwright + axe | flèches clavier, focus |
-| `/dashboard` | statistiques | Playwright + axe | compréhension hors couleur |
-| `/settings` | formulaire de préférences | Playwright + axe | erreur et confirmation |
-| dialogue suppression | modale destructive | test composant/E2E | focus, Échap, restauration |
+| Page ou état          | Enjeu                             | Automatique        | Manuel                       |
+| --------------------- | --------------------------------- | ------------------ | ---------------------------- |
+| `/`                   | structure, navigation, contrastes | Playwright + axe   | clavier, zoom 200/400 %      |
+| `/login`              | authentification                  | Playwright + axe   | intitulé et retour d'erreur  |
+| `/generate` séance    | formulaire métier                 | Playwright + axe   | erreurs, ordre de tabulation |
+| `/programs/generate`  | formulaire métier                 | Playwright + axe   | erreurs, attente longue      |
+| `/workouts`           | liste, filtres, pagination        | Playwright + axe   | clavier et reflow mobile     |
+| `/workouts/[id]`      | contenu généré et Timer           | Playwright + axe   | annonces, pause, plein écran |
+| `/programs` et détail | onglets et contenu complexe       | Playwright + axe   | flèches clavier, focus       |
+| `/dashboard`          | statistiques                      | Playwright + axe   | compréhension hors couleur   |
+| `/settings`           | formulaire de préférences         | Playwright + axe   | erreur et confirmation       |
+| dialogue suppression  | modale destructive                | test composant/E2E | focus, Échap, restauration   |
 
 ## Contrôles manuels obligatoires
 
@@ -68,9 +68,16 @@ observations attendues, pas supprimés du rapport.
 La campagne couvre aussi le lien d'évitement sur trois pages, le nom accessible
 du bouton Google et les redirections de `/generate`, `/programs`, `/workouts` et
 `/settings` sans session. Les résultats détaillés et les limites figurent dans
-`B2-A20-recette-navigateur-accessibilite-publique-2026-07-20.md`. `/dashboard`,
-OAuth, les pages authentifiées, le zoom, le lecteur d'écran et l'audit RGAA
-manuel ne sont pas exécutés dans cette preuve.
+`B2-A20-recette-navigateur-accessibilite-publique-2026-07-20.md`.
+
+Le 2026-07-21, la suite Playwright authentifiée a été étendue sur `/generate` :
+viewport mobile 390 × 844, contrôle d'absence de débordement horizontal et
+analyse axe sans violation `critical` ou `serious`. Les six tests locaux ont
+réussi avec un `storageState` OAuth réel conservé uniquement hors Git. Les
+captures desktop/mobile sont consignées dans B2-A30. Cette preuve améliore le
+périmètre automatisé mais ne couvre pas toutes les pages privées, les niveaux
+axe `minor`/`moderate`, le zoom, les contrastes mesurés ou le lecteur d'écran.
 
 Le statut de conformité reste **non déterminé** tant que l'échantillon complet
-ci-dessus n'a pas été audité après les corrections de la version candidate.
+ci-dessus n'a pas été audité par une personne. La grille B2-A32 est fournie vide
+dans `docs/rncp/templates/` et ne doit être jointe qu'après exécution réelle.

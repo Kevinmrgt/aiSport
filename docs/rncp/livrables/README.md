@@ -1,29 +1,31 @@
 # État des livrables Bloc 2
 
-Les PDF datés du `2026-07-16` sont des **versions historiques obsolètes**. Ils
-contiennent des conclusions et métriques antérieures aux corrections du
-2026-07-20 et ne doivent pas être remis au jury.
+## Livrables de référence
 
-Le fichier historique `dossier-bloc2-candidat-corrige-2026-07-20.pdf` est un
-export de travail antérieur à la livraison `0.13.0-rc.3`. Le livrable courant
-est généré sous
-`output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.3.pdf`. Le manifeste
-reste la source de vérité : la recette authentifiée B2-A25, la suite
-Playwright OAuth B2-A26 et l'audit actualisé B2-A27 y sont distingués de
-l'audit humain RGAA, qui n'est pas déclaré validé. Le PDF `0.13.0-rc.3`
-précède B2-A26/B2-A27 et doit être régénéré avant remise si ces nouvelles
-preuves doivent apparaître dans le livrable PDF.
+Les seules pièces PDF candidates au dépôt du 2026-07-21 sont :
 
-Le PDF courant a été régénéré après :
+1. `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.3-final-2026-07-21.pdf` ;
+2. `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.3-final-2026-07-21.pdf`.
 
-1. fusion des corrections sur `main` ;
-2. identification du SHA à valider ;
-3. exécution de toutes les commandes du manifeste ;
-4. recette Web/API/PostgreSQL et audit accessibilité ;
-5. déploiement et vérification du même SHA ;
-6. mise à jour des annexes avec les sorties réelles.
+Le paquet complet est généré après fusion par :
 
-Le tag est créé sur le commit documentaire qui contient ce PDF ; les liens des
-runs finaux sont également consignés dans la release GitHub.
+```bash
+python docs/rncp/tools/build_bloc2_delivery_pack.py
+```
 
-Source de contrôle : `docs/rncp/MANIFESTE-DEPOT-BLOC2.md`.
+Il contient ces deux PDF, une archive Git du code source, une notice et les
+empreintes SHA-256. L'archive source exclut les fichiers non suivis : aucun
+secret, `.env`, `storageState`, cookie OAuth, `node_modules` ou artefact local
+n'y est ajouté.
+
+## Versions historiques
+
+Tous les PDF datés du `2026-07-16`, le fichier
+`dossier-bloc2-candidat-corrige-2026-07-20.pdf` et le PDF non suffixé
+`final-2026-07-21` sont des versions de travail obsolètes. Ils précèdent tout ou
+partie des preuves B2-A26 à B2-A31 et ne doivent pas être remis au jury.
+
+Le manifeste de contrôle est
+`docs/rncp/MANIFESTE-DEPOT-BLOC2.md`. Il distingue les contrôles automatisés
+réellement réussis de l'audit RGAA humain et du test utilisateur autonome, qui
+restent à organiser et ne sont pas déclarés accomplis.
