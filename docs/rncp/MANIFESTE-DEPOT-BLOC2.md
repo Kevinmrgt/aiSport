@@ -33,7 +33,7 @@ documentaire `rncp-bloc2-2026-07-21`, conservés comme historiques.
 |  01 | Dossier écrit        | `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.3-final-2026-07-21.pdf` | maximum officiel de 30 pages hors annexes ; pagination, sommaire, liens et rendu visuel contrôlés          |
 |  02 | Annexes techniques   | `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.3-final-2026-07-21.pdf` | preuves sélectionnées A20 et A25 à A31 ; limites explicites                                                |
 |  03 | Code source          | archive Git produite par `docs/rncp/tools/build_bloc2_delivery_pack.py`       | uniquement les fichiers suivis du commit de remise ; aucun secret, état OAuth, `.env` ou dépendance locale |
-|  04 | Notice et empreintes | `LISEZ-MOI.txt` et `MANIFESTE-SHA256.txt` dans le paquet                      | ordre de lecture, SHA Git et SHA-256 de chaque pièce                                                       |
+|  04 | Notice et empreintes | `LISEZ-MOI.txt` et `MANIFESTE.txt` dans le paquet                             | ordre de lecture, SHA Git et SHA-256 de chaque pièce                                                       |
 
 Empreintes des PDF après gel du rendu :
 
