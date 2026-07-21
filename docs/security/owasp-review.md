@@ -35,13 +35,14 @@ unitaire. L'existence d'une FK seule n'est pas utilisée comme preuve d'ownershi
 Risque résiduel : `SERVICE_SECRET` est une frontière de confiance à fort impact.
 Sa rotation et son stockage Vercel/GitHub doivent être documentés.
 
-## A02 — Cryptographic Failures — partiel
+## A02 — Cryptographic Failures — contrôlé avec limites
 
-Contrôles de code : fichiers `.env` ignorés, exemples sans valeur secrète, TLS
-observé sur les URL de production et secrets OpenAI/interservice utilisés dans
-des modules serveur. Compose rend les valeurs requises. L'inspection finale des
-bundles/réseau et des attributs du cookie Auth.js sur la candidate déployée n'a
-pas encore été exécutée ; aucune absence absolue de fuite n'est affirmée ici.
+Contrôles exécutés : fichiers `.env` ignorés, exemples sans valeur secrète, TLS
+et HSTS observés sur les URL de production et secrets OpenAI/interservice
+utilisés dans des modules serveur. L'HTML et les neuf scripts effectivement
+chargés en production ont été inspectés : aucun marqueur `OPENAI_API_KEY`,
+`SERVICE_SECRET`, `AUTH_SECRET`, `AUTH_GOOGLE_SECRET` ni motif de clé `sk-*`
+longue. Les contrôles locaux Chromium/Firefox donnent le même résultat ; B2-A35.
 
 Risque résiduel : les journaux peuvent contenir effort et notes de douleur,
 liés à l'identité. Une page de confidentialité informe l'utilisateur, mais la
@@ -55,8 +56,12 @@ ressemblent à du SQL. La protection repose sur les requêtes paramétrées Driz
 complétées par la validation de forme Zod. Le cahier de recettes ne prétend plus
 que Zod bloque la chaîne `'; DROP TABLE ...`.
 
-Preuves : test PostgreSQL avec contenu SQL-like conservé comme donnée, test XSS
-au rendu navigateur, recherche d'appels `eval`/`exec` et revue des requêtes SQL.
+Preuves : la charge exacte `'; DROP TABLE workouts; --` a été insérée puis
+relue comme donnée via le repository sur PostgreSQL 16.14 ; un `SELECT` après
+insertion a confirmé la table intacte et le nettoyage a été vérifié. Les
+charges XSS `script` et `img onerror` restent du texte inerte dans React et dans
+Chromium/Firefox. Les recherches de sinks DOM et d'appels DB bruts sont vides ;
+B2-A35.
 
 ## A04 — Insecure Design — partiel
 
@@ -70,12 +75,18 @@ avec cold starts ou plusieurs instances. Le passage à un store distribué
 atomique reste nécessaire avant de présenter cette limite comme garantie de
 production.
 
-## A05 — Security Misconfiguration — partiel
+## A05 — Security Misconfiguration — contrôlé avec risque résiduel
 
 Contrôles : `secureHeaders`, CORS restreint, erreurs sans stack client,
 variables obligatoires, readiness DB et présence de configuration OpenAI,
 images non-root, directives CSP
 `object-src`, `base-uri`, `form-action` et `frame-ancestors`.
+
+Les en-têtes effectifs du Web et de l'API ont été contrôlés localement puis en
+production. L'origine CORS hostile ne reçoit aucun
+`Access-Control-Allow-Origin`, tandis que le front officiel est autorisé. La CSP
+de production contient `object-src 'none'`, `base-uri 'self'`, `form-action
+'self'`, `frame-ancestors 'none'` et n'autorise pas `unsafe-eval` ; B2-A35.
 
 Risques résiduels :
 
@@ -128,12 +139,14 @@ par SHA, la CLI Vercel est appelée avec une version explicite et le SHA déploy
 est conservé dans le manifeste. La CI `29817362423` puis la CD `29817698665`
 prouvent l'enchaînement sur la baseline `ac02d219...`.
 
-## A09 — Security Logging and Monitoring Failures — partiel
+## A09 — Security Logging and Monitoring Failures — contrôlé avec limites
 
 Les tentatives d'auth invalides, erreurs applicatives, appels IA et erreurs DB
-disposent d'appels de journalisation dans le code. Le monitoring planifié de
-production a réussi sur la candidate et la mesure B2-A29 a obtenu 150/150
-réponses valides sur les trois healthchecks.
+disposent d'appels de journalisation dans le code. Une recette contrôlée a
+obtenu HTTP 401 et vérifié l'événement serveur d'authentification refusée, sans
+secret, valeur hostile ni stack dans la réponse client. Le monitoring planifié
+de production a réussi sur la candidate et B2-A29 a obtenu 150/150 réponses
+valides sur les trois healthchecks ; B2-A35.
 
 Risque résiduel : `console.*` n'offre ni corrélation systématique, ni rétention,
 ni alerte sécurité dédiée. Un logger structuré, un identifiant de requête, une
@@ -153,14 +166,14 @@ Preuves : tests timeout/retry et revue des appels réseau serveur.
 | Catégorie                 | État candidat | Preuve finale requise                            |
 | ------------------------- | ------------- | ------------------------------------------------ |
 | A01 Accès                 | Contrôlé      | PostgreSQL multi-utilisateur + API               |
-| A02 Cryptographie/données | Partiel       | politique données et secrets                     |
+| A02 Cryptographie/données | Contrôlé avec limites | inspection ressources navigateur et politique données |
 | A03 Injection             | Contrôlé      | DB réelle + navigateur                           |
 | A04 Conception            | Partiel       | stratégie rate limit distribué ou risque accepté |
-| A05 Configuration         | Partiel       | CSP à nonce et configuration externe             |
+| A05 Configuration         | Contrôlé avec risque résiduel | CSP/headers/CORS effectifs ; nonce à étudier |
 | A06 Composants            | Contrôlé      | audit brut du lockfile final                     |
 | A07 Authentification      | Contrôlé      | Playwright avec vrai état Auth.js                |
 | A08 Intégrité             | Contrôlé      | CI/CD, actions épinglées et SHA                  |
-| A09 Logs                  | Partiel       | preuve monitoring et limites documentées         |
+| A09 Logs                  | Contrôlé avec limites | événement 401 et monitoring ; SIEM absent   |
 | A10 SSRF                  | Contrôlé      | tests timeout + revue URL fixe                   |
 
 La revue ne conclut pas « 10/10 sans risque ». Elle fournit au jury les

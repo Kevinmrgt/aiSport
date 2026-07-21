@@ -9,6 +9,21 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- Validation serveur des modèles OpenAI alignée sur l'allowlist de l'interface ; une valeur arbitraire renvoie désormais HTTP 400 sans persistance.
+- Confirmation de journalisation préservée en évitant la revalidation inutile de la page Timer courante.
+- Hiérarchie des pages de génération corrigée : un seul `h1` de page et titres internes de formulaire en `h2`.
+
+### Added
+
+- Recettes finales Bloc 2 B2-A34 à B2-A36 : erreurs IA, journal/douleur/dashboard, SQL-like PostgreSQL réel, XSS, secrets/CORS/CSP et audit accessibilité public/privé.
+- Tests RNCP dédiés API, Web, Playwright et PostgreSQL pour les scénarios C2.3.1 et C2.2.3 restés ouverts.
+
+---
+
 ## [0.13.0-rc.3] — 2026-07-20
 
 > Correctifs issus d'une recette authentifiée réelle sur la production

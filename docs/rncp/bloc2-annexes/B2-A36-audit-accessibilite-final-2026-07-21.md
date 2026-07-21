@@ -1,0 +1,158 @@
+# B2-A36 - Audit accessibilite final public et authentifie
+
+> Date d'execution : 2026-07-21
+> Application observee : `https://ai-sport-web.vercel.app`
+> Source locale au debut du controle : `bac3b916770cabbbc92e3cda0d58ac3ed7e5e119`
+> Referentiel de travail : RGAA 4.1.2 et WCAG 2.1 A/AA
+> Statut : preuves renforcees, conformite RGAA exhaustive non revendiquee
+
+## Objet et perimetre
+
+Cette campagne ferme les controles automatisables restes ouverts sur un
+echantillon public et prive : reflow correspondant a un zoom de 200 % et 400 %,
+parcours clavier, visibilite du focus, contrastes calculables, structure et
+annonces exposees aux technologies d'assistance.
+
+Pages publiques testees :
+
+- `/` ;
+- `/login` ;
+- `/confidentialite`.
+
+Pages privees testees avec une vraie session Auth.js locale :
+
+- `/dashboard` ;
+- `/generate` ;
+- `/programs` ;
+- `/workouts` ;
+- `/settings`.
+
+Un controle navigateur authentifie independant a aussi couvert
+`/programs/generate`. Les champs `hidden` ajoutes par Next.js pour les Server
+Actions ont ete exclus des controles de labels : ils ne sont ni visibles, ni
+modifiables, ni atteignables au clavier.
+
+## Protection de la session
+
+Le `storageState` OAuth utilise est un fichier local ignore par Git et non
+suivi. La configuration dediee desactive traces, captures et videos pour eviter
+d'enregistrer des cookies ou des donnees de compte. Le test verifie uniquement
+la presence d'un cookie de session Auth.js sans imprimer son nom complet, sa
+valeur, l'adresse electronique ou le contenu du fichier.
+
+## Methode reproductible
+
+La suite dediee se trouve dans
+`apps/web/tests/e2e/rncp-accessibility-final.spec.ts` et sa configuration dans
+`apps/web/playwright.rncp-accessibility.config.ts`. Elle a ete executee avec
+Chromium et Playwright, en production, avec un worker unique :
+
+```powershell
+$env:PLAYWRIGHT_AUTH_STORAGE='<chemin local ignore par Git>'
+$env:E2E_BASE_URL='https://ai-sport-web.vercel.app'
+pnpm --filter web exec playwright test --config=playwright.rncp-accessibility.config.ts
+```
+
+Les controles sont les suivants :
+
+1. reflow a 640 pixels CSS, equivalent de mise en page d'un viewport bureau de
+   1280 pixels zoome a 200 % ;
+2. reflow a 320 pixels CSS, equivalent de mise en page du meme viewport zoome a
+   400 % ;
+3. parcours `Tab` complet de toutes les commandes visibles, jusqu'a la sortie
+   du document, avec comparaison a l'inventaire des elements tabulables ;
+4. verification de `:focus-visible` et d'un indicateur perceptible, par contour
+   ou ombre de focus, a chaque etape ;
+5. regle `color-contrast` d'axe sans filtrage par severite, completee par le
+   calcul sRGB du ratio texte/fond du bouton principal opaque ;
+6. inspection de l'arbre d'accessibilite Chromium par CDP : `RootWebArea`,
+   `main`, `navigation` et au moins un titre nomme ;
+7. declenchement des erreurs de `/generate` et controle des regions
+   `role="alert"`.
+
+L'inspection CDP est une lecture de l'arbre d'accessibilite. Elle ne constitue
+pas un test avec un lecteur d'ecran.
+
+## Resultats Playwright
+
+Resultat final : **33 tests reussis sur 33**, en 1 minute 6 secondes environ.
+
+| Controle                               | Pages                   | Resultat                                                      |
+| -------------------------------------- | ----------------------- | ------------------------------------------------------------- |
+| Reflow 640 et 320 pixels CSS           | 3 publiques + 5 privees | 8/8, aucun `scrollWidth` superieur au viewport                |
+| Cycle clavier complet et focus visible | 3 publiques + 5 privees | 8/8, aucune commande omise, aucun piege detecte               |
+| Contrastes                             | 3 publiques + 5 privees | 8/8 tests sans violation axe ; mesure representative conforme |
+| Arbre d'accessibilite                  | 3 publiques + 5 privees | 8/8, racine, contenu principal, navigation et titre exposes   |
+| Erreurs dynamiques                     | `/generate`             | erreurs de champs exposees avec `role="alert"`                |
+
+Le controle navigateur authentifie independant a confirme l'absence de
+debordement horizontal sur `/generate`, `/programs/generate`, `/workouts`,
+`/dashboard` et `/settings` a 640 x 720 puis 320 x 720 pixels. Les largeurs de
+document relevees etaient respectivement 625 et 305 pixels, donc inferieures a
+la largeur utile du viewport. Aucun identifiant HTML duplique n'a ete trouve
+sur les etats stabilises.
+
+## Contrastes mesures
+
+Les ratios sRGB du texte sur le fond opaque du bouton principal sont :
+
+| Pages                                                            | Ratio minimal mesure | Seuil AA texte normal |
+| ---------------------------------------------------------------- | -------------------: | --------------------: |
+| `/`, `/login`, `/confidentialite`                                |              17,36:1 |                 4,5:1 |
+| `/dashboard`, `/generate`, `/programs`, `/workouts`, `/settings` |               8,19:1 |                 4,5:1 |
+
+Axe a mesure en plus 2 textes sur `/`, 3 sur `/login`, 1 sur
+`/confidentialite`, aucun sur le dashboard vide, 1 sur `/generate`, 4 sur
+`/programs`, 10 sur `/workouts` et 1 sur `/settings`. Aucune violation de la
+regle `color-contrast` n'a ete renvoyee.
+
+Chaque page conserve toutefois **une verification axe incomplete** en raison
+des fonds composites, transparences ou images. Les ratios ci-dessus sont donc
+des mesures representatives, pas une mesure exhaustive de chaque texte, et ne
+suffisent pas a declarer une conformite RGAA complete.
+
+## Structure et annonces
+
+Les huit pages de l'echantillon exposent dans l'arbre d'accessibilite une
+racine de document, une region principale, une navigation nommee et au moins un
+titre. Sur `/generate`, l'envoi du formulaire vide rend visibles plusieurs
+erreurs, dont `#input-sport-error` et `#goals-error`, chacune exposee avec
+`role="alert"`.
+
+Le controle independant a detecte deux `h1` sur `/generate` et
+`/programs/generate` : un titre de page et un titre de formulaire. Le titre de
+chaque formulaire a ete corrige en `h2` dans `WorkoutForm.tsx` et
+`ProgramForm.tsx`. Le test de non-regression
+`components/rncp-accessibility-structure.test.tsx` verifie que les deux titres
+internes restent de niveau 2 et continuent de nommer leur formulaire. Resultat :
+**2 tests reussis sur 2**. Cette correction est verifiee dans la source locale ;
+elle devra etre redeployee avant d'etre attribuee a la production.
+
+## Anomalies et corrections
+
+| Identifiant | Observation                                                                | Action                                                                                      | Etat                                            |
+| ----------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| B2-A36-01   | Deux `h1` sur chacune des pages de generation                              | Titres internes passes en `h2` et test de non-regression ajoute                             | Corrige dans la source, deploiement a confirmer |
+| B2-A36-02   | Axe ne peut pas calculer un contraste composite par page                   | Mesure sRGB du bouton opaque ajoutee ; controle visuel/manuel exhaustif requis              | Partiellement couvert                           |
+| B2-A36-03   | Aucun lecteur d'ecran reel utilise pendant cette campagne                  | Prevoir NVDA ou Narrator avec restitution documentee                                        | Ouvert                                          |
+| B2-A36-04   | Le reflow est simule par viewport CSS, sans commande de zoom du navigateur | Conserver les tests 640/320 et realiser un essai manuel Ctrl+zoom pour une preuve litterale | Partiellement couvert                           |
+
+## Conclusion et limites
+
+Les sous-controles reflow, clavier, focus visible, structure de l'arbre et
+annonces d'erreur sont couverts sur l'echantillon. Les contrastes opaques
+representatifs respectent largement le seuil AA et aucune violation axe n'est
+remontee.
+
+Le scenario d'accessibilite ne doit cependant pas etre marque entierement clos
+tant que les trois points suivants ne sont pas realises et consignes :
+
+- essai reel du zoom navigateur a 200 % et 400 % ;
+- verification manuelle des contrastes composites signales `incomplete` ;
+- parcours avec un vrai lecteur d'ecran, par exemple NVDA ou Narrator.
+
+En particulier, **aucun test NVDA, Narrator, JAWS ou VoiceOver n'a ete realise**
+ici. L'arbre d'accessibilite Chromium apporte une preuve structurelle utile,
+mais ne permet pas de conclure sur la qualite de la restitution vocale ni sur
+le confort d'usage reel. Le statut global reste donc « conformite RGAA non
+determinee », sans revendication de conformite exhaustive.
