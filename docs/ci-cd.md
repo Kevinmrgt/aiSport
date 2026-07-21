@@ -1,7 +1,7 @@
 # CI/CD — Alcide
 
-> Version candidate mise à jour le 2026-07-20. Les anciens runs restent
-> historiques et ne prouvent pas cette version.
+> Version candidate mise à jour le 2026-07-21. Les preuves distinguent le SHA
+> applicatif correctif, le repère documentaire et le SHA finalement archivé.
 
 ## Cibles
 
@@ -77,11 +77,40 @@ migration échouée arrête donc le déploiement. Le workflow manuel
 `DB - Drizzle migrations` reste disponible pour une intervention contrôlée ou
 une reprise. Au relevé du 2026-07-20, l'environnement GitHub `production`
 n'avait ni règle de protection ni approbateur : il ne faut pas présenter ce
-rattachement comme une validation humaine bloquante. L'enchaînement est prouvé
-sur le SHA `3a21e3b2b547e99410388d5b83b62df79a436ea8` par la CI `29747228594`
-puis la CD `29747592571`. Les tentatives Git de production ont été annulées et
-une seule production GitHub Actions est arrivée à l'état `READY` pour l'API et
-le Web.
+rattachement comme une validation humaine bloquante.
+
+Le chemin positif de la baseline corrective est prouvé sur
+`b002adb0e0e7d8d85ee493d54879e190d77d2078` par la CI `29845956008`, puis la
+CD `29846343559` : migration, API, Web et smoke tests sont réussis. Le repère
+documentaire `b3ca385c0014c6acfd5c29ebbe14fa38ca766c02`, descendant sans changement
+applicatif de `b002adb`, a ensuite passé la CI `29847808450` et la CD
+`29848187523`. Cette seconde exécution ne remplace pas la contre-recette métier
+et accessibilité de `b002adb` ; elle confirme que le snapshot documentaire
+n'introduit aucune régression dans la chaîne complète.
+
+### Preuve négative et limite de CR-062
+
+Une exécution historique apporte une preuve dynamique de la condition d'échec :
+
+- CI `28506873066`, push `main` sur `5c2cf08c56794bcf2885e69713b7bddd8521ae87`,
+  conclue `failure` après l'échec ESLint ;
+- CD `28506912686`, événement `workflow_run` sur le même SHA, conclue `skipped` ;
+- ses jobs `Deploy API to Vercel` et `Deploy Web to Vercel` sont `skipped` et
+  ne contiennent aucune étape exécutée.
+
+Ces éléments prouvent l'absence d'exécution du CD GitHub Actions. Aucun relevé
+Vercel avant/après ce run historique n'est conservé pour démontrer séparément
+que l'inventaire de production est resté identique.
+
+Cette preuve du 2026-07-01 ne suffit pas, seule, à déclarer la politique
+courante entièrement contre-recettée : la version du workflow à cette date
+acceptait encore `workflow_dispatch`, donc un lancement manuel pouvait
+contourner la provenance CI. Dans la version actuelle, ce déclencheur a été
+supprimé et les trois jobs `migrate-db`, `deploy-api` et `deploy-web` portent la
+condition `workflow_run.conclusion == 'success'` avec
+`ENABLE_GHA_VERCEL_CD=true`. Le chemin positif actuel est exécuté ; le chemin
+rouge actuel est vérifié statiquement mais n'a pas été provoqué pour la remise.
+CR-062 reste donc documenté avec cette réserve, sans fabriquer de CI rouge.
 
 ## Secrets et variables
 
@@ -121,6 +150,13 @@ Après rollback, rejouer liveness, readiness et le parcours métier concerné.
 
 ## État des preuves
 
-Le run CI `29489995458` et le run CD en échec `29490217892` décrivent l'état du
-2026-07-16 et restent historiques. Les preuves courantes sont la CI
-`29747228594` et la CD `29747592571`, toutes deux réussies le 2026-07-20.
+| Nature | SHA | CI | CD | Portée |
+| ------ | --- | -- | -- | ------ |
+| Baseline applicative corrective | `b002adb0e0e7d8d85ee493d54879e190d77d2078` | `29845956008` succès | `29846343559` succès | Preuve canonique du correctif de reflow et de son déploiement |
+| Snapshot documentaire `v5` | `b3ca385c0014c6acfd5c29ebbe14fa38ca766c02` | `29847808450` succès | `29848187523` succès | Diff avec `b002adb` limité aux documents/PDF ; chaîne complète rejouée avant la correction documentaire `v6` |
+| Chemin rouge historique | `5c2cf08c56794bcf2885e69713b7bddd8521ae87` | `28506873066` échec | `28506912686` skipped | API/Web non exécutés dans GitHub Actions ; pas de relevé Vercel avant/après ; ancien workflow encore lançable manuellement |
+
+Le run CI `29489995458` et le run CD en échec `29490217892` décrivent un ancien
+incident de configuration Vercel sur le SHA `533f17b` : la CI était verte et la
+CD a démarré, puis a échoué pendant `vercel pull`. Ils ne constituent donc pas
+une preuve « CI rouge ⇒ CD bloquée » et restent historiques.

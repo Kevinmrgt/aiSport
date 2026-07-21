@@ -3,7 +3,7 @@
 > Concevoir et développer des applications logicielles
 > Version applicative : `0.13.0-rc.3`
 > Baseline applicative testée et déployée : `b002adb0e0e7d8d85ee493d54879e190d77d2078`
-> Référence documentaire : tag `rncp-bloc2-2026-07-21-v5`
+> Référence documentaire finale : tag `rncp-bloc2-2026-07-21-v6`
 > Les empreintes du paquet corrigé sont consignées dans son `MANIFESTE.txt` à la génération.
 > Dossier anonymisé, finalisé le 21 juillet 2026
 
@@ -56,7 +56,7 @@ du jury.
 | C2.2.2 Tests unitaires                         | shared 14 tests, API 170, Web 55, PostgreSQL 9 RNCP           | étayé                                                   |
 | C2.2.3 Sécurité, accessibilité, conformité     | OWASP, A35 sécurité, A36/A37 public et authentifié            | étayé ; zoom natif clos, deux limites humaines explicites |
 | C2.2.4 Déploiement progressif et versionnement | Git, CI, migration, CD final `29846343559`, smoke tests       | étayé                                                   |
-| C2.3.1 Cahier de recettes                      | 60 scénarios, résultats et anomalies reliés, A34 à A37        | étayé ; CI/CD et contre-recette finales réussies        |
+| C2.3.1 Cahier de recettes                      | 59 scénarios : 57 clos, 2 réservés ; A34 à A37                | étayé avec réserves CR-055 et CR-062                     |
 | C2.3.2 Correction des bogues                   | registre B2-BUG et tests de non-régression                    | étayé                                                   |
 | C2.4.1 Documentation d'exploitation            | trois manuels présents et versionnés                          | étayé                                                   |
 
@@ -86,9 +86,12 @@ exhaustive au RGAA.
 
 Le déploiement continu commence uniquement après une CI verte sur `main` :
 migration Drizzle, déploiement API, smoke test API, déploiement Web puis smoke
-test Web. Le run `29832944876` a exécuté cette séquence sur la baseline finale
-`0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`. Les healthchecks ont ensuite répondu HTTP 200 avec la version
-`0.13.0-rc.3`, PostgreSQL `ok` et configuration IA `ok`.
+test Web. Le run `29832944876` a exécuté cette séquence sur la baseline de
+consolidation `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`, avant le correctif
+final de reflow. La baseline corrective canonique
+`b002adb0e0e7d8d85ee493d54879e190d77d2078` a ensuite passé la CI
+`29845956008` et le CD `29846343559`. Les healthchecks ont répondu HTTP 200
+avec la version `0.13.0-rc.3`, PostgreSQL `ok` et configuration IA `ok`.
 
 ### Critères mesurables retenus
 
@@ -123,13 +126,14 @@ Le workflow `.github/workflows/ci.yml` applique les étapes suivantes :
 9. construction des images Docker API et Web ;
 10. publication des rapports de couverture et du rapport Playwright.
 
-Le run final `29832575391` sur `main` a réussi les six jobs. Les rapports bruts
+Le run de consolidation `29832575391` sur `main` a réussi les six jobs. Les rapports bruts
 API, Web, PostgreSQL, shared et Playwright sont disponibles comme artefacts
-GitHub Actions. Cette chaîne finale a exécuté 170 tests API, 55 Web, 14 shared,
+GitHub Actions. Cette chaîne a exécuté 170 tests API, 55 Web, 14 shared,
 les recettes PostgreSQL, le smoke Playwright public, les builds et les deux
-images Docker.
+images Docker. Après le correctif de reflow, la CI canonique `29845956008` a
+rejoué la chaîne sur `b002adb` avec les six jobs au vert.
 
-Les nombres de la chaîne finale désignent les suites complètes. Les rapports de
+Les nombres de cette chaîne désignent les suites complètes. Les rapports de
 couverture instrumentent séparément 155 tests API, 43 tests Web, 8 tests
 PostgreSQL et 14 tests shared. Les suites complètes comptent 170 tests API, 55
 tests Web et 14 tests shared ; le périmètre PostgreSQL RNCP comprend les 8 tests
@@ -293,7 +297,7 @@ la migration, les déploiements API/Web et les smoke tests du CD `29846343559`.
 L'E2E authentifié dédié `29833210488` reste réussi en 6/6 et la contre-recette
 d'accessibilité post-déploiement est verte en 33/33, avec zoom natif 16/16.
 Les endpoints Web/API répondent en version `0.13.0-rc.3`. Le repère documentaire
-est le tag `rncp-bloc2-2026-07-21-v5`. Il ne remplace pas la baseline applicative
+est le tag `rncp-bloc2-2026-07-21-v6`. Il ne remplace pas la baseline applicative
 déployée `b002adb0e0e7d8d85ee493d54879e190d77d2078`. Le manifeste du paquet de
 remise porte le SHA effectivement archivé et les empreintes SHA-256 de chaque
 livrable.
@@ -314,10 +318,13 @@ une recette exécutée.
 La campagne de fermeture B2-A34 à B2-A37 ajoute les erreurs OpenAI, pagination,
 suppression en erreur, journal avec notes de douleur, modèle interdit,
 dashboard vide/alimenté, parcours Timer/journal/dashboard de production,
-injection, XSS, secrets, CORS, CSP et audit accessibilité multi-page. Les 60
-scénarios disposent maintenant d'un résultat, d'une limite ou d'un risque
-accepté. La candidate a passé la CI/CD, les smoke tests, l'E2E OAuth 6/6 et la
-contre-recette accessibilité de production 33/33 avant le gel définitif.
+injection, XSS, secrets, CORS, CSP et audit accessibilité multi-page. Le cahier
+compte 59 scénarios de recette : 57 sont clos et CR-055 ainsi que CR-062
+conservent une réserve explicite. CR-063 est fermé par la gate reproductible du
+paquet et son manifeste ; CR-049 est suivi séparément comme risque architectural,
+hors dénominateur. La candidate applicative a passé la CI/CD,
+les smoke tests, l'E2E OAuth 6/6 et la contre-recette accessibilité de
+production 33/33 avant le gel documentaire.
 
 ## 13. C2.3.2 - Plan de correction des bogues
 
@@ -391,13 +398,13 @@ comme preuves finales du paquet jury.
 Les vérifications suivantes dépendent de la convocation ou de la plateforme de
 dépôt et ne peuvent pas être déduites du référentiel public :
 
-1. [ ] régénérer le paquet de remise corrigé depuis un état Git propre et
-   contrôler les empreintes consignées dans son `MANIFESTE.txt` ;
-2. [ ] demander au campus la date et l'heure exactes, le nommage, la taille
+1. [ ] demander au campus la date et l'heure exactes, le nommage, la taille
    maximale et le niveau d'anonymisation attendu sur DigiformaCertif ;
-3. [ ] déposer le dossier, les annexes et l'archive source avant l'échéance.
+2. [ ] déposer le dossier, les annexes et l'archive source avant l'échéance.
 
-Ces points sont fournis sous forme de checklist dans le paquet final.
+La régénération technique et le contrôle des empreintes relèvent du processus de
+construction du paquet et sont consignés dans son `MANIFESTE.txt`. Les actions
+humaines restantes sont fournies sous forme de checklist dans le paquet final.
 
 ## 19. Conclusion
 
@@ -409,8 +416,10 @@ Playwright hors Git, la couverture autonome de `shared`, les recettes métier et
 sécurité finales, le reflow/clavier authentifié multi-page, les captures
 actuelles et une mesure de performance reproductible.
 
-Le dossier est techniquement consolidé. Les actions d'accessibilité exécutées
-sont présentées avec leurs limites, sans déclaration de conformité exhaustive
-au RGAA. Il reste à déployer et contre-recetter le correctif de reflow, à mener
-les deux contrôles humains restants et à appliquer les consignes administratives
-exactes du campus avant le dépôt.
+Le dossier est techniquement consolidé. Le correctif de reflow est déployé sur
+la baseline `b002adb`, puis contre-recetté en production : zoom natif 16/16 et
+suite d'accessibilité 33/33. Les actions d'accessibilité exécutées sont
+présentées avec leurs limites, sans déclaration de conformité exhaustive au
+RGAA. Il reste à mener la revue humaine exhaustive des fonds composites, à
+réaliser un parcours avec un lecteur d'écran réel et à appliquer les consignes
+administratives exactes du campus avant le dépôt.

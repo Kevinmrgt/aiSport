@@ -1,6 +1,7 @@
 # Manuel de mise à jour - Alcide
 
 > Livrable Bloc 2 RNCP39583 - Documentation technique d'exploitation et d'évolution.
+> Version exploitée : `0.13.0-rc.3` - baseline déployée `b002adb0e0e7d8d85ee493d54879e190d77d2078`.
 
 ## 1. Objectif
 
@@ -54,20 +55,21 @@ Critère de validation :
 5. Lancer les contrôles :
 
 ```powershell
-pnpm install
+pnpm install --frozen-lockfile
 pnpm lint
 pnpm typecheck
 pnpm test
 pnpm test:coverage
 pnpm build
-pnpm audit --audit-level=high
+pnpm audit --audit-level=low
 ```
 
 Critère de validation :
 
 - le lockfile est cohérent ;
 - aucun test critique ne régresse ;
-- les vulnérabilités high sont corrigées ou justifiées.
+- aucune vulnérabilité connue à partir du niveau `low` n'est laissée sans
+  correction ou justification explicite.
 
 ## 5. Migration de base de données
 
