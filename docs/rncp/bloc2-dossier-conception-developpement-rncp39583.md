@@ -68,7 +68,9 @@ un éditeur fictif.
 La liste ci-dessous décrit les conditions de fermeture. Les contrôles publics
 et la contre-recette authentifiée ont été exécutés sur le SHA applicatif
 `3a21e3b2b547e99410388d5b83b62df79a436ea8`. B2-A25 distingue les anomalies
-reproduites sur `rc.2` de leur validation finale sur `rc.3` :
+reproduites sur `rc.2` de leur validation finale sur `rc.3`. B2-A26 ajoute la
+suite authentifiée exécutée sur le commit
+`d149076e32b6e48c1bd0811060a5ad726451ed83` :
 
 - aucune erreur ESLint ;
 - aucune erreur TypeScript ;
@@ -77,8 +79,9 @@ reproduites sur `rc.2` de leur validation finale sur `rc.3` :
 - rapport de couverture API et Web conservé sans exclusions opportunistes ;
 - build de production réussi sous Node 24 ;
 - audit bloquant dès le niveau low ;
-- Playwright public réussi ; recette authentifiée manuelle réussie, suite
-  `storageState` encore à exécuter ;
+- Playwright public réussi ; recette authentifiée manuelle réussie ; suite avec
+  `storageState` OAuth réel réussie 4/4 localement et dans la CI `29816721099`
+  (B2-A26) ;
 - build Docker et procédure de migration/seed exécutables.
 
 ### Performance
@@ -257,7 +260,8 @@ La séquence technique de `0.13.0-rc.3` est tracée : merge sur `main`, gates CI
 SHA immuable, migration, déploiement de ce SHA puis healthchecks et démarrage
 OAuth. Le tag `v0.13.0-rc.3` identifie le gel documentaire final qui contient
 ce dossier et son PDF. La session obtenue par le candidat et les parcours
-métier authentifiés sont consignés dans B2-A25 ; l'inspection interne de la
+métier authentifiés sont consignés dans B2-A25 ; B2-A26 prouve le filtrage et
+l'usage CI d'un `storageState` réel. L'expiration/rotation automatique de la
 session et le test d'utilisation autonome restent hors des preuves acquises.
 
 Le changelog identifie `0.13.0-rc.3` comme préversion datée. Les anciens domaines
@@ -318,16 +322,16 @@ depuis un clone vierge n'a pas été archivé.
 ## 13. État des annexes et preuves résiduelles
 
 Sont acquises et référencées : lint, typecheck, tests, build, PostgreSQL,
-Playwright public, axe, build Docker, audit de dépendances au niveau `low`, CI,
-CD, healthchecks, démarrage OAuth, recette authentifiée desktop, anomalies et
-contre-recette, manifeste et PDF contrôlé.
+Playwright public, axe, Playwright authentifié avec `storageState` OAuth réel,
+build Docker, audit de dépendances au niveau `low`, CI, CD, healthchecks,
+démarrage OAuth, recette authentifiée desktop, anomalies et contre-recette,
+manifeste et PDF contrôlé.
 
 Restent à produire sans les simuler :
 
 - rapports bruts de couverture du SHA déposé, dont une mesure autonome du
   package `shared` ;
-- instrumentation des écrans Google et suite Playwright authentifiée avec un
-  `storageState` réel ;
+- instrumentation des écrans de compte et de consentement Google ;
 - grille d'audit RGAA humain, captures desktop/mobile associées et lecteur
   d'écran ;
 - rapport de performance final ;

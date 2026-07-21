@@ -97,6 +97,13 @@ par des overrides ciblés, puis le lint, les types, 198 tests, les builds et
 `drizzle-kit check` ont été rejoués. La CI `main` `29747228594` a ensuite
 confirmé ce résultat avec le seuil bloquant `low`.
 
+Actualisation du 2026-07-21 : quatre nouveaux avis `high` sur les dépendances
+transitives `brace-expansion` et `shell-quote` ont fait échouer la CI
+`29815728217`. Les overrides ont été déplacés vers 1.1.16, 2.1.2, 5.0.7 et
+1.9.0. L'audit local ne remonte plus de vulnérabilité connue et la CI complète
+`29816347653` est verte. B2-A27 conserve l'échec, la correction et la
+contre-vérification.
+
 ## A07 — Identification and Authentication Failures — à prouver
 
 Contrôles de code : Google OAuth, stratégie de session JWT Auth.js avec durée
@@ -104,10 +111,11 @@ maximale configurée et vérification serveur sur chaque parcours protégé. Les
 attributs réels du cookie et l'expiration doivent être relevés sur la candidate
 déployée ; ils ne sont pas considérés comme prouvés par la seule configuration.
 
-La suite Playwright authentifiée n'utilise plus une fixture vide. Elle exige un
-vrai `storageState` Auth.js fourni explicitement ; à défaut, elle est marquée
-ignorée et non faussement verte. La preuve finale doit inclure connexion,
-expiration/déconnexion et accès sans session.
+La suite Playwright authentifiée n'utilise plus une fixture vide. B2-A26 prouve
+la capture d'un vrai `storageState` Auth.js après connexion Google manuelle, la
+vérification de l'identité, le filtrage des cookies sur le domaine Alcide et
+4/4 scénarios en CI. La déconnexion et l'accès sans session sont couverts par
+B2-A25 ; l'expiration et la rotation automatique restent à tester.
 
 ## A08 — Software and Data Integrity Failures — partiel
 

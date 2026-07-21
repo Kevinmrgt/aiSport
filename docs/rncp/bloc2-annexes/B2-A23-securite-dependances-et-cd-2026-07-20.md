@@ -4,6 +4,9 @@
 > Candidate : `0.13.0-rc.2`
 > SHA applicatif validé et déployé : `4151b80cc6d164c38549e753f7b960ec4914f519`
 
+> Cette preuve reste exacte pour sa date. Les avis publiés ensuite et leur
+> correction du 2026-07-21 sont consignés dans B2-A27.
+
 ## Objet
 
 Cette annexe consigne uniquement les contrôles réellement exécutés après deux

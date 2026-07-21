@@ -2,7 +2,7 @@
 
 > Statut au 2026-07-20 : **candidate `0.13.0-rc.3` livrée techniquement**.
 > La CI, la CD, les healthchecks, l'audit de dépendances et les recettes
-> publiques et authentifiées décrites dans B2-A25 sont réels. L'audit humain
+> publiques et authentifiées décrites dans B2-A25 et B2-A26 sont réels. L'audit humain
 > RGAA complet reste volontairement non validé.
 
 ## Références vérifiables
@@ -49,8 +49,8 @@ ne sont pas des doubles productions.
 | Plan de correction              | `docs/rncp/bloc2-plan-correction-bogues-rncp39583.md`        | présent                                                                                            |
 | Revue OWASP                     | `docs/security/owasp-review.md`                              | actualisée ; audit low propre                                                                      |
 | Accessibilité                   | `docs/rncp/bloc2-accessibilite-rgaa.md` et B2-A20            | automatisation réelle ; audit humain incomplet                                                     |
-| Dépendances et CD               | B2-A23                                                       | local, CI et production prouvés                                                                    |
-| OAuth et recette authentifiée   | B2-A24 et B2-A25                                             | démarrage OAuth instrumenté, session obtenue par le candidat et parcours privés contre-recettés    |
+| Dépendances et CD               | B2-A23 et B2-A27                                              | audit actualisé, local, CI et production prouvés                                                    |
+| OAuth et recette authentifiée   | B2-A24, B2-A25 et B2-A26                                     | démarrage OAuth instrumenté, session obtenue par le candidat, parcours privés et Playwright authentifié 4/4 |
 
 ## Contrôles réussis
 
@@ -70,12 +70,13 @@ ne sont pas des doubles productions.
 - [x] démarrage OAuth avec PKCE, scopes `openid profile email` et callback HTTPS attendu
 - [x] séance et programme générés en production, durées contrôlées puis données de recette supprimées
 - [x] Timer pause/reprise/plein écran, onglets, dashboard, paramètres, suppressions et déconnexion contre-recettés
+- [x] suite Playwright authentifiée avec un `storageState` OAuth réel : 4/4 dans le run `29816721099` (B2-A26)
+- [x] audit dépendances actualisé après deux nouveaux avis high : CI `29816347653` verte (B2-A27)
 
 ## Contrôles non exécutés - ne pas les revendiquer
 
 - [ ] instrumentation des écrans de compte/consentement Google ;
-- [ ] inspection du cookie et de l'expiration de session, volontairement non réalisée ;
-- [ ] suite Playwright authentifiée avec un `storageState` réel ;
+- [ ] validation de l'expiration et de la rotation automatique de session ;
 - [ ] audit RGAA humain complet avec navigation autonome et lecteur d'écran.
 
 La candidate ne doit être présentée comme « prête au dépôt sans réserve »
