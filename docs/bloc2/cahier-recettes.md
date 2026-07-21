@@ -4,7 +4,7 @@
 > Version consolidée : 2026-07-21
 > Baseline applicative déployée : `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`.
 > Pull request applicative finale : `#43`.
-> Tag de remise final : `rncp-bloc2-2026-07-21-v3`.
+> Tag de remise final : `rncp-bloc2-2026-07-21-v4`.
 
 ## Règles de preuve
 
@@ -28,7 +28,7 @@ artefact et anomalie éventuelle.
 | Scénarios exécutés sur le SHA final | Gel Git confirmé après CI/CD ; chaque scénario possède un résultat ou une limite reliée au plan de correction                  |
 | Scénarios réussis                   | Non convertis en pourcentage : 170 tests API, 55 Web, 14 shared, 9 PostgreSQL RNCP et les parcours authentifiés sont détaillés |
 | Scénarios en échec                  | Quatre écarts ont été reproduits sur `rc.2`, corrigés puis contre-recettés sur `rc.3` ; aucune gate CI/CD finale en échec      |
-| SHA/tag testé                       | baseline `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b` ; tag final `rncp-bloc2-2026-07-21-v3`                                     |
+| SHA/tag testé                       | baseline `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b` ; tag final `rncp-bloc2-2026-07-21-v4`                                     |
 | Environnement                       | Local/CI Node 24 + PostgreSQL de test, puis production Vercel/Neon                                                             |
 | Artefacts                           | annexes finales A20 et A25 à A31, rapports CI, captures authentifiées et paquet de remise daté du 2026-07-21                   |
 
@@ -189,7 +189,7 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 | CR-060 | Readiness API             | DB/clé disponibles puis indisponibles                                    | 200 prêt ; 503 avec dépendance défaillante                                          | tests route + curl  | ✅ Cas automatisés verts ; readiness production 200, DB/IA `ok`                                                   |
 | CR-061 | CI complète               | pousser le SHA final                                                     | tous les jobs obligatoires verts                                                    | run GitHub          | ✅ Run final `29832575391` réussi sur `0d5c6b6`                                                                   |
 | CR-062 | CD sans contournement     | CI échoue puis réussit                                                   | aucun déploiement après échec ; déploiement après succès                            | runs GitHub         | 🧪 Chemin de succès et chaînage `workflow_run` prouvés ; scénario d'échec non rejoué pour cette remise            |
-| CR-063 | Version immuable          | comparer package, tag, SHA, health et changelog                          | version cohérente et distinction explicite entre SHA applicatif et gel documentaire | manifeste           | ✅ Version `0.13.0-rc.3`, SHA `0d5c6b6` et tag documentaire final `rncp-bloc2-2026-07-21-v3` distingués           |
+| CR-063 | Version immuable          | comparer package, tag, SHA, health et changelog                          | version cohérente et distinction explicite entre SHA applicatif et gel documentaire | manifeste           | ✅ Version `0.13.0-rc.3`, SHA `0d5c6b6` et tag documentaire final `rncp-bloc2-2026-07-21-v4` distingués           |
 | CR-064 | Production API/Web        | déployer le SHA final                                                    | liveness/readiness/Web en 200                                                       | curl daté           | ✅ CD final `29832944876`, HTTP 200 `rc.3`, DB et configuration IA `ok`                                           |
 | CR-065 | Parcours post-déploiement | login, séance, programme, Timer, journal, dashboard                      | parcours complet sans erreur                                                        | recette production  | ✅ Session OAuth, Programmes, Timer, effort/feedback/douleur, journal et dashboard `3 → 4` en production ; B2-A34 |
 
