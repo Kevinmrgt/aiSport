@@ -251,10 +251,10 @@ le dossier ne revendique donc pas de conformité exhaustive au RGAA.
 | finalisation du rendu | OAuth Playwright sécurisé, dépendances corrigées, shared couvert, mobile authentifié |
 
 `CHANGELOG.md`, les commits, les pull requests et les tags conservent
-l'historique. La baseline `ac02d219...` a passé la CI, la migration, les deux
-déploiements et les smoke tests. Les endpoints Web/API répondent en version
-`0.13.0-rc.3`. Le tag de remise sera créé après fusion, calcul des empreintes et
-création de l'archive.
+l'historique. La baseline `10596d2...` a passé la CI, la migration, les deux
+déploiements, les smoke tests et l'E2E authentifié 6/6. Les endpoints Web/API
+répondent en version `0.13.0-rc.3`. Le gel documentaire corrigé est identifié
+par le tag `rncp-bloc2-2026-07-21-v2` ; le premier gel reste historique.
 
 ## 12. C2.3.1 - Cahier de recettes
 
