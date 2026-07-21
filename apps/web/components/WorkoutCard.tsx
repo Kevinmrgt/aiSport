@@ -39,7 +39,7 @@ export function WorkoutCard({ workout, onDelete }: WorkoutCardProps) {
               </span>
               <span className="premium-chip capitalize">{workout.sport}</span>
             </div>
-            <h2 className="truncate text-xl font-black text-white transition-colors group-hover:text-primary-200">
+            <h2 className="break-words text-xl font-black leading-snug text-white transition-colors group-hover:text-primary-200">
               {workout.title}
             </h2>
           </div>

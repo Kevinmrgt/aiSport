@@ -2,7 +2,9 @@
 
 > Concevoir et développer des applications logicielles
 > Version applicative : `0.13.0-rc.3`
-> Baseline de production contrôlée : `ac02d219802614d1da4064e542f8de6c5487e5eb`
+> Baseline applicative testée et déployée : `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`
+> Référence documentaire : tag `rncp-bloc2-2026-07-21-v4`
+> Les empreintes du paquet corrigé sont consignées dans son `MANIFESTE.txt` à la génération.
 > Dossier anonymisé, finalisé le 21 juillet 2026
 
 ## 1. Cadre officiel et composition du rendu
@@ -52,16 +54,18 @@ du jury.
 | C2.1.2 Intégration continue                    | CI finale `29832575391`, rapports et images Docker            | étayé                                                   |
 | C2.2.1 Prototype                               | production, recette authentifiée, captures desktop/mobile A30 | étayé                                                   |
 | C2.2.2 Tests unitaires                         | shared 14 tests, API 170, Web 55, PostgreSQL 9 RNCP           | étayé                                                   |
-| C2.2.3 Sécurité, accessibilité, conformité     | OWASP, A35 sécurité, A36 public/authentifié                   | étayé sur l'automatisable ; limites humaines explicites |
+| C2.2.3 Sécurité, accessibilité, conformité     | OWASP, A35 sécurité, A36/A37 public et authentifié            | étayé ; correctif zoom à déployer, limites humaines explicites |
 | C2.2.4 Déploiement progressif et versionnement | Git, CI, migration, CD final `29832944876`, smoke tests       | étayé                                                   |
 | C2.3.1 Cahier de recettes                      | 60 scénarios, résultats et anomalies reliés, A34 à A36        | étayé ; CI/CD et contre-recette finales réussies        |
 | C2.3.2 Correction des bogues                   | registre B2-BUG et tests de non-régression                    | étayé                                                   |
 | C2.4.1 Documentation d'exploitation            | trois manuels présents et versionnés                          | étayé                                                   |
 
 Le risque résiduel principal concerne la portée humaine de C2.2.3. Les actions
-d'accessibilité sont démontrées sur un échantillon public/privé, mais un zoom
-navigateur réel, les fonds composites et un lecteur d'écran restent requis
-avant toute déclaration de conformité exhaustive au RGAA.
+d'accessibilité sont démontrées sur un échantillon public/privé. Le zoom natif
+à 200/400 % a détecté quatre troncatures à 400 %, corrigées et contre-testées
+localement ; leur déploiement reste requis. Les fonds composites et un lecteur
+d'écran réel restent nécessaires avant toute déclaration de conformité
+exhaustive au RGAA.
 
 ## 3. C2.1.1 - Environnements, déploiement continu, qualité et performance
 
@@ -124,6 +128,12 @@ API, Web, PostgreSQL, shared et Playwright sont disponibles comme artefacts
 GitHub Actions. Cette chaîne finale a exécuté 170 tests API, 55 Web, 14 shared,
 les recettes PostgreSQL, le smoke Playwright public, les builds et les deux
 images Docker.
+
+Les nombres de la chaîne finale désignent les suites complètes. Les rapports de
+couverture instrumentent séparément 155 tests API, 43 tests Web, 8 tests
+PostgreSQL et 14 tests shared. Les suites complètes comptent 170 tests API, 55
+tests Web et 14 tests shared ; le périmètre PostgreSQL RNCP comprend les 8 tests
+de couverture et une recette de sécurité SQL supplémentaire, soit 9 contrôles.
 
 ## 5. Architecture logicielle maintenable
 
@@ -197,6 +207,12 @@ visibles à 0 % dans le rapport ; elles sont complétées par les recettes
 Playwright, sans gonfler artificiellement le taux unitaire. Les seuils de chaque
 périmètre runtime dépassent la majorité demandée par le référentiel.
 
+Ainsi, les valeurs 155/43/8/14 du tableau correspondent aux tests inclus dans
+les rapports de couverture API/Web/PostgreSQL/shared. Les valeurs 170/55/9/14
+utilisées dans la synthèse correspondent aux suites complètes API/Web, aux 8
+tests PostgreSQL instrumentés complétés par la recette de sécurité SQL, et à la
+suite shared inchangée.
+
 Le harnais couvre notamment validation des formulaires, invariants de durée IA,
 retry et timeout, erreurs 401/403/404/429/503, ownership, Timer, focus des
 dialogues, statistiques, contrats partagés et accès PostgreSQL.
@@ -245,6 +261,10 @@ Les preuves automatisées réelles sont :
 - 33/33 contrôles B2-A36 sur trois pages publiques et cinq privées : reflow
   640/320 pixels CSS, cycle clavier complet, focus visible, contrastes axe,
   arbre d'accessibilité et alertes ;
+- 16 mesures de zoom Chromium natif B2-A37 à 200/400 % sur les huit routes :
+  quatre troncatures détectées à 400 %, corrigées par retour à la ligne puis
+  validées par 55 tests Web, typecheck, build, 6/6 local public et 16/16 en
+  prévisualisation corrective ;
 - 2/2 tests de structure après correction des deux titres de formulaire en
   `h2`, plus le contre-contrôle authentifié de `/programs/generate` ;
 - ratios opaques représentatifs de 17,36:1 en public et 8,19:1 en privé.
@@ -252,9 +272,10 @@ Les preuves automatisées réelles sont :
 L'attendu officiel porte sur la présentation des actions mises en œuvre pour
 permettre l'accès aux personnes en situation de handicap. Ces actions sont
 désormais mesurées et reproductibles. Limite : axe et l'arbre d'accessibilité
-ne couvrent pas tout le RGAA ni la restitution vocale réelle. Le zoom UI, les
-fonds composites et NVDA/Narrator restent à exécuter ; le dossier ne revendique
-donc pas de conformité exhaustive au RGAA.
+ne couvrent pas tout le RGAA ni la restitution vocale réelle. Le correctif de
+zoom doit encore être déployé et contre-recetté ; les fonds composites et un
+parcours NVDA/Narrator restent humains. Le dossier ne revendique donc pas de
+conformité exhaustive au RGAA.
 
 ## 11. C2.2.4 - Historique, dernière version et viabilité
 
@@ -270,8 +291,10 @@ donc pas de conformité exhaustive au RGAA.
 l'historique. La baseline finale `0d5c6b6...` a passé la CI `29832575391`, la
 migration et les deux déploiements `29832944876`, les smoke tests et l'E2E
 authentifié `29833210488` en 6/6. Les endpoints Web/API répondent en version
-`0.13.0-rc.3`. Le gel final est identifié par le tag
-`rncp-bloc2-2026-07-21-v4` ; les gels antérieurs restent historiques.
+`0.13.0-rc.3`. Le repère documentaire est le tag
+`rncp-bloc2-2026-07-21-v4`. Il ne remplace pas la baseline applicative déployée
+`0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`. Le manifeste du paquet de remise
+porte le SHA effectivement archivé et les empreintes SHA-256 de chaque livrable.
 
 ## 12. C2.3.1 - Cahier de recettes
 
@@ -286,7 +309,7 @@ d'intégration, Playwright public/authentifié, puis recette manuelle de
 production B2-A25. Une simple lecture du code n'est jamais enregistrée comme
 une recette exécutée.
 
-La campagne de fermeture B2-A34 à B2-A36 ajoute les erreurs OpenAI, pagination,
+La campagne de fermeture B2-A34 à B2-A37 ajoute les erreurs OpenAI, pagination,
 suppression en erreur, journal avec notes de douleur, modèle interdit,
 dashboard vide/alimenté, parcours Timer/journal/dashboard de production,
 injection, XSS, secrets, CORS, CSP et audit accessibilité multi-page. Les 60
@@ -302,7 +325,8 @@ réellement trouvés concernent notamment ownership, invariants IA, Timer,
 accessibilité, CSP, Docker, CI/CD, dépendances, messages de formulaire, filtres
 et cohérence documentaire. La campagne finale ajoute l'allowlist serveur des
 modèles IA, la préservation de la confirmation de journalisation et la
-hiérarchie des titres de formulaire.
+hiérarchie des titres de formulaire, ainsi que les troncatures révélées par le
+zoom navigateur natif à 400 %.
 
 Une anomalie n'est déclarée corrigée qu'après modification et contre-recette.
 Les éléments encore humains ou externes restent des réserves, pas des bogues
@@ -350,10 +374,10 @@ et tests complets. B2-A27 fournit un exemple réel où une nouvelle alerte a fai
 | C2.1.2     | B2-A16, A23, A27, A28                 | run CI et artefacts                              |
 | C2.2.1     | B2-A25, A26, A30                      | production desktop/mobile                        |
 | C2.2.2     | B2-A19, A28, A31                      | rapports de couverture séparés                   |
-| C2.2.3     | B2-A20, A23 à A30, A35, A36           | OWASP, sécurité navigateur, axe, clavier, reflow |
+| C2.2.3     | B2-A20, A23 à A30, A35 à A37           | OWASP, sécurité navigateur, axe, clavier, zoom natif |
 | C2.2.4     | B2-A22, A25, A28                      | Git, migration, CD, smoke tests                  |
-| C2.3.1     | B2-A12, A20, A25, A26, A30, A34 à A36 | cahier et recettes exécutées                     |
-| C2.3.2     | B2-A13, A25, A27, A34, A36            | anomalies et non-régressions                     |
+| C2.3.1     | B2-A12, A20, A25, A26, A30, A34 à A37 | cahier et recettes exécutées                     |
+| C2.3.2     | B2-A13, A25, A27, A34, A36, A37       | anomalies et non-régressions                     |
 | C2.4.1     | manuels et B2-A22                     | déployer, utiliser, mettre à jour                |
 
 L'index détaillé et les pièces complètes figurent dans le PDF d'annexes. Les
@@ -365,9 +389,11 @@ comme preuves finales du paquet jury.
 Les vérifications suivantes dépendent de la convocation ou de la plateforme de
 dépôt et ne peuvent pas être déduites du référentiel public :
 
-1. demander au campus la date et l'heure exactes, le nommage, la taille maximale
-   et le niveau d'anonymisation attendu sur DigiformaCertif ;
-2. déposer le dossier, les annexes et l'archive source avant l'échéance.
+1. [ ] régénérer le paquet de remise corrigé depuis un état Git propre et
+   contrôler les empreintes consignées dans son `MANIFESTE.txt` ;
+2. [ ] demander au campus la date et l'heure exactes, le nommage, la taille
+   maximale et le niveau d'anonymisation attendu sur DigiformaCertif ;
+3. [ ] déposer le dossier, les annexes et l'archive source avant l'échéance.
 
 Ces points sont fournis sous forme de checklist dans le paquet final.
 
@@ -383,5 +409,6 @@ actuelles et une mesure de performance reproductible.
 
 Le dossier est techniquement consolidé. Les actions d'accessibilité exécutées
 sont présentées avec leurs limites, sans déclaration de conformité exhaustive
-au RGAA. Il reste à appliquer les consignes administratives exactes du campus
-avant le dépôt.
+au RGAA. Il reste à déployer et contre-recetter le correctif de reflow, à mener
+les deux contrôles humains restants et à appliquer les consignes administratives
+exactes du campus avant le dépôt.

@@ -3,12 +3,11 @@
 > Compétence : C2.3.1 — cahier de recettes.
 > Exécution : 21 juillet 2026, de 14 h 23 à 14 h 40 (Europe/Paris).
 > Révision de départ : `bac3b916770cabbbc92e3cda0d58ac3ed7e5e119`.
-> État testé : copie de travail contenant les correctifs décrits ci-dessous ; les
-> contrôles de production portent encore sur la version Vercel déployée au moment
-> du test.
-> Gel final : correctifs fusionnés par la PR 43 dans
+> Baseline applicative testée et déployée : correctifs fusionnés par la PR 43 dans
 > `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`, puis CI `29832575391`, CD
 > `29832944876` et E2E OAuth `29833210488` réussis.
+> Repère documentaire : tag `rncp-bloc2-2026-07-21-v4`.
+> Le SHA effectivement archivé est porté par le manifeste du paquet de remise.
 
 ## 1. Environnements et données
 
@@ -119,6 +118,12 @@ programmes sans exposition inter-compte, journalisation d'une source détenue,
 stockage de `painNotes`, statistiques exactes et statistiques vides pour l'autre
 compte.
 
+Les sorties ci-dessus sont celles des suites complètes : 170 tests API et 55
+tests Web. Les rapports de couverture correspondants instrumentent 155 tests
+API et 43 tests Web. Pour PostgreSQL, 8 tests sont instrumentés dans le rapport
+de couverture ; la recette de sécurité SQL indépendante porte le total RNCP à 9.
+La suite shared compte 14 tests dans les deux présentations.
+
 ### Qualité et compilation
 
 ```text
@@ -192,9 +197,10 @@ recette. Les champs contiennent uniquement les marqueurs de test suivants :
   compte de production n'est plus vide.
 - CR-065 valide une session OAuth existante et visite les objets déjà présents ;
   il ne rejoue pas l'écran Google ni une nouvelle génération OpenAI.
-- Le verrouillage CR-038 et les suppressions de revalidation sont validés dans la
-  copie de travail et le build local. Ils devront être déployés avant d'affirmer
-  qu'ils sont présents sur la production.
+- Le verrouillage CR-038 et les suppressions de revalidation ont été intégrés à
+  la baseline `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`, puis ont passé la CI
+  `29832575391`, le CD `29832944876`, les smoke tests et la contre-recette OAuth
+  `29833210488`. Leur déploiement final n'est donc plus à confirmer.
 
 ## 7. Pièces techniques
 
