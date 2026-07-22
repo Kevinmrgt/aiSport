@@ -1,9 +1,15 @@
 # Guide de deploiement - Alcide
 
-> Version applicative candidate: 0.13.0-rc.3
+> Version applicative candidate locale: 0.13.0-rc.4
 > Baseline applicative déployée: b002adb0e0e7d8d85ee493d54879e190d77d2078
+> Version déployée observée: 0.13.0-rc.3
 > Date de verification documentaire initiale: 2026-05-07
 > Derniere verification Bloc 2 et contre-recette de production: 2026-07-21
+
+La candidate `0.13.0-rc.4` corrige localement les avis de dépendances relevés
+le 2026-07-22. Son audit, son lint, ses types, ses 239 tests et ses builds sont
+verts en local. Elle n'est pas présentée comme publiée : la CI/CD et la
+contre-recette de production restent à exécuter après autorisation.
 
 ## Production canonique
 

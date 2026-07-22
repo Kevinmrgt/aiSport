@@ -1,6 +1,6 @@
 # Référentiel et périmètre de vérification accessibilité — Bloc 2
 
-> Compétence : C2.2.3 — état vérifié le 2026-07-21.
+> Compétence : C2.2.3 — état vérifié le 2026-07-22.
 
 ## Référentiel choisi et portée de l'évaluation
 
@@ -68,7 +68,7 @@ ou un tableau est ajouté.
 
 ## Résultats automatisés rejoués
 
-Les contrôles suivants ont été rejoués le 2026-07-21 sans exposer le contenu du
+Les contrôles suivants ont été rejoués les 2026-07-21 et 2026-07-22 sans exposer le contenu du
 stockage OAuth local :
 
 - suite publique locale Chromium et Firefox : **48 tests lancés, commande
@@ -82,6 +82,9 @@ stockage OAuth local :
 - préqualification des contrastes composites : **416 occurrences regroupées en
   79 signatures de rendu et 166 contextes route-signature**, dont 34 signatures
   P1 et 45 P2 pour la revue humaine ;
+- échantillonnage automatisé du fond composite sous les glyphes : **69
+  signatures / 150 contextes sans alerte**, **8 / 14 avec alerte potentielle**
+  et **2 / 2 non concluants** ;
 - tests de structure des deux formulaires : **2/2 réussis**.
 
 Les 416 résultats `incomplete` ne sont pas 416 non-conformités : axe ne sait
@@ -89,6 +92,14 @@ pas calculer le fond composite final. Ils ne sont pas davantage considérés
 comme conformes sans vérification humaine. Le regroupement reproductible par
 cause axe, couleur, fond, graisse, corps et seuil WCAG réduit la liste de revue,
 mais ne remplace pas la mesure sur le pixel composite le plus défavorable.
+
+Les 14 alertes potentielles ont conduit à renforcer localement les fonds et
+textes de la navigation, des métriques, des libellés de section, de
+l'introduction, du pied de page et de la page de confidentialité. Les 55 tests
+Web, le lint, les types et le build sont verts après correction. Ces correctifs
+ne sont pas encore déployés : le rejeu de production et la contre-mesure des
+79 signatures restent requis. Les deux contextes non concluants nécessitent
+toujours une mesure humaine.
 
 ## Contrôles humains et règles de preuve
 

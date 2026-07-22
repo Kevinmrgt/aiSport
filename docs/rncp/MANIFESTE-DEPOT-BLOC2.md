@@ -1,6 +1,6 @@
 # Manifeste de dépôt — Bloc 2 RNCP39583
 
-> État consolidé le 2026-07-21. Ce manifeste décrit uniquement des éléments
+> État consolidé localement le 2026-07-22. Ce manifeste décrit uniquement des éléments
 > observés, exécutés ou produits. Les contrôles d'accessibilité automatisés ne
 > sont pas présentés comme une déclaration de conformité exhaustive au RGAA.
 
@@ -16,7 +16,8 @@
 | Pull request gel probatoire final  | `https://github.com/Kevinmrgt/aiSport/pull/44` |
 | Pull request validation du paquet  | `https://github.com/Kevinmrgt/aiSport/pull/45` |
 | Correction documentaire antérieure | `https://github.com/Kevinmrgt/aiSport/pull/40` |
-| Version applicative                | `0.13.0-rc.3`                                  |
+| Candidate corrigée locale          | `0.13.0-rc.4` — non publiée                    |
+| Version applicative déployée       | `0.13.0-rc.3`                                  |
 | Tag du gel final corrigé           | `rncp-bloc2-2026-07-21-v8`                     |
 | Snapshot documentaire antérieur    | `rncp-bloc2-2026-07-21-v7` — retiré, contenu hors périmètre |
 | CI baseline `main`                 | run `29845956008` — succès                     |
@@ -36,12 +37,16 @@ remise peut être postérieur à `b002adb` lorsqu'il ne contient que des correct
 documentaires ; la baseline applicative déployée reste alors explicitement
 `b002adb`.
 
+La candidate locale `0.13.0-rc.4` corrige les avis de dépendances détectés le
+22 juillet et alimente le paquet corrigé. Elle ne devient une baseline de
+production qu'après publication, CI/CD verte et contre-recette explicite.
+
 ## 2. Pièces finales à déposer
 
 |  N° | Pièce                | Fichier                                                                       | Contrôle                                                                                                   |
 | --: | -------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-|  01 | Dossier écrit        | `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.3-final-2026-07-21.pdf` | maximum officiel de 30 pages hors annexes ; pagination, sommaire, liens et rendu visuel contrôlés          |
-|  02 | Annexes techniques   | `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.3-final-2026-07-21.pdf` | preuves A20, A25 à A31 et A34 à A38, trois manuels ; limites explicites                                       |
+|  01 | Dossier écrit        | `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.4-final-2026-07-22.pdf` | maximum officiel de 30 pages hors annexes ; pagination, sommaire, liens et rendu visuel contrôlés          |
+|  02 | Annexes techniques   | `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.4-final-2026-07-22.pdf` | preuves A20, A25 à A31 et A34 à A39, quatre livrables complets et trois manuels ; limites explicites        |
 |  03 | Code source          | archive Git produite par `docs/rncp/tools/build_bloc2_delivery_pack.py`       | fichiers suivis du commit de remise, dont les trois manuels complets ; aucun secret, état OAuth, `.env` ou dépendance locale |
 |  04 | Notice et empreintes | `LISEZ-MOI.txt` et `MANIFESTE.txt` dans le paquet                             | ordre de lecture, SHA Git et SHA-256 de chaque pièce                                                       |
 
@@ -61,14 +66,14 @@ Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 | Qualité et performance                           | dossier §3, B2-A29, CI `29845956008`                          |
 | Protocole d'intégration continue                 | dossier §4, `.github/workflows/ci.yml`                        |
 | Architecture maintenable                         | dossier §5, ADR et arborescence du monorepo                   |
-| Prototype                                        | dossier §7, B2-A30 et captures desktop/mobile authentifiées   |
+| Prototype                                        | dossier §7, matrice user stories/preuves, B2-A30 et captures desktop/mobile authentifiées |
 | Frameworks et paradigmes                         | dossier §6 et ADR                                             |
 | Tests unitaires                                  | dossier §8, rapports API/Web/PostgreSQL/shared, B2-A31        |
-| Sécurité                                         | dossier §9, revue OWASP, B2-A35 et audit de dépendances       |
+| Sécurité                                         | dossier §9, revue OWASP, B2-A35 et B2-A39                     |
 | Accessibilité                                    | dossier §10, B2-A20/B2-A36/B2-A37, axe, zoom, clavier, tri contraste et limites humaines |
 | Historique des versions                          | dossier §11, Git et `CHANGELOG.md`                            |
 | Dernière version fonctionnelle, fiable et viable | dossier §11, CI/CD/healthchecks et B2-A28/B2-A37              |
-| Plan de tests et recette                         | dossier §12, cahier et B2-A34 à B2-A38                        |
+| Plan de tests et recette                         | dossier §12, cahier complet et B2-A34 à B2-A39                |
 | Plan de correction des bogues                    | dossier §13 et registre B2-BUG                                |
 | Manuel de déploiement                            | dossier §14 et `docs/deployment.md`                           |
 | Manuel utilisateur                               | dossier §15 et manuel utilisateur autonome                    |
@@ -80,7 +85,9 @@ Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 - [x] lint, typecheck et build ;
 - [x] 170 tests API, 55 tests Web et 14 tests shared sur la candidate locale ;
 - [x] couverture API, Web, PostgreSQL et shared publiée séparément ;
-- [x] audit des dépendances au niveau `low` sans vulnérabilité connue ;
+- [x] candidate locale `0.13.0-rc.4` : audit de production au niveau `low`
+      sans vulnérabilité connue, lint, types, 239 tests et builds verts ;
+- [ ] publication de `0.13.0-rc.4`, CI/CD et contre-recette de production ;
 - [x] Playwright public et axe dans la CI ;
 - [x] Playwright authentifié local et CI finale `29833210488` : 6/6, dont viewport mobile 390 × 844,
       absence de débordement horizontal et axe sans violation critique/sérieuse ;
@@ -99,8 +106,10 @@ Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
       privées, 2/2 structure, clavier/focus/reflow/contrastes/arbre AX et zoom
       Chromium natif 200/400 % en production 16/16 ;
 - [x] parcours CR-065 de production avec journal et dashboard `3 → 4` ;
-- [x] aucune session OAuth, adresse personnelle ou donnée de recette incluse
-      dans le code source ou les captures finales.
+- [x] gate d'anonymisation du paquet : texte, métadonnées, annotations, liens
+      et flux PDF, puis contenu du ZIP et des archives imbriquées ;
+- [x] aucune session OAuth ou donnée de recette incluse dans le code source ou
+      les captures finales.
 
 ## 5. Contrôles administratifs avant dépôt
 

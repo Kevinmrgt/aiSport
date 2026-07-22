@@ -1,11 +1,11 @@
 # Dossier Bloc 2 RNCP39583 - Alcide
 
 > Concevoir et développer des applications logicielles
-> Version applicative : `0.13.0-rc.3`
-> Baseline applicative testée et déployée : `b002adb0e0e7d8d85ee493d54879e190d77d2078`
-> Référence documentaire finale : tag `rncp-bloc2-2026-07-21-v8`
-> Les empreintes du paquet corrigé sont consignées dans son `MANIFESTE.txt` à la génération.
-> Dossier anonymisé, finalisé le 21 juillet 2026
+> Candidate corrigée locale : `0.13.0-rc.4` au 22 juillet 2026
+> Baseline de production inchangée : `0.13.0-rc.3`, commit `b002adb0e0e7d8d85ee493d54879e190d77d2078`
+> Référence documentaire de la baseline déployée : tag `rncp-bloc2-2026-07-21-v8`
+> La candidate `rc.4` n'est ni poussée, ni validée en CI/CD, ni déployée ; son futur manifeste devra porter le SHA effectivement archivé et les empreintes des livrables.
+> Dossier anonymisé, actualisé le 22 juillet 2026
 
 ## 1. Cadre officiel et composition du rendu
 
@@ -21,7 +21,7 @@ identifient seize éléments à présenter.
 | Critères de qualité et de performance            | section 3, annexes B2-A28 et B2-A29           |
 | Protocole d'intégration continue                 | section 4                                     |
 | Architecture maintenable                         | section 5                                     |
-| Présentation d'un prototype                      | section 7 et annexe B2-A30                    |
+| Présentation d'un prototype                      | section 7, matrice user stories et annexe B2-A30 |
 | Frameworks et paradigmes                         | section 6                                     |
 | Jeu de tests unitaires                           | section 8 et annexe B2-A31                    |
 | Mesures de sécurité                              | section 9 et revue OWASP                      |
@@ -52,11 +52,11 @@ du jury.
 | ---------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------- |
 | C2.1.1 Environnements, qualité, performance    | Node 24, Docker, Vercel, Neon, healthchecks, mesure A29       | étayé                                                   |
 | C2.1.2 Intégration continue                    | CI finale `29845956008`, rapports et images Docker            | étayé                                                   |
-| C2.2.1 Prototype                               | production, recette authentifiée, captures desktop/mobile A30 | étayé                                                   |
+| C2.2.1 Prototype                               | matrice user stories, production `rc.3`, captures desktop/mobile A30 | étayé sur la baseline déployée                         |
 | C2.2.2 Tests unitaires                         | shared 14 tests, API 170, Web 55, PostgreSQL 9 RNCP           | étayé                                                   |
-| C2.2.3 Sécurité, accessibilité, conformité     | OWASP, A35 sécurité, A36/A37 public et authentifié            | étayé ; zoom natif clos, deux limites humaines explicites |
-| C2.2.4 Déploiement progressif et versionnement | Git, CI, migration, CD final `29846343559`, smoke tests       | étayé                                                   |
-| C2.3.1 Cahier de recettes                      | 59 scénarios : 58 clos, 1 réservé ; A34 à A38                 | étayé avec réserve humaine CR-055                        |
+| C2.2.3 Sécurité, accessibilité, conformité     | OWASP, A35 à A37, correction locale des dépendances A39       | partiel : `rc.4` est verte localement, contrôles humains ouverts |
+| C2.2.4 Déploiement progressif et versionnement | baseline `rc.3`, CI `29845956008`, CD `29846343559`, smoke tests | étayé pour `rc.3` ; `rc.4` non publiée                 |
+| C2.3.1 Cahier de recettes                      | 59 scénarios : 57 clos, CR-055 et CR-063 partiels             | partiel sur les deux réserves explicites                 |
 | C2.3.2 Correction des bogues                   | registre B2-BUG et tests de non-régression                    | étayé                                                   |
 | C2.4.1 Documentation d'exploitation            | trois manuels présents et versionnés                          | étayé                                                   |
 
@@ -66,6 +66,11 @@ d'accessibilité sont démontrées sur un échantillon public/privé. Le zoom na
 déployées et contre-testées 16/16 en production. Les fonds composites et un
 lecteur d'écran réel restent nécessaires avant toute déclaration de conformité
 exhaustive au RGAA.
+
+La candidate locale `0.13.0-rc.4` ajoute une correction de dépendances. Elle a
+passé localement l'audit au niveau `low`, le lint, le contrôle de types, 239
+tests et les builds. B2-A39 consigne ces résultats. Ils ne constituent pas une
+preuve de CI/CD ou de production ; la baseline publique reste `rc.3`/`b002adb`.
 
 ## 3. C2.1.1 - Environnements, déploiement continu, qualité et performance
 
@@ -100,7 +105,7 @@ avec la version `0.13.0-rc.3`, PostgreSQL `ok` et configuration IA `ok`.
 | Lint et typecheck                      | aucune erreur                                       | réussi                                                     |
 | Tests                                  | 100 % des suites sélectionnées réussies             | réussi                                                     |
 | Couverture de chaque périmètre runtime | majorité des lignes, seuils CI respectés            | shared 100 %, API 85,64 %, Web 69,04 %, PostgreSQL 93,70 % |
-| Audit de dépendances                   | aucune vulnérabilité connue au niveau low           | réussi                                                     |
+| Audit de dépendances                   | aucune vulnérabilité connue au niveau low           | réussi localement sur `rc.4`, B2-A39                        |
 | Production Web/API                     | 100 % de réponses valides sur 50 requêtes par route | 150/150                                                    |
 | Latence healthchecks                   | p95 inférieur ou égal à 1 000 ms                    | Web 508,63 ms, API 339,66 ms, readiness 267,11 ms          |
 | Build Web                              | bundle initial partagé documenté                    | 102 kB sur le build local final                            |
@@ -187,6 +192,11 @@ détail, le Timer, le journal de séance, le dashboard, les paramètres et la
 suppression contrôlée. Les routes privées redirigent sans session et les données
 sont filtrées par propriétaire.
 
+La matrice `docs/rncp/bloc2-matrice-user-stories-preuves.md` relie chaque besoin
+utilisateur aux routes et écrans, aux composants Web/API, aux scénarios CR et
+aux preuves B2. Elle rend vérifiable la couverture fonctionnelle du prototype
+sans confondre présence du code et recette exécutée.
+
 ![Formulaire de génération d'une séance, production authentifiée, bureau, 21 juillet 2026](./bloc2-annexes/screenshots/final-2026-07-21/B2-A30-generation-seance-desktop-2026-07-21.png)
 
 ![Même formulaire à 390 px sans débordement horizontal, production authentifiée, 21 juillet 2026](./bloc2-annexes/screenshots/final-2026-07-21/B2-A30-generation-seance-mobile-2026-07-21.png)
@@ -238,9 +248,15 @@ OWASP Top 10. Les mesures effectivement mises en oeuvre comprennent :
 - actions GitHub épinglées et chaîne CI/CD testée ;
 - journalisation des erreurs d'authentification, limites et appels IA.
 
-B2-A27 consigne la correction de vulnérabilités de dépendances découvertes par
-la CI. L'audit final local ne remonte aucune vulnérabilité connue. Les risques
-non masqués sont le rate limit mémoire et l'absence de SIEM centralisé.
+B2-A27 consigne une première correction de vulnérabilités révélées par la CI le
+21 juillet. Une nouvelle veille locale du 22 juillet a ensuite détecté cinq
+avis : un `high` sur `sharp` et quatre `moderate` sur `hono` et
+`@hono/node-server`. La candidate locale `0.13.0-rc.4` résout respectivement
+`sharp` en `0.35.3`, `hono` en `4.12.31` et `@hono/node-server` en `2.0.11`.
+B2-A39 consigne l'audit `low` propre, le lint, les types, 239 tests et les builds
+verts localement. Aucun run CI/CD, push ou déploiement de `rc.4` n'est revendiqué.
+Les risques non masqués restent le rate limit mémoire et l'absence de SIEM
+centralisé.
 
 B2-A35 complète cette revue par des exécutions ciblées : charge SQL-like
 insérée et relue sur PostgreSQL 16.14 avec table intacte, XSS inerte dans React
@@ -273,6 +289,14 @@ Les preuves automatisées réelles sont :
   `h2`, plus le contre-contrôle authentifié de `/programs/generate` ;
 - ratios opaques représentatifs de 17,36:1 en public et 8,19:1 en privé.
 
+Le rejeu du 22 juillet sur la production `rc.3` reproduit 33/33 tests, zéro
+violation axe, 416 occurrences `incomplete`, 79 signatures et 166 contextes.
+Un échantillonnage pixel complémentaire classe 69 signatures/150 contextes
+conformes au seuil, 8 signatures/14 contextes en alerte et 2 signatures/2
+contextes non concluants. Des correctifs CSS locaux ont ensuite passé 55/55
+tests Web, le typecheck et le lint, mais ils ne sont ni déployés ni rejoués en
+production.
+
 L'attendu officiel porte sur la présentation des actions mises en œuvre pour
 permettre l'accès aux personnes en situation de handicap. Ces actions sont
 désormais mesurées et reproductibles. Limite : axe et l'arbre d'accessibilité
@@ -289,7 +313,8 @@ exhaustive au RGAA.
 | 0.13.0-rc.1           | PostgreSQL et chaîne Docker validés                                                  |
 | 0.13.0-rc.2           | audit dépendances et CD Vercel canonique                                             |
 | 0.13.0-rc.3           | corrections issues de la recette authentifiée                                        |
-| finalisation du rendu | OAuth Playwright sécurisé, dépendances corrigées, shared couvert, mobile authentifié |
+| 0.13.0-rc.4 locale    | cinq avis de dépendances corrigés ; audit low, qualité, 239 tests et builds locaux    |
+| finalisation du rendu | OAuth Playwright sécurisé, shared couvert, mobile authentifié et preuves consolidées |
 
 `CHANGELOG.md`, les commits, les pull requests et les tags conservent
 l'historique. La baseline corrective `b002adb...` a passé la CI `29845956008`,
@@ -300,7 +325,9 @@ Les endpoints Web/API répondent en version `0.13.0-rc.3`. Le repère documentai
 est le tag `rncp-bloc2-2026-07-21-v8`. Il ne remplace pas la baseline applicative
 déployée `b002adb0e0e7d8d85ee493d54879e190d77d2078`. Le manifeste du paquet de
 remise porte le SHA effectivement archivé et les empreintes SHA-256 de chaque
-livrable.
+livrable. La candidate corrigée `0.13.0-rc.4` reste locale au 22 juillet : ses
+contrôles locaux sont consignés dans B2-A39, mais sa CI/CD, sa publication et sa
+contre-recette de production restent à réaliser après autorisation.
 
 ## 12. C2.3.1 - Cahier de recettes
 
@@ -319,13 +346,13 @@ La campagne de fermeture B2-A34 à B2-A37 ajoute les erreurs OpenAI, pagination,
 suppression en erreur, journal avec notes de douleur, modèle interdit,
 dashboard vide/alimenté, parcours Timer/journal/dashboard de production,
 injection, XSS, secrets, CORS, CSP et audit accessibilité multi-page. Le cahier
-compte 59 scénarios de recette : 58 sont clos et CR-055 conserve une réserve
-humaine explicite. CR-062 est fermé par la preuve négative isolée B2-A38 et
-CR-063 par la gate reproductible du
-paquet et son manifeste ; CR-049 est suivi séparément comme risque architectural,
-hors dénominateur. La candidate applicative a passé la CI/CD,
-les smoke tests, l'E2E OAuth 6/6 et la contre-recette accessibilité de
-production 33/33 avant le gel documentaire.
+compte 59 scénarios de recette : 57 sont clos. CR-055 conserve une réserve
+humaine explicite et CR-063 est rouvert pour la génération et l'inspection du
+paquet `rc.4`. CR-062 est fermé par la preuve négative isolée B2-A38 ; CR-049
+est suivi séparément comme risque architectural, hors dénominateur. La baseline
+`rc.3` a passé la CI/CD, les smoke tests, l'E2E OAuth 6/6 et la contre-recette
+accessibilité de production 33/33. Pour `rc.4`, seuls l'audit, le lint, les
+types, 239 tests et les builds locaux sont revendiqués.
 
 ## 13. C2.3.2 - Plan de correction des bogues
 
@@ -336,7 +363,10 @@ accessibilité, CSP, Docker, CI/CD, dépendances, messages de formulaire, filtre
 et cohérence documentaire. La campagne finale ajoute l'allowlist serveur des
 modèles IA, la préservation de la confirmation de journalisation et la
 hiérarchie des titres de formulaire, ainsi que les troncatures révélées par le
-zoom navigateur natif à 400 %.
+zoom navigateur natif à 400 %. L'actualisation du 22 juillet ajoute la nouvelle
+veille de dépendances B2-BUG-038 et le défaut de découvrabilité/anonymisation du
+paquet B2-BUG-039 ; leurs validations distantes ou finales restent distinguées
+des contrôles locaux.
 
 Une anomalie n'est déclarée corrigée qu'après modification et contre-recette.
 Les éléments encore humains ou externes restent des réserves, pas des bogues
@@ -381,18 +411,20 @@ et tests complets. B2-A27 fournit un exemple réel où une nouvelle alerte a fai
 | Compétence | Annexes principales                   | Démonstration                                    |
 | ---------- | ------------------------------------- | ------------------------------------------------ |
 | C2.1.1     | B2-A21, A22, A28, A29                 | healthchecks et protocole CD                     |
-| C2.1.2     | B2-A16, A23, A27, A28                 | run CI et artefacts                              |
-| C2.2.1     | B2-A25, A26, A30                      | production desktop/mobile                        |
+| C2.1.2     | B2-A16, A23, A27, A28, A39            | CI `rc.3` et contrôles locaux `rc.4`             |
+| C2.2.1     | matrice user stories, B2-A25, A26, A30 | besoins, écrans et production desktop/mobile     |
 | C2.2.2     | B2-A19, A28, A31                      | rapports de couverture séparés                   |
-| C2.2.3     | B2-A20, A23 à A30, A35 à A37           | OWASP, sécurité navigateur, axe, clavier, zoom natif |
+| C2.2.3     | B2-A20, A23 à A30, A35 à A39           | OWASP, dépendances, axe, clavier, zoom natif     |
 | C2.2.4     | B2-A22, A25, A28                      | Git, migration, CD, smoke tests                  |
 | C2.3.1     | B2-A12, A20, A25, A26, A30, A34 à A37 | cahier et recettes exécutées                     |
 | C2.3.2     | B2-A13, A25, A27, A34, A36, A37       | anomalies et non-régressions                     |
 | C2.4.1     | manuels et B2-A22                     | déployer, utiliser, mettre à jour                |
 
-L'index détaillé et les pièces complètes figurent dans le PDF d'annexes. Les
-preuves historiques sont conservées dans le dépôt mais ne sont pas incluses
-comme preuves finales du paquet jury.
+L'index détaillé, la matrice user stories et les pièces complètes sont prévus
+comme livrables de premier niveau dans le générateur du PDF d'annexes `rc.4`.
+Le paquet final `rc.4` doit encore être généré, contrôlé visuellement et soumis
+à la gate d'anonymisation ; les preuves historiques restent conservées dans le
+dépôt sans être assimilées à cette future remise.
 
 ## 18. Vérifications administratives restant avant dépôt
 
@@ -404,23 +436,28 @@ dépôt et ne peuvent pas être déduites du référentiel public :
 2. [ ] déposer le dossier, les annexes et l'archive source avant l'échéance.
 
 La régénération technique et le contrôle des empreintes relèvent du processus de
-construction du paquet et sont consignés dans son `MANIFESTE.txt`. Les actions
-humaines restantes sont fournies sous forme de checklist dans le paquet final.
+construction du paquet et devront être consignés dans son `MANIFESTE.txt`. Les
+actions humaines restantes devront être fournies sous forme de checklist dans
+le paquet `rc.4` après sa validation.
 
 ## 19. Conclusion
 
 Alcide dispose d'un code source versionné, d'une architecture structurée, de
-tests couvrant majoritairement chaque périmètre runtime, d'une CI/CD réelle,
-d'une production contrôlée, d'un cahier de recettes, d'un plan de correction et
-des trois manuels demandés. Les preuves finales incluent désormais la session
-Playwright hors Git, la couverture autonome de `shared`, les recettes métier et
-sécurité finales, le reflow/clavier authentifié multi-page, les captures
-actuelles et une mesure de performance reproductible.
+tests couvrant majoritairement chaque périmètre runtime, d'une CI/CD réelle sur
+la baseline `rc.3`, d'une production contrôlée, d'un cahier de recettes, d'un
+plan de correction et des trois manuels demandés. Les preuves incluent la
+session Playwright hors Git, la couverture autonome de `shared`, les recettes
+métier et sécurité, le reflow/clavier authentifié multi-page, les captures
+actuelles, une mesure de performance reproductible et la matrice reliant les
+besoins aux écrans et aux recettes.
 
 Le dossier est techniquement consolidé. Le correctif de reflow est déployé sur
 la baseline `b002adb`, puis contre-recetté en production : zoom natif 16/16 et
 suite d'accessibilité 33/33. Les actions d'accessibilité exécutées sont
 présentées avec leurs limites, sans déclaration de conformité exhaustive au
-RGAA. Il reste à mener la revue humaine exhaustive des fonds composites, à
-réaliser un parcours avec un lecteur d'écran réel et à appliquer les consignes
-administratives exactes du campus avant le dépôt.
+RGAA. La candidate locale `rc.4` corrige cinq nouveaux avis et passe l'audit
+`low`, le lint, les types, 239 tests et les builds ; elle n'est pas encore
+publiée ni contre-recettée en CI/CD ou en production. Il reste aussi à générer
+et inspecter son paquet, à mener la revue humaine exhaustive des fonds
+composites, à réaliser un parcours avec un lecteur d'écran réel et à appliquer
+les consignes administratives exactes du campus avant le dépôt.

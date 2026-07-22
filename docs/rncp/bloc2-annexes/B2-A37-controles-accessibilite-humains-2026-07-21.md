@@ -133,6 +133,45 @@ Ce tri ne clôt aucune signature automatiquement. Pour chaque contexte, un
 opérateur doit mesurer le pixel composite le plus défavorable, renseigner le
 ratio, la décision et la preuve, puis contre-recetter les corrections éventuelles.
 
+### 3.2 Requalification automatisée du 22 juillet 2026
+
+Le rapport source, la liste de contrôle et la suite Playwright ont été rejoués
+le 22 juillet 2026 sur la production encore déployée. Les résultats historiques
+ont été reproduits exactement : **0 violation axe**, **416 occurrences
+`incomplete`**, **79 signatures** et **166 contextes route-signature**. La suite
+publique et authentifiée a également réussi ses **33 tests sur 33**.
+
+Un contrôle complémentaire, implémenté dans
+`apps/web/scripts/e2e-contrast-composite-sampling.mjs`, a comparé en mémoire le
+rendu de chaque contexte avant et après neutralisation de la couleur du texte.
+Il estime ainsi les pixels de fond effectivement placés sous les glyphes sans
+enregistrer de capture ni de donnée de session. Résultat sur les 166 contextes :
+
+| Qualification automatisée | Signatures | Contextes |
+| --- | ---: | ---: |
+| Échantillonnage conforme au seuil | 69 | 150 |
+| Alerte de contraste à corriger ou contre-mesurer | 8 | 14 |
+| Mesure automatisée non concluante | 2 | 2 |
+
+Les alertes ont notamment concerné la navigation inactive, les métriques du
+dashboard, l'introduction sur photographie, le libellé de section placé sur le
+fond clair et le pied de page transparent de l'accueil. Une correction locale a
+été appliquée : fonds plus opaques pour l'en-tête, les métriques, les libellés de
+section, l'introduction et le pied de page ; textes secondaires renforcés dans
+la navigation, le dashboard et la page de confidentialité. Deux assertions de
+non-régression ont été ajoutées aux tests de composants et de pages publiques.
+
+Validation locale après correction : **55 tests Web sur 55**, typecheck réussi
+et lint réussi sans avertissement applicatif. Ces modifications ne sont pas
+encore qualifiées en production dans cette annexe : le déploiement, le rejeu
+33/33 et le nouvel échantillonnage des 79 signatures restent requis.
+
+Cette méthode constitue un tri technique plus fort que la seule couleur CSS,
+mais pas une mesure normative exhaustive : elle ne permet pas de déclarer la
+conformité RGAA et les deux contextes non concluants restent à mesurer par un
+opérateur. Les décisions humaines de contraste doivent conserver le pixel le
+plus défavorable et la preuve associée.
+
 ## 4. Lecteur d'écran
 
 La détection locale en lecture seule donne l'état suivant :
@@ -148,7 +187,8 @@ Le contrôle de l'arbre d'accessibilité Chromium est réussi sur les huit route
 il ne remplace pas un parcours humain capable de juger l'ordre, les annonces et
 le confort d'écoute.
 
-Aucun test réel NVDA, Narrator, JAWS ou VoiceOver n'est donc revendiqué.
+Aucun test réel NVDA, Narrator, JAWS ou VoiceOver n'est donc revendiqué, y
+compris lors du rejeu et des corrections du 22 juillet 2026.
 
 ### 4.1 Grille Narrator/NVDA prête à exécuter
 

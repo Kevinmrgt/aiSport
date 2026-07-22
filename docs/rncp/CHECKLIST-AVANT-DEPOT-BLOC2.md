@@ -36,6 +36,19 @@ dans `MANIFESTE.txt`.
       de l'inventaire de production ;
 - [x] SHA Git et empreintes SHA-256 générés dans le manifeste du paquet.
 
+Pour la candidate locale `0.13.0-rc.4` du 2026-07-22 :
+
+- [x] audit de production au seuil `low`, lint, types, 239 tests et builds
+      verts localement ;
+- [x] cahier de recettes, plan de correction, revue OWASP et matrice user
+      stories/preuves intégrés en entier aux annexes ;
+- [x] gate d'anonymisation couvrant PDF, métadonnées, annotations, liens, flux,
+      ZIP final et ZIP imbriqué ;
+- [ ] publier la candidate et conserver la CI/CD verte correspondante ;
+- [ ] exécuter la contre-recette de production sur la candidate publiée ;
+- [ ] exécuter et consigner un vrai parcours vocal Narrator ou NVDA ;
+- [ ] terminer la qualification humaine des contrastes composites de CR-055.
+
 Après toute nouvelle correction documentaire, le paquet doit être reconstruit :
 le manifeste produit par cette dernière exécution, et lui seul, fait foi.
 

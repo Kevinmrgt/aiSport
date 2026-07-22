@@ -11,10 +11,9 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
-> Correctifs de stabilisation postérieurs au gel nominal `0.13.0-rc.3`, mais
-> déjà déployés sous la même version de service. La baseline applicative
-> canonique est `b002adb0e0e7d8d85ee493d54879e190d77d2078`, validée par la CI
-> `29845956008` et le CD `29846343559`.
+> La candidate locale `0.13.0-rc.4` corrige les avis de dépendances découverts
+> le 22 juillet 2026. Sa publication, sa CI/CD distante et sa contre-recette de
+> production restent à consigner avant de la présenter comme version déployée.
 
 ### Fixed
 
@@ -29,6 +28,25 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 - Recettes finales Bloc 2 B2-A34 à B2-A36 : erreurs IA, journal/douleur/dashboard, SQL-like PostgreSQL réel, XSS, secrets/CORS/CSP et audit accessibilité public/privé.
 - Tests RNCP dédiés API, Web, Playwright et PostgreSQL pour les scénarios C2.3.1 et C2.2.3 restés ouverts.
+- Annexe B2-A39 retraçant la détection, la correction et la validation locale
+  des nouveaux avis `sharp`, `hono` et `@hono/node-server`.
+- Matrice de traçabilité reliant 11 user stories aux écrans, au code, aux
+  recettes et aux preuves du Bloc 2.
+- Paquet d'annexes enrichi des quatre livrables structurants complets, avec
+  signets et gate d'anonymisation du texte, des liens, métadonnées, flux PDF et
+  archives ZIP.
+
+### Security
+
+- `sharp` résolu en `0.35.3`, `hono` en `4.12.31` et
+  `@hono/node-server` en `2.0.11` ; l'audit de production au niveau `low`
+  retrouve un état sans vulnérabilité connue.
+- Validation locale post-correction : lint, typecheck, 239 tests et build
+  complet réussis.
+- Contrastes composites préqualifiés sur 79 signatures et 166 contextes ; les
+  14 alertes potentielles ont conduit à renforcer localement plusieurs fonds et
+  textes. La mesure humaine, le lecteur d'écran et la contre-recette après
+  déploiement restent explicitement ouverts.
 
 ---
 
