@@ -1,5 +1,7 @@
 # B2-A34 — Recettes métier finales — 2026-07-21
 
+> Repère de lecture : cette campagne datée du 21 juillet compte 55 tests Web. Deux tests de non-régression ajoutés avec les correctifs `rc.5` portent la baseline finale à 57 tests Web et 241 tests au total.
+
 > Compétence : C2.3.1 — cahier de recettes.
 > Exécution : 21 juillet 2026, de 14 h 23 à 14 h 40 (Europe/Paris).
 > Révision de départ : `bac3b916770cabbbc92e3cda0d58ac3ed7e5e119`.
