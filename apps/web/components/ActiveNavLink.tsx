@@ -51,7 +51,7 @@ export function ActiveNavLink({ href, label, icon, compact = false }: ActiveNavL
         aria-busy={isPending ? 'true' : undefined}
         onClick={handleClick}
         className={`group grid min-w-0 place-items-center gap-1 rounded-full px-2 py-1.5 text-[0.62rem] font-bold transition ${
-          highlighted ? 'text-primary-200' : 'text-zinc-400 hover:text-white'
+          highlighted ? 'text-primary-200' : 'text-zinc-200 hover:text-white'
         }`}
       >
         <span
@@ -77,9 +77,7 @@ export function ActiveNavLink({ href, label, icon, compact = false }: ActiveNavL
       aria-busy={isPending ? 'true' : undefined}
       onClick={handleClick}
       className={`group relative flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-bold transition ${
-        highlighted
-          ? 'text-primary-200'
-          : 'text-zinc-400 hover:bg-white/[0.06] hover:text-white'
+        highlighted ? 'text-primary-200' : 'text-zinc-200 hover:bg-white/[0.06] hover:text-white'
       }`}
     >
       {highlighted && (

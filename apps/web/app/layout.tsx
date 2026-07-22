@@ -77,7 +77,7 @@ export default async function RootLayout({ children }: { readonly children: Reac
           Aller au contenu principal
         </a>
 
-        <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.16] bg-[#10170f]/70 shadow-lg shadow-black/15 backdrop-blur-2xl">
+        <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.16] bg-[#10170f]/90 shadow-lg shadow-black/15 backdrop-blur-2xl">
           <nav
             className="mx-auto flex min-h-14 max-w-[112rem] items-center gap-4 px-4 py-2 sm:px-6 lg:px-8"
             aria-label="Navigation principale"
@@ -106,7 +106,7 @@ export default async function RootLayout({ children }: { readonly children: Reac
                 <button
                   type="submit"
                   aria-label="Se deconnecter"
-                  className="group hidden items-center gap-2 rounded-md px-2 py-1.5 text-sm font-bold text-zinc-400 transition hover:bg-white/[0.06] hover:text-white sm:flex"
+                  className="group hidden items-center gap-2 rounded-md px-2 py-1.5 text-sm font-bold text-zinc-200 transition hover:bg-white/[0.06] hover:text-white sm:flex"
                 >
                   <span className="grid h-8 w-8 place-items-center rounded-full bg-white/[0.06] text-zinc-200 transition group-hover:bg-sport-orange group-hover:text-zinc-950">
                     <Icon name="log-out" className="h-3.5 w-3.5" />
@@ -134,7 +134,7 @@ export default async function RootLayout({ children }: { readonly children: Reac
           {children}
         </main>
 
-        <footer className="relative z-10 border-t border-white/10">
+        <footer className="relative z-10 border-t border-zinc-950/10 bg-[#dfe8d2]/95 backdrop-blur-xl">
           <div className="mx-auto max-w-7xl px-5 py-6 text-center text-xs font-medium text-zinc-700 lg:px-8">
             <p>Alcide - Projet RNCP 39583</p>
             <Link

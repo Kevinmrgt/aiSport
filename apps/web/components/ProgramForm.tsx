@@ -74,6 +74,11 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
         if (field) fieldErrors[field] = err.message;
       }
       setErrors(fieldErrors);
+      const firstInvalidField = parsed.error.issues[0]?.path[0];
+      const firstInvalidControl = firstInvalidField
+        ? e.currentTarget.elements.namedItem(String(firstInvalidField))
+        : null;
+      if (firstInvalidControl instanceof HTMLElement) firstInvalidControl.focus();
       return;
     }
 

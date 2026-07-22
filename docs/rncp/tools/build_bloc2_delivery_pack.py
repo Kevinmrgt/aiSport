@@ -2,15 +2,27 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import re
 import shutil
 import subprocess
 import zipfile
 from pathlib import Path, PurePosixPath
 
-ROOT = Path(__file__).resolve().parents[3]
-VERSION = "0.13.0-rc.3"
-DATE = "2026-07-21"
+from bloc2_delivery_config import (
+    ANONYMIZED_MODE,
+    DELIVERY_DATE,
+    ROOT,
+    VERSION,
+    anonymize_text,
+    assert_anonymized_pdf,
+    byte_identity_findings,
+)
+
+DATE = DELIVERY_DATE
+APPLICATION_SHA = "b002adb0e0e7d8d85ee493d54879e190d77d2078"
+FINAL_CI_RUN = "29845956008"
+FINAL_CD_RUN = "29846343559"
 PACK_NAME = f"alcide-bloc2-rncp39583-{VERSION}-final-{DATE}"
 PACK_DIR = ROOT / "output" / PACK_NAME
 PACK_ZIP = ROOT / "output" / f"{PACK_NAME}.zip"
@@ -70,7 +82,13 @@ SOURCE_DOCUMENTS = {
     "docs/rncp/bloc2-dossier-conception-developpement-rncp39583.md",
     "docs/rncp/bloc2-manuel-mise-a-jour.md",
     "docs/rncp/bloc2-manuel-utilisateur-alcide.md",
+    "docs/rncp/bloc2-matrice-user-stories-preuves.md",
     "docs/rncp/bloc2-plan-correction-bogues-rncp39583.md",
+}
+REQUIRED_MANUALS = {
+    "docs/deployment.md",
+    "docs/rncp/bloc2-manuel-utilisateur-alcide.md",
+    "docs/rncp/bloc2-manuel-mise-a-jour.md",
 }
 
 FORBIDDEN_ARCHIVE_SEGMENTS = {
@@ -94,10 +112,15 @@ FORBIDDEN_ARCHIVE_FILES = {
     "google-e2e.json",
     "service-account.json",
 }
-IDENTITY_PATTERNS = (
-    re.compile(rb"kevinmrgt", re.IGNORECASE),
-    re.compile(rb"c:\\\\users\\\\kevin(?:\\\\documents\\\\aisport)?", re.IGNORECASE),
-    re.compile(rb"\bkevin\b", re.IGNORECASE),
+FORBIDDEN_BLOC2_PATH_MARKERS = (
+    "soutenance",
+    "preparation-orale",
+    "preparation_orale",
+    "bloc2-guide-lecture-jury",
+)
+FORBIDDEN_BLOC2_PDF_PATTERN = re.compile(
+    r"\b(?:oral(?:e|es|s)?|soutenance(?:s)?)\b",
+    re.IGNORECASE,
 )
 SECRET_PATTERNS = (
     ("clé privée PEM", re.compile(rb"-----BEGIN [A-Z ]*PRIVATE KEY-----")),
@@ -138,7 +161,57 @@ def validate_pdf(path: Path, maximum_pages: int | None = None) -> tuple[int, str
     if maximum_pages is not None and pages > maximum_pages:
         raise ValueError(f"{path.name}: {pages} pages, maximum {maximum_pages}")
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    if ANONYMIZED_MODE:
+        assert_anonymized_pdf(path)
     return pages, text
+
+
+def validate_pdf_navigation(
+    path: Path,
+    minimum_outlines: int,
+    minimum_internal_links: int,
+) -> tuple[int, int, bool]:
+    from pypdf import PdfReader
+
+    reader = PdfReader(str(path))
+    root = reader.trailer["/Root"]
+    if str(root.get("/Lang", "")) != "fr-FR":
+        raise ValueError(f"{path.name}: langue PDF absente ou incorrecte")
+    if str(root.get("/PageMode", "")) != "/UseOutlines":
+        raise ValueError(f"{path.name}: panneau de signets non demandé à l'ouverture")
+    if str(root.get("/PageLayout", "")) != "/OneColumn":
+        raise ValueError(f"{path.name}: disposition de page inattendue")
+    if not reader.metadata or not reader.metadata.title:
+        raise ValueError(f"{path.name}: titre de document absent")
+
+    def count_outline_items(items: list[object]) -> int:
+        return sum(
+            count_outline_items(item) if isinstance(item, list) else 1
+            for item in items
+        )
+
+    outline_count = count_outline_items(reader.outline)
+    internal_link_count = 0
+    for page in reader.pages:
+        for annotation_ref in page.get("/Annots", []):
+            annotation = annotation_ref.get_object()
+            action = annotation.get("/A")
+            if annotation.get("/Subtype") != "/Link":
+                continue
+            if "/Dest" in annotation or (
+                action is not None and action.get_object().get("/S") == "/GoTo"
+            ):
+                internal_link_count += 1
+
+    if outline_count < minimum_outlines:
+        raise ValueError(
+            f"{path.name}: {outline_count} signets, minimum {minimum_outlines}"
+        )
+    if internal_link_count < minimum_internal_links:
+        raise ValueError(
+            f"{path.name}: {internal_link_count} liens internes, minimum {minimum_internal_links}"
+        )
+    return outline_count, internal_link_count, "/StructTreeRoot" in root
 
 
 def is_allowed_source(path: str) -> bool:
@@ -159,24 +232,7 @@ def tracked_source_files() -> list[str]:
 
 
 def sanitize_text(text: str) -> str:
-    # Les références GitHub perdent leur cible publique mais conservent le numéro
-    # de run/PR dans le libellé et le chemin, afin de garder la correspondance avec
-    # les preuves remises séparément.
-    text = re.sub(
-        r"https://github\.com/kevinmrgt/aisport",
-        "https://github.com/compte-anonymise/depot-anonymise",
-        text,
-        flags=re.IGNORECASE,
-    )
-    text = re.sub(
-        r"C:\\Users\\Kevin(?:\\Documents\\AISport)?",
-        "<workspace-anonymise>",
-        text,
-        flags=re.IGNORECASE,
-    )
-    text = re.sub(r"Kevinmrgt", "compte-anonymise", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bKevin\b", "Candidat anonymisé", text, flags=re.IGNORECASE)
-    return text
+    return anonymize_text(text)
 
 
 def sanitized_bytes(source: Path) -> bytes:
@@ -277,12 +333,16 @@ def create_source_archive(target: Path, staging: Path) -> tuple[int, int]:
 def validate_source_archive(path: Path) -> None:
     problems: list[str] = []
     with zipfile.ZipFile(path) as archive:
+        archived_names = {PurePosixPath(info.filename).as_posix() for info in archive.infolist()}
         for info in archive.infolist():
             pure_path = PurePosixPath(info.filename)
             lowered_parts = {part.lower() for part in pure_path.parts}
+            lowered_name = pure_path.as_posix().lower()
             if pure_path.is_absolute() or ".." in pure_path.parts:
                 problems.append(f"chemin non sûr : {info.filename}")
                 continue
+            if any(marker in lowered_name for marker in FORBIDDEN_BLOC2_PATH_MARKERS):
+                problems.append(f"support hors périmètre du Bloc 2 : {info.filename}")
             if lowered_parts & FORBIDDEN_ARCHIVE_SEGMENTS:
                 problems.append(f"segment interdit : {info.filename}")
             if pure_path.name.lower() in FORBIDDEN_ARCHIVE_FILES:
@@ -290,14 +350,20 @@ def validate_source_archive(path: Path) -> None:
             if info.is_dir():
                 continue
             payload = archive.read(info)
-            for pattern in IDENTITY_PATTERNS:
-                if pattern.search(payload):
-                    problems.append(f"marqueur d'identité : {info.filename}")
-                    break
+            identity_labels = byte_identity_findings(payload)
+            if identity_labels:
+                problems.append(
+                    f"marqueur d'identité ({', '.join(identity_labels)}) : {info.filename}"
+                )
             for label, pattern in SECRET_PATTERNS:
                 if pattern.search(payload):
                     problems.append(f"{label} potentiel : {info.filename}")
                     break
+        prefix = f"alcide-source-{VERSION}"
+        for manual in sorted(REQUIRED_MANUALS):
+            expected = f"{prefix}/{manual}"
+            if expected not in archived_names:
+                problems.append(f"document obligatoire absent : {manual}")
     if problems:
         raise ValueError("Archive source non sûre : " + "; ".join(problems[:20]))
 
@@ -334,6 +400,83 @@ def build_candidate_source_archive() -> None:
     print(f"SHA-256 : {sha256(target)}")
 
 
+def build_readme_text() -> str:
+    return (
+        "\n".join(
+            [
+                "ALCIDE - BLOC 2 RNCP39583",
+                "",
+                "Ordre de lecture :",
+                "1. 01-dossier-bloc2-alcide.pdf (30 pages maximum hors annexes)",
+                "2. 02-annexes-bloc2-alcide.pdf (preuves et livrables complets)",
+                f"3. 03-code-source-alcide-{VERSION}.zip (archive source anonymisée et filtrée)",
+                "4. MANIFESTE.txt (empreintes et limites)",
+                "",
+                "Pièces structurantes intégrées intégralement au PDF d'annexes et accessibles par le sommaire et les signets :",
+                "- LIV-01 - docs/bloc2/cahier-recettes.md - cahier de recettes complet",
+                "- LIV-02 - docs/rncp/bloc2-plan-correction-bogues-rncp39583.md - plan de correction des bogues complet",
+                "- LIV-03 - docs/security/owasp-review.md - revue OWASP A01 à A10 complète",
+                "- LIV-04 - docs/rncp/bloc2-matrice-user-stories-preuves.md - matrice user stories, écrans, recettes et preuves complète",
+                "- B2-A39 - preuve de correction des dépendances et d'audit de sécurité rc.4",
+                "- B2-A40 - audit sémantique authentifié et corrections locales de focus/onglets",
+                "",
+                "Les trois manuels sont également lisibles à la fin du PDF d'annexes et présents dans l'archive source :",
+                "- DOC-01 - docs/deployment.md",
+                "- DOC-02 - docs/rncp/bloc2-manuel-utilisateur-alcide.md",
+                "- DOC-03 - docs/rncp/bloc2-manuel-mise-a-jour.md",
+                "",
+                "Avant dépôt : confirmer les règles de nommage, de taille, de délai",
+                "et d'anonymisation avec le campus.",
+            ]
+        )
+        + "\n"
+    )
+
+
+def validate_delivery_archive(path: Path) -> None:
+    """Revalide l'anonymisation dans le ZIP final, y compris ses ZIP imbriqués."""
+    problems: list[str] = []
+
+    def inspect_zip(payload: bytes, context: str, depth: int) -> None:
+        if depth > 2:
+            problems.append(f"profondeur ZIP inattendue : {context}")
+            return
+        try:
+            archive = zipfile.ZipFile(io.BytesIO(payload))
+        except zipfile.BadZipFile:
+            problems.append(f"ZIP illisible : {context}")
+            return
+        with archive:
+            for info in archive.infolist():
+                pure_path = PurePosixPath(info.filename)
+                if pure_path.is_absolute() or ".." in pure_path.parts:
+                    problems.append(f"chemin ZIP non sûr : {context}/{info.filename}")
+                    continue
+                if info.is_dir():
+                    continue
+                nested_payload = archive.read(info)
+                nested_context = f"{context}/{info.filename}"
+                suffix = pure_path.suffix.lower()
+                if suffix == ".pdf":
+                    try:
+                        assert_anonymized_pdf(nested_payload, nested_context)
+                    except ValueError as error:
+                        problems.append(str(error))
+                elif suffix == ".zip":
+                    inspect_zip(nested_payload, nested_context, depth + 1)
+                else:
+                    findings = byte_identity_findings(nested_payload)
+                    if findings:
+                        problems.append(
+                            f"anonymisation refusée pour {nested_context} : "
+                            + ", ".join(findings)
+                        )
+
+    inspect_zip(path.read_bytes(), path.name, 0)
+    if problems:
+        raise ValueError("Paquet non anonymisé : " + "; ".join(problems[:20]))
+
+
 def build_delivery_pack() -> None:
     tracked_changes = git("status", "--porcelain", "--untracked-files=no")
     if tracked_changes:
@@ -341,6 +484,23 @@ def build_delivery_pack() -> None:
 
     dossier_pages, dossier_text = validate_pdf(DOSSIER, maximum_pages=30)
     annex_pages, annex_text = validate_pdf(ANNEXES)
+    dossier_outlines, dossier_links, dossier_tagged = validate_pdf_navigation(
+        DOSSIER,
+        minimum_outlines=10,
+        minimum_internal_links=10,
+    )
+    annex_outlines, annex_links, annex_tagged = validate_pdf_navigation(
+        ANNEXES,
+        minimum_outlines=20,
+        minimum_internal_links=10,
+    )
+    combined_text = dossier_text + "\n" + annex_text
+    forbidden_match = FORBIDDEN_BLOC2_PDF_PATTERN.search(combined_text)
+    if forbidden_match:
+        raise ValueError(
+            "Le paquet Bloc 2 écrit contient un terme hors périmètre : "
+            f"{forbidden_match.group(0)!r}."
+        )
     for expected in [
         "B2-A26",
         "B2-A27",
@@ -350,10 +510,33 @@ def build_delivery_pack() -> None:
         "B2-A35",
         "B2-A36",
         "B2-A37",
+        "B2-A38",
+        "B2-A39",
+        "B2-A40",
         "29833210488",
+        APPLICATION_SHA[:7],
+        FINAL_CI_RUN,
+        FINAL_CD_RUN,
+        "Manuel de déploiement complet",
+        "Manuel utilisateur complet",
+        "Manuel de mise à jour complet",
+        "LIV-01",
+        "Cahier de recettes complet",
+        "LIV-02",
+        "Plan de correction des bogues complet",
+        "LIV-03",
+        "Revue de sécurité OWASP A01 à A10 complète",
+        "LIV-04",
+        "Matrice user stories, écrans, recettes et preuves complète",
     ]:
-        if expected not in dossier_text + annex_text:
+        if expected not in combined_text:
             raise ValueError(f"Preuve absente des PDF : {expected}")
+    if re.search(
+        r"reste\s+à\s+déployer\s+et\s+contre-recetter\s+le\s+correctif\s+de\s+reflow",
+        combined_text,
+        flags=re.IGNORECASE,
+    ):
+        raise ValueError("Le dossier contient encore la conclusion obsolète sur le correctif de reflow.")
 
     resolved_output = (ROOT / "output").resolve()
     if PACK_DIR.parent.resolve() != resolved_output or PACK_ZIP.parent.resolve() != resolved_output:
@@ -375,24 +558,7 @@ def build_delivery_pack() -> None:
     create_source_archive(source_target, source_staging)
 
     readme = PACK_DIR / "LISEZ-MOI.txt"
-    readme.write_text(
-        "\n".join(
-            [
-                "ALCIDE - BLOC 2 RNCP39583",
-                "",
-                "Ordre de lecture :",
-                "1. 01-dossier-bloc2-alcide.pdf (30 pages maximum hors annexes)",
-                "2. 02-annexes-bloc2-alcide.pdf (preuves sélectionnées)",
-                f"3. 03-code-source-alcide-{VERSION}.zip (archive source anonymisée et filtrée)",
-                "4. MANIFESTE.txt (empreintes et limites)",
-                "",
-                "Avant dépôt : confirmer les règles de nommage, de taille, de délai",
-                "et d'anonymisation avec le campus.",
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
+    readme.write_text(build_readme_text(), encoding="utf-8")
 
     artifacts = [dossier_target, annexes_target, source_target, readme]
     manifest = PACK_DIR / "MANIFESTE.txt"
@@ -400,9 +566,14 @@ def build_delivery_pack() -> None:
         "ALCIDE - MANIFESTE DU PAQUET BLOC 2 RNCP39583",
         f"Date de génération : {DATE}",
         f"Version applicative : {VERSION}",
-        f"SHA Git archivé : {head}",
+        f"SHA applicatif déployé : {APPLICATION_SHA}",
+        f"CI applicative finale : {FINAL_CI_RUN}",
+        f"CD applicatif final : {FINAL_CD_RUN}",
+        f"SHA Git documentaire et source archivé : {head}",
         f"Dossier principal : {dossier_pages} pages (maximum officiel : 30 hors annexes)",
         f"Annexes sélectionnées : {annex_pages} pages",
+        f"Navigation dossier : {dossier_outlines} signets ; {dossier_links} liens internes ; langue fr-FR",
+        f"Navigation annexes : {annex_outlines} signets ; {annex_links} liens internes ; langue fr-FR",
         "",
         "FICHIERS ET EMPREINTES SHA-256",
     ]
@@ -413,12 +584,15 @@ def build_delivery_pack() -> None:
             "",
             "LIMITES À NE PAS MASQUER",
             "- les contrôles d'accessibilité ne constituent pas une déclaration de conformité exhaustive au RGAA ;",
+            f"- PDF balisés/PDF-UA : {'oui' if dossier_tagged and annex_tagged else 'non'} ; les signets, liens, métadonnées et sources Markdown fournissent une navigation de repli, sans remplacer un balisage structurel ;",
             "- date, nommage, taille et anonymisation à confirmer avec le campus.",
         ]
     )
     manifest.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     shutil.make_archive(str(PACK_ZIP.with_suffix("")), "zip", PACK_DIR.parent, PACK_DIR.name)
+    if ANONYMIZED_MODE:
+        validate_delivery_archive(PACK_ZIP)
     print(f"Paquet : {PACK_ZIP}")
     print(f"SHA-256 paquet : {sha256(PACK_ZIP)}")
 

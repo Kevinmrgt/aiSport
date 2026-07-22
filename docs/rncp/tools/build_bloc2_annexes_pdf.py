@@ -7,6 +7,14 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.platypus import PageBreak, Paragraph, Spacer, Table, TableStyle
 
+from bloc2_delivery_config import (
+    ANONYMIZED_MODE,
+    DELIVERY_DATE,
+    VERSION,
+    anonymize_text,
+    assert_anonymized_pdf,
+)
+
 from build_bloc2_candidate_pdf import (
     CandidateDocument,
     INK,
@@ -27,7 +35,7 @@ OUTPUT = (
     ROOT
     / "output"
     / "pdf"
-    / "annexes-bloc2-rncp39583-alcide-v0.13.0-rc.3-final-2026-07-21.pdf"
+    / f"annexes-bloc2-rncp39583-alcide-v{VERSION}-final-{DELIVERY_DATE}.pdf"
 )
 
 SELECTED = [
@@ -43,8 +51,51 @@ SELECTED = [
     "B2-A35-recettes-securite-finales-2026-07-21.md",
     "B2-A36-audit-accessibilite-final-2026-07-21.md",
     "B2-A37-controles-accessibilite-humains-2026-07-21.md",
+    "B2-A38-preuve-negative-ci-cd-2026-07-21.md",
+    "B2-A39-correction-dependances-2026-07-22.md",
+    "B2-A40-audit-semantique-assiste-2026-07-22.md",
 ]
 
+CORE_DELIVERABLES = [
+    (
+        "LIV-01",
+        ROOT / "docs" / "bloc2" / "cahier-recettes.md",
+        "Cahier de recettes complet",
+    ),
+    (
+        "LIV-02",
+        ROOT / "docs" / "rncp" / "bloc2-plan-correction-bogues-rncp39583.md",
+        "Plan de correction des bogues complet",
+    ),
+    (
+        "LIV-03",
+        ROOT / "docs" / "security" / "owasp-review.md",
+        "Revue de sécurité OWASP A01 à A10 complète",
+    ),
+    (
+        "LIV-04",
+        ROOT / "docs" / "rncp" / "bloc2-matrice-user-stories-preuves.md",
+        "Matrice user stories, écrans, recettes et preuves complète",
+    ),
+]
+
+MANUALS = [
+    (
+        "DOC-01",
+        ROOT / "docs" / "deployment.md",
+        "Manuel de déploiement complet",
+    ),
+    (
+        "DOC-02",
+        ROOT / "docs" / "rncp" / "bloc2-manuel-utilisateur-alcide.md",
+        "Manuel utilisateur complet",
+    ),
+    (
+        "DOC-03",
+        ROOT / "docs" / "rncp" / "bloc2-manuel-mise-a-jour.md",
+        "Manuel de mise à jour complet",
+    ),
+]
 
 def annex_footer(canvas, doc):
     canvas.saveState()
@@ -72,10 +123,17 @@ def annex_cover_story():
         "B2-A35": "Recettes sécurité finales OWASP et navigateur",
         "B2-A36": "Audit accessibilité final public et privé",
         "B2-A37": "Zoom natif, contrastes et contre-recette",
+        "B2-A38": "Preuve négative dynamique du blocage CI vers CD",
+        "B2-A39": "Correction des dépendances et audit de sécurité rc.4",
+        "B2-A40": "Audit sémantique authentifié et corrections locales",
     }
     for filename in SELECTED:
         identifier = filename.split("-")[0] + "-" + filename.split("-")[1]
         rows.append([identifier, descriptions[identifier]])
+    for identifier, _path, description in CORE_DELIVERABLES:
+        rows.append([identifier, description])
+    for identifier, _path, description in MANUALS:
+        rows.append([identifier, description])
 
     table = Table(rows, colWidths=[3.2 * cm, 13.5 * cm], repeatRows=1)
     table.setStyle(
@@ -87,14 +145,14 @@ def annex_cover_story():
                 ("TEXTCOLOR", (0, 1), (-1, -1), INK),
                 ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
                 ("FONTNAME", (0, 1), (0, -1), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, -1), 9),
-                ("LEADING", (0, 0), (-1, -1), 12),
+                ("FONTSIZE", (0, 0), (-1, -1), 8.3),
+                ("LEADING", (0, 0), (-1, -1), 10.5),
                 ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#CBD2C6")),
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
                 ("LEFTPADDING", (0, 0), (-1, -1), 7),
                 ("RIGHTPADDING", (0, 0), (-1, -1), 7),
-                ("TOPPADDING", (0, 0), (-1, -1), 6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ("TOPPADDING", (0, 0), (-1, -1), 2.5),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5),
             ]
         )
     )
@@ -102,8 +160,11 @@ def annex_cover_story():
         Spacer(1, 1.8 * cm),
         Paragraph("ANNEXES DE PREUVES", STYLES["CoverSub"]),
         Paragraph("Bloc 2", STYLES["CoverTitle"]),
-        Paragraph("Sélection finale - hors limite des 30 pages du dossier", STYLES["CoverSub"]),
-        Spacer(1, 5.4 * cm),
+        Paragraph(
+            "Preuves sélectionnées, livrables d'évaluation et documentation d'exploitation complète - hors limite des 30 pages du dossier",
+            STYLES["CoverSub"],
+        ),
+        Spacer(1, 4.2 * cm),
         table,
         Spacer(1, 0.8 * cm),
         Paragraph(
@@ -128,8 +189,42 @@ def shift_headings(source: str) -> str:
     return "\n".join(shifted)
 
 
+def nested_manual_sections(source: str) -> str:
+    """Retire le préambule du manuel puis imbrique ses sections sous DOC-xx."""
+    lines = source.splitlines()
+    first_section = next(
+        (index for index, line in enumerate(lines) if line.startswith("## ")),
+        None,
+    )
+    if first_section is None:
+        raise ValueError("Manuel sans section Markdown de niveau 2")
+    return shift_headings("\n".join(lines[first_section:]))
+
+
+def nested_complete_document(source: str) -> str:
+    """Imbrique un document complet sous son identifiant LIV-xx."""
+    nested = []
+    for line in source.splitlines():
+        if line.startswith("#### "):
+            nested.append(line)
+        elif line.startswith("### "):
+            nested.append("#### " + line[4:])
+        elif line.startswith("## "):
+            nested.append("#### " + line[3:])
+        elif line.startswith("# "):
+            nested.append("### " + line[2:])
+        else:
+            nested.append(line)
+    return "\n".join(nested)
+
+
 def build_pdf(output: Path = OUTPUT) -> Path:
     missing = [filename for filename in SELECTED if not (ANNEXES / filename).is_file()]
+    missing.extend(
+        str(path.relative_to(ROOT))
+        for _identifier, path, _description in CORE_DELIVERABLES + MANUALS
+        if not path.is_file()
+    )
     if missing:
         raise FileNotFoundError(f"Annexes manquantes : {missing}")
 
@@ -141,20 +236,52 @@ def build_pdf(output: Path = OUTPUT) -> Path:
         rightMargin=1.5 * cm,
         topMargin=1.45 * cm,
         bottomMargin=1.55 * cm,
-        title="Annexes Bloc 2 RNCP39583 - Alcide - final 2026-07-21",
+        toc_max_level=0,
+        title=f"Annexes Bloc 2 RNCP39583 - Alcide - final {DELIVERY_DATE}",
         author="Candidat RNCP39583 - dossier anonymisé",
-        subject="Preuves sélectionnées hors pagination du dossier Bloc 2",
+        subject="Preuves sélectionnées et documentation d'exploitation du dossier Bloc 2",
+        creator="Générateur documentaire Alcide - ReportLab",
+        keywords="RNCP39583, Bloc 2, annexes, preuves, manuels, Alcide, certification",
+        lang="fr-FR",
+        displayDocTitle=True,
     )
 
     story = annex_cover_story()
     story.extend(toc_story())
+
     for index, filename in enumerate(SELECTED):
         if index:
             story.append(PageBreak())
         path = ANNEXES / filename
-        story.extend(parse_markdown(shift_headings(path.read_text(encoding="utf-8")), path.parent))
+        markdown = path.read_text(encoding="utf-8")
+        if ANONYMIZED_MODE:
+            markdown = anonymize_text(markdown)
+        story.extend(parse_markdown(shift_headings(markdown), path.parent))
+
+    for identifier, path, description in CORE_DELIVERABLES:
+        story.append(PageBreak())
+        story.append(Paragraph(f"{identifier} - {description}", STYLES["H1x"]))
+        markdown = path.read_text(encoding="utf-8")
+        if ANONYMIZED_MODE:
+            markdown = anonymize_text(markdown)
+        story.extend(parse_markdown(nested_complete_document(markdown), path.parent))
+
+    for identifier, path, description in MANUALS:
+        story.append(PageBreak())
+        story.append(Paragraph(f"{identifier} - {description}", STYLES["H1x"]))
+        markdown = path.read_text(encoding="utf-8")
+        if ANONYMIZED_MODE:
+            markdown = anonymize_text(markdown)
+        story.extend(
+            parse_markdown(
+                nested_manual_sections(markdown),
+                path.parent,
+            )
+        )
 
     document.multiBuild(story, onFirstPage=cover_page, onLaterPages=annex_footer)
+    if ANONYMIZED_MODE:
+        assert_anonymized_pdf(output)
     return output
 
 
