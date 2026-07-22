@@ -4,7 +4,7 @@
 > Candidate corrigée locale : `0.13.0-rc.4` au 22 juillet 2026
 > Baseline de production inchangée : `0.13.0-rc.3`, commit `b002adb0e0e7d8d85ee493d54879e190d77d2078`
 > Référence documentaire de la baseline déployée : tag `rncp-bloc2-2026-07-21-v8`
-> La candidate `rc.4` n'est ni poussée, ni validée en CI/CD, ni déployée ; son futur manifeste devra porter le SHA effectivement archivé et les empreintes des livrables.
+> La candidate `rc.4` n'est ni poussée, ni validée en CI/CD, ni déployée ; le manifeste du paquet local porte le SHA effectivement archivé et les empreintes des livrables.
 > Dossier anonymisé, actualisé le 22 juillet 2026
 
 ## 1. Cadre officiel et composition du rendu
@@ -56,7 +56,7 @@ du jury.
 | C2.2.2 Tests unitaires                         | shared 14 tests, API 170, Web 55, PostgreSQL 9 RNCP           | étayé                                                   |
 | C2.2.3 Sécurité, accessibilité, conformité     | OWASP, A35 à A37, correction locale des dépendances A39       | partiel : `rc.4` est verte localement, contrôles humains ouverts |
 | C2.2.4 Déploiement progressif et versionnement | baseline `rc.3`, CI `29845956008`, CD `29846343559`, smoke tests | étayé pour `rc.3` ; `rc.4` non publiée                 |
-| C2.3.1 Cahier de recettes                      | 59 scénarios : 57 clos, CR-055 et CR-063 partiels             | partiel sur les deux réserves explicites                 |
+| C2.3.1 Cahier de recettes                      | 59 scénarios : 58 clos, CR-055 partiel                         | partiel sur la réserve humaine explicite                 |
 | C2.3.2 Correction des bogues                   | registre B2-BUG et tests de non-régression                    | étayé                                                   |
 | C2.4.1 Documentation d'exploitation            | trois manuels présents et versionnés                          | étayé                                                   |
 
@@ -346,9 +346,9 @@ La campagne de fermeture B2-A34 à B2-A37 ajoute les erreurs OpenAI, pagination,
 suppression en erreur, journal avec notes de douleur, modèle interdit,
 dashboard vide/alimenté, parcours Timer/journal/dashboard de production,
 injection, XSS, secrets, CORS, CSP et audit accessibilité multi-page. Le cahier
-compte 59 scénarios de recette : 57 sont clos. CR-055 conserve une réserve
-humaine explicite et CR-063 est rouvert pour la génération et l'inspection du
-paquet `rc.4`. CR-062 est fermé par la preuve négative isolée B2-A38 ; CR-049
+compte 59 scénarios de recette : 58 sont clos. CR-055 conserve une réserve
+humaine explicite. CR-063 est fermé par la génération et l'inspection du paquet
+`rc.4`. CR-062 est fermé par la preuve négative isolée B2-A38 ; CR-049
 est suivi séparément comme risque architectural, hors dénominateur. La baseline
 `rc.3` a passé la CI/CD, les smoke tests, l'E2E OAuth 6/6 et la contre-recette
 accessibilité de production 33/33. Pour `rc.4`, seuls l'audit, le lint, les
@@ -365,8 +365,8 @@ modèles IA, la préservation de la confirmation de journalisation et la
 hiérarchie des titres de formulaire, ainsi que les troncatures révélées par le
 zoom navigateur natif à 400 %. L'actualisation du 22 juillet ajoute la nouvelle
 veille de dépendances B2-BUG-038 et le défaut de découvrabilité/anonymisation du
-paquet B2-BUG-039 ; leurs validations distantes ou finales restent distinguées
-des contrôles locaux.
+paquet B2-BUG-039. Le premier reste en attente de validation distante ; le
+second est clos par la gate et l'inspection du paquet local.
 
 Une anomalie n'est déclarée corrigée qu'après modification et contre-recette.
 Les éléments encore humains ou externes restent des réserves, pas des bogues
@@ -420,11 +420,12 @@ et tests complets. B2-A27 fournit un exemple réel où une nouvelle alerte a fai
 | C2.3.2     | B2-A13, A25, A27, A34, A36, A37       | anomalies et non-régressions                     |
 | C2.4.1     | manuels et B2-A22                     | déployer, utiliser, mettre à jour                |
 
-L'index détaillé, la matrice user stories et les pièces complètes sont prévus
-comme livrables de premier niveau dans le générateur du PDF d'annexes `rc.4`.
-Le paquet final `rc.4` doit encore être généré, contrôlé visuellement et soumis
-à la gate d'anonymisation ; les preuves historiques restent conservées dans le
-dépôt sans être assimilées à cette future remise.
+L'index détaillé, la matrice user stories et les pièces complètes sont intégrés
+comme livrables de premier niveau dans le PDF d'annexes `rc.4`. Le paquet local
+a été généré depuis un état suivi propre : dossier 11 pages, annexes 72 pages,
+navigation et anonymisation validées, archive source imbriquée décompressée et
+empreintes consignées. Les preuves historiques restent conservées dans le dépôt
+sans être assimilées à cette remise.
 
 ## 18. Vérifications administratives restant avant dépôt
 
@@ -435,10 +436,9 @@ dépôt et ne peuvent pas être déduites du référentiel public :
    maximale et le niveau d'anonymisation attendu sur DigiformaCertif ;
 2. [ ] déposer le dossier, les annexes et l'archive source avant l'échéance.
 
-La régénération technique et le contrôle des empreintes relèvent du processus de
-construction du paquet et devront être consignés dans son `MANIFESTE.txt`. Les
-actions humaines restantes devront être fournies sous forme de checklist dans
-le paquet `rc.4` après sa validation.
+La régénération technique et le contrôle des empreintes sont consignés dans le
+`MANIFESTE.txt` du paquet. Les actions humaines restantes figurent sous forme de
+checklist dans la remise `rc.4`.
 
 ## 19. Conclusion
 
@@ -457,7 +457,7 @@ suite d'accessibilité 33/33. Les actions d'accessibilité exécutées sont
 présentées avec leurs limites, sans déclaration de conformité exhaustive au
 RGAA. La candidate locale `rc.4` corrige cinq nouveaux avis et passe l'audit
 `low`, le lint, les types, 239 tests et les builds ; elle n'est pas encore
-publiée ni contre-recettée en CI/CD ou en production. Il reste aussi à générer
-et inspecter son paquet, à mener la revue humaine exhaustive des fonds
+publiée ni contre-recettée en CI/CD ou en production. Son paquet local est
+généré et inspecté ; il reste à mener la revue humaine exhaustive des fonds
 composites, à réaliser un parcours avec un lecteur d'écran réel et à appliquer
 les consignes administratives exactes du campus avant le dépôt.

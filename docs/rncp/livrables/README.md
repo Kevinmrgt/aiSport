@@ -20,6 +20,11 @@ stories/preuves. L'archive source exclut les fichiers non suivis : aucun
 secret, `.env`, `storageState`, cookie OAuth, `node_modules` ou artefact local
 n'y est ajouté.
 
+Le paquet local généré est
+`output/alcide-bloc2-rncp39583-0.13.0-rc.4-final-2026-07-22.zip`. Le dossier
+compte 11 pages et les annexes 72 pages ; les empreintes détaillées figurent
+dans son `MANIFESTE.txt` interne.
+
 ## Versions historiques
 
 Tous les PDF datés du `2026-07-16`, le fichier
