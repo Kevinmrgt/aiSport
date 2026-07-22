@@ -22,7 +22,7 @@ n'y est ajouté.
 
 Le paquet local généré est
 `output/alcide-bloc2-rncp39583-0.13.0-rc.4-final-2026-07-22.zip`. Le dossier
-compte 11 pages et les annexes 72 pages ; les empreintes détaillées figurent
+compte 11 pages et les annexes 74 pages ; les empreintes détaillées figurent
 dans son `MANIFESTE.txt` interne.
 
 ## Versions historiques

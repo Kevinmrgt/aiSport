@@ -26,6 +26,7 @@ describe('formulaires metier', () => {
     fireEvent.click(screen.getByRole('button', { name: /generer la seance/i }));
     expect(await screen.findAllByRole('alert')).not.toHaveLength(0);
     expect(onSubmit).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(screen.getByLabelText(/sport/i));
 
     fireEvent.change(screen.getByLabelText(/sport/i), { target: { value: 'course' } });
     fireEvent.change(screen.getByLabelText(/objectifs/i), {
@@ -48,6 +49,11 @@ describe('formulaires metier', () => {
   it('affiche l erreur metier renvoyee pendant une generation de programme', async () => {
     const onSubmit = vi.fn().mockResolvedValue({ error: 'Service IA indisponible' });
     render(<ProgramForm onSubmit={onSubmit} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /generer le programme/i }));
+    expect(await screen.findAllByRole('alert')).not.toHaveLength(0);
+    expect(document.activeElement).toBe(screen.getByLabelText(/^sport/i));
+    expect(onSubmit).not.toHaveBeenCalled();
 
     fireEvent.change(screen.getByLabelText(/^sport/i), { target: { value: 'natation' } });
     fireEvent.change(screen.getByLabelText(/objectifs/i), {

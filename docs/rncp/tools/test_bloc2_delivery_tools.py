@@ -15,7 +15,7 @@ from bloc2_delivery_config import (
     assert_anonymized_pdf,
     assert_anonymized_text,
 )
-from build_bloc2_annexes_pdf import CORE_DELIVERABLES
+from build_bloc2_annexes_pdf import CORE_DELIVERABLES, SELECTED
 from build_bloc2_delivery_pack import build_readme_text, validate_delivery_archive
 
 
@@ -68,6 +68,13 @@ class Bloc2DeliveryToolsTests(unittest.TestCase):
         notice = build_readme_text()
         for identifier in identifiers:
             self.assertIn(identifier, notice)
+
+    def test_latest_accessibility_evidence_is_selected_and_discoverable(self) -> None:
+        self.assertIn(
+            "B2-A40-audit-semantique-assiste-2026-07-22.md",
+            SELECTED,
+        )
+        self.assertIn("B2-A40", build_readme_text())
 
 
 if __name__ == "__main__":

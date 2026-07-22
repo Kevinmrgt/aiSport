@@ -54,7 +54,7 @@ du jury.
 | C2.1.2 Intégration continue                    | CI finale `29845956008`, rapports et images Docker            | étayé                                                   |
 | C2.2.1 Prototype                               | matrice user stories, production `rc.3`, captures desktop/mobile A30 | étayé sur la baseline déployée                         |
 | C2.2.2 Tests unitaires                         | shared 14 tests, API 170, Web 55, PostgreSQL 9 RNCP           | étayé                                                   |
-| C2.2.3 Sécurité, accessibilité, conformité     | OWASP, A35 à A37, correction locale des dépendances A39       | partiel : `rc.4` est verte localement, contrôles humains ouverts |
+| C2.2.3 Sécurité, accessibilité, conformité     | OWASP, A35 à A37, dépendances A39 et audit sémantique A40      | partiel : `rc.4` est verte localement, contrôles humains ouverts |
 | C2.2.4 Déploiement progressif et versionnement | baseline `rc.3`, CI `29845956008`, CD `29846343559`, smoke tests | étayé pour `rc.3` ; `rc.4` non publiée                 |
 | C2.3.1 Cahier de recettes                      | 59 scénarios : 58 clos, CR-055 partiel                         | partiel sur la réserve humaine explicite                 |
 | C2.3.2 Correction des bogues                   | registre B2-BUG et tests de non-régression                    | étayé                                                   |
@@ -69,8 +69,10 @@ exhaustive au RGAA.
 
 La candidate locale `0.13.0-rc.4` ajoute une correction de dépendances. Elle a
 passé localement l'audit au niveau `low`, le lint, le contrôle de types, 239
-tests et les builds. B2-A39 consigne ces résultats. Ils ne constituent pas une
-preuve de CI/CD ou de production ; la baseline publique reste `rc.3`/`b002adb`.
+tests et les builds. B2-A39 consigne ces résultats. B2-A40 ajoute deux
+correctifs locaux de focus et de relations d'onglets, couverts sans augmenter
+le nombre total de tests. Ces résultats ne constituent pas une preuve de CI/CD
+ou de production ; la baseline publique reste `rc.3`/`b002adb`.
 
 ## 3. C2.1.1 - Environnements, déploiement continu, qualité et performance
 
@@ -287,6 +289,12 @@ Les preuves automatisées réelles sont :
   production corrigée** ;
 - 2/2 tests de structure après correction des deux titres de formulaire en
   `h2`, plus le contre-contrôle authentifié de `/programs/generate` ;
+- audit sémantique authentifié B2-A40 sur huit routes principales et trois
+  détails : structure principale unique, noms accessibles, relations ARIA,
+  régions Timer et annulation de suppression avec restitution du focus ;
+- deux anomalies B2-BUG-040/041 reproduites sur `rc.3`, puis corrigées
+  localement : focus du premier champ invalide et panneaux d'onglets persistants
+  pour résoudre chaque `aria-controls`.
 - ratios opaques représentatifs de 17,36:1 en public et 8,19:1 en privé.
 
 Le rejeu du 22 juillet sur la production `rc.3` reproduit 33/33 tests, zéro
@@ -302,7 +310,8 @@ permettre l'accès aux personnes en situation de handicap. Ces actions sont
 désormais mesurées et reproductibles. Limite : axe et l'arbre d'accessibilité
 ne couvrent pas tout le RGAA ni la restitution vocale réelle. Le correctif de
 zoom est déployé et contre-recetté ; les fonds composites et un parcours
-NVDA/Narrator restent humains. Le dossier ne revendique donc pas de conformité
+NVDA/Narrator restent humains. Les correctifs B2-A40 restent locaux et doivent
+être déployés puis rejoués. Le dossier ne revendique donc pas de conformité
 exhaustive au RGAA.
 
 ## 11. C2.2.4 - Historique, dernière version et viabilité
@@ -342,10 +351,11 @@ d'intégration, Playwright public/authentifié, puis recette manuelle de
 production B2-A25. Une simple lecture du code n'est jamais enregistrée comme
 une recette exécutée.
 
-La campagne de fermeture B2-A34 à B2-A37 ajoute les erreurs OpenAI, pagination,
+La campagne de fermeture B2-A34 à B2-A40 ajoute les erreurs OpenAI, pagination,
 suppression en erreur, journal avec notes de douleur, modèle interdit,
 dashboard vide/alimenté, parcours Timer/journal/dashboard de production,
-injection, XSS, secrets, CORS, CSP et audit accessibilité multi-page. Le cahier
+injection, XSS, secrets, CORS, CSP et audits d'accessibilité multi-page et
+sémantique. Le cahier
 compte 59 scénarios de recette : 58 sont clos. CR-055 conserve une réserve
 humaine explicite. CR-063 est fermé par la génération et l'inspection du paquet
 `rc.4`. CR-062 est fermé par la preuve négative isolée B2-A38 ; CR-049
@@ -364,9 +374,10 @@ et cohérence documentaire. La campagne finale ajoute l'allowlist serveur des
 modèles IA, la préservation de la confirmation de journalisation et la
 hiérarchie des titres de formulaire, ainsi que les troncatures révélées par le
 zoom navigateur natif à 400 %. L'actualisation du 22 juillet ajoute la nouvelle
-veille de dépendances B2-BUG-038 et le défaut de découvrabilité/anonymisation du
-paquet B2-BUG-039. Le premier reste en attente de validation distante ; le
-second est clos par la gate et l'inspection du paquet local.
+veille de dépendances B2-BUG-038, le défaut de découvrabilité/anonymisation du
+paquet B2-BUG-039 et les anomalies de focus et d'onglets B2-BUG-040/041.
+B2-BUG-038, 040 et 041 restent corrigés localement en attente de validation
+distante ; B2-BUG-039 est clos par la gate et l'inspection du paquet local.
 
 Une anomalie n'est déclarée corrigée qu'après modification et contre-recette.
 Les éléments encore humains ou externes restent des réserves, pas des bogues
@@ -414,7 +425,7 @@ et tests complets. B2-A27 fournit un exemple réel où une nouvelle alerte a fai
 | C2.1.2     | B2-A16, A23, A27, A28, A39            | CI `rc.3` et contrôles locaux `rc.4`             |
 | C2.2.1     | matrice user stories, B2-A25, A26, A30 | besoins, écrans et production desktop/mobile     |
 | C2.2.2     | B2-A19, A28, A31                      | rapports de couverture séparés                   |
-| C2.2.3     | B2-A20, A23 à A30, A35 à A39           | OWASP, dépendances, axe, clavier, zoom natif     |
+| C2.2.3     | B2-A20, A23 à A30, A35 à A40           | OWASP, dépendances, axe, clavier, zoom, sémantique |
 | C2.2.4     | B2-A22, A25, A28                      | Git, migration, CD, smoke tests                  |
 | C2.3.1     | B2-A12, A20, A25, A26, A30, A34 à A37 | cahier et recettes exécutées                     |
 | C2.3.2     | B2-A13, A25, A27, A34, A36, A37       | anomalies et non-régressions                     |
@@ -422,7 +433,7 @@ et tests complets. B2-A27 fournit un exemple réel où une nouvelle alerte a fai
 
 L'index détaillé, la matrice user stories et les pièces complètes sont intégrés
 comme livrables de premier niveau dans le PDF d'annexes `rc.4`. Le paquet local
-a été généré depuis un état suivi propre : dossier 11 pages, annexes 72 pages,
+a été régénéré : dossier 11 pages, annexes 74 pages,
 navigation et anonymisation validées, archive source imbriquée décompressée et
 empreintes consignées. Les preuves historiques restent conservées dans le dépôt
 sans être assimilées à cette remise.
@@ -455,8 +466,9 @@ Le dossier est techniquement consolidé. Le correctif de reflow est déployé su
 la baseline `b002adb`, puis contre-recetté en production : zoom natif 16/16 et
 suite d'accessibilité 33/33. Les actions d'accessibilité exécutées sont
 présentées avec leurs limites, sans déclaration de conformité exhaustive au
-RGAA. La candidate locale `rc.4` corrige cinq nouveaux avis et passe l'audit
-`low`, le lint, les types, 239 tests et les builds ; elle n'est pas encore
+RGAA. La candidate locale `rc.4` corrige cinq nouveaux avis, le focus des
+formulaires invalides et les relations des onglets ; elle passe l'audit
+`low`, le lint, les types, 239 tests et les builds. Elle n'est pas encore
 publiée ni contre-recettée en CI/CD ou en production. Son paquet local est
 généré et inspecté ; il reste à mener la revue humaine exhaustive des fonds
 composites, à réaliser un parcours avec un lecteur d'écran réel et à appliquer
