@@ -51,6 +51,9 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 - Paquet d'annexes enrichi des quatre livrables structurants complets, avec
   signets et gate d'anonymisation du texte, des liens, métadonnées, flux PDF et
   archives ZIP.
+- Paquet final Bloc 2 `rc.5` construit et contrôlé : 11 pages de dossier, 81
+  pages d'annexes, anonymisation validée, décompression réussie et empreintes
+  internes comparées.
 
 ### Security
 
@@ -64,9 +67,9 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 - Contrastes composites préqualifiés sur 79 signatures et 166 contextes après
   déploiement : 78/79 signatures et 165/166 contextes passent
   l'échantillonnage automatisé. Le dernier contexte est fermé par une borne
-  conservatrice à 15,00:1. Un parcours réel NVDA et sa validation humaine
-  post-déploiement sont consignés dans B2-A41, sans déclaration de conformité
-  RGAA exhaustive.
+  conservatrice à 15,00:1. Un parcours réel NVDA et la validation NVDA déclarée
+  par l'utilisateur après déploiement sont consignés dans B2-A41, sans
+  déclaration de conformité RGAA exhaustive.
 
 ---
 

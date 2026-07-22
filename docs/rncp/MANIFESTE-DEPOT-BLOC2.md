@@ -51,8 +51,8 @@ par l'utilisateur sont consignés dans B2-A41.
 
 |  N° | Pièce                | Fichier                                                                       | Contrôle                                                                                                   |
 | --: | -------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-|  01 | Dossier écrit        | `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.5-final-2026-07-22.pdf` | à générer ; maximum officiel de 30 pages hors annexes, navigation et rendu à contrôler                     |
-|  02 | Annexes techniques   | `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.5-final-2026-07-22.pdf` | à générer avec A20, A25 à A31 et A34 à A41, quatre livrables complets et trois manuels                     |
+|  01 | Dossier écrit        | `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.5-final-2026-07-22.pdf` | généré : 11 pages ; limite de 30 pages respectée ; navigation et rendu contrôlés                           |
+|  02 | Annexes techniques   | `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.5-final-2026-07-22.pdf` | généré : 81 pages avec A20, A25 à A31 et A34 à A41, quatre livrables complets et trois manuels             |
 |  03 | Code source          | archive Git produite par `docs/rncp/tools/build_bloc2_delivery_pack.py`       | fichiers suivis du commit de remise, dont les trois manuels complets ; aucun secret, état OAuth, `.env` ou dépendance locale |
 |  04 | Notice et empreintes | `LISEZ-MOI.txt` et `MANIFESTE.txt` dans le paquet                             | ordre de lecture, SHA Git et SHA-256 de chaque pièce                                                       |
 
@@ -61,10 +61,10 @@ dans le `MANIFESTE.txt` du paquet. Elles ne sont pas dupliquées ici afin d'évi
 qu'une correction documentaire laisse une empreinte historique présentée comme
 courante.
 
-Le paquet `alcide-bloc2-rncp39583-0.13.0-rc.5-final-2026-07-22.zip` doit être
-généré après la CI/CD et la contre-recette, désormais terminées. Les nombres de
-pages et empreintes ne seront inscrits qu'après cette
-exécution. Le `MANIFESTE.txt` interne restera la source des SHA-256 des pièces.
+Le paquet `alcide-bloc2-rncp39583-0.13.0-rc.5-final-2026-07-22.zip` est généré
+après la CI/CD et la contre-recette. Ses 92 pages ont été rendues et inspectées ;
+l'anonymisation, la décompression et les quatre empreintes internes ont été
+vérifiées. Le `MANIFESTE.txt` interne reste la source des SHA-256 des pièces.
 
 Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 `final-2026-07-21` sont historiques et ne doivent pas être remis.
@@ -126,6 +126,8 @@ Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 - [x] parcours CR-065 de production avec journal et dashboard `3 → 4` ;
 - [x] gate d'anonymisation du paquet : texte, métadonnées, annotations, liens
       et flux PDF, puis contenu du ZIP et des archives imbriquées ;
+- [x] paquet `rc.5` final : dossier 11 pages, annexes 81 pages, rendu intégral
+      inspecté, décompression réussie et quatre empreintes internes conformes ;
 - [x] aucune session OAuth ou donnée de recette incluse dans le code source ou
       les captures finales.
 

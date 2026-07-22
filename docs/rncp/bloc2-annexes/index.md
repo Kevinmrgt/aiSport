@@ -64,14 +64,13 @@ pas être reprises comme preuves du SHA final.
 | B2-A39 | C2.1.2 / C2.2.3 / C2.3.1 / C2.3.2        | Correction des cinq avis de dépendances détectés le 22 juillet                                                | `sharp 0.35.3`, `hono 4.12.31`, `@hono/node-server 2.0.11` ; audit `low`, 239 tests et builds ; CI `29907294766`, CD `29907642144`, healthchecks `rc.4` | `docs/rncp/bloc2-annexes/B2-A39-correction-dependances-2026-07-22.md`                              |
 | B2-A40 | C2.2.1 / C2.2.3 / C2.3.1 / C2.3.2        | Audit sémantique authentifié des routes principales, détails, formulaires, onglets et suppression             | huit routes principales et trois détails contrôlés ; B2-BUG-040/041 clos après contre-recette `rc.4` ; focus `sport`, 3/3 cibles d'onglets résolues | `docs/rncp/bloc2-annexes/B2-A40-audit-semantique-assiste-2026-07-22.md`                           |
 | B2-A41 | C2.2.3 / C2.3.1 / C2.3.2                 | Parcours réel NVDA public et authentifié, avec Visionneuse de parole et journal entrée/sortie                  | campagne détaillée `rc.4` ; B2-BUG-042/043 clos sur `rc.5` après CI/CD et validation NVDA déclarée ; B2-BUG-044/045 P2 non bloquants | `docs/rncp/bloc2-annexes/B2-A41-parcours-nvda-production-2026-07-22.md`                           |
-| LIV-04 | C2.2.1 / C2.3.1                            | Matrice complète besoins/user stories, écrans, composants, scénarios et preuves                               | Présente intégralement dans le PDF d'annexes `rc.4`, avec entrée de sommaire et signet                                          | `docs/rncp/bloc2-matrice-user-stories-preuves.md`                                                  |
+| LIV-04 | C2.2.1 / C2.3.1                            | Matrice complète besoins/user stories, écrans, composants, scénarios et preuves                               | Présente intégralement dans le PDF d'annexes `rc.5`, avec entrée de sommaire et signet                                          | `docs/rncp/bloc2-matrice-user-stories-preuves.md`                                                  |
 
 Le paquet `rc.4` existant, validé sur 75 pages, est historique et antérieur à
-B2-A41. La remise `rc.5` doit intégrer le cahier de recettes, le plan de
-correction, la revue OWASP, LIV-04 et B2-A41. La CI/CD et la contre-recette
-sont terminées ; restent la génération,
-l'inspection visuelle, l'anonymisation PDF/ZIP, la décompression et les
-empreintes.
+B2-A41. La remise `rc.5` intègre le cahier de recettes, le plan de correction,
+la revue OWASP, LIV-04 et B2-A41. Le dossier compte 11 pages et les annexes 81 ;
+le rendu intégral, l'anonymisation PDF/ZIP, la décompression et les empreintes
+ont été contrôlés.
 
 ## Règles de nommage
 
