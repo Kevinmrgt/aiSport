@@ -79,9 +79,9 @@ une reprise. Au relevé du 2026-07-20, l'environnement GitHub `production`
 n'avait ni règle de protection ni approbateur : il ne faut pas présenter ce
 rattachement comme une validation humaine bloquante.
 
-Le chemin positif de la baseline corrective est prouvé sur
-`b002adb0e0e7d8d85ee493d54879e190d77d2078` par la CI `29845956008`, puis la
-CD `29846343559` : migration, API, Web et smoke tests sont réussis. Le repère
+Le chemin positif de la baseline corrective courante est prouvé sur
+`ea703aef912ce9e7c49c4c9b7872a5a7b595b666` par la CI `29907294766`, puis la
+CD `29907642144` : migration, API, Web et smoke tests sont réussis. Le repère
 documentaire `b3ca385c0014c6acfd5c29ebbe14fa38ca766c02`, descendant sans changement
 applicatif de `b002adb`, a ensuite passé la CI `29847808450` et la CD
 `29848187523`. Cette seconde exécution ne remplace pas la contre-recette métier
@@ -158,7 +158,7 @@ Après rollback, rejouer liveness, readiness et le parcours métier concerné.
 
 | Nature | SHA | CI | CD | Portée |
 | ------ | --- | -- | -- | ------ |
-| Baseline applicative corrective | `b002adb0e0e7d8d85ee493d54879e190d77d2078` | `29845956008` succès | `29846343559` succès | Preuve canonique du correctif de reflow et de son déploiement |
+| Baseline applicative corrective `rc.4` | `ea703aef912ce9e7c49c4c9b7872a5a7b595b666` | `29907294766` succès | `29907642144` succès | Preuve canonique des dépendances, du reflow, du focus, des onglets et de leur déploiement |
 | Snapshot documentaire `v5` | `b3ca385c0014c6acfd5c29ebbe14fa38ca766c02` | `29847808450` succès | `29848187523` succès | Diff avec `b002adb` limité aux documents/PDF ; chaîne complète rejouée avant la correction documentaire `v6` |
 | Chemin rouge courant isolé | `ef393f873ce3337c4ba83b84cf75eb5ce07549b4` | `29856584668` échec | aucun run associé, conformément au filtre de branche | PR `#46` fermée sans fusion ; quatre jobs aval ignorés et inventaires Vercel production inchangés, B2-A38 |
 | Chemin rouge historique | `5c2cf08c56794bcf2885e69713b7bddd8521ae87` | `28506873066` échec | `28506912686` skipped | API/Web non exécutés dans GitHub Actions ; pas de relevé Vercel avant/après ; ancien workflow encore lançable manuellement |

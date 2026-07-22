@@ -4,9 +4,10 @@
 > Production observée : `https://ai-sport-web.vercel.app`
 > Chromium : `147.0.7727.15`
 > Playwright : `1.59.1`
-> Baseline corrective déployée : `b002adb0e0e7d8d85ee493d54879e190d77d2078`
-> CI : `29845956008` — succès ; CD Vercel : `29846343559` — succès
-> Statut : anomalie de reflow corrigée et contre-recettée en production ; contrastes composites et lecteur d'écran réel encore ouverts
+> Baseline corrective déployée : `ea703aef912ce9e7c49c4c9b7872a5a7b595b666`
+> CI : `29907294766` — succès ; CD Vercel : `29907642144` — succès
+> Statut : reflow, focus et onglets corrigés et contre-recettés ; un contexte
+> de contraste composite et le lecteur d'écran réel restent ouverts
 
 ## 1. Rejeu complet public et authentifié
 
@@ -215,18 +216,32 @@ Critère de fermeture : les dix lignes doivent être décidées par un opérateu
 les anomalies reliées au plan de correction, puis rejouées après correctif. Un
 simple lancement de Narrator sans écoute consignée ne satisfait pas ce critère.
 
-## 5. Décision de clôture
+## 5. Rejeu post-déploiement `rc.4` du 22 juillet
+
+Après la fusion de la PR `#47` et le CD `29907642144`, les trois healthchecks
+ont répondu HTTP 200 en version `0.13.0-rc.4`. La suite authentifiée a réussi
+**33/33** et le zoom natif **16/16**. L'audit contraste conserve zéro violation
+calculable et 416 résultats `incomplete` regroupés en 79 signatures et 166
+contextes. L'échantillonnage composite post-correction classe **78/79
+signatures** et **165/166 contextes** en succès automatisé ; le dernier contexte
+reste `human_review_required` et n'est pas déclaré conforme sans examen humain.
+
+La contre-recette sémantique confirme aussi le focus sur le champ `sport` après
+soumission invalide et la résolution de 3/3 relations `aria-controls` vers des
+panneaux présents. Les détails figurent dans B2-A40.
+
+## 6. Décision de clôture
 
 Le reflow natif a désormais une méthode reproductible. Le défaut découvert est
 corrigé, déployé et contre-recetté : B2-A36-04 et B2-BUG-034 sont clos.
 Il reste à traiter séparément :
 
-1. la vérification humaine exhaustive des fonds composites ;
+1. la vérification humaine du dernier contexte composite réservé ;
 2. un parcours avec un lecteur d'écran réel et la consignation de la restitution.
 
 La conformité RGAA exhaustive reste non revendiquée.
 
-## 6. Matrice de décision
+## 7. Matrice de décision
 
 | Contrôle | Méthode réellement exécutée | Résultat | Décision |
 | --- | --- | --- | --- |
@@ -235,7 +250,7 @@ La conformité RGAA exhaustive reste non revendiquée.
 | Clavier et focus | Inventaire tabulable et cycle `Tab` | 8/8 routes | Clos sur l'échantillon |
 | Structure exposée | Arbre AX Chromium et tests de titres | 8/8 routes et 2/2 tests | Clos structurellement |
 | Contrastes calculables | axe `color-contrast` et ratios sRGB | 0 violation, 19 passes | Clos pour les nœuds calculables |
-| Contrastes composites | axe signale 416 `incomplete`, regroupés en 79 signatures (34 P1, 45 P2) | liste de revue produite, aucune décision humaine exhaustive | **Ouvert** |
+| Contrastes composites | axe signale 416 `incomplete`, regroupés en 79 signatures et 166 contextes | 78/79 signatures et 165/166 contextes passent l'échantillonnage ; un contexte réservé | **Partiel** |
 | Restitution vocale | Narrator présent et grille SR-01 à SR-10 prête | aucune écoute consignée | **Ouvert** |
 
 Cette matrice distingue un résultat automatisé positif d'une appréciation

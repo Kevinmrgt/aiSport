@@ -11,9 +11,9 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
-> La candidate locale `0.13.0-rc.4` corrige les avis de dépendances découverts
-> le 22 juillet 2026. Sa publication, sa CI/CD distante et sa contre-recette de
-> production restent à consigner avant de la présenter comme version déployée.
+> La version `0.13.0-rc.4` a été publiée le 22 juillet 2026 sur le SHA
+> `ea703aef912ce9e7c49c4c9b7872a5a7b595b666`, validée par la CI `29907294766`
+> et déployée par la CD `29907642144`.
 
 ### Fixed
 
@@ -32,10 +32,10 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 - Recettes finales Bloc 2 B2-A34 à B2-A36 : erreurs IA, journal/douleur/dashboard, SQL-like PostgreSQL réel, XSS, secrets/CORS/CSP et audit accessibilité public/privé.
 - Tests RNCP dédiés API, Web, Playwright et PostgreSQL pour les scénarios C2.3.1 et C2.2.3 restés ouverts.
-- Annexe B2-A39 retraçant la détection, la correction et la validation locale
+- Annexe B2-A39 retraçant la détection, la correction et la validation CI/CD
   des nouveaux avis `sharp`, `hono` et `@hono/node-server`.
 - Annexe B2-A40 retraçant l'audit sémantique authentifié, la confirmation de
-  suppression et les corrections locales de focus et d'onglets.
+  suppression et la contre-recette de production du focus et des onglets.
 - Matrice de traçabilité reliant 11 user stories aux écrans, au code, aux
   recettes et aux preuves du Bloc 2.
 - Paquet d'annexes enrichi des quatre livrables structurants complets, avec
@@ -49,10 +49,10 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
   retrouve un état sans vulnérabilité connue.
 - Validation locale post-correction : lint, typecheck, 239 tests et build
   complet réussis.
-- Contrastes composites préqualifiés sur 79 signatures et 166 contextes ; les
-  14 alertes potentielles ont conduit à renforcer localement plusieurs fonds et
-  textes. La mesure humaine, le lecteur d'écran et la contre-recette après
-  déploiement restent explicitement ouverts.
+- Contrastes composites préqualifiés sur 79 signatures et 166 contextes après
+  déploiement : 78/79 signatures et 165/166 contextes passent
+  l'échantillonnage automatisé. Le dernier contexte, ainsi que l'écoute au
+  lecteur d'écran, restent explicitement ouverts à une vérification humaine.
 
 ---
 
