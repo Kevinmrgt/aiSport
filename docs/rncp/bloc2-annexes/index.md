@@ -63,12 +63,14 @@ locale `0.13.0-rc.4` et ne doivent pas être reprises comme preuves du SHA final
 | B2-A37 | C2.2.3 / C2.3.1 / C2.3.2                   | Zoom 200/400 %, audit détaillé des contrastes, échantillonnage pixel et limites lecteur d'écran                 | Rejeu production `rc.3` : 33/33, zéro violation, 416 `incomplete` ; tri pixel 69/150 conformes, 8/14 alertes, 2/2 non concluants ; correctifs CSS locaux 55/55/types/lint, non déployés ; aucune écoute réelle Narrator/NVDA | `docs/rncp/bloc2-annexes/B2-A37-controles-accessibilite-humains-2026-07-21.md`                     |
 | B2-A38 | C2.1.2 / C2.2.4 / C2.3.1 / C2.3.2        | Preuve négative CI/CD courante sur branche et PR isolées                                                       | CI `29856584668` rouge, jobs aval ignorés, aucun CD associé, inventaires Vercel production inchangés, politique 6/6           | `docs/rncp/bloc2-annexes/B2-A38-preuve-negative-ci-cd-2026-07-21.md`                               |
 | B2-A39 | C2.1.2 / C2.2.3 / C2.3.1 / C2.3.2        | Correction locale des cinq avis de dépendances détectés le 22 juillet                                         | `sharp 0.35.3`, `hono 4.12.31`, `@hono/node-server 2.0.11` ; audit `low`, lint, types, 239 tests et builds verts localement ; CI/CD/production en attente | `docs/rncp/bloc2-annexes/B2-A39-correction-dependances-2026-07-22.md`                              |
+| B2-A40 | C2.2.1 / C2.2.3 / C2.3.1 / C2.3.2        | Audit sémantique authentifié des routes principales, détails, formulaires, onglets et suppression             | huit routes principales et trois détails contrôlés ; B2-BUG-040/041 reproduits sur `rc.3`, corrigés localement ; 55/55 Web, types et lint ; production à rejouer | `docs/rncp/bloc2-annexes/B2-A40-audit-semantique-assiste-2026-07-22.md`                           |
 | LIV-04 | C2.2.1 / C2.3.1                            | Matrice complète besoins/user stories, écrans, composants, scénarios et preuves                               | Présente intégralement dans le PDF d'annexes `rc.4`, avec entrée de sommaire et signet                                          | `docs/rncp/bloc2-matrice-user-stories-preuves.md`                                                  |
 
 Les scripts du paquet `rc.4` prévoient aussi le cahier de recettes, le plan de
 correction, la revue OWASP et LIV-04 comme livrables complets de premier niveau,
-avec contrôles d'anonymisation des PDF et du ZIP. Cette correction reste à
-valider par la génération, l'inspection visuelle et la décompression du paquet.
+avec contrôles d'anonymisation des PDF et du ZIP. B2-A40 doit être intégré au
+nouveau rendu puis validé par la génération, l'inspection visuelle et la
+décompression du paquet.
 
 ## Règles de nommage
 

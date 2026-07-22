@@ -23,6 +23,10 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 - Reflow au zoom natif 400 % corrigé : remplacement des troncatures par des
   retours à la ligne dans `MetricPill`, `ProgramCard` et `WorkoutCard`, puis
   contre-recette de production réussie à 200/400 % sur huit routes, 16/16.
+- Après validation invalide, les formulaires séance et programme focalisent le
+  premier champ en erreur.
+- Chaque onglet de semaine référence désormais un panneau présent dans le DOM ;
+  les panneaux inactifs sont masqués et retirés de l'ordre de tabulation.
 
 ### Added
 
@@ -30,6 +34,8 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 - Tests RNCP dédiés API, Web, Playwright et PostgreSQL pour les scénarios C2.3.1 et C2.2.3 restés ouverts.
 - Annexe B2-A39 retraçant la détection, la correction et la validation locale
   des nouveaux avis `sharp`, `hono` et `@hono/node-server`.
+- Annexe B2-A40 retraçant l'audit sémantique authentifié, la confirmation de
+  suppression et les corrections locales de focus et d'onglets.
 - Matrice de traçabilité reliant 11 user stories aux écrans, au code, aux
   recettes et aux preuves du Bloc 2.
 - Paquet d'annexes enrichi des quatre livrables structurants complets, avec
