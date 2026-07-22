@@ -15,6 +15,7 @@ from bloc2_delivery_config import (
     DELIVERY_DATE,
     FINAL_CD_RUN,
     FINAL_CI_RUN,
+    PUBLIC_REPOSITORY_URL,
     ROOT,
     VERSION,
     anonymize_text,
@@ -276,7 +277,7 @@ def write_source_manifest(
         "TRAÇABILITÉ ET ANONYMISATION",
         "- aucun historique .git n'est inclus ; la révision ci-dessus sert de point de référence ;",
         "- les identifiants personnels, le compte et les chemins de poste sont remplacés dans les fichiers texte ;",
-        "- les URL GitHub sont neutralisées ; les numéros de PR et de runs restent consultables dans le dossier/les annexes officiels ;",
+        f"- l'URL du dépôt public est conservée ({PUBLIC_REPOSITORY_URL}) ; les sous-URL GitHub nominatives sont neutralisées ;",
         "- l'absence de secret est contrôlée par noms de fichiers et signatures usuelles ; ce contrôle ne remplace pas une revue humaine.",
         "",
         "FICHIERS SÉLECTIONNÉS MODIFIÉS PAR RAPPORT À HEAD",
@@ -405,6 +406,9 @@ def build_readme_text() -> str:
         "\n".join(
             [
                 "ALCIDE - BLOC 2 RNCP39583",
+                "",
+                f"Dépôt GitHub public : {PUBLIC_REPOSITORY_URL}",
+                "Branche de référence : main",
                 "",
                 "Ordre de lecture :",
                 "1. 01-dossier-bloc2-alcide.pdf (30 pages maximum hors annexes)",

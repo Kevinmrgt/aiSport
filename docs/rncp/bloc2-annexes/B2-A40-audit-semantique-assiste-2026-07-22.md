@@ -1,5 +1,7 @@
 # B2-A40 - Audit semantique assiste du 22 juillet 2026
 
+> Repère de lecture : les 55 tests Web cités dans cette preuve ont été exécutés sur `rc.4`. Les deux tests de non-régression issus de la campagne NVDA portent la baseline finale `rc.5` à 57 tests Web et 241 tests au total.
+
 > État historique avant B2-A41 : aucun lecteur d'écran réel n'a été utilisé
 > pendant cette campagne. Le parcours NVDA ultérieur est consigné dans B2-A41.
 
