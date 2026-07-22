@@ -56,12 +56,12 @@ dans le `MANIFESTE.txt` du paquet. Elles ne sont pas dupliquées ici afin d'évi
 qu'une correction documentaire laisse une empreinte historique présentée comme
 courante.
 
-Le paquet local `alcide-bloc2-rncp39583-0.13.0-rc.4-final-2026-07-22.zip` doit
-être renouvelé après commit. Les PDF régénérés comptent 11 pages pour le dossier
-et 74 pages d'annexes ; ils intègrent les quatre livrables structurants,
-B2-A39/A40 et leur navigation/anonymisation ont été contrôlées. La
-décompression du ZIP imbriqué et les empreintes seront renouvelées par la gate
-du paquet. Le `MANIFESTE.txt` interne reste la source des SHA-256 des pièces.
+Le paquet local `alcide-bloc2-rncp39583-0.13.0-rc.4-final-2026-07-22.zip` a été
+validé depuis un état Git suivi propre. Il contient un dossier de 11 pages et
+74 pages d'annexes, les quatre livrables structurants et B2-A39/A40. La gate a
+validé navigation, anonymisation, ZIP imbriqué, décompression et empreintes. Le
+`MANIFESTE.txt` interne reste la source des SHA-256 des pièces après chaque
+régénération.
 
 Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 `final-2026-07-21` sont historiques et ne doivent pas être remis.
