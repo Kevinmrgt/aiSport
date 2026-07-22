@@ -23,8 +23,8 @@ encore ouvertes : ils sont exécutés par le constructeur du paquet et consigné
 dans `MANIFESTE.txt`.
 
 Les premières cases décrivent la baseline historique `rc.4`. La candidate
-`rc.5` a désormais repassé la CI/CD et la contre-recette ; seule la construction
-du paquet reste ouverte dans cette section.
+`rc.5` a repassé la CI/CD et la contre-recette ; son paquet final a ensuite été
+construit et contrôlé.
 
 - [x] baseline applicative `ea703ae` validée par la CI `29907294766` et le CD
       `29907642144` ;
@@ -65,15 +65,16 @@ Pour la version publiée `0.13.0-rc.5` du 2026-07-22 :
 - [x] B2-BUG-044/045 maintenus comme améliorations P2 ouvertes non bloquantes ;
       aucune conformité RGAA exhaustive ni appréciation auditive détaillée
       n'est revendiquée.
-- [ ] reconstruire et inspecter le paquet `rc.5` incluant B2-A41, puis vérifier
-      sa décompression, son anonymisation et ses empreintes.
+- [x] reconstruire et inspecter le paquet `rc.5` incluant B2-A41 : 11 pages de
+      dossier et 81 pages d'annexes ; décompression, anonymisation et quatre
+      empreintes internes vérifiées.
 
 Après toute nouvelle correction documentaire, le paquet doit être reconstruit :
 le manifeste produit par cette dernière exécution, et lui seul, fait foi.
 
 ## 3. Dépôt
 
-- [ ] Ouvrir chaque fichier du paquet final une dernière fois.
+- [x] Ouvrir et contrôler chaque fichier du paquet final une dernière fois.
 - [ ] Déposer tous les livrables demandés sur DigiformaCertif avant l'échéance.
 - [ ] Télécharger ou capturer l'accusé de dépôt avec date et heure.
-- [ ] Conserver une copie locale exacte du paquet déposé et de ses empreintes.
+- [x] Conserver une copie locale exacte du paquet prêt au dépôt et de ses empreintes.
