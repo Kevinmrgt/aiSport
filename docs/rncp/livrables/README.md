@@ -2,7 +2,7 @@
 
 ## Livrables de référence
 
-Les seules pièces PDF de la candidate locale corrigée du 2026-07-22 sont :
+Les seules pièces PDF de la version `rc.4` publiée le 2026-07-22 sont :
 
 1. `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.4-final-2026-07-22.pdf` ;
 2. `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.4-final-2026-07-22.pdf`.
@@ -22,7 +22,7 @@ n'y est ajouté.
 
 Le paquet local généré est
 `output/alcide-bloc2-rncp39583-0.13.0-rc.4-final-2026-07-22.zip`. Le dossier
-compte 11 pages et les annexes 74 pages ; les empreintes détaillées figurent
+compte 11 pages et les annexes 75 pages ; les empreintes détaillées figurent
 dans son `MANIFESTE.txt` interne.
 
 ## Versions historiques
@@ -33,9 +33,9 @@ Tous les PDF datés du `2026-07-16`, le fichier
 partie des preuves B2-A26 à B2-A31 et B2-A34 à B2-A36 et ne doivent pas être
 remis au jury.
 
-La candidate `0.13.0-rc.4` est validée localement mais n'est pas encore
-présentée comme déployée. La baseline de production observée reste
-`0.13.0-rc.3` / `b002adb` jusqu'à publication et contre-recette.
+La version `0.13.0-rc.4` est déployée sur le SHA `ea703ae`, après la CI
+`29907294766` et la CD `29907642144`. Les healthchecks et la contre-recette
+d'accessibilité ont été rejoués sur cette baseline.
 
 Le manifeste de contrôle est
 `docs/rncp/MANIFESTE-DEPOT-BLOC2.md`. Il recense uniquement les contrôles

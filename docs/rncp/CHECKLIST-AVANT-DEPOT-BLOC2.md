@@ -22,8 +22,8 @@ Les contrôles techniques ne sont plus présentés comme des actions administrat
 encore ouvertes : ils sont exécutés par le constructeur du paquet et consignés
 dans `MANIFESTE.txt`.
 
-- [x] baseline applicative `b002adb` validée par la CI `29845956008` et le CD
-      `29846343559` ;
+- [x] baseline applicative `ea703ae` validée par la CI `29907294766` et le CD
+      `29907642144` ;
 - [x] reflow contre-recetté en production : zoom natif 16/16 et accessibilité
       33/33 ;
 - [x] archive construite par liste positive de fichiers suivis, avec filtrage
@@ -36,16 +36,16 @@ dans `MANIFESTE.txt`.
       de l'inventaire de production ;
 - [x] SHA Git et empreintes SHA-256 générés dans le manifeste du paquet.
 
-Pour la candidate locale `0.13.0-rc.4` du 2026-07-22 :
+Pour la version publiée `0.13.0-rc.4` du 2026-07-22 :
 
 - [x] audit de production au seuil `low`, lint, types, 239 tests et builds
-      verts localement ;
+      verts localement et dans la CI ;
 - [x] cahier de recettes, plan de correction, revue OWASP et matrice user
       stories/preuves intégrés en entier aux annexes ;
 - [x] gate d'anonymisation couvrant PDF, métadonnées, annotations, liens, flux,
       ZIP final et ZIP imbriqué ;
-- [ ] publier la candidate et conserver la CI/CD verte correspondante ;
-- [ ] exécuter la contre-recette de production sur la candidate publiée ;
+- [x] publier la candidate et conserver la CI/CD verte correspondante ;
+- [x] exécuter la contre-recette de production sur la candidate publiée ;
 - [ ] exécuter et consigner un vrai parcours vocal Narrator ou NVDA ;
 - [ ] terminer la qualification humaine des contrastes composites de CR-055.
 

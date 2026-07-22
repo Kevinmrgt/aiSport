@@ -1,7 +1,7 @@
 # Manuel utilisateur - Alcide
 
 > Livrable Bloc 2 RNCP39583 - Documentation d'exploitation utilisateur.
-> Version observée en production : `0.13.0-rc.3` - baseline `b002adb0e0e7d8d85ee493d54879e190d77d2078`.
+> Version observée en production : `0.13.0-rc.4` - baseline `ea703aef912ce9e7c49c4c9b7872a5a7b595b666`.
 
 ## 1. Présentation
 

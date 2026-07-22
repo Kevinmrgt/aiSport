@@ -10,18 +10,19 @@
 | ---------------------------------- | ---------------------------------------------- |
 | Dépôt                              | `https://github.com/Kevinmrgt/aiSport`         |
 | Branche de remise                  | `main`                                         |
-| Baseline applicative déployée      | `b002adb0e0e7d8d85ee493d54879e190d77d2078`     |
+| Baseline applicative déployée      | `ea703aef912ce9e7c49c4c9b7872a5a7b595b666`     |
 | Baseline de consolidation antérieure | `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`   |
 | Pull request fermeture finale      | `https://github.com/Kevinmrgt/aiSport/pull/43` |
 | Pull request gel probatoire final  | `https://github.com/Kevinmrgt/aiSport/pull/44` |
 | Pull request validation du paquet  | `https://github.com/Kevinmrgt/aiSport/pull/45` |
+| Pull request publication `rc.4`    | `https://github.com/Kevinmrgt/aiSport/pull/47` |
 | Correction documentaire antérieure | `https://github.com/Kevinmrgt/aiSport/pull/40` |
-| Candidate corrigée locale          | `0.13.0-rc.4` — non publiée                    |
-| Version applicative déployée       | `0.13.0-rc.3`                                  |
+| Version applicative déployée       | `0.13.0-rc.4`                                  |
 | Tag du gel final corrigé           | `rncp-bloc2-2026-07-21-v8`                     |
 | Snapshot documentaire antérieur    | `rncp-bloc2-2026-07-21-v7` — retiré, contenu hors périmètre |
-| CI baseline `main`                 | run `29845956008` — succès                     |
-| CD baseline `main`                 | run `29846343559` — succès                     |
+| CI pull request `rc.4`             | run `29906947215` — 6 jobs réussis             |
+| CI baseline `main`                 | run `29907294766` — 6 jobs réussis             |
+| CD baseline `main`                 | run `29907642144` — migration, API, Web et smoke réussis |
 | CI/CD de consolidation antérieures | runs `29832575391` / `29832944876` — succès    |
 | E2E authentifié baseline           | run `29833210488` — 6/6, succès                |
 | Web                                | `https://ai-sport-web.vercel.app`              |
@@ -31,16 +32,15 @@
 Le tag `rncp-bloc2-2026-07-21-v8` identifie le gel final strictement écrit,
 enrichi par la preuve négative CI/CD courante B2-A38 et la navigation PDF.
 Le gel `v7` est retiré : il ajoutait à tort des supports hors périmètre au Bloc 2.
-Il ne déplace ni le tag applicatif `v0.13.0-rc.3`, ni les gels
+Il ne déplace ni le tag applicatif historique `v0.13.0-rc.3`, ni les gels
 documentaires antérieurs, conservés comme historiques. Le SHA de l'archive de
-remise peut être postérieur à `b002adb` lorsqu'il ne contient que des corrections
-documentaires ; la baseline applicative déployée reste alors explicitement
-`b002adb`.
+remise peut être postérieur à `ea703ae` lorsqu'il ne contient que des
+corrections documentaires ; la baseline applicative déployée reste alors
+explicitement `ea703aef912ce9e7c49c4c9b7872a5a7b595b666`.
 
-La candidate locale `0.13.0-rc.4` corrige les avis de dépendances détectés le
-22 juillet, le focus des formulaires invalides et les relations des onglets.
-Elle ne devient une baseline de production qu'après publication, CI/CD verte
-et contre-recette explicite.
+La version `0.13.0-rc.4` corrige les avis de dépendances détectés le 22 juillet,
+le focus des formulaires invalides et les relations des onglets. Elle a été
+publiée après fusion de la PR `#47`, CI/CD verte et contre-recette explicite.
 
 ## 2. Pièces finales à déposer
 
@@ -58,7 +58,7 @@ courante.
 
 Le paquet local `alcide-bloc2-rncp39583-0.13.0-rc.4-final-2026-07-22.zip` a été
 validé depuis un état Git suivi propre. Il contient un dossier de 11 pages et
-74 pages d'annexes, les quatre livrables structurants et B2-A39/A40. La gate a
+75 pages d'annexes, les quatre livrables structurants et B2-A39/A40. La gate a
 validé navigation, anonymisation, ZIP imbriqué, décompression et empreintes. Le
 `MANIFESTE.txt` interne reste la source des SHA-256 des pièces après chaque
 régénération.
@@ -71,7 +71,7 @@ Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 | Exigence du Bloc 2                               | Preuve principale                                             |
 | ------------------------------------------------ | ------------------------------------------------------------- |
 | Protocole de déploiement continu                 | dossier §3, `.github/workflows/deploy-vercel.yml`, manuel de déploiement |
-| Qualité et performance                           | dossier §3, B2-A29, CI `29845956008`                          |
+| Qualité et performance                           | dossier §3, B2-A29/B2-A39, CI `29907294766`                   |
 | Protocole d'intégration continue                 | dossier §4, `.github/workflows/ci.yml`                        |
 | Architecture maintenable                         | dossier §5, ADR et arborescence du monorepo                   |
 | Prototype                                        | dossier §7, matrice user stories/preuves, B2-A30 et captures desktop/mobile authentifiées |
@@ -91,16 +91,17 @@ Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 
 - [x] installation figée des dépendances ;
 - [x] lint, typecheck et build ;
-- [x] 170 tests API, 55 tests Web et 14 tests shared sur la candidate locale ;
+- [x] 170 tests API, 55 tests Web et 14 tests shared sur `rc.4` ;
 - [x] couverture API, Web, PostgreSQL et shared publiée séparément ;
-- [x] candidate locale `0.13.0-rc.4` : audit de production au niveau `low`
-      sans vulnérabilité connue, lint, types, 239 tests et builds verts ;
-- [ ] publication de `0.13.0-rc.4`, CI/CD et contre-recette de production ;
+- [x] `0.13.0-rc.4` : audit de production au niveau `low` sans vulnérabilité
+      connue, lint, types, 239 tests et builds verts ;
+- [x] publication de `0.13.0-rc.4` : PR `#47`, CI `29907294766`, CD
+      `29907642144` et healthchecks API/Web en version `rc.4` ;
 - [x] Playwright public et axe dans la CI ;
 - [x] Playwright authentifié local et CI finale `29833210488` : 6/6, dont viewport mobile 390 × 844,
       absence de débordement horizontal et axe sans violation critique/sérieuse ;
 - [x] images Docker API et Web construites dans la CI ;
-- [x] baseline `main` `b002adb` déployée avec migration et smoke tests par le run `29846343559` ;
+- [x] baseline `main` `ea703ae` déployée avec migration et smoke tests par le run `29907642144` ;
 - [x] chemin négatif courant isolé : CI `29856584668` rouge, quatre jobs aval
       ignorés, aucun CD associé et inventaires Vercel production inchangés ;
 - [x] politique de blocage du workflow CD testée localement : 6/6 ;
@@ -110,8 +111,9 @@ Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 - [x] prototype authentifié réellement capturé en desktop et mobile ;
 - [x] sécurité finale : SQL-like sur PostgreSQL réel, XSS Chromium/Firefox,
       secrets/CORS/CSP/headers de production contrôlés ;
-- [x] accessibilité finale : 33/33 Playwright sur 3 pages publiques et 5
-      privées, 2/2 structure, clavier/focus/reflow/contrastes/arbre AX et zoom
+- [x] accessibilité `rc.4` : 33/33 Playwright sur 3 pages publiques et 5
+      privées, focus invalide et 3/3 relations d'onglets contre-recettés,
+      échantillonnage composite 78/79 signatures et 165/166 contextes, zoom
       Chromium natif 200/400 % en production 16/16 ;
 - [x] parcours CR-065 de production avec journal et dashboard `3 → 4` ;
 - [x] gate d'anonymisation du paquet : texte, métadonnées, annotations, liens
