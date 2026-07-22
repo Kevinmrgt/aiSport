@@ -24,7 +24,7 @@ body {
 
 body::before,
 body::after {
-  content: "";
+  content: '';
   position: fixed;
   inset: 0;
   pointer-events: none;
@@ -36,8 +36,12 @@ body::before {
     linear-gradient(180deg, rgba(245, 250, 235, 0.28), rgba(24, 34, 20, 0.34)),
     radial-gradient(circle at 72% 20%, rgba(217, 255, 63, 0.24), transparent 28rem),
     radial-gradient(circle at 18% 72%, rgba(255, 255, 255, 0.36), transparent 24rem),
-    url("/visuals/noise-glass.webp");
-  background-size: cover, cover, cover, 720px 720px;
+    url('/visuals/noise-glass.webp');
+  background-size:
+    cover,
+    cover,
+    cover,
+    720px 720px;
   background-position: center;
   opacity: 0.68;
   mix-blend-mode: soft-light;
@@ -116,7 +120,7 @@ h4,
   }
 
   .abstract-surface::before {
-    content: "";
+    content: '';
     position: absolute;
     inset: 0;
     z-index: 0;
@@ -124,12 +128,13 @@ h4,
     background:
       linear-gradient(118deg, rgba(217, 255, 63, 0.18), transparent 34%),
       linear-gradient(252deg, rgba(255, 138, 61, 0.14), transparent 42%),
-      repeating-linear-gradient(
-        112deg,
-        rgba(255, 255, 255, 0.08) 0 1px,
-        transparent 1px 34px
-      ),
-      linear-gradient(135deg, rgba(7, 10, 8, 0.98), rgba(21, 25, 18, 0.92) 54%, rgba(29, 19, 13, 0.86));
+      repeating-linear-gradient(112deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 34px),
+      linear-gradient(
+        135deg,
+        rgba(7, 10, 8, 0.98),
+        rgba(21, 25, 18, 0.92) 54%,
+        rgba(29, 19, 13, 0.86)
+      );
   }
 
   .abstract-surface > * {
@@ -142,7 +147,7 @@ h4,
   }
 
   .section-kicker {
-    @apply inline-flex w-fit items-center rounded-full border border-primary-300/25 bg-primary-300/10 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-primary-200 shadow-lg shadow-primary-300/10;
+    @apply inline-flex w-fit items-center rounded-full border border-primary-300/40 bg-zinc-950/90 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-primary-100 shadow-lg shadow-black/20;
   }
 
   .muted-copy {
@@ -166,7 +171,7 @@ h4,
   }
 
   .metric-card {
-    @apply rounded-[1.5rem] border border-white/[0.12] bg-zinc-950/[0.58] p-5 shadow-xl shadow-black/30 backdrop-blur-xl;
+    @apply rounded-[1.5rem] border border-white/[0.12] bg-zinc-950/[0.85] p-5 shadow-xl shadow-black/30 backdrop-blur-xl;
   }
 
   .phone-frame {
@@ -181,16 +186,12 @@ h4,
     background:
       linear-gradient(130deg, rgba(217, 255, 63, 0.2), transparent 32%),
       linear-gradient(245deg, rgba(255, 138, 61, 0.16), transparent 38%),
-      repeating-linear-gradient(
-        125deg,
-        rgba(255, 255, 255, 0.1) 0 1px,
-        transparent 1px 28px
-      ),
+      repeating-linear-gradient(125deg, rgba(255, 255, 255, 0.1) 0 1px, transparent 1px 28px),
       linear-gradient(160deg, rgba(8, 13, 10, 0.98), rgba(23, 25, 21, 0.9));
   }
 
   .phone-frame::before {
-    content: "";
+    content: '';
     position: absolute;
     top: 0.9rem;
     left: 50%;

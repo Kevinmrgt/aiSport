@@ -21,6 +21,15 @@ from reportlab.platypus import (
 )
 from reportlab.platypus.tableofcontents import TableOfContents
 
+from bloc2_delivery_config import (
+    ANONYMIZED_MODE,
+    DELIVERY_DATE,
+    DELIVERY_DATE_FR,
+    VERSION,
+    anonymize_text,
+    assert_anonymized_pdf,
+)
+
 
 ROOT = Path(__file__).resolve().parents[3]
 SOURCE = ROOT / "docs" / "rncp" / "bloc2-dossier-conception-developpement-rncp39583.md"
@@ -28,7 +37,7 @@ OUTPUT = (
     ROOT
     / "output"
     / "pdf"
-    / "dossier-bloc2-rncp39583-alcide-v0.13.0-rc.3-final-2026-07-21.pdf"
+    / f"dossier-bloc2-rncp39583-alcide-v{VERSION}-final-{DELIVERY_DATE}.pdf"
 )
 
 INK = colors.HexColor("#182015")
@@ -202,6 +211,17 @@ def styles():
             textColor=MUTED,
         )
     )
+    sheet.add(
+        ParagraphStyle(
+            name="TOC2",
+            parent=sheet["BodyText"],
+            fontSize=7.2,
+            leading=9,
+            leftIndent=27,
+            firstLineIndent=0,
+            textColor=MUTED,
+        )
+    )
     sheet["Code"].fontName = "Courier"
     sheet["Code"].fontSize = 7.4
     sheet["Code"].leading = 9.2
@@ -214,18 +234,41 @@ STYLES = styles()
 
 
 class CandidateDocument(SimpleDocTemplate):
+    def __init__(self, *args, toc_max_level: int = 2, **kwargs):
+        self.toc_max_level = toc_max_level
+        super().__init__(*args, **kwargs)
+
+    def beforeDocument(self):
+        super().beforeDocument()
+        self._last_outline_level = 0
+        self.canv.showOutline()
+        self.canv._doc._catalog.setPageLayout("OneColumn")
+
     def afterFlowable(self, flowable):
         if not isinstance(flowable, Paragraph):
             return
-        level_by_style = {"H1x": 0, "H2x": 1}
+        if flowable.style.name == "TOCTitle":
+            key = "sommaire"
+            self.canv.bookmarkPage(key)
+            self.canv.addOutlineEntry(flowable.getPlainText(), key, level=0, closed=False)
+            self._last_outline_level = 0
+            return
+
+        level_by_style = {"H1x": 0, "H2x": 1, "H3x": 2}
         level = level_by_style.get(flowable.style.name)
         if level is None:
             return
+        # ReportLab interdit de sauter un niveau de signet. La limitation rend
+        # le générateur robuste aux sources Markdown contenant directement un
+        # titre de niveau 4 après un titre de niveau 2.
+        level = min(level, self._last_outline_level + 1)
         text = flowable.getPlainText()
         key = f"heading-{level}-{self.seq.nextf('heading')}"
         self.canv.bookmarkPage(key)
         self.canv.addOutlineEntry(text, key, level=level, closed=False)
-        self.notify("TOCEntry", (level, text, self.page, key))
+        if level <= self.toc_max_level:
+            self.notify("TOCEntry", (level, text, self.page, key))
+        self._last_outline_level = level
 
 
 def cover_page(canvas, _doc):
@@ -381,7 +424,7 @@ def parse_markdown(source: str, base_dir: Path, skip_preamble: bool = False):
         elif line.startswith("### "):
             flush_paragraph()
             story.append(CondPageBreak(3 * cm))
-            story.append(Paragraph(inline_markdown(line[4:]), STYLES["H3x"]))
+            story.append(Paragraph(inline_markdown(line[4:]), STYLES["H2x"]))
         elif line.startswith("> "):
             flush_paragraph()
             story.append(Paragraph(inline_markdown(line[2:]), STYLES["Metax"]))
@@ -406,7 +449,7 @@ def cover_story():
             ["Certification", "RNCP39583 - Expert en développement logiciel"],
             ["Épreuve", "Bloc 2 - Concevoir et développer des applications logicielles"],
             ["Projet", "Alcide - coach sportif assisté par IA"],
-            ["Version", "0.13.0-rc.3 - dossier finalisé le 21 juillet 2026"],
+            ["Version", f"{VERSION} - dossier finalisé le {DELIVERY_DATE_FR}"],
             ["Règle", "30 pages maximum hors annexes - rendu individuel"],
             ["Identité", "Dossier anonymisé conformément au règlement de certification"],
         ],
@@ -448,7 +491,7 @@ def cover_story():
 
 def toc_story():
     toc = TableOfContents()
-    toc.levelStyles = [STYLES["TOC0"], STYLES["TOC1"]]
+    toc.levelStyles = [STYLES["TOC0"], STYLES["TOC1"], STYLES["TOC2"]]
     return [
         Paragraph("Sommaire", STYLES["TOCTitle"]),
         Spacer(1, 0.25 * cm),
@@ -466,14 +509,23 @@ def build_pdf(source: Path = SOURCE, output: Path = OUTPUT) -> Path:
         rightMargin=1.5 * cm,
         topMargin=1.45 * cm,
         bottomMargin=1.55 * cm,
-        title="Dossier Bloc 2 RNCP39583 - Alcide - final 2026-07-21",
+        title=f"Dossier Bloc 2 RNCP39583 - Alcide - final {DELIVERY_DATE}",
         author="Candidat RNCP39583 - dossier anonymisé",
         subject="Code source et documentation associée - Bloc 2",
+        creator="Générateur documentaire Alcide - ReportLab",
+        keywords="RNCP39583, Bloc 2, conception, développement, Alcide, certification",
+        lang="fr-FR",
+        displayDocTitle=True,
     )
     story = cover_story()
     story.extend(toc_story())
-    story.extend(parse_markdown(source.read_text(encoding="utf-8"), source.parent, skip_preamble=True))
+    markdown = source.read_text(encoding="utf-8")
+    if ANONYMIZED_MODE:
+        markdown = anonymize_text(markdown)
+    story.extend(parse_markdown(markdown, source.parent, skip_preamble=True))
     document.multiBuild(story, onFirstPage=cover_page, onLaterPages=page_footer)
+    if ANONYMIZED_MODE:
+        assert_anonymized_pdf(output)
     return output
 
 

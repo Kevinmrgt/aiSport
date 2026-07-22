@@ -153,10 +153,19 @@ describe('composants de presentation', () => {
     ] as unknown as ProgramWeek[];
 
     render(<ProgramWeekTabs weeks={weeks} programId="program-1" />);
+    const tabs = screen.getAllByRole('tab');
+    expect(document.querySelectorAll('[role="tabpanel"]')).toHaveLength(2);
+    for (const tab of tabs) {
+      const panelId = tab.getAttribute('aria-controls');
+      expect(panelId).toBeTruthy();
+      expect(document.getElementById(panelId ?? '')).toBeTruthy();
+    }
+
     const firstTab = screen.getByRole('tab', { name: 'Sem. 1' });
     fireEvent.keyDown(firstTab, { key: 'ArrowRight' });
     expect(screen.getByRole('heading', { name: 'Intensite' })).toBeTruthy();
     expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'Sem. 2' }));
+    expect(document.getElementById(firstTab.getAttribute('aria-controls') ?? '')?.hidden).toBe(true);
     fireEvent.keyDown(document.activeElement ?? document, { key: 'Home' });
     expect(screen.getByRole('heading', { name: 'Base' })).toBeTruthy();
     fireEvent.keyDown(document.activeElement ?? document, { key: 'End' });
@@ -165,15 +174,15 @@ describe('composants de presentation', () => {
 
   it('distingue un lien actif, racine et une navigation en attente', () => {
     pathnameMock.mockReturnValue('/workouts/detail');
-    const { rerender } = render(
-      <ActiveNavLink href="/workouts" label="Seances" icon="activity" />,
-    );
+    const { rerender } = render(<ActiveNavLink href="/workouts" label="Seances" icon="activity" />);
     expect(screen.getByRole('link').getAttribute('aria-current')).toBe('page');
 
     pathnameMock.mockReturnValue('/dashboard');
     rerender(<ActiveNavLink href="/" label="Accueil" icon="home" compact />);
     const link = screen.getByRole('link');
     expect(link.getAttribute('aria-current')).toBeNull();
+    expect(link.classList.contains('text-zinc-200')).toBe(true);
+    expect(link.classList.contains('text-zinc-400')).toBe(false);
     fireEvent.click(link);
     expect(link.getAttribute('aria-busy')).toBe('true');
   });

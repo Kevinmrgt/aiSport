@@ -1,7 +1,10 @@
 # Revue de sécurité OWASP Top 10 — Alcide
 
 > Livrable transversal utilisé par le Bloc 2, compétence C2.2.3
-> Revue de code : 2026-07-21 - baseline finale de production `0d5c6b6...`
+> Revue de code : 2026-07-21 - baseline de campagne sécurité `0d5c6b6...`.
+> Baseline canonique déployée après le correctif de reflow : `b002adb...`, CI
+> `29845956008`, CD `29846343559`. Ce correctif ne modifie pas les contrôles de
+> sécurité décrits ci-dessous.
 
 ## Méthode et échelle
 
@@ -28,7 +31,7 @@ Contrôles :
 
 Preuve : B2-A19 consigne 8/8 tests PostgreSQL réels avec
 deux utilisateurs, dont l'isolation et l'ownership workout/program/session-log.
-Les tests ont été rejoués dans le job PostgreSQL de la CI finale `29832575391` sur
+Les tests ont été rejoués dans le job PostgreSQL de la CI de consolidation `29832575391` sur
 `main`. Les tests middleware et controllers sont aussi exécutés dans la suite
 unitaire. L'existence d'une FK seule n'est pas utilisée comme preuve d'ownership.
 
@@ -114,7 +117,18 @@ transitives `brace-expansion` et `shell-quote` ont fait échouer la CI
 1.9.0. L'audit local ne remonte plus de vulnérabilité connue et la CI complète
 `29816347653` est verte. B2-A27 conserve l'échec, la correction et la
 contre-vérification. L'audit bloquant au niveau `low` est de nouveau vert dans
-la CI finale `29832575391`.
+la CI de consolidation `29832575391`, puis dans la CI canonique `29845956008`.
+
+Actualisation du 2026-07-22 : un nouvel audit de la candidate locale a détecté
+cinq avis publiés depuis le gel précédent : un avis `high` sur `sharp` et quatre
+avis `moderate` concernant `hono` et `@hono/node-server`. La candidate locale
+`0.13.0-rc.4` les corrige avec `sharp@0.35.3`, `hono@4.12.31` et
+`@hono/node-server@2.0.11`. L'audit de production au seuil `low`, le lint, la
+vérification des types, les 239 tests et les builds sont de nouveau verts en
+local. B2-A39 conserve le constat, les versions résolues et les commandes de
+contre-vérification. Cette actualisation ne préjuge pas de la CI/CD ni de la
+production : leur contre-vérification reste à exécuter après publication
+autorisée de la candidate.
 
 ## A07 — Identification and Authentication Failures — contrôlé avec limites
 
@@ -138,8 +152,10 @@ validation Zod des sorties OpenAI et images construites depuis le SHA.
 
 Le CD manuel contournant la CI est supprimé. Les actions GitHub sont épinglées
 par SHA, la CLI Vercel est appelée avec une version explicite et le SHA déployé
-est conservé dans le manifeste. La CI finale `29832575391` puis le CD
-`29832944876` prouvent l'enchaînement sur la baseline `0d5c6b6...`.
+est conservé dans le manifeste. La CI `29832575391` puis le CD `29832944876`
+prouvent l'enchaînement sur la baseline de consolidation `0d5c6b6...`. Le même
+enchaînement est confirmé sur la baseline canonique `b002adb...` par la CI
+`29845956008` et le CD `29846343559`.
 
 ## A09 — Security Logging and Monitoring Failures — contrôlé avec limites
 

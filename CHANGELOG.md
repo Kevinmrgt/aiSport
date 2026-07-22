@@ -11,16 +11,48 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+> La candidate locale `0.13.0-rc.4` corrige les avis de dépendances découverts
+> le 22 juillet 2026. Sa publication, sa CI/CD distante et sa contre-recette de
+> production restent à consigner avant de la présenter comme version déployée.
+
 ### Fixed
 
 - Validation serveur des modèles OpenAI alignée sur l'allowlist de l'interface ; une valeur arbitraire renvoie désormais HTTP 400 sans persistance.
 - Confirmation de journalisation préservée en évitant la revalidation inutile de la page Timer courante.
 - Hiérarchie des pages de génération corrigée : un seul `h1` de page et titres internes de formulaire en `h2`.
+- Reflow au zoom natif 400 % corrigé : remplacement des troncatures par des
+  retours à la ligne dans `MetricPill`, `ProgramCard` et `WorkoutCard`, puis
+  contre-recette de production réussie à 200/400 % sur huit routes, 16/16.
+- Après validation invalide, les formulaires séance et programme focalisent le
+  premier champ en erreur.
+- Chaque onglet de semaine référence désormais un panneau présent dans le DOM ;
+  les panneaux inactifs sont masqués et retirés de l'ordre de tabulation.
 
 ### Added
 
 - Recettes finales Bloc 2 B2-A34 à B2-A36 : erreurs IA, journal/douleur/dashboard, SQL-like PostgreSQL réel, XSS, secrets/CORS/CSP et audit accessibilité public/privé.
 - Tests RNCP dédiés API, Web, Playwright et PostgreSQL pour les scénarios C2.3.1 et C2.2.3 restés ouverts.
+- Annexe B2-A39 retraçant la détection, la correction et la validation locale
+  des nouveaux avis `sharp`, `hono` et `@hono/node-server`.
+- Annexe B2-A40 retraçant l'audit sémantique authentifié, la confirmation de
+  suppression et les corrections locales de focus et d'onglets.
+- Matrice de traçabilité reliant 11 user stories aux écrans, au code, aux
+  recettes et aux preuves du Bloc 2.
+- Paquet d'annexes enrichi des quatre livrables structurants complets, avec
+  signets et gate d'anonymisation du texte, des liens, métadonnées, flux PDF et
+  archives ZIP.
+
+### Security
+
+- `sharp` résolu en `0.35.3`, `hono` en `4.12.31` et
+  `@hono/node-server` en `2.0.11` ; l'audit de production au niveau `low`
+  retrouve un état sans vulnérabilité connue.
+- Validation locale post-correction : lint, typecheck, 239 tests et build
+  complet réussis.
+- Contrastes composites préqualifiés sur 79 signatures et 166 contextes ; les
+  14 alertes potentielles ont conduit à renforcer localement plusieurs fonds et
+  textes. La mesure humaine, le lecteur d'écran et la contre-recette après
+  déploiement restent explicitement ouverts.
 
 ---
 

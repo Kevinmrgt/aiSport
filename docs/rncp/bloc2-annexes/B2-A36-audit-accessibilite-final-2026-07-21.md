@@ -6,7 +6,7 @@
 > Contre-recette après déploiement du correctif de reflow : 33/33 et zoom natif
 > 16/16 sur `b002adb0e0e7d8d85ee493d54879e190d77d2078`, après CI `29845956008`
 > et CD `29846343559`.
-> Repère documentaire : tag `rncp-bloc2-2026-07-21-v5`.
+> Repère documentaire final : tag `rncp-bloc2-2026-07-21-v8`.
 > Le SHA effectivement archivé est porté par le manifeste du paquet de remise.
 > Referentiel de travail : RGAA 4.1.2 et WCAG 2.1 A/AA
 > Statut : preuves renforcees, conformite RGAA exhaustive non revendiquee
@@ -14,7 +14,8 @@
 ## Objet et perimetre
 
 Cette campagne ferme les controles automatisables restes ouverts sur un
-echantillon public et prive : reflow correspondant a un zoom de 200 % et 400 %,
+echantillon public et prive : reflow CSS, complete par un zoom Chromium natif
+a 200 % et 400 % dans B2-A37,
 parcours clavier, visibilite du focus, contrastes calculables, structure et
 annonces exposees aux technologies d'assistance.
 
@@ -60,9 +61,9 @@ pnpm --filter web exec playwright test --config=playwright.rncp-accessibility.co
 
 Les controles sont les suivants :
 
-1. reflow a 640 pixels CSS, equivalent de mise en page d'un viewport bureau de
+1. reflow a 640 pixels CSS, approximation de mise en page d'un viewport bureau de
    1280 pixels zoome a 200 % ;
-2. reflow a 320 pixels CSS, equivalent de mise en page du meme viewport zoome a
+2. reflow a 320 pixels CSS, approximation de mise en page du meme viewport zoome a
    400 % ;
 3. parcours `Tab` complet de toutes les commandes visibles, jusqu'a la sortie
    du document, avec comparaison a l'inventaire des elements tabulables ;
@@ -97,6 +98,11 @@ document relevees etaient respectivement 625 et 305 pixels, donc inferieures a
 la largeur utile du viewport. Aucun identifiant HTML duplique n'a ete trouve
 sur les etats stabilises.
 
+Le rejeu du 2026-07-21 a de nouveau lance les **33 tests** sur la production
+avec la session OAuth locale et s'est termine avec le code 0. Le zoom natif a
+ete rejoue separement sur les huit routes : **16/16 mesures**, facteur obtenu
+2x puis 4x, aucun debordement horizontal et aucun texte ou controle rogne.
+
 ## Contrastes mesures
 
 Les ratios sRGB du texte sur le fond opaque du bouton principal sont :
@@ -106,8 +112,8 @@ Les ratios sRGB du texte sur le fond opaque du bouton principal sont :
 | `/`, `/login`, `/confidentialite`                                |              17,36:1 |                 4,5:1 |
 | `/dashboard`, `/generate`, `/programs`, `/workouts`, `/settings` |               8,19:1 |                 4,5:1 |
 
-Axe a mesure en plus 2 textes sur `/`, 3 sur `/login`, 1 sur
-`/confidentialite`, aucun sur le dashboard vide, 1 sur `/generate`, 4 sur
+Axe a mesure en plus 1 texte sur `/`, 2 sur `/login`, aucun sur
+`/confidentialite` ni sur le dashboard vide, 1 sur `/generate`, 4 sur
 `/programs`, 10 sur `/workouts` et 1 sur `/settings`. Aucune violation de la
 regle `color-contrast` n'a ete renvoyee.
 
@@ -115,6 +121,14 @@ Chaque page conserve toutefois **une verification axe incomplete** en raison
 des fonds composites, transparences ou images. Les ratios ci-dessus sont donc
 des mesures representatives, pas une mesure exhaustive de chaque texte, et ne
 suffisent pas a declarer une conformite RGAA complete.
+
+Le script `scripts/rncp-a11y-contrast-sampling.ps1` a ensuite regroupe les 416
+occurrences par cause axe, couleurs CSS, fond, graisse, corps et seuil WCAG. Il
+produit **79 signatures de rendu**, dont **34 P1** et **45 P2**, et **166
+contextes route-signature**. Ce tri rend la revue humaine bornée et
+reproductible ; toutes les signatures conservent le statut
+`human_review_required` tant qu'un operateur n'a pas saisi le ratio mesure, sa
+decision et la preuve.
 
 ## Structure et annonces
 
@@ -128,8 +142,8 @@ Le controle independant a detecte deux `h1` sur `/generate` et
 `/programs/generate` : un titre de page et un titre de formulaire. Le titre de
 chaque formulaire a ete corrige en `h2` dans `WorkoutForm.tsx` et
 `ProgramForm.tsx`. Le test de non-regression
-`components/rncp-accessibility-structure.test.tsx` verifie que les deux titres
-internes restent de niveau 2 et continuent de nommer leur formulaire. Resultat :
+`apps/web/components/rncp-accessibility-structure.test.tsx` verifie que les deux
+titres internes restent de niveau 2 et continuent de nommer leur formulaire. Resultat :
 **2 tests reussis sur 2**. Cette correction a ete integree a la baseline
 `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`, puis verifiee par la CI
 `29832575391`, le CD `29832944876` et la contre-recette de production 33/33.
@@ -139,9 +153,9 @@ internes restent de niveau 2 et continuent de nommer leur formulaire. Resultat :
 | Identifiant | Observation                                                                | Action                                                                                      | Etat                                            |
 | ----------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------- |
 | B2-A36-01   | Deux `h1` sur chacune des pages de generation                              | Titres internes passes en `h2` et test de non-regression ajoute                             | Corrige et contre-recette en production 33/33   |
-| B2-A36-02   | Axe ne peut pas calculer les contrastes composites                         | Audit détaillé : 0 violation, 416 nœuds incomplets liés surtout aux gradients/pseudo-éléments ; revue humaine requise | Partiellement couvert, voir B2-A37 |
-| B2-A36-03   | Aucun lecteur d'ecran reel utilise pendant cette campagne                  | Prevoir NVDA ou Narrator avec restitution documentee                                        | Ouvert                                          |
-| B2-A36-04   | Le reflow était simulé par viewport CSS, sans zoom navigateur natif         | Audit natif à 200/400 %, détection puis correction des troncatures de métriques et cartes   | Clos : correctif `b002adb` déployé, zoom natif production 16/16, voir B2-A37 |
+| B2-A36-02   | Axe ne peut pas calculer les contrastes composites                         | Audit detaille rejoue : 0 violation, 19 nœuds calcules conformes et 416 nœuds incomplets regroupes en 79 signatures ; échantillonnage pixel du 2026-07-22 : 69 signatures sans alerte, 8 avec alerte et 2 non concluantes ; correctifs locaux à redéployer et contre-recetter | Partiellement couvert, voir B2-A37 |
+| B2-A36-03   | Aucun lecteur d'ecran reel utilise pendant cette campagne                  | Narrator disponible, NVDA absent ; grille operateur prete pour une restitution documentee | Ouvert : aucune ecoute realisee |
+| B2-A36-04   | Limite historique : le reflow initial reposait uniquement sur des viewports CSS | Audit natif à 200/400 %, détection puis correction des troncatures de métriques et cartes | Clos : correctif `b002adb` déployé, zoom natif production 16/16, voir B2-A37 |
 
 ## Conclusion et limites
 
@@ -150,10 +164,10 @@ annonces d'erreur sont couverts sur l'echantillon. Les contrastes opaques
 representatifs respectent largement le seuil AA et aucune violation axe n'est
 remontee.
 
-Le scénario d'accessibilité ne doit cependant pas être marqué entièrement clos
-tant que les points suivants ne sont pas réalisés et consignés :
+Le scenario d'accessibilite ne doit cependant pas etre marque entierement clos
+tant que les points suivants ne sont pas realises et consignes :
 
-- vérification manuelle des contrastes composites signalés `incomplete` ;
+- verification manuelle des contrastes composites signales `incomplete` ;
 - parcours avec un vrai lecteur d'ecran, par exemple NVDA ou Narrator.
 
 En particulier, **aucun test NVDA, Narrator, JAWS ou VoiceOver n'a ete realise**
@@ -161,3 +175,16 @@ ici. L'arbre d'accessibilite Chromium apporte une preuve structurelle utile,
 mais ne permet pas de conclure sur la qualite de la restitution vocale ni sur
 le confort d'usage reel. Le statut global reste donc « conformite RGAA non
 determinee », sans revendication de conformite exhaustive.
+
+## Addendum du 22 juillet 2026
+
+Le rejeu de la production a confirmé **33/33 tests**, **0 violation axe** et le
+même périmètre de **79 signatures / 166 contextes**. L'échantillonnage des
+pixels composites, détaillé dans B2-A37, a isolé 14 alertes sur 8 signatures et
+2 contextes non concluants. Les contrastes concernés ont été renforcés dans la
+source locale ; **55/55 tests Web**, le typecheck et le lint réussissent.
+
+Cet addendum ne transforme pas la production observée le 21 juillet : les
+correctifs doivent encore être déployés puis contre-recettés. La mesure humaine
+des deux contextes non concluants et les dix parcours Narrator/NVDA restent
+ouverts. Aucune écoute avec un lecteur d'écran n'a été effectuée.

@@ -5,7 +5,7 @@ const healthRouter = new Hono();
 const appVersion =
   process.env['APP_VERSION'] ??
   process.env['npm_package_version'] ??
-  '0.13.0-rc.3';
+  '0.13.0-rc.4';
 
 healthRouter.get('/', (ctx) => {
   ctx.header('Cache-Control', 'no-store, max-age=0');

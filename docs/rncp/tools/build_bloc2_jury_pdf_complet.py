@@ -322,7 +322,7 @@ def build_story():
         ],
         "CR-013 n’a pas été rejoué en coupure OpenAI réelle.",
         "Aucune correction documentaire restante ; la limite est formulée explicitement.",
-        "Décider si tu veux rejouer une coupure IA réelle avant soutenance.",
+        "Décider si tu veux rejouer une coupure IA réelle avant dépôt.",
         "Validé : cahier complet, transparent et exploitable jury.",
     )
 
