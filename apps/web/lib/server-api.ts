@@ -24,8 +24,10 @@ export interface SaveAiSettingsInput {
   model?: string;
 }
 
-// OWASP A02: URL backend depuis variable d'env uniquement
-const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001';
+// API_URL utilise le réseau interne en Docker. Le fallback public conserve la
+// compatibilité avec les environnements Vercel déjà configurés.
+const API_URL =
+  process.env['API_URL'] ?? process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001';
 const DEFAULT_TIMEOUT_MS = 15_000;
 const GENERATION_TIMEOUT_MS = 120_000;
 

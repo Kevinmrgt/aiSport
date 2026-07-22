@@ -16,13 +16,24 @@ from bloc2_delivery_config import (
     assert_anonymized_text,
 )
 from build_bloc2_annexes_pdf import CORE_DELIVERABLES, SELECTED
-from build_bloc2_delivery_pack import build_readme_text, validate_delivery_archive
+from build_bloc2_delivery_pack import (
+    APPLICATION_SHA,
+    FINAL_CD_RUN,
+    FINAL_CI_RUN,
+    build_readme_text,
+    validate_delivery_archive,
+)
 
 
 class Bloc2DeliveryToolsTests(unittest.TestCase):
     def test_version_is_derived_from_package_json(self) -> None:
         package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
         self.assertEqual(VERSION, package["version"])
+
+    def test_deployed_application_references_match_rc5(self) -> None:
+        self.assertEqual(APPLICATION_SHA, "b63280f36e44b02d5654a7f4e2caa8413e446bcb")
+        self.assertEqual(FINAL_CI_RUN, "29916228789")
+        self.assertEqual(FINAL_CD_RUN, "29916573448")
 
     def test_anonymizer_neutralizes_named_github_and_vercel_urls(self) -> None:
         source = (

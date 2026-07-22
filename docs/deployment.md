@@ -1,13 +1,14 @@
 # Guide de deploiement - Alcide
 
-> Version applicative déployée: 0.13.0-rc.4
-> Baseline applicative déployée: ea703aef912ce9e7c49c4c9b7872a5a7b595b666
+> Version applicative déployée: 0.13.0-rc.5
+> Baseline applicative déployée: b63280f36e44b02d5654a7f4e2caa8413e446bcb
 > Date de verification documentaire initiale: 2026-05-07
 > Derniere verification Bloc 2 et contre-recette de production: 2026-07-22
 
-La version `0.13.0-rc.4` corrige les avis de dépendances relevés le 2026-07-22,
+La version `0.13.0-rc.5` conserve les avis de dépendances corrigés et ajoute
+les correctifs de restitution NVDA relevés le 2026-07-22,
 le focus des formulaires invalides et les relations d'onglets. Elle a passé la
-CI `29907294766`, la CD `29907642144` et la contre-recette de production.
+CI `29916228789`, la CD `29916573448` et la validation NVDA déclarée.
 
 ## Production canonique
 
@@ -70,8 +71,8 @@ DATABASE_URL
 ```
 
 Le token doit autoriser `vercel pull/build/deploy` sur les deux projets. Le run
-CD canonique `29907642144`, déclenché automatiquement après la CI `29907294766`,
-a réussi sur le SHA `ea703aef912ce9e7c49c4c9b7872a5a7b595b666` : migration,
+CD canonique `29916573448`, déclenché automatiquement après la CI `29916228789`,
+a réussi sur le SHA `b63280f36e44b02d5654a7f4e2caa8413e446bcb` : migration,
 API, Web et smoke tests de production. Les productions automatiques de
 l'intégration Git sont annulées par `ignoreCommand`, puis une seule production
 GitHub Actions aboutit par projet. Les runs `29747228594` et `29747592571`
@@ -141,8 +142,8 @@ Checklist:
 - [x] Web healthcheck HTTP 200 après déploiement
 - [x] Génération d'une séance testée avec un compte authentifié, puis donnée de recette supprimée (B2-A25)
 - [x] Génération d'un programme testée avec un compte authentifié, puis donnée de recette supprimée (B2-A25)
-- [x] run CI automatique vert sur la baseline applicative livrée (`29907294766`)
-- [x] run CD automatique vert sur la baseline applicative livrée (`29907642144`)
+- [x] run CI automatique vert sur la baseline applicative livrée (`29916228789`)
+- [x] run CD automatique vert sur la baseline applicative livrée (`29916573448`)
 - [x] zoom natif 200/400 % contre-recetté en production, 16/16, puis suite
       d'accessibilité rejouée, 33/33
 
