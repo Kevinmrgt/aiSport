@@ -4,7 +4,7 @@
 
 Les annexes B2-A17 et B2-A18 portent sur la version `0.12.0`. Elles sont
 conservées pour la traçabilité, mais leurs conclusions « final » ou « validable »
-ne s'appliquent pas à la baseline de production `0.13.0-rc.4` et ne doivent
+ne s'appliquent pas à la baseline de production `0.13.0-rc.5` et ne doivent
 pas être reprises comme preuves du SHA final.
 
 | ID     | Compétences                                                  | Pièce                                                                                                   | Statut                                   | Source ou commande                                                                 |
@@ -18,9 +18,9 @@ pas être reprises comme preuves du SHA final.
 
 > Index des preuves à joindre au dossier Bloc 2. Les pièces doivent rester datées et reliées à une compétence.
 
-> État au 22 juillet 2026 : la production est en `0.13.0-rc.4` sur
-> `ea703aef912ce9e7c49c4c9b7872a5a7b595b666`, après la CI `29907294766`, la
-> CD `29907642144` et la contre-recette de production.
+> État au 22 juillet 2026 : la production est en `0.13.0-rc.5` sur
+> `b63280f36e44b02d5654a7f4e2caa8413e446bcb`, après la CI `29916228789`, la
+> CD `29916573448` et la validation NVDA déclarée par l'utilisateur.
 
 ## Annexes obligatoires recommandées
 
@@ -63,14 +63,14 @@ pas être reprises comme preuves du SHA final.
 | B2-A38 | C2.1.2 / C2.2.4 / C2.3.1 / C2.3.2        | Preuve négative CI/CD courante sur branche et PR isolées                                                       | CI `29856584668` rouge, jobs aval ignorés, aucun CD associé, inventaires Vercel production inchangés, politique 6/6           | `docs/rncp/bloc2-annexes/B2-A38-preuve-negative-ci-cd-2026-07-21.md`                               |
 | B2-A39 | C2.1.2 / C2.2.3 / C2.3.1 / C2.3.2        | Correction des cinq avis de dépendances détectés le 22 juillet                                                | `sharp 0.35.3`, `hono 4.12.31`, `@hono/node-server 2.0.11` ; audit `low`, 239 tests et builds ; CI `29907294766`, CD `29907642144`, healthchecks `rc.4` | `docs/rncp/bloc2-annexes/B2-A39-correction-dependances-2026-07-22.md`                              |
 | B2-A40 | C2.2.1 / C2.2.3 / C2.3.1 / C2.3.2        | Audit sémantique authentifié des routes principales, détails, formulaires, onglets et suppression             | huit routes principales et trois détails contrôlés ; B2-BUG-040/041 clos après contre-recette `rc.4` ; focus `sport`, 3/3 cibles d'onglets résolues | `docs/rncp/bloc2-annexes/B2-A40-audit-semantique-assiste-2026-07-22.md`                           |
-| B2-A41 | C2.2.3 / C2.3.1 / C2.3.2                 | Parcours réel NVDA public et authentifié, avec Visionneuse de parole et journal entrée/sortie                  | 6 scénarios conformes, 3 partiels et 1 non conforme ; B2-BUG-042/043 corrigés localement, contre-recette de production requise | `docs/rncp/bloc2-annexes/B2-A41-parcours-nvda-production-2026-07-22.md`                           |
-| LIV-04 | C2.2.1 / C2.3.1                            | Matrice complète besoins/user stories, écrans, composants, scénarios et preuves                               | Présente intégralement dans le PDF d'annexes `rc.4`, avec entrée de sommaire et signet                                          | `docs/rncp/bloc2-matrice-user-stories-preuves.md`                                                  |
+| B2-A41 | C2.2.3 / C2.3.1 / C2.3.2                 | Parcours réel NVDA public et authentifié, avec Visionneuse de parole et journal entrée/sortie                  | campagne détaillée `rc.4` ; B2-BUG-042/043 clos sur `rc.5` après CI/CD et validation NVDA déclarée ; B2-BUG-044/045 P2 non bloquants | `docs/rncp/bloc2-annexes/B2-A41-parcours-nvda-production-2026-07-22.md`                           |
+| LIV-04 | C2.2.1 / C2.3.1                            | Matrice complète besoins/user stories, écrans, composants, scénarios et preuves                               | Présente intégralement dans le PDF d'annexes `rc.5`, avec entrée de sommaire et signet                                          | `docs/rncp/bloc2-matrice-user-stories-preuves.md`                                                  |
 
 Le paquet `rc.4` existant, validé sur 75 pages, est historique et antérieur à
-B2-A41. La remise `rc.5` devra intégrer le cahier de recettes, le plan de
-correction, la revue OWASP, LIV-04 et B2-A41, puis repasser la génération,
-l'inspection visuelle, l'anonymisation PDF/ZIP, la décompression et les
-empreintes.
+B2-A41. La remise `rc.5` intègre le cahier de recettes, le plan de correction,
+la revue OWASP, LIV-04 et B2-A41. Le dossier compte 11 pages et les annexes 81 ;
+le rendu intégral, l'anonymisation PDF/ZIP, la décompression et les empreintes
+ont été contrôlés.
 
 ## Règles de nommage
 

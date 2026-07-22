@@ -9,15 +9,13 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ---
 
-## [Unreleased]
+## [0.13.0-rc.5] — 2026-07-22
 
-> La version `0.13.0-rc.4` a été publiée le 22 juillet 2026 sur le SHA
-> `ea703aef912ce9e7c49c4c9b7872a5a7b595b666`, validée par la CI `29907294766`
-> et déployée par la CD `29907642144`.
->
-> Les correctifs issus du parcours NVDA forment la candidate locale
-> `0.13.0-rc.5`. Elle n'est pas présentée comme publiée avant sa propre CI/CD
-> et sa contre-recette de production.
+> La version `0.13.0-rc.5` a été publiée le 22 juillet 2026 sur le SHA
+> `b63280f36e44b02d5654a7f4e2caa8413e446bcb`, validée par la CI
+> `29916228789` et déployée par la CD `29916573448`. Les trois endpoints de
+> santé ont répondu HTTP 200 en version `rc.5` ; le candidat a ensuite déclaré
+> avoir exécuté et validé les tests NVDA.
 
 ### Fixed
 
@@ -46,12 +44,16 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
   suppression et la contre-recette de production du focus et des onglets.
 - Annexe B2-A41 retraçant un parcours réel NVDA 2026.1.1 sur dix scénarios de
   production, ses transcriptions techniques, ses limites et les anomalies
-  B2-BUG-042 à 045. Aucune validation auditive humaine n'est revendiquée.
+  B2-BUG-042 à 045, puis la validation NVDA déclarée par le candidat après le
+  déploiement `rc.5`.
 - Matrice de traçabilité reliant 11 user stories aux écrans, au code, aux
   recettes et aux preuves du Bloc 2.
 - Paquet d'annexes enrichi des quatre livrables structurants complets, avec
   signets et gate d'anonymisation du texte, des liens, métadonnées, flux PDF et
   archives ZIP.
+- Paquet final Bloc 2 `rc.5` construit et contrôlé : 11 pages de dossier, 81
+  pages d'annexes, anonymisation validée, décompression réussie et empreintes
+  internes comparées.
 
 ### Security
 
@@ -60,13 +62,14 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
   retrouve un état sans vulnérabilité connue.
 - Validation historique `rc.4` : lint, typecheck, 239 tests et build complet
   réussis, puis CI/CD.
-- Validation locale `rc.5` après les corrections NVDA : audit `low` propre,
-  lint, typecheck, **241/241 tests** et build complet réussis.
+- Validation `rc.5` : audit `low` propre, lint, typecheck, **241/241 tests**,
+  build complet, CI `29916228789` et CD `29916573448` réussis.
 - Contrastes composites préqualifiés sur 79 signatures et 166 contextes après
   déploiement : 78/79 signatures et 165/166 contextes passent
   l'échantillonnage automatisé. Le dernier contexte est fermé par une borne
-  conservatrice à 15,00:1. Un parcours réel NVDA est consigné dans B2-A41 ;
-  deux correctifs locaux doivent encore être déployés et contre-recettés.
+  conservatrice à 15,00:1. Un parcours réel NVDA et la validation NVDA déclarée
+  par l'utilisateur après déploiement sont consignés dans B2-A41, sans
+  déclaration de conformité RGAA exhaustive.
 
 ---
 
