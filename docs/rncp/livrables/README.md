@@ -1,13 +1,15 @@
 # État des livrables Bloc 2
 
-## Livrables de référence
+## Livrables historiques pré-B2-A41
 
-Les seules pièces PDF de la version `rc.4` publiée le 2026-07-22 sont :
+Les pièces PDF `rc.4` publiées le 2026-07-22 sont historiques et n'intègrent
+pas encore B2-A41 :
 
 1. `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.4-final-2026-07-22.pdf` ;
 2. `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.4-final-2026-07-22.pdf`.
 
-Le paquet complet est généré après fusion par :
+Le nouveau paquet complet `rc.5` doit être généré après fusion, CI/CD et
+contre-recette par :
 
 ```bash
 python docs/rncp/tools/build_bloc2_delivery_pack.py
@@ -20,10 +22,10 @@ stories/preuves. L'archive source exclut les fichiers non suivis : aucun
 secret, `.env`, `storageState`, cookie OAuth, `node_modules` ou artefact local
 n'y est ajouté.
 
-Le paquet local généré est
+Le paquet local historique est
 `output/alcide-bloc2-rncp39583-0.13.0-rc.4-final-2026-07-22.zip`. Le dossier
-compte 11 pages et les annexes 75 pages ; les empreintes détaillées figurent
-dans son `MANIFESTE.txt` interne.
+compte 11 pages et les annexes 75 pages. Il ne doit pas être remis comme paquet
+courant ; les nouvelles empreintes seront produites avec `rc.5`.
 
 ## Versions historiques
 

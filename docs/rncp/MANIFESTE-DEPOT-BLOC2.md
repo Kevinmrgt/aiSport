@@ -46,8 +46,8 @@ publiée après fusion de la PR `#47`, CI/CD verte et contre-recette explicite.
 
 |  N° | Pièce                | Fichier                                                                       | Contrôle                                                                                                   |
 | --: | -------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-|  01 | Dossier écrit        | `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.4-final-2026-07-22.pdf` | maximum officiel de 30 pages hors annexes ; pagination, sommaire, liens et rendu visuel contrôlés          |
-|  02 | Annexes techniques   | `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.4-final-2026-07-22.pdf` | preuves A20, A25 à A31 et A34 à A40, quatre livrables complets et trois manuels ; limites explicites        |
+|  01 | Dossier écrit        | `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.5-final-2026-07-22.pdf` | à générer après CI/CD ; maximum officiel de 30 pages hors annexes, navigation et rendu à contrôler         |
+|  02 | Annexes techniques   | `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.5-final-2026-07-22.pdf` | à générer avec A20, A25 à A31 et A34 à A41, quatre livrables complets et trois manuels                     |
 |  03 | Code source          | archive Git produite par `docs/rncp/tools/build_bloc2_delivery_pack.py`       | fichiers suivis du commit de remise, dont les trois manuels complets ; aucun secret, état OAuth, `.env` ou dépendance locale |
 |  04 | Notice et empreintes | `LISEZ-MOI.txt` et `MANIFESTE.txt` dans le paquet                             | ordre de lecture, SHA Git et SHA-256 de chaque pièce                                                       |
 
@@ -56,12 +56,10 @@ dans le `MANIFESTE.txt` du paquet. Elles ne sont pas dupliquées ici afin d'évi
 qu'une correction documentaire laisse une empreinte historique présentée comme
 courante.
 
-Le paquet local `alcide-bloc2-rncp39583-0.13.0-rc.4-final-2026-07-22.zip` a été
-validé depuis un état Git suivi propre. Il contient un dossier de 11 pages et
-75 pages d'annexes, les quatre livrables structurants et B2-A39/A40. La gate a
-validé navigation, anonymisation, ZIP imbriqué, décompression et empreintes. Le
-`MANIFESTE.txt` interne reste la source des SHA-256 des pièces après chaque
-régénération.
+Le paquet `alcide-bloc2-rncp39583-0.13.0-rc.5-final-2026-07-22.zip` doit être
+généré après la CI/CD et la contre-recette des correctifs issus du parcours
+NVDA. Les nombres de pages et empreintes ne seront inscrits qu'après cette
+exécution. Le `MANIFESTE.txt` interne restera la source des SHA-256 des pièces.
 
 Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 `final-2026-07-21` sont historiques et ne doivent pas être remis.
@@ -78,10 +76,10 @@ Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 | Frameworks et paradigmes                         | dossier §6 et ADR                                             |
 | Tests unitaires                                  | dossier §8, rapports API/Web/PostgreSQL/shared, B2-A31        |
 | Sécurité                                         | dossier §9, revue OWASP, B2-A35 et B2-A39                     |
-| Accessibilité                                    | dossier §10, B2-A20/B2-A36/B2-A37/B2-A40, axe, zoom, clavier, sémantique, tri contraste et limites humaines |
+| Accessibilité                                    | dossier §10, B2-A20/B2-A36/B2-A37/B2-A40/B2-A41, axe, zoom, clavier, sémantique, contrastes et parcours NVDA |
 | Historique des versions                          | dossier §11, Git et `CHANGELOG.md`                            |
 | Dernière version fonctionnelle, fiable et viable | dossier §11, CI/CD/healthchecks et B2-A28/B2-A37              |
-| Plan de tests et recette                         | dossier §12, cahier complet et B2-A34 à B2-A40                |
+| Plan de tests et recette                         | dossier §12, cahier complet et B2-A34 à B2-A41                |
 | Plan de correction des bogues                    | dossier §13 et registre B2-BUG                                |
 | Manuel de déploiement                            | dossier §14 et `docs/deployment.md`                           |
 | Manuel utilisateur                               | dossier §15 et manuel utilisateur autonome                    |
@@ -113,8 +111,9 @@ Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
       secrets/CORS/CSP/headers de production contrôlés ;
 - [x] accessibilité `rc.4` : 33/33 Playwright sur 3 pages publiques et 5
       privées, focus invalide et 3/3 relations d'onglets contre-recettés,
-      échantillonnage composite 78/79 signatures et 165/166 contextes, zoom
-      Chromium natif 200/400 % en production 16/16 ;
+      échantillonnage composite 165/166 contextes puis borne conservatrice du
+      dernier à 15,00:1, soit 166/166 décidés, zoom Chromium natif 200/400 % en
+      production 16/16 ;
 - [x] parcours CR-065 de production avec journal et dashboard `3 → 4` ;
 - [x] gate d'anonymisation du paquet : texte, métadonnées, annotations, liens
       et flux PDF, puis contenu du ZIP et des archives imbriquées ;

@@ -66,15 +66,18 @@ export function SettingsForm({ initial, onSave }: SettingsFormProps) {
         </span>
       </div>
 
-      {success && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="rounded-[1.25rem] border border-primary-300/25 bg-primary-300/10 p-4 text-sm text-primary-100"
-        >
-          Parametres sauvegardes.
-        </div>
-      )}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className={
+          success
+            ? 'rounded-[1.25rem] border border-primary-300/25 bg-primary-300/10 p-4 text-sm text-primary-100'
+            : 'sr-only'
+        }
+      >
+        {success ? 'Parametres sauvegardes.' : ''}
+      </div>
       {error && (
         <div
           role="alert"
