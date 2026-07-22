@@ -419,6 +419,7 @@ def build_readme_text() -> str:
                 "- LIV-04 - docs/rncp/bloc2-matrice-user-stories-preuves.md - matrice user stories, écrans, recettes et preuves complète",
                 "- B2-A39 - preuve de correction des dépendances et d'audit de sécurité rc.4",
                 "- B2-A40 - audit sémantique authentifié et contre-recette de production du focus/des onglets",
+                "- B2-A41 - parcours réel NVDA, transcriptions techniques, résultats et anomalies",
                 "",
                 "Les trois manuels sont également lisibles à la fin du PDF d'annexes et présents dans l'archive source :",
                 "- DOC-01 - docs/deployment.md",
@@ -482,6 +483,17 @@ def build_delivery_pack() -> None:
     if tracked_changes:
         raise RuntimeError("Les fichiers suivis doivent être commités avant de figer le paquet.")
 
+    untracked_allowed = [
+        path
+        for path in git("ls-files", "--others", "--exclude-standard").splitlines()
+        if is_allowed_source(path)
+    ]
+    if untracked_allowed:
+        raise RuntimeError(
+            "Les fichiers admissibles à l'archive doivent être suivis par Git : "
+            + ", ".join(untracked_allowed[:20])
+        )
+
     dossier_pages, dossier_text = validate_pdf(DOSSIER, maximum_pages=30)
     annex_pages, annex_text = validate_pdf(ANNEXES)
     dossier_outlines, dossier_links, dossier_tagged = validate_pdf_navigation(
@@ -513,6 +525,7 @@ def build_delivery_pack() -> None:
         "B2-A38",
         "B2-A39",
         "B2-A40",
+        "B2-A41",
         "29833210488",
         APPLICATION_SHA[:7],
         FINAL_CI_RUN,

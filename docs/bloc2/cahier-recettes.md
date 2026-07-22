@@ -28,21 +28,19 @@ artefact et anomalie éventuelle.
 | Élément                             | Valeur                                                                                                                         |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | Scénarios de recette comptabilisés  | 59 ; CR-049 est un risque architectural suivi séparément et n'entre pas dans le dénominateur                                  |
-| Scénarios clos                      | 58 : résultats exécutés/observés et contrôles automatisés dont les preuves sont conservées                                     |
-| Scénarios non clos                  | CR-055 partiel : qualification humaine des contrastes composites et parcours avec lecteur d'écran réel                         |
+| Scénarios clos                      | 57 : résultats exécutés/observés et contrôles automatisés dont les preuves sont conservées                                     |
+| Scénarios non clos                  | CR-055 partiel ; CR-063 à rejouer après intégration de B2-A41                                                                 |
 | Échecs fonctionnels finaux          | Aucun connu ; les écarts B2-BUG-040/041 sont corrigés et contre-recettés sur `rc.4`                                            |
 | SHA/tag testé                       | baseline déployée `ea703aef912ce9e7c49c4c9b7872a5a7b595b666` ; repère documentaire historique `v8`                          |
-| Environnement                       | `rc.4` : local, CI et production                                                                                              |
-| Artefacts                           | preuves A20, A25 à A40 ; matrice user stories ; paquet `rc.4` régénéré après la contre-recette                                |
+| Environnement                       | baseline `rc.4` en CI/production ; correctifs B2-BUG-042/043 dans la candidate locale `rc.5`                                 |
+| Artefacts                           | preuves A20, A25 à A41 ; matrice user stories ; paquet `rc.5` à générer après CI/CD et contre-recette                         |
 
 Les 59 scénarios ne sont pas tous des manipulations manuelles : le statut
 `🧪 Automatisé` désigne un cas réellement exécuté dans l'environnement indiqué.
 Le statut
-`✅ Exécuté` désigne une recette ou une observation conservée. CR-055 n'est pas
-inclus dans les 58 scénarios clos tant que sa réserve humaine n'est pas levée.
-CR-063 est clos localement : le PDF et le ZIP `rc.4` ont été générés, toutes les
-pages inspectées et la gate a validé la découvrabilité, la navigation,
-l'anonymisation, la décompression et les empreintes.
+`✅ Exécuté` désigne une recette ou une observation conservée. CR-055 et CR-063
+ne sont pas inclus dans les 57 scénarios clos : le premier attend la
+contre-recette NVDA, le second la reconstruction du paquet incluant B2-A41.
 
 ### Contrôles de la version `0.13.0-rc.4` — 2026-07-22
 
@@ -65,9 +63,9 @@ l'anonymisation, la décompression et les empreintes.
 | Séances, Timer et journalisation | CR-022 à CR-035 (14) | 14 clos | B2-A25, B2-A34, tests API/Web/PostgreSQL |
 | Paramètres et dashboard | CR-036 à CR-041 (6) | 6 clos | B2-A25, B2-A34 |
 | Sécurité fonctionnelle | CR-042 à CR-048 et CR-050 (8) | 8 clos | B2-A35, audit `low` local `rc.4`, B2-A39 |
-| Accessibilité | CR-051 à CR-055 (5) | 4 clos ; CR-055 partiel | B2-A25, B2-A36, B2-A37, B2-A40 |
-| Qualité, intégration et déploiement | CR-056 à CR-065 (10) | 10 clos | B2-A19, B2-A22, B2-A38, manifeste du paquet |
-| **Total** | **59** | **58 clos ; 1 partiel** | **index des annexes et présent cahier** |
+| Accessibilité | CR-051 à CR-055 (5) | 4 clos ; CR-055 partiel | B2-A25, B2-A36, B2-A37, B2-A40, B2-A41 |
+| Qualité, intégration et déploiement | CR-056 à CR-065 (10) | 9 clos ; CR-063 à rejouer | B2-A19, B2-A22, B2-A38, manifeste du paquet |
+| **Total** | **59** | **57 clos ; CR-055 partiel ; CR-063 à rejouer** | **index des annexes et présent cahier** |
 
 CR-049 est conservé sous son identifiant pour assurer la traçabilité du risque,
 mais il ne correspond pas à une fonctionnalité livrée ni à une recette exécutée.
@@ -78,13 +76,15 @@ mais il ne correspond pas à une fonctionnalité livrée ni à une recette exéc
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------ |
 | Métier et erreurs           | 9/9 API ciblés, 9/9 Web ciblés, 170/170 API, 55/55 Web, 8/8 PostgreSQL et parcours production CR-065 réussi         | B2-A34 |
 | Sécurité                    | 6/6 API, 1/1 PostgreSQL réel, 1/1 rendu XSS, 6/6 Playwright Chromium/Firefox, audit propre et production inspectée  | B2-A35 |
-| Accessibilité automatisable | 33/33 Playwright production authentifiée, 2/2 tests de structure et audit sémantique de huit routes principales + trois détails | B2-A36, B2-A40 |
+| Accessibilité automatisable | 33/33 Playwright production authentifiée, 2/2 tests de structure, audit sémantique et parcours réel NVDA sur dix scénarios | B2-A36, B2-A40, B2-A41 |
 
 Les correctifs CR-038, confirmation de journalisation et hiérarchie des titres
 ont passé la CI `29832575391`, le CD `29832944876`, les smoke tests et la
-contre-recette OAuth `29833210488` sur la baseline finale. CR-055 reste partiel
-pour les deux vérifications humaines décrites dans B2-A36/A37 ; cette limite n'est
-pas transformée en fausse conformité RGAA.
+contre-recette OAuth `29833210488` sur la baseline finale. CR-055 reste partiel :
+les 166 contextes composites sont décidés et un parcours réel NVDA a été
+exécuté, mais les défauts B2-BUG-042/043 doivent encore être déployés et
+contre-recettés ; aucune validation auditive humaine ni conformité RGAA
+exhaustive n'est revendiquée.
 
 Les rapports de couverture instrumentent 155 tests API, 43 Web, 8 PostgreSQL et
 14 shared. Les suites complètes comptent 170 tests API, 55 Web et 14 shared ; le
@@ -107,7 +107,7 @@ différents et ne se contredisent pas.
 | Snapshot documentaire `v5`     | Succès CI/CD                | `b3ca385` : diff applicatif nul depuis `b002adb`, CI `29847808450`, CD `29848187523` ; preuve antérieure, ne remplace pas la contre-recette de `b002adb` |
 | Repère documentaire final `v8` | Contrôles locaux du paquet  | corrections de cohérence, réserves et manuels ; SHA archivé et empreintes portés par le manifeste final                               |
 | E2E OAuth post-déploiement     | 6/6                        | run `29833210488` : session dédiée restaurée puis supprimée du runner                                                                    |
-| Accessibilité post-déploiement | 33/33 + zoom natif 16/16   | production `ea703ae` : 3 pages publiques et 5 privées ; composite 78/79 signatures, 165/166 contextes ; B2-A40 fermé                     |
+| Accessibilité post-déploiement | 33/33 + zoom natif 16/16   | production `ea703ae` : 3 pages publiques et 5 privées ; 166/166 contextes composites décidés ; B2-A40 fermé                            |
 
 Ces compléments démontrent le périmètre automatisé exécuté ; ils ne constituent
 pas une déclaration de conformité exhaustive au RGAA.
@@ -213,7 +213,7 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 | CR-046 | CORS hostile         | requête avec origine non autorisée                     | absence d'autorisation CORS                                      | curl automatisé         | ✅ Origine hostile refusée localement et en production ; origine officielle seule autorisée ; B2-A35   |
 | CR-047 | Headers/CSP          | inspecter réponse production                           | headers présents ; `unsafe-eval` absent en production            | test headers/curl       | ✅ CSP/HSTS/headers contrôlés en production ; `unsafe-eval` absent, `unsafe-inline` documenté ; B2-A35 |
 | CR-048 | Rate limit local     | dépasser quota dans un processus                       | 429 et `Retry-After`                                             | test middleware         | 🧪 Automatisé, CI finale verte                                                                         |
-| CR-050 | Audit dépendances    | lancer audit sur lockfile final                        | aucune vulnérabilité connue au niveau `low`                      | B2-A39                  | ✅ `rc.4` locale : cinq avis corrigés, audit `low` propre ; lint, types, 239 tests et builds verts. CI/CD et production non exécutées. |
+| CR-050 | Audit dépendances    | lancer audit sur lockfile final                        | aucune vulnérabilité connue au niveau `low`                      | B2-A39                  | ✅ `rc.4` : cinq avis corrigés, audit `low` propre ; lint, types, 239 tests et builds verts localement et en CI ; CD et production vérifiés. |
 
 ### Risque architectural associé — hors comptage de la recette
 
@@ -229,7 +229,7 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 | CR-052 | Pages authentifiées     | axe sur generate, programmes, listes, détail, dashboard, settings | aucune violation applicable non traitée                   | Playwright avec vrai storage state | ✅ Cinq pages privées auditées sans violation de contraste axe, arbre AX contrôlé ; `/programs/generate` contre-vérifié ; B2-A36                                  |
 | CR-053 | Clavier                 | parcourir navigation, formulaires, tabs, suppressions, Timer      | toutes actions atteignables, ordre/focus cohérents        | audit navigateur + tests composants | ✅ Cycle Tab complet et focus perceptible sur 3 pages publiques et 5 privées ; annulation de suppression avec restitution du focus ; focus du premier champ invalide et 3/3 relations d'onglets contre-recettés en production ; B2-A25/B2-A36/B2-A40 |
 | CR-054 | Reflow/mobile           | 320 px CSS et viewport mobile                                     | aucune perte d'information/action ni scroll 2D injustifié | captures + audit manuel            | ✅ Reflow 640/320 px sur 3 pages publiques et 5 privées, plus `/programs/generate`, sans débordement ; B2-A36                                                     |
-| CR-055 | Zoom/contraste/annonces | zoom 200/400 %, contraste, lecteur d'écran                        | contenu lisible et annonces compréhensibles               | grille RGAA manuelle               | ⏳ Partiel : rejeu production `rc.4` 33/33, zoom 16/16, zéro violation axe et 416 `incomplete` ; échantillonnage pixel 78/79 signatures et 165/166 contextes en succès automatisé, un contexte réservé. Focus et onglets contre-recettés ; aucune écoute Narrator/NVDA exécutée ; B2-A37/A40. |
+| CR-055 | Zoom/contraste/annonces | zoom 200/400 %, contraste, lecteur d'écran                        | contenu lisible et annonces compréhensibles               | grille RGAA + transcription NVDA   | ⏳ Partiel : rejeu production `rc.4` 33/33, zoom 16/16, zéro violation axe et contrastes 166/166 décidés. Parcours réel NVDA 2026.1.1 : 6 conformes, 3 partiels, 1 non conforme ; correctifs B2-BUG-042/043 validés localement, à déployer et contre-recetter. Aucune validation auditive humaine n'est revendiquée ; B2-A37/A40/A41. |
 
 ## Qualité, intégration et déploiement
 
@@ -242,14 +242,16 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 | CR-060 | Readiness API             | DB/clé disponibles puis indisponibles                                    | 200 prêt ; 503 avec dépendance défaillante                                          | tests route + curl  | ✅ Cas automatisés verts ; readiness production 200, DB/IA `ok`                                                   |
 | CR-061 | CI complète               | pousser le SHA final                                                     | tous les jobs obligatoires verts                                                    | run GitHub          | ✅ Run final `29907294766` réussi sur `ea703ae`                                                                   |
 | CR-062 | CD sans contournement     | CI échoue puis réussit                                                   | aucun déploiement après échec ; déploiement après succès                            | runs GitHub + B2-A38 | ✅ Fermé sans toucher à `main` : CI courante `29856584668` rouge sur PR isolée, quatre jobs aval ignorés, aucun run CD associé et inventaires Vercel production API/Web identiques avant/après ; politique YAML 6/6. Chemin vert `29845956008` → `29846343559`. Limite : aucun commit volontairement rouge sur `main`. |
-| CR-063 | Version immuable          | construire le paquet depuis un état Git propre et vérifier PDF, source, SHA et empreintes | build refusé si fichiers suivis modifiés ; PDF principal ≤ 30 pages ; livrables de premier niveau présents ; archive et PDF anonymisés ; SHA-256 consignés | `build_bloc2_delivery_pack.py` + manifeste | ✅ Paquet `rc.4` validé depuis un état suivi propre : dossier 11 pages, annexes 75 pages, LIV-01 à LIV-04 et B2-A39/A40 présents ; navigation, anonymisation, ZIP imbriqué, décompression et empreintes validés. |
+| CR-063 | Version immuable          | construire le paquet depuis un état Git propre et vérifier PDF, source, SHA et empreintes | build refusé si fichiers suivis modifiés ; PDF principal ≤ 30 pages ; livrables de premier niveau présents ; archive et PDF anonymisés ; SHA-256 consignés | `build_bloc2_delivery_pack.py` + manifeste | ⏳ À rejouer : le paquet `rc.4` précédent était valide, mais l'ajout de B2-A41 et des correctifs locaux impose une nouvelle génération, inspection et vérification des empreintes. |
 | CR-064 | Production API/Web        | déployer le SHA final                                                    | liveness/readiness/Web en 200                                                       | curl daté           | ✅ CD final `29907642144`, HTTP 200 `rc.4`, DB et configuration IA `ok`                                           |
 | CR-065 | Parcours post-déploiement | login, séance, programme, Timer, journal, dashboard                      | parcours complet sans erreur                                                        | recette production  | ✅ Session OAuth, Programmes, Timer, effort/feedback/douleur, journal et dashboard `3 → 4` en production ; B2-A34 |
 
 ## Critère de clôture C2.3.1
 
 Les 59 scénarios de recette sont reliés à une preuve ou à une réserve explicite :
-58 sont clos ; seul CR-055 reste partiel pour les contrôles humains. CR-062 combine une CI rouge
+57 sont clos ; CR-055 reste partiel après le parcours NVDA réel et CR-063 doit
+être rejoué après reconstruction du paquet. Deux correctifs doivent être
+déployés et quatre annonces contre-recettées. CR-062 combine une CI rouge
 courante isolée, un inventaire Vercel avant/après et six tests de politique.
 CR-049 demeure un risque architectural hors dénominateur. Les tests
 Vitest/Playwright ne sont pas présentés comme un audit RGAA exhaustif.

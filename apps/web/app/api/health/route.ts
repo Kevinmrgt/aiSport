@@ -11,7 +11,7 @@ export function GET() {
       version:
         process.env['NEXT_PUBLIC_APP_VERSION'] ??
         process.env['npm_package_version'] ??
-        '0.13.0-rc.4',
+        '0.13.0-rc.5',
     },
     {
       status: 200,

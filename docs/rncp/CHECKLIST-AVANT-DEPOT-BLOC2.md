@@ -22,6 +22,10 @@ Les contrôles techniques ne sont plus présentés comme des actions administrat
 encore ouvertes : ils sont exécutés par le constructeur du paquet et consignés
 dans `MANIFESTE.txt`.
 
+Les cases déjà cochées ci-dessous décrivent la baseline historique `rc.4`.
+Elles ne valent pas validation de la candidate `rc.5`, qui doit repasser la
+CI/CD, la contre-recette et la construction du paquet.
+
 - [x] baseline applicative `ea703ae` validée par la CI `29907294766` et le CD
       `29907642144` ;
 - [x] reflow contre-recetté en production : zoom natif 16/16 et accessibilité
@@ -46,8 +50,15 @@ Pour la version publiée `0.13.0-rc.4` du 2026-07-22 :
       ZIP final et ZIP imbriqué ;
 - [x] publier la candidate et conserver la CI/CD verte correspondante ;
 - [x] exécuter la contre-recette de production sur la candidate publiée ;
-- [ ] exécuter et consigner un vrai parcours vocal Narrator ou NVDA ;
-- [ ] terminer la qualification humaine des contrastes composites de CR-055.
+- [x] exécuter et consigner un vrai parcours NVDA : version 2026.1.1,
+      dix scénarios, 6 conformes, 3 partiels et 1 non conforme, B2-A41 ;
+- [x] décider les 166 contextes composites de CR-055 : 165 échantillonnés et
+      le dernier borné à 15,00:1 dans le pire cas documenté par B2-A37.
+- [ ] déployer les correctifs B2-BUG-042/043 et contre-recetter SR-04/SR-08 ;
+      décider les annonces finales SR-09/SR-10. Aucune validation auditive
+      humaine ni conformité RGAA exhaustive n'est revendiquée avant preuve.
+- [ ] reconstruire et inspecter le paquet `rc.5` incluant B2-A41, puis vérifier
+      sa décompression, son anonymisation et ses empreintes.
 
 Après toute nouvelle correction documentaire, le paquet doit être reconstruit :
 le manifeste produit par cette dernière exécution, et lui seul, fait foi.

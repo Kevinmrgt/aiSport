@@ -87,6 +87,6 @@ locales. La correction a néanmoins été appliquée sans dérogation, car la r�
 qualité du projet refuse toute vulnérabilité connue à partir du niveau `low`.
 
 Cette annexe prouve à la fois la correction locale et son passage réel dans la
-chaîne CI/CD. Elle ne remplace pas l'écoute humaine au lecteur d'écran ni la
-qualification humaine du dernier contexte de contraste composite conservé en
-réserve dans B2-A40.
+chaîne CI/CD. Elle ne remplace pas l'écoute humaine au lecteur d'écran. Le
+dernier contexte composite initialement réservé est décidé séparément dans
+B2-A37 par une borne conservatrice reproductible.
