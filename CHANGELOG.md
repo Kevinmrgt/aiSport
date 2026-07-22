@@ -14,6 +14,10 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 > La version `0.13.0-rc.4` a été publiée le 22 juillet 2026 sur le SHA
 > `ea703aef912ce9e7c49c4c9b7872a5a7b595b666`, validée par la CI `29907294766`
 > et déployée par la CD `29907642144`.
+>
+> Les correctifs issus du parcours NVDA forment la candidate locale
+> `0.13.0-rc.5`. Elle n'est pas présentée comme publiée avant sa propre CI/CD
+> et sa contre-recette de production.
 
 ### Fixed
 
@@ -27,6 +31,10 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
   premier champ en erreur.
 - Chaque onglet de semaine référence désormais un panneau présent dans le DOM ;
   les panneaux inactifs sont masqués et retirés de l'ordre de tabulation.
+- Les formulaires de génération distinguent désormais une redirection Next.js
+  réussie d'une erreur métier afin d'éviter l'alerte vocale `NEXT_REDIRECT`.
+- La région de confirmation des paramètres reste montée avant la sauvegarde,
+  puis reçoit le message de succès sans déplacer le focus.
 
 ### Added
 
@@ -36,6 +44,9 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
   des nouveaux avis `sharp`, `hono` et `@hono/node-server`.
 - Annexe B2-A40 retraçant l'audit sémantique authentifié, la confirmation de
   suppression et la contre-recette de production du focus et des onglets.
+- Annexe B2-A41 retraçant un parcours réel NVDA 2026.1.1 sur dix scénarios de
+  production, ses transcriptions techniques, ses limites et les anomalies
+  B2-BUG-042 à 045. Aucune validation auditive humaine n'est revendiquée.
 - Matrice de traçabilité reliant 11 user stories aux écrans, au code, aux
   recettes et aux preuves du Bloc 2.
 - Paquet d'annexes enrichi des quatre livrables structurants complets, avec
@@ -47,12 +58,15 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 - `sharp` résolu en `0.35.3`, `hono` en `4.12.31` et
   `@hono/node-server` en `2.0.11` ; l'audit de production au niveau `low`
   retrouve un état sans vulnérabilité connue.
-- Validation locale post-correction : lint, typecheck, 239 tests et build
-  complet réussis.
+- Validation historique `rc.4` : lint, typecheck, 239 tests et build complet
+  réussis, puis CI/CD.
+- Validation locale `rc.5` après les corrections NVDA : audit `low` propre,
+  lint, typecheck, **241/241 tests** et build complet réussis.
 - Contrastes composites préqualifiés sur 79 signatures et 166 contextes après
   déploiement : 78/79 signatures et 165/166 contextes passent
-  l'échantillonnage automatisé. Le dernier contexte, ainsi que l'écoute au
-  lecteur d'écran, restent explicitement ouverts à une vérification humaine.
+  l'échantillonnage automatisé. Le dernier contexte est fermé par une borne
+  conservatrice à 15,00:1. Un parcours réel NVDA est consigné dans B2-A41 ;
+  deux correctifs locaux doivent encore être déployés et contre-recettés.
 
 ---
 

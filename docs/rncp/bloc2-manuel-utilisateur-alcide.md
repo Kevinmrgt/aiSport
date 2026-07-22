@@ -135,9 +135,10 @@ L'application prévoit :
 Pour vérifier l'accessibilité en démonstration, utiliser la touche `Tab` pour parcourir l'interface et contrôler que chaque action reste atteignable.
 
 Le reflow a été contre-recetté en production avec un zoom Chromium natif à
-200 % et 400 % sur huit routes, soit 16 contrôles réussis sur 16. Cette preuve
-ne remplace pas une revue humaine exhaustive des fonds composites ni un parcours
-avec un lecteur d'écran réel.
+200 % et 400 % sur huit routes, soit 16 contrôles réussis sur 16. Les 166
+contextes composites de l'échantillon sont décidés dans B2-A37. Un parcours
+technique NVDA est consigné dans B2-A41, sans revendication de validation
+auditive humaine ni de conformité RGAA exhaustive.
 
 ## 12. Problèmes courants
 

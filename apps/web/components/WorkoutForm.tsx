@@ -9,6 +9,7 @@ import { AlcideMascotPrompt } from './AlcideMascotPrompt';
 import { GlassPanel, MetricPill } from './PremiumPrimitives';
 import { GenerateWorkoutInputSchema } from '@alcide/shared';
 import type { GenerateWorkoutInput } from '@alcide/shared';
+import { isNextRedirectError } from '@/lib/next-navigation';
 
 interface WorkoutFormProps {
   onSubmit: (data: GenerateWorkoutInput) => Promise<{ error?: string } | void>;
@@ -71,6 +72,7 @@ export function WorkoutForm({ onSubmit, costEstimate }: WorkoutFormProps) {
         setGlobalError(result.error);
       }
     } catch (error) {
+      if (isNextRedirectError(error)) return;
       setGlobalError(
         error instanceof Error ? error.message : 'Une erreur est survenue, veuillez reessayer',
       );

@@ -1,5 +1,8 @@
 # B2-A40 - Audit semantique assiste du 22 juillet 2026
 
+> État historique avant B2-A41 : aucun lecteur d'écran réel n'a été utilisé
+> pendant cette campagne. Le parcours NVDA ultérieur est consigné dans B2-A41.
+
 > Competences : C2.2.1, C2.2.3, C2.3.1, C2.3.2  
 > Application observee : `https://ai-sport-web.vercel.app`  
 > Baseline de production : `0.13.0-rc.4`, commit `ea703aef912ce9e7c49c4c9b7872a5a7b595b666`
@@ -123,8 +126,8 @@ detecter deux regressions qui ne ressortaient pas des campagnes precedentes.
 
 Les corrections ont passe la CI/CD et la contre-recette de production. Le rejeu
 authentifie a reussi 33/33 tests, le zoom natif 16/16 et l'echantillonnage
-composite classe 78/79 signatures et 165/166 contextes en succes automatise ;
-le dernier contexte reste reserve a une qualification humaine. Aucune ecoute
+composite classe 165/166 contextes en succes automatise ; le dernier est borne
+a 15,00:1 dans le pire cas, soit 166/166 contextes decides. Aucune ecoute
 avec un lecteur d'ecran n'a ete realisee. Cette annexe renforce donc la preuve
 d'actions d'accessibilite, sans constituer une declaration de conformite RGAA
 exhaustive.

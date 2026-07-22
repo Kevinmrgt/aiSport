@@ -59,17 +59,18 @@ pas être reprises comme preuves du SHA final.
 | B2-A34 | C2.2.2 / C2.3.1 / C2.3.2                   | Fermeture des recettes métier, erreurs IA, modèles, journaux et dashboard                                     | 9/9 API, 9/9 Web, suites complètes vertes et parcours production CR-065 `3 → 4`                                              | `docs/rncp/bloc2-annexes/B2-A34-recettes-metier-finales-2026-07-21.md`                             |
 | B2-A35 | C2.2.3 / C2.3.1                            | Recettes sécurité SQL-like, XSS, secrets, CORS, CSP/headers et journalisation                                 | Campagne `0d5c6b6`, contrôles inchangés et CI rejouée sur `b002adb` ; `unsafe-inline` conservé comme risque résiduel          | `docs/rncp/bloc2-annexes/B2-A35-recettes-securite-finales-2026-07-21.md`                           |
 | B2-A36 | C2.2.1 / C2.2.3 / C2.3.1 / C2.3.2          | Audit accessibilité final public/privé : reflow, clavier, focus, contrastes, arbre AX et alertes              | 33/33 Playwright + 2/2 structure ; prolongé par le zoom natif et les limites humaines de B2-A37                              | `docs/rncp/bloc2-annexes/B2-A36-audit-accessibilite-final-2026-07-21.md`                           |
-| B2-A37 | C2.2.3 / C2.3.1 / C2.3.2                   | Zoom 200/400 %, audit détaillé des contrastes, échantillonnage pixel et limites lecteur d'écran                 | Rejeu production `rc.4` : 33/33, zéro violation, 416 `incomplete` ; tri pixel 78/79 signatures et 165/166 contextes conformes, un contexte à revoir humainement ; aucune écoute réelle Narrator/NVDA | `docs/rncp/bloc2-annexes/B2-A37-controles-accessibilite-humains-2026-07-21.md`                     |
+| B2-A37 | C2.2.3 / C2.3.1 / C2.3.2                   | Zoom 200/400 %, audit détaillé des contrastes, échantillonnage pixel et limite historique lecteur d'écran       | Rejeu production `rc.4` : 33/33, zéro violation, 416 `incomplete` ; 165/166 contextes passent le tri pixel et le dernier est borné à 15,00:1, soit 166/166 décidés ; parcours NVDA ultérieur dans B2-A41 | `docs/rncp/bloc2-annexes/B2-A37-controles-accessibilite-humains-2026-07-21.md`                     |
 | B2-A38 | C2.1.2 / C2.2.4 / C2.3.1 / C2.3.2        | Preuve négative CI/CD courante sur branche et PR isolées                                                       | CI `29856584668` rouge, jobs aval ignorés, aucun CD associé, inventaires Vercel production inchangés, politique 6/6           | `docs/rncp/bloc2-annexes/B2-A38-preuve-negative-ci-cd-2026-07-21.md`                               |
 | B2-A39 | C2.1.2 / C2.2.3 / C2.3.1 / C2.3.2        | Correction des cinq avis de dépendances détectés le 22 juillet                                                | `sharp 0.35.3`, `hono 4.12.31`, `@hono/node-server 2.0.11` ; audit `low`, 239 tests et builds ; CI `29907294766`, CD `29907642144`, healthchecks `rc.4` | `docs/rncp/bloc2-annexes/B2-A39-correction-dependances-2026-07-22.md`                              |
 | B2-A40 | C2.2.1 / C2.2.3 / C2.3.1 / C2.3.2        | Audit sémantique authentifié des routes principales, détails, formulaires, onglets et suppression             | huit routes principales et trois détails contrôlés ; B2-BUG-040/041 clos après contre-recette `rc.4` ; focus `sport`, 3/3 cibles d'onglets résolues | `docs/rncp/bloc2-annexes/B2-A40-audit-semantique-assiste-2026-07-22.md`                           |
+| B2-A41 | C2.2.3 / C2.3.1 / C2.3.2                 | Parcours réel NVDA public et authentifié, avec Visionneuse de parole et journal entrée/sortie                  | 6 scénarios conformes, 3 partiels et 1 non conforme ; B2-BUG-042/043 corrigés localement, contre-recette de production requise | `docs/rncp/bloc2-annexes/B2-A41-parcours-nvda-production-2026-07-22.md`                           |
 | LIV-04 | C2.2.1 / C2.3.1                            | Matrice complète besoins/user stories, écrans, composants, scénarios et preuves                               | Présente intégralement dans le PDF d'annexes `rc.4`, avec entrée de sommaire et signet                                          | `docs/rncp/bloc2-matrice-user-stories-preuves.md`                                                  |
 
-Le paquet `rc.4` intègre aussi le cahier de recettes, le plan de correction,
-la revue OWASP et LIV-04 comme livrables complets de premier niveau. B2-A40 est
-présent dans le rendu de 75 pages. La génération, l'inspection visuelle,
-l'anonymisation des PDF/ZIP, la décompression et les empreintes ont été
-validées par la gate de livraison.
+Le paquet `rc.4` existant, validé sur 75 pages, est historique et antérieur à
+B2-A41. La remise `rc.5` devra intégrer le cahier de recettes, le plan de
+correction, la revue OWASP, LIV-04 et B2-A41, puis repasser la génération,
+l'inspection visuelle, l'anonymisation PDF/ZIP, la décompression et les
+empreintes.
 
 ## Règles de nommage
 
