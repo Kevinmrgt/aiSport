@@ -4,7 +4,7 @@
 > Production observée : `https://ai-sport-web.vercel.app`, version `0.13.0-rc.4`  
 > Compétences : C2.2.3, C2.3.1 et C2.3.2  
 > Statut initial : lecteur d'écran réellement exécuté ; 6 scénarios conformes, 3 partiels et 1 non conforme sur `rc.4`
-> Statut final : correctifs publiés dans `rc.5` et grille NVDA validée par le candidat
+> Statut final : correctifs publiés dans `rc.5` et contre-recette NVDA déclarée validée
 
 ## 1. Environnement et méthode
 
@@ -108,12 +108,12 @@ SR-10 est une observation de la campagne, pas une preuve par absence de ligne.
 ## 5. Contre-recette de la version `0.13.0-rc.5`
 
 La correction a été fusionnée dans `main` par la PR `#49`. La baseline
-applicative déployée est `b63280f36e44b02d5654a7f4e2caa8413e446bcb`.
+applicative déployée est `c63439e8ac8d68efd5ba091211b326ee8575fbba`.
 
 | Contrôle | Résultat |
 | --- | --- |
-| CI `main` | run `29916228789`, six jobs réussis |
-| CD `main` | run `29916573448`, migration, API, Web et smoke tests réussis |
+| CI `main` | run `29930722308`, six jobs réussis |
+| CD `main` | run `29931146789`, migration, API, Web et smoke tests réussis |
 | API liveness | HTTP 200, version `0.13.0-rc.5` |
 | API readiness | HTTP 200, version `0.13.0-rc.5`, base et configuration IA `ok` |
 | Web health | HTTP 200, version `0.13.0-rc.5` |
@@ -132,8 +132,8 @@ la trace de la campagne `rc.4` et ne sont pas réécrits comme des résultats
 
 | Écart | Décision finale |
 | --- | --- |
-| B2-BUG-042 / SR-04 | **Clos** sur `rc.5` : correctif déployé, tests séance/programme verts et validation NVDA du candidat |
-| B2-BUG-043 / SR-08 | **Clos** sur `rc.5` : région vive persistante, test de focus vert et validation NVDA du candidat |
+| B2-BUG-042 / SR-04 | **Clos** sur `rc.5` : correctif déployé, tests séance/programme verts et contre-recette NVDA déclarée validée |
+| B2-BUG-043 / SR-08 | **Clos** sur `rc.5` : région vive persistante, test de focus vert et contre-recette NVDA déclarée validée |
 | B2-BUG-044 / SR-09 | **Ouvert non bloquant** : l'ajout d'un message final reste une amélioration P2 ; aucun résultat détaillé `rc.5` n'est inventé |
 | B2-BUG-045 / SR-10 | **Ouvert non bloquant** : une annonce de route dédiée reste une amélioration P2 ; aucun résultat détaillé `rc.5` n'est inventé |
 

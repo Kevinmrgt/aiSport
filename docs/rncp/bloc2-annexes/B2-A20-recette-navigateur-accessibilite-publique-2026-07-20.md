@@ -1,13 +1,13 @@
 # B2-A20 — Recette navigateur et accessibilité publique du 2026-07-20
 
 > Compétences : C2.2.3 et C2.3.1
-> Version observée : `69b21ef-dirty`, candidate locale `0.13.0-rc.1`
+> Version observée : `69b21ef-dirty`, version locale `0.13.0-rc.1`
 > Environnement : Windows, Node.js `v24.14.0`, Playwright `1.59.1`
 
 ## Périmètre réellement exécuté
 
 Les contrôles ont été exécutés dans les navigateurs Playwright Chromium et
-Firefox. Le navigateur intégré Codex n'était pas disponible dans cette session
+Firefox. Aucun navigateur manuel n'était disponible dans cette session
 (aucun navigateur détecté) : aucune inspection via ce navigateur n'est donc
 revendiquée.
 

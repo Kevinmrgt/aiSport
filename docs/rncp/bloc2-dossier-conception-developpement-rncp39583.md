@@ -1,16 +1,16 @@
 # Dossier Bloc 2 RNCP39583 - Alcide
 
 > Concevoir et développer des applications logicielles
-> Version de production : `0.13.0-rc.5`, commit `b63280f36e44b02d5654a7f4e2caa8413e446bcb`
-> Référence documentaire de la baseline déployée : tag `rncp-bloc2-2026-07-21-v8`
-> Publication : PR `#49`, CI `29916228789`, CD `29916573448` ; le manifeste du paquet porte le SHA effectivement archivé et les empreintes des livrables.
+> Version de production : `0.13.0-rc.5`, commit `c63439e8ac8d68efd5ba091211b326ee8575fbba`
+> Validation de cette version : CI `29930722308`, CD `29931146789`
+> Dépôt GitHub : lien transmis avec la remise ; la révision ci-dessus permet de retrouver exactement la version contrôlée.
 > Dossier anonymisé, actualisé le 22 juillet 2026
 
 ## 1. Cadre officiel et composition du rendu
 
 L'évaluation du Bloc 2 est une mise en situation professionnelle sous la forme
-d'un projet individuel. Le candidat remet le code source du logiciel, la
-documentation associée et un dossier écrit de 30 pages maximum hors annexes.
+d'un projet individuel. Le rendu comprend le code source, la documentation
+associée et un dossier écrit de 30 pages maximum hors annexes.
 Le référentiel public France Compétences et le règlement spécial Ynov
 identifient seize éléments à présenter.
 
@@ -42,33 +42,33 @@ Sources : [fiche RNCP39583](https://www.francecompetences.fr/recherche/rncp/3958
 référentiel officiel pages 7 à 10 et règlement spécial Ynov version 1.01 du
 15 septembre 2025 fournis avec le dossier.
 
-## 2. Synthèse de conformité factuelle
+## 2. Repères de lecture et preuves disponibles
 
-Cette synthèse décrit les preuves disponibles. Elle ne remplace pas la décision
-du jury.
+Le tableau ci-dessous sert de guide. Il indique où retrouver les éléments
+présentés, sans préjuger de l'évaluation qui reste du ressort du jury.
 
-| Compétence                                     | Preuve principale                                             | État avant dépôt                                        |
-| ---------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------- |
-| C2.1.1 Environnements, qualité, performance    | Node 24, Docker, Vercel, Neon, healthchecks, mesure A29       | étayé                                                   |
-| C2.1.2 Intégration continue                    | CI finale `29916228789`, rapports et images Docker            | étayé                                                   |
-| C2.2.1 Prototype                               | matrice user stories, production `rc.5`, captures desktop/mobile A30 | étayé sur la baseline déployée                         |
-| C2.2.2 Tests unitaires                         | shared 14, API 170, Web 57 sur `rc.5`                         | étayé                                                   |
-| C2.2.3 Sécurité, accessibilité, conformité     | OWASP, A35 à A37, dépendances A39, audits A40/A41              | acquise sur le périmètre présenté ; réserve RGAA exhaustive |
-| C2.2.4 Déploiement progressif et versionnement | baseline `rc.5`, CI `29916228789`, CD `29916573448`, smoke tests | étayé                                                   |
-| C2.3.1 Cahier de recettes                      | 59 scénarios clos ; CR-063 validé par le paquet final         | acquise sur le périmètre présenté                         |
-| C2.3.2 Correction des bogues                   | registre B2-BUG et tests de non-régression                    | étayé                                                   |
-| C2.4.1 Documentation d'exploitation            | trois manuels présents et versionnés                          | étayé                                                   |
+| Compétence                                     | Preuve principale                                             | Ce qui est montré                                     |
+| ---------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------- |
+| C2.1.1 Environnements, qualité, performance    | Node 24, Docker, Vercel, Neon, healthchecks, mesure A29       | environnements et résultats mesurés                   |
+| C2.1.2 Intégration continue                    | CI `29930722308`, rapports et images Docker                   | six jobs exécutés avec succès                         |
+| C2.2.1 Prototype                               | matrice user stories, production `rc.5`, captures A30         | parcours métier sur bureau et mobile                  |
+| C2.2.2 Tests unitaires                         | shared 14, API 170, Web 57 sur `rc.5`                         | suites et couvertures séparées                        |
+| C2.2.3 Sécurité et accessibilité               | OWASP, A35 à A37, dépendances A39, audits A40/A41             | contrôles réalisés et limites RGAA explicites         |
+| C2.2.4 Déploiement et versionnement            | `rc.5`, CI `29930722308`, CD `29931146789`, smoke tests       | version déployée, vérifiée et traçable                |
+| C2.3.1 Cahier de recettes                      | 59 scénarios documentés et résultats associés                 | couverture fonctionnelle et réserves identifiées      |
+| C2.3.2 Correction des bogues                   | registre B2-BUG et tests de non-régression                    | détection, correction et contre-recette               |
+| C2.4.1 Documentation d'exploitation            | trois manuels présents et versionnés                          | déployer, utiliser et mettre à jour                   |
 
 La réserve résiduelle de C2.2.3 concerne la portée de l'évaluation. Les actions
 d'accessibilité sont démontrées sur un échantillon public/privé. Le zoom natif
 à 200/400 % a détecté quatre troncatures à 400 %, désormais corrigées,
 déployées et contre-testées 16/16 en production. Les 166 contextes composites
-de l'échantillon sont décidés. NVDA `2026.1.1` a réellement exécuté dix
+de l'échantillon sont décidés. NVDA `2026.1.1` a été utilisé sur dix
 parcours dans B2-A41 sur `rc.4` ; six sont conformes, trois partiels et un non
 conforme. Les deux correctifs associés sont publiés dans `rc.5`, dont la CI/CD
-et les healthchecks sont verts, puis l'utilisateur a déclaré avoir effectué et
-validé les tests NVDA. Un audit couvrant chaque critère reste nécessaire avant
-toute déclaration de conformité RGAA.
+et les healthchecks sont verts. La contre-recette NVDA a ensuite été déclarée
+validée, sans nouvelle transcription détaillée. Un audit couvrant chaque
+critère reste nécessaire avant toute déclaration de conformité RGAA.
 
 La version `0.13.0-rc.5` ajoute au socle `rc.4` la correction de l'alerte vocale
 `NEXT_REDIRECT` et une région de statut persistante pour les paramètres. Elle a
@@ -82,7 +82,7 @@ technique détaillée de l'attestation utilisateur post-déploiement.
 
 | Composant              | Choix réel                               | Contrôle                                          |
 | ---------------------- | ---------------------------------------- | ------------------------------------------------- |
-| Poste candidat         | Windows, PowerShell, Codex desktop       | commandes et traces datées                        |
+| Poste de développement | Windows et PowerShell                    | commandes et traces datées                        |
 | Gestion de sources     | Git et GitHub                            | branches, commits, pull requests, tags            |
 | Monorepo               | pnpm workspaces 11.9                     | lockfile figé et installation `--frozen-lockfile` |
 | Runtime et compilation | Node.js 24, TypeScript 5.7               | typecheck et builds CI                            |
@@ -98,9 +98,11 @@ migration Drizzle, déploiement API, smoke test API, déploiement Web puis smoke
 test Web. Le run `29832944876` a exécuté cette séquence sur la baseline de
 consolidation `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`, avant le correctif
 final de reflow. La baseline corrective courante
-`b63280f36e44b02d5654a7f4e2caa8413e446bcb` a passé la CI `29916228789` et le
-CD `29916573448`. Les healthchecks ont répondu HTTP 200 avec la version
-`0.13.0-rc.5`, PostgreSQL `ok` et configuration IA `ok`.
+La publication initiale de `rc.5` a été contrôlée sur `b63280f`. Le dernier
+correctif Web porte la version à `c63439e8ac8d68efd5ba091211b326ee8575fbba` :
+la CI `29930722308` et le CD `29931146789` ont réussi. Les healthchecks ont
+répondu HTTP 200 avec la version `0.13.0-rc.5`, PostgreSQL `ok` et configuration
+IA `ok`.
 
 ### Critères mesurables retenus
 
@@ -114,7 +116,7 @@ CD `29916573448`. Les healthchecks ont répondu HTTP 200 avec la version
 | Latence healthchecks                   | p95 inférieur ou égal à 1 000 ms                    | Web 508,63 ms, API 339,66 ms, readiness 267,11 ms          |
 | Build Web                              | bundle initial partagé documenté                    | 102 kB sur le build local final                            |
 
-La mesure A29 est une mesure séquentielle depuis le poste candidat. Elle ne
+La mesure A29 est une mesure séquentielle depuis le poste de développement. Elle ne
 constitue pas un test de charge distribué et ne mesure pas le temps d'une
 génération IA payante. Les timeouts et erreurs fournisseur sont couverts par
 les tests API ; la génération réelle et le nettoyage des données sont décrits
@@ -139,8 +141,8 @@ Le run de consolidation `29832575391` sur `main` a réussi les six jobs. Les rap
 API, Web, PostgreSQL, shared et Playwright sont disponibles comme artefacts
 GitHub Actions. Cette chaîne a exécuté 170 tests API, 55 Web, 14 shared,
 les recettes PostgreSQL, le smoke Playwright public, les builds et les deux
-images Docker. Après le correctif de reflow, la CI canonique `29845956008` a
-rejoué la chaîne sur `b002adb` avec les six jobs au vert.
+images Docker. Après les derniers correctifs, la CI `29930722308` a rejoué la
+chaîne complète sur `c63439e` avec les six jobs au vert.
 
 Les nombres de cette chaîne désignent les suites complètes. Les rapports de
 couverture instrumentent séparément 155 tests API, 43 tests Web, 8 tests
@@ -278,7 +280,7 @@ du Timer, noms accessibles, reflow responsive et contrastes corrigés.
 Les preuves automatisées réelles sont :
 
 - 12/12 contrôles Chromium et 12/12 Firefox sur le périmètre public B2-A20 ;
-- redirections sans session et démarrage OAuth réel B2-A24 ;
+- redirections sans session et session OAuth réelle B2-A26 ;
 - interactions authentifiées et corrections de focus B2-A25 ;
 - six tests Playwright authentifiés, dont reflow à 390 px et axe sur le
   formulaire privé B2-A30 ;
@@ -309,13 +311,12 @@ décidé par une borne conservatrice à 15,00:1 dans le pire cas : 166/166
 contextes sont donc décidés sur l'échantillon.
 
 L'attendu officiel porte sur la présentation des actions mises en œuvre pour
-permettre l'accès aux personnes en situation de handicap. Ces actions sont
-mesurées et reproductibles. Le parcours NVDA réel complète axe et l'arbre
-d'accessibilité. Les correctifs B2-BUG-042/043 sont déployés dans `rc.5`, puis
-l'utilisateur a déclaré avoir effectué et validé les tests NVDA. C2.2.3 est
-considérée acquise sur le périmètre présenté. B2-BUG-044/045 restent des
-améliorations P2 non bloquantes ; le dossier ne revendique ni une conformité
-RGAA exhaustive ni une appréciation auditive détaillée.
+permettre l'accès aux personnes en situation de handicap. Les contrôles
+réalisés sont reproductibles et le parcours NVDA complète axe et l'arbre
+d'accessibilité. Les correctifs B2-BUG-042/043 sont déployés dans `rc.5` et la
+contre-recette a été déclarée validée. B2-BUG-044/045 restent des améliorations
+P2 non bloquantes. Aucune conformité RGAA exhaustive ni appréciation auditive
+détaillée n'est revendiquée.
 
 ## 11. C2.2.4 - Historique, dernière version et viabilité
 
@@ -329,17 +330,15 @@ RGAA exhaustive ni une appréciation auditive détaillée.
 | 0.13.0-rc.5           | alertes de redirection et statut de sauvegarde corrigés ; CI/CD, healthchecks et validation NVDA |
 | finalisation du rendu | OAuth Playwright sécurisé, shared couvert, mobile authentifié et preuves consolidées |
 
-`CHANGELOG.md`, les commits, les pull requests et les tags conservent
-l'historique. La baseline corrective `b63280f...` a passé la CI `29916228789`,
-la migration, les déploiements API/Web et les smoke tests du CD `29916573448`.
+`CHANGELOG.md`, les commits et les pull requests conservent l'historique. La
+version applicative courante `c63439e...` a passé la CI `29930722308`, la
+migration, les déploiements API/Web et les smoke tests du CD `29931146789`.
 L'E2E authentifié dédié `29833210488` reste réussi en 6/6 et la contre-recette
 d'accessibilité post-déploiement est verte en 33/33, avec zoom natif 16/16.
-Les endpoints Web/API répondent en version `0.13.0-rc.5`. Le repère documentaire
-est le tag `rncp-bloc2-2026-07-21-v8`. Il ne remplace pas la baseline applicative
-déployée `b63280f36e44b02d5654a7f4e2caa8413e446bcb`. Le manifeste du paquet de
-remise porte le SHA effectivement archivé et les empreintes SHA-256 de chaque
-livrable. La version `0.13.0-rc.5` est publiée ; ses contrôles CI/CD et sa
-validation NVDA sont consignés dans B2-A41.
+Les endpoints Web/API répondent en version `0.13.0-rc.5`. Le manifeste de la
+remise porte la révision Git effectivement archivée et les empreintes SHA-256
+de chaque livrable. Les contrôles d'accessibilité liés à `rc.5` sont consignés
+dans B2-A41.
 
 ## 12. C2.3.1 - Cahier de recettes
 
@@ -358,10 +357,10 @@ La campagne de fermeture B2-A34 à B2-A41 ajoute les erreurs OpenAI, pagination,
 suppression en erreur, journal avec notes de douleur, modèle interdit,
 dashboard vide/alimenté, parcours Timer/journal/dashboard de production,
 injection, XSS, secrets, CORS, CSP et audits d'accessibilité multi-page et
-sémantique et parcours réel NVDA. Le cahier compte 59 scénarios de recette,
-tous clos. CR-055 est clos avec une réserve documentaire après publication des
-correctifs et validation NVDA déclarée par l'utilisateur. CR-063 est clos par
-la génération, l'inspection et la vérification du paquet final incluant B2-A41.
+sémantique et parcours réel NVDA. Le cahier compte 59 scénarios de recette.
+CR-055 conserve deux améliorations P2 et une limite sur la transcription de la
+contre-recette NVDA. CR-063 porte sur la génération, l'inspection et la
+vérification du paquet final incluant B2-A41.
 CR-062 est fermé par la preuve négative isolée B2-A38 ; CR-049
 est suivi séparément comme risque architectural, hors dénominateur. La baseline
 `rc.5` a passé la CI/CD et les smoke tests ; la contre-recette NVDA est déclarée
@@ -426,37 +425,22 @@ et tests complets. B2-A27 fournit un exemple réel où une nouvelle alerte a fai
 
 | Compétence | Annexes principales                   | Démonstration                                    |
 | ---------- | ------------------------------------- | ------------------------------------------------ |
-| C2.1.1     | B2-A21, A22, A28, A29                 | healthchecks et protocole CD                     |
-| C2.1.2     | B2-A16, A23, A27, A28, A39            | CI `rc.5` et contrôles locaux                     |
+| C2.1.1     | B2-A22, A28, A29                      | Docker, healthchecks et protocole CD              |
+| C2.1.2     | B2-A27, A28, A38, A39                 | CI `rc.5`, audit et blocage du CD                 |
 | C2.2.1     | matrice user stories, B2-A25, A26, A30 | besoins, écrans et production desktop/mobile     |
 | C2.2.2     | B2-A19, A28, A31                      | rapports de couverture séparés                   |
-| C2.2.3     | B2-A20, A23 à A30, A35 à A41           | OWASP, dépendances, axe, clavier, zoom, sémantique, NVDA |
+| C2.2.3     | B2-A20, A25 à A30, A35 à A41          | OWASP, dépendances, axe, clavier, zoom, sémantique, NVDA |
 | C2.2.4     | B2-A22, A25, A28                      | Git, migration, CD, smoke tests                  |
-| C2.3.1     | B2-A12, A20, A25, A26, A30, A34 à A41 | cahier et recettes exécutées                     |
-| C2.3.2     | B2-A13, A25, A27, A34, A36, A37, A40, A41 | anomalies et non-régressions                  |
+| C2.3.1     | LIV-01, B2-A20, A25, A26, A30, A34 à A41 | cahier et recettes exécutées                   |
+| C2.3.2     | LIV-02, B2-A25, A27, A34, A36, A37, A40, A41 | anomalies et non-régressions                |
 | C2.4.1     | manuels et B2-A22                     | déployer, utiliser, mettre à jour                |
 
-Le PDF et le ZIP `rc.4` existants constituent un paquet historique antérieur à
-B2-A41. Le paquet final `rc.5` intègre l'index détaillé, la matrice user stories
-et les pièces complètes comme livrables de premier niveau. Ses 92 pages ont été
-inspectées ; l'anonymisation, la décompression et les empreintes ont été
-vérifiées. Les preuves historiques restent conservées sans être assimilées à
-cette remise.
+Les anciens PDF `rc.2` et `rc.3` correspondent à des étapes de travail. La
+remise `rc.5` rassemble l'index détaillé, la matrice user stories, les preuves
+sélectionnées et les trois manuels. Le nombre de pages, l'anonymisation, la
+navigation et les empreintes sont contrôlés après chaque régénération.
 
-## 18. Vérifications administratives restant avant dépôt
-
-Les vérifications suivantes dépendent de la convocation ou de la plateforme de
-dépôt et ne peuvent pas être déduites du référentiel public :
-
-1. [ ] demander au campus la date et l'heure exactes, le nommage, la taille
-   maximale et le niveau d'anonymisation attendu sur DigiformaCertif ;
-2. [ ] déposer le dossier, les annexes et l'archive source avant l'échéance.
-
-La régénération technique et le contrôle des empreintes sont consignés dans le
-`MANIFESTE.txt` du paquet. Les actions humaines restantes figurent sous forme de
-checklist dans la remise `rc.5`.
-
-## 19. Conclusion
+## 18. Conclusion
 
 Alcide dispose d'un code source versionné, d'une architecture structurée, de
 tests couvrant majoritairement chaque périmètre runtime, d'une CI/CD réelle sur
@@ -467,16 +451,14 @@ métier et sécurité, le reflow/clavier authentifié multi-page, les captures
 actuelles, une mesure de performance reproductible et la matrice reliant les
 besoins aux écrans et aux recettes.
 
-Le dossier est techniquement consolidé. Les correctifs de la baseline sont déployés sur la
-baseline `b63280f`, avec CI/CD et smoke tests verts. Le zoom natif 16/16, la
-suite d'accessibilité 33/33, le focus invalide et les onglets valides restent
-les preuves détaillées de la campagne antérieure. Les actions d'accessibilité exécutées sont
-présentées avec leurs limites, sans déclaration de conformité exhaustive au
-RGAA. La version `rc.5` conserve les cinq avis corrigés et ajoute les correctifs
-de restitution NVDA ; elle passe l'audit `low`, le lint, les types, 241 tests,
-les builds et la CI/CD. Un parcours réel NVDA 2026.1.1 est
-consigné dans B2-A41 : 6 scénarios conformes, 3 partiels et 1 non conforme. Les
-correctifs B2-BUG-042/043 sont publiés et leur contre-recette NVDA est déclarée
-validée par l'utilisateur. SR-09/SR-10 restent des améliorations P2 non
-bloquantes. Le paquet final est construit et contrôlé ; seules les consignes
-administratives du campus et le dépôt restent à appliquer.
+Le point qui a demandé le plus de reprises a été l'accessibilité. Les contrôles
+automatiques ont été complétés par le clavier, le zoom, l'inspection sémantique
+et NVDA. Les résultats ne sont pas ramenés à un simple statut vert : les six
+parcours conformes, les trois résultats partiels, le résultat non conforme et
+les corrections qui ont suivi restent visibles dans B2-A41.
+
+La version `rc.5` passe l'audit au niveau `low`, le lint, le contrôle de types,
+241 tests, les builds, la CI et le déploiement. Les deux améliorations P2 encore
+ouvertes sont conservées dans le plan de correction. Cette présentation permet
+de relier les choix techniques, les résultats obtenus et leurs limites sans
+transformer le dossier en déclaration de conformité.
