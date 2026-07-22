@@ -66,11 +66,11 @@ locale `0.13.0-rc.4` et ne doivent pas être reprises comme preuves du SHA final
 | B2-A40 | C2.2.1 / C2.2.3 / C2.3.1 / C2.3.2        | Audit sémantique authentifié des routes principales, détails, formulaires, onglets et suppression             | huit routes principales et trois détails contrôlés ; B2-BUG-040/041 reproduits sur `rc.3`, corrigés localement ; 55/55 Web, types et lint ; production à rejouer | `docs/rncp/bloc2-annexes/B2-A40-audit-semantique-assiste-2026-07-22.md`                           |
 | LIV-04 | C2.2.1 / C2.3.1                            | Matrice complète besoins/user stories, écrans, composants, scénarios et preuves                               | Présente intégralement dans le PDF d'annexes `rc.4`, avec entrée de sommaire et signet                                          | `docs/rncp/bloc2-matrice-user-stories-preuves.md`                                                  |
 
-Les scripts du paquet `rc.4` prévoient aussi le cahier de recettes, le plan de
-correction, la revue OWASP et LIV-04 comme livrables complets de premier niveau,
-avec contrôles d'anonymisation des PDF et du ZIP. B2-A40 doit être intégré au
-nouveau rendu puis validé par la génération, l'inspection visuelle et la
-décompression du paquet.
+Le paquet `rc.4` intègre aussi le cahier de recettes, le plan de correction,
+la revue OWASP et LIV-04 comme livrables complets de premier niveau. B2-A40 est
+présent dans le rendu de 74 pages. La génération, l'inspection visuelle,
+l'anonymisation des PDF/ZIP, la décompression et les empreintes ont été
+validées par la gate de livraison.
 
 ## Règles de nommage
 
