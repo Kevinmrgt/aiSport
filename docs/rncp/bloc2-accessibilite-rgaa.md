@@ -50,17 +50,17 @@ finale de production.
 | --- | --- | --- | --- |
 | 1. Images | Images Next.js publiques et décoratives | axe public, inspection des noms accessibles | **Partiel** : présence d'alternatives contrôlée automatiquement ; pertinence éditoriale non auditée image par image |
 | 2. Cadres | Aucun `iframe` ou `frame` dans les composants observés | recherche source et échantillon navigateur | **Non applicable observé** |
-| 3. Couleurs | Textes, boutons, focus, fonds opaques et composites | axe `color-contrast`, calculs sRGB, regroupement par signature de rendu | **Partiel** : 0 violation calculable ; 416 nœuds `incomplete` ramenés à 79 signatures à décider humainement |
+| 3. Couleurs | Textes, boutons, focus, fonds opaques et composites | axe `color-contrast`, calculs sRGB, regroupement, échantillonnage composite et borne conservatrice | **Couvert sur l'échantillon** : 0 violation calculable ; 165/166 contextes passent l'échantillonnage et le dernier est décidé à 15,00:1 dans le pire cas |
 | 4. Multimédia | Aucun lecteur audio ou vidéo dans les composants observés | recherche source et échantillon navigateur | **Non applicable observé** |
 | 5. Tableaux | Aucun tableau de données dans les états observés | recherche source et échantillon navigateur | **Non applicable observé** |
 | 6. Liens | Navigation, lien d'évitement, cartes et actions | axe public, inventaire tabulable, cycle `Tab` | **Couvert sur l'échantillon** ; pertinence de tous les intitulés futurs à maintenir |
-| 7. Scripts | Formulaires, erreurs, dialogues, Timer, onglets | tests composants, alertes `role="alert"`, clavier, arbre AX | **Partiel** : nom/rôle/état et focus sont testés ; restitution vocale réelle ouverte |
+| 7. Scripts | Formulaires, erreurs, dialogues, Timer, onglets | tests composants, alertes `role="alert"`, clavier, arbre AX et parcours NVDA B2-A41 | **Partiel** : restitution réelle exécutée ; faux message `NEXT_REDIRECT` corrigé localement, contre-recette requise |
 | 8. Éléments obligatoires | Langue, titres de pages et structure HTML | axe public, arbre AX, tests de structure | **Couvert sur l'échantillon** |
 | 9. Structuration | `main`, navigation nommée, titres, listes, formulaires | arbre AX sur huit routes, tests `h1`/`h2` | **Couvert sur l'échantillon** ; deux titres internes ont été corrigés de `h1` vers `h2` |
-| 10. Présentation | Reflow, zoom, focus, longueur variable des contenus | zoom Chromium natif 200/400 %, reflow CSS, contrôle des rectangles | **Partiel** : zoom 16/16 sans rognage ; contraste composite humain encore ouvert |
+| 10. Présentation | Reflow, zoom, focus, longueur variable des contenus | zoom Chromium natif 200/400 %, reflow CSS, contrôle des rectangles | **Couvert sur l'échantillon** : zoom 16/16 sans rognage et 166/166 contextes composites décidés |
 | 11. Formulaires | Labels, erreurs reliées, contrôles de séance et de paramètres | axe, tests composants, clavier, alertes | **Couvert sur les formulaires échantillonnés** |
 | 12. Navigation | Skip link, menu, ordre de tabulation, absence de piège | cycles clavier complets sur huit routes | **Couvert sur l'échantillon** |
-| 13. Consultation | Contenus générés, changements dynamiques, Timer | tests composants/E2E et arbre AX | **Partiel** : structure et annonces DOM contrôlées ; confort de restitution par lecteur d'écran ouvert |
+| 13. Consultation | Contenus générés, changements dynamiques, Timer | tests composants/E2E, arbre AX et Visionneuse de parole NVDA | **Partiel** : Timer et erreurs restitués ; annonce de sauvegarde corrigée localement, confort auditif non évalué |
 
 Cette matrice doit être mise à jour dès qu'un nouveau type de contenu apparaît.
 Un statut « non applicable observé » devient à réévaluer si un cadre, un média
@@ -82,14 +82,18 @@ stockage OAuth local :
 - préqualification des contrastes composites : **416 occurrences regroupées en
   79 signatures de rendu et 166 contextes route-signature**, dont 34 signatures
   P1 et 45 P2 pour la revue humaine ;
-- échantillonnage automatisé du fond composite sous les glyphes : **69
-  signatures / 150 contextes sans alerte**, **8 / 14 avec alerte potentielle**
-  et **2 / 2 non concluants** ;
+- échantillonnage post-déploiement du fond composite sous les glyphes : **165/166
+  contextes en succès automatisé** ; le dernier contexte, `/programs`
+  `.section-kicker`, est décidé par une borne conservatrice à **15,00:1** dans
+  le pire cas, soit 166/166 contextes décidés sur l'échantillon ;
 - tests de structure des deux formulaires : **2/2 réussis** ;
 - audit sémantique authentifié B2-A40 : **huit routes principales et trois
   détails dynamiques**, sans contenu principal ou titre principal multiple,
   sans commande visible non nommée ni identifiant dupliqué ; confirmation de
-  suppression annulée avec restitution du focus.
+  suppression annulée avec restitution du focus ;
+- parcours réel NVDA B2-A41 sur les pages publiques et authentifiées : **6
+  scénarios conformes, 3 partiels et 1 non conforme**, avec trace de la
+  Visionneuse de parole ; B2-BUG-042/043 corrigés localement.
 
 Les 416 résultats `incomplete` ne sont pas 416 non-conformités : axe ne sait
 pas calculer le fond composite final. Ils ne sont pas davantage considérés
@@ -97,13 +101,12 @@ comme conformes sans vérification humaine. Le regroupement reproductible par
 cause axe, couleur, fond, graisse, corps et seuil WCAG réduit la liste de revue,
 mais ne remplace pas la mesure sur le pixel composite le plus défavorable.
 
-Les 14 alertes potentielles ont conduit à renforcer localement les fonds et
+Les 14 alertes potentielles initiales ont conduit à renforcer les fonds et
 textes de la navigation, des métriques, des libellés de section, de
-l'introduction, du pied de page et de la page de confidentialité. Les 55 tests
-Web, le lint, les types et le build sont verts après correction. Ces correctifs
-ne sont pas encore déployés : le rejeu de production et la contre-mesure des
-79 signatures restent requis. Les deux contextes non concluants nécessitent
-toujours une mesure humaine.
+l'introduction, du pied de page et de la page de confidentialité. Les
+correctifs ont passé la CI `29907294766`, la CD `29907642144` et le rejeu de
+production. Le dernier contexte non échantillonné automatiquement est tranché
+par une borne conservatrice à 15,00:1, détaillée dans B2-A37.
 
 ## Audit sémantique complémentaire du 22 juillet
 
@@ -120,11 +123,10 @@ Deux anomalies ont été reproduites sur la production `rc.3` :
 - deux onglets d'un programme désignaient des panneaux absents avec
   `aria-controls`.
 
-La candidate locale `rc.4` focalise maintenant le premier champ invalide et
-conserve tous les panneaux d'onglets dans le DOM en masquant les inactifs. Les
-tests de non-régression sont inclus dans la suite Web, toujours verte en
-**55/55**, avec typecheck et lint réussis. Ces correctifs ne sont pas présentés
-comme déployés ; une contre-recette de production reste nécessaire.
+La version `rc.4` focalise maintenant le premier champ invalide et conserve
+tous les panneaux d'onglets dans le DOM en masquant les inactifs. Après la CI
+et la CD vertes, la contre-recette de production a observé le focus sur
+`input-sport` et 3/3 relations `aria-controls` résolues.
 
 ## Contrôles humains et règles de preuve
 
@@ -142,10 +144,12 @@ données, technologie d'assistance, critère, résultat, anomalie et preuve. Tou
 anomalie doit être reliée au plan de correction et à une contre-recette.
 
 Le poste de contrôle contient Narrator (`Narrator.exe`, version de fichier
-`10.0.22621.6133`) mais pas NVDA dans les emplacements système usuels. La
-présence de l'exécutable ne constitue pas un essai : aucune restitution vocale
-n'a été écoutée ou évaluée. B2-A37 fournit la grille opérateur à exécuter et la
-liste des 79 signatures, soit 166 contextes de contraste à renseigner.
+`10.0.22621.6133`) et une copie portable officielle de NVDA `2026.1.1`.
+Narrator a été lancé mais sa sortie n'a pas pu être capturée dans la session
+RDP. NVDA a réellement exécuté la grille B2-A41 avec Chrome `150.0.7871.129` ;
+sa Visionneuse de parole et son journal niveau entrée/sortie fournissent la
+trace textuelle. Aucune appréciation auditive humaine n'est déduite de cette
+trace.
 
 ## Conclusion pour C2.2.3
 
@@ -155,9 +159,10 @@ tests reproductibles, un échantillon public/privé et un véritable zoom
 navigateur à 200 % et 400 %. L'audit B2-A40 renforce la preuve structurelle et
 la gestion du focus sans être assimilé à une restitution vocale.
 
-Deux limites restent volontairement explicites : la qualification humaine des
-fonds composites signalés `incomplete` et un parcours avec un vrai lecteur
-d'écran. **Aucun test NVDA, Narrator, JAWS ou VoiceOver n'a été réalisé ou
-observé dans cette campagne.** L'arbre AX Chromium n'est pas assimilé à une
-restitution vocale. La conformité RGAA exhaustive reste donc non déterminée et
-n'est pas revendiquée.
+Un parcours avec un vrai lecteur d'écran est désormais consigné dans B2-A41.
+Il confirme les noms, rôles, états, alertes, onglets, commandes du Timer et
+restitutions de focus sur l'échantillon, tout en révélant deux anomalies
+B2-BUG-042/043 corrigées localement. Leur CI, déploiement et contre-recette NVDA
+restent nécessaires. Les 166 contextes composites sont décidés séparément dans
+B2-A37. La conformité RGAA exhaustive et une validation auditive humaine ne
+sont pas revendiquées.

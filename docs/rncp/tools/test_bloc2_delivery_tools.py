@@ -75,6 +75,11 @@ class Bloc2DeliveryToolsTests(unittest.TestCase):
             SELECTED,
         )
         self.assertIn("B2-A40", build_readme_text())
+        self.assertIn(
+            "B2-A41-parcours-nvda-production-2026-07-22.md",
+            SELECTED,
+        )
+        self.assertIn("B2-A41", build_readme_text())
 
 
 if __name__ == "__main__":

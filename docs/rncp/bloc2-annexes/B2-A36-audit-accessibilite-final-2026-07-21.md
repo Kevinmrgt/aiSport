@@ -185,6 +185,9 @@ pixels composites, détaillé dans B2-A37, a isolé 14 alertes sur 8 signatures 
 source locale ; **55/55 tests Web**, le typecheck et le lint réussissent.
 
 Cet addendum ne transforme pas la production observée le 21 juillet : les
-correctifs doivent encore être déployés puis contre-recettés. La mesure humaine
-des deux contextes non concluants et les dix parcours Narrator/NVDA restent
-ouverts. Aucune écoute avec un lecteur d'écran n'a été effectuée.
+correctifs devaient encore être déployés puis contre-recettés. La mesure des
+deux contextes non concluants et les dix parcours Narrator/NVDA restaient
+ouverts à la date de cette campagne. Le rejeu `rc.4` consigné dans B2-A37 ferme
+ensuite les 166 contextes composites de l'échantillon, dont le dernier par une
+borne conservatrice à 15,00:1. La campagne réelle NVDA ultérieure est consignée
+dans B2-A41 ; aucune validation auditive humaine n'y est revendiquée.

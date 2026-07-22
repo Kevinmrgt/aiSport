@@ -1,7 +1,7 @@
 {
   "name": "alcide",
   "private": true,
-  "version": "0.13.0-rc.4",
+  "version": "0.13.0-rc.5",
   "description": "Coach IA personnel qui prépare des entraînements sportifs personnalisés",
   "packageManager": "pnpm@11.9.0",
   "scripts": {
