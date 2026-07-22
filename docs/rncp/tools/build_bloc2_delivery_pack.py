@@ -11,7 +11,10 @@ from pathlib import Path, PurePosixPath
 
 from bloc2_delivery_config import (
     ANONYMIZED_MODE,
+    APPLICATION_SHA,
     DELIVERY_DATE,
+    FINAL_CD_RUN,
+    FINAL_CI_RUN,
     ROOT,
     VERSION,
     anonymize_text,
@@ -20,13 +23,10 @@ from bloc2_delivery_config import (
 )
 
 DATE = DELIVERY_DATE
-APPLICATION_SHA = "b63280f36e44b02d5654a7f4e2caa8413e446bcb"
-FINAL_CI_RUN = "29916228789"
-FINAL_CD_RUN = "29916573448"
 PACK_NAME = f"alcide-bloc2-rncp39583-{VERSION}-final-{DATE}"
 PACK_DIR = ROOT / "output" / PACK_NAME
 PACK_ZIP = ROOT / "output" / f"{PACK_NAME}.zip"
-CANDIDATE_DIR = ROOT / "tmp" / "archive-candidate"
+STAGING_DIR = ROOT / "tmp" / "archive-source"
 
 DOSSIER = (
     ROOT
@@ -119,7 +119,7 @@ FORBIDDEN_BLOC2_PATH_MARKERS = (
     "bloc2-guide-lecture-jury",
 )
 FORBIDDEN_BLOC2_PDF_PATTERN = re.compile(
-    r"\b(?:oral(?:e|es|s)?|soutenance(?:s)?)\b",
+    r"\b(?:oral(?:e|es|s)?|soutenance(?:s)?|candidat(?:e|es|s)?)\b",
     re.IGNORECASE,
 )
 SECRET_PATTERNS = (
@@ -244,11 +244,11 @@ def sanitized_bytes(source: Path) -> bytes:
     return sanitize_text(text).encode("utf-8")
 
 
-def safe_reset_candidate_directory(path: Path) -> None:
+def safe_reset_staging_directory(path: Path) -> None:
     resolved = path.resolve()
-    candidate_root = CANDIDATE_DIR.resolve()
-    if resolved == candidate_root or candidate_root not in resolved.parents:
-        raise RuntimeError(f"Nettoyage refusé hors d'un sous-dossier candidat : {resolved}")
+    staging_root = STAGING_DIR.resolve()
+    if resolved == staging_root or staging_root not in resolved.parents:
+        raise RuntimeError(f"Nettoyage refusé hors d'un sous-dossier de travail : {resolved}")
     if path.exists():
         shutil.rmtree(path)
     path.mkdir(parents=True, exist_ok=False)
@@ -275,7 +275,7 @@ def write_source_manifest(
         "",
         "TRAÇABILITÉ ET ANONYMISATION",
         "- aucun historique .git n'est inclus ; la révision ci-dessus sert de point de référence ;",
-        "- les noms du candidat, du compte et les chemins de poste sont remplacés dans les fichiers texte ;",
+        "- les identifiants personnels, le compte et les chemins de poste sont remplacés dans les fichiers texte ;",
         "- les URL GitHub sont neutralisées ; les numéros de PR et de runs restent consultables dans le dossier/les annexes officiels ;",
         "- l'absence de secret est contrôlée par noms de fichiers et signatures usuelles ; ce contrôle ne remplace pas une revue humaine.",
         "",
@@ -295,7 +295,7 @@ def write_source_manifest(
 def create_source_archive(target: Path, staging: Path) -> tuple[int, int]:
     source_paths = tracked_source_files()
     modified_sources = modified_selected_sources()
-    safe_reset_candidate_directory(staging)
+    safe_reset_staging_directory(staging)
     for relative in source_paths:
         source = ROOT / Path(relative)
         if not source.is_file() or source.is_symlink():
@@ -368,17 +368,17 @@ def validate_source_archive(path: Path) -> None:
         raise ValueError("Archive source non sûre : " + "; ".join(problems[:20]))
 
 
-def build_candidate_source_archive() -> None:
-    CANDIDATE_DIR.mkdir(parents=True, exist_ok=True)
-    staging = CANDIDATE_DIR / f"alcide-source-{VERSION}"
-    target = CANDIDATE_DIR / f"03-code-source-alcide-{VERSION}.zip"
+def build_source_archive() -> None:
+    STAGING_DIR.mkdir(parents=True, exist_ok=True)
+    staging = STAGING_DIR / f"alcide-source-{VERSION}"
+    target = STAGING_DIR / f"03-code-source-alcide-{VERSION}.zip"
     file_count, uncompressed_size = create_source_archive(target, staging)
-    report = CANDIDATE_DIR / "VALIDATION-ARCHIVE-SOURCE.txt"
+    report = STAGING_DIR / "VALIDATION-ARCHIVE-SOURCE.txt"
     modified_sources = modified_selected_sources()
     report.write_text(
         "\n".join(
             [
-                "ALCIDE - VALIDATION CANDIDATE ARCHIVE SOURCE BLOC 2",
+                "ALCIDE - VALIDATION DE L'ARCHIVE SOURCE BLOC 2",
                 f"Archive : {target.name}",
                 f"Fichiers : {file_count}",
                 f"Taille non compressée : {uncompressed_size} octets",
@@ -388,13 +388,13 @@ def build_candidate_source_archive() -> None:
                 f"Fichiers sélectionnés modifiés par rapport à HEAD : {len(modified_sources)}",
                 *(f"- {path}" for path in modified_sources),
                 "Contrôles : liste positive, chemins interdits, identifiants évidents et signatures usuelles de secrets : OK",
-                "Attention : régénérer cette candidate après toute correction documentaire ou applicative.",
+                "Attention : régénérer cette archive après toute correction documentaire ou applicative.",
             ]
         )
         + "\n",
         encoding="utf-8",
     )
-    print(f"Candidate source : {target}")
+    print(f"Archive source : {target}")
     print(f"Fichiers : {file_count}")
     print(f"Taille ZIP : {target.stat().st_size} octets")
     print(f"SHA-256 : {sha256(target)}")
@@ -567,7 +567,7 @@ def build_delivery_pack() -> None:
     shutil.copy2(ANNEXES, annexes_target)
 
     head = git("rev-parse", "HEAD")
-    source_staging = CANDIDATE_DIR / f"pack-source-{VERSION}"
+    source_staging = STAGING_DIR / f"pack-source-{VERSION}"
     create_source_archive(source_target, source_staging)
 
     readme = PACK_DIR / "LISEZ-MOI.txt"
@@ -613,17 +613,17 @@ def build_delivery_pack() -> None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Construit le paquet de remise du Bloc 2.")
     parser.add_argument(
-        "--source-candidate",
+        "--source-archive",
         action="store_true",
-        help="construit uniquement une archive source candidate sous tmp/archive-candidate",
+        help="construit uniquement l'archive source sous tmp/archive-source",
     )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    if args.source_candidate:
-        build_candidate_source_archive()
+    if args.source_archive:
+        build_source_archive()
         return
     build_delivery_pack()
 

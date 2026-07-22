@@ -15,8 +15,8 @@ from bloc2_delivery_config import (
     assert_anonymized_pdf,
 )
 
-from build_bloc2_candidate_pdf import (
-    CandidateDocument,
+from build_bloc2_dossier_pdf import (
+    Bloc2Document,
     INK,
     LIME,
     MUTED,
@@ -39,7 +39,9 @@ OUTPUT = (
 )
 
 SELECTED = [
+    "B2-A19-postgresql-integration-2026-07-20.md",
     "B2-A20-recette-navigateur-accessibilite-publique-2026-07-20.md",
+    "B2-A22-docker-node24-2026-07-20.md",
     "B2-A25-recette-authentifiee-production-et-correctifs-2026-07-20.md",
     "B2-A26-playwright-authentifie-compte-dedie-2026-07-21.md",
     "B2-A27-correction-audit-dependances-2026-07-21.md",
@@ -112,7 +114,9 @@ def annex_footer(canvas, doc):
 def annex_cover_story():
     rows = [["Pièce", "Objet"]]
     descriptions = {
+        "B2-A19": "Tests d'intégration sur PostgreSQL 16 réel",
         "B2-A20": "Navigation publique, reflow, clavier et axe",
+        "B2-A22": "Construction Docker Node 24 et exécution non-root",
         "B2-A25": "Recette métier authentifiée et corrections",
         "B2-A26": "Playwright OAuth réel et stockage hors Git",
         "B2-A27": "Correction de l'audit des dépendances",
@@ -231,7 +235,7 @@ def build_pdf(output: Path = OUTPUT) -> Path:
         raise FileNotFoundError(f"Annexes manquantes : {missing}")
 
     output.parent.mkdir(parents=True, exist_ok=True)
-    document = CandidateDocument(
+    document = Bloc2Document(
         str(output),
         pagesize=A4,
         leftMargin=1.5 * cm,
@@ -240,7 +244,7 @@ def build_pdf(output: Path = OUTPUT) -> Path:
         bottomMargin=1.55 * cm,
         toc_max_level=0,
         title=f"Annexes Bloc 2 RNCP39583 - Alcide - final {DELIVERY_DATE}",
-        author="Candidat RNCP39583 - dossier anonymisé",
+        author="Projet Alcide - dossier anonymisé",
         subject="Preuves sélectionnées et documentation d'exploitation du dossier Bloc 2",
         creator="Générateur documentaire Alcide - ReportLab",
         keywords="RNCP39583, Bloc 2, annexes, preuves, manuels, Alcide, certification",

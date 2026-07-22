@@ -14,9 +14,9 @@ Cette annexe ferme l'écart « suite Playwright authentifiée avec un
 `storageState` réel » relevé dans B2-A25. Elle ne repose ni sur une fixture vide,
 ni sur un cookie fabriqué, ni sur une interception de la route de session.
 
-Le candidat a configuré une adresse comme identité du compte Google de test et
-a réalisé lui-même l'étape Google OAuth dans un Chrome système ouvert avec un
-profil temporaire. Le script a ensuite :
+Une adresse dédiée a été configurée comme identité du compte Google de test.
+L'étape Google OAuth a été réalisée manuellement dans un profil Chrome
+temporaire. Le script a ensuite :
 
 1. interrogé réellement `/api/auth/session` ;
 2. refusé la capture si l'adresse Auth.js différait de l'identité attendue ;
@@ -91,8 +91,8 @@ Faits visibles dans le journal du run :
 
 ## Limites conservées
 
-- Le caractère exclusivement dédié du compte relève de la gouvernance du
-  candidat ; le contrôle technique prouve l'identité configurée, pas les usages
+- Le caractère exclusivement dédié du compte relève de sa gouvernance ; le
+  contrôle technique prouve l'identité configurée, pas les usages
   passés du compte Google.
 - La connexion sur les écrans Google reste manuelle, Google refusant le
   navigateur directement automatisé ; Playwright intervient après le retour

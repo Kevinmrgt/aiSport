@@ -1,14 +1,14 @@
 # Guide de deploiement - Alcide
 
 > Version applicative déployée: 0.13.0-rc.5
-> Baseline applicative déployée: b63280f36e44b02d5654a7f4e2caa8413e446bcb
+> Baseline applicative déployée: c63439e8ac8d68efd5ba091211b326ee8575fbba
 > Date de verification documentaire initiale: 2026-05-07
 > Derniere verification Bloc 2 et contre-recette de production: 2026-07-22
 
 La version `0.13.0-rc.5` conserve les avis de dépendances corrigés et ajoute
 les correctifs de restitution NVDA relevés le 2026-07-22,
 le focus des formulaires invalides et les relations d'onglets. Elle a passé la
-CI `29916228789`, la CD `29916573448` et la validation NVDA déclarée.
+CI `29930722308`, la CD `29931146789` et la contre-recette NVDA déclarée validée.
 
 ## Production canonique
 
@@ -25,6 +25,7 @@ La CI/CD est documentee dans `docs/ci-cd.md`.
 Projet Web:
 
 ```text
+API_URL=https://ai-sport-api.vercel.app
 NEXT_PUBLIC_API_URL=https://ai-sport-api.vercel.app
 SERVICE_SECRET=<same value as API>
 AUTH_SECRET=<Auth.js secret>
@@ -71,8 +72,8 @@ DATABASE_URL
 ```
 
 Le token doit autoriser `vercel pull/build/deploy` sur les deux projets. Le run
-CD canonique `29916573448`, déclenché automatiquement après la CI `29916228789`,
-a réussi sur le SHA `b63280f36e44b02d5654a7f4e2caa8413e446bcb` : migration,
+CD canonique `29931146789`, déclenché automatiquement après la CI `29930722308`,
+a réussi sur le SHA `c63439e8ac8d68efd5ba091211b326ee8575fbba` : migration,
 API, Web et smoke tests de production. Les productions automatiques de
 l'intégration Git sont annulées par `ignoreCommand`, puis une seule production
 GitHub Actions aboutit par projet. Les runs `29747228594` et `29747592571`
@@ -83,7 +84,7 @@ reflow.
 
 Cette procédure est réservée au diagnostic ou à une intervention d'urgence
 autorisée. Elle ne doit pas servir à contourner la CI ni à constituer la preuve
-de la candidate RNCP ; le chemin nominal reste le workflow CD après CI verte.
+de la version remise ; le chemin nominal reste le workflow CD après CI verte.
 
 Depuis la racine du depot:
 
@@ -142,8 +143,8 @@ Checklist:
 - [x] Web healthcheck HTTP 200 après déploiement
 - [x] Génération d'une séance testée avec un compte authentifié, puis donnée de recette supprimée (B2-A25)
 - [x] Génération d'un programme testée avec un compte authentifié, puis donnée de recette supprimée (B2-A25)
-- [x] run CI automatique vert sur la baseline applicative livrée (`29916228789`)
-- [x] run CD automatique vert sur la baseline applicative livrée (`29916573448`)
+- [x] run CI automatique vert sur la baseline applicative livrée (`29930722308`)
+- [x] run CD automatique vert sur la baseline applicative livrée (`29931146789`)
 - [x] zoom natif 200/400 % contre-recetté en production, 16/16, puis suite
       d'accessibilité rejouée, 33/33
 

@@ -10,7 +10,7 @@ Le test devait provoquer un échec réel de la CI courante sans pousser de commi
 défaillant sur `main` et sans modifier la production. Une branche isolée et une
 pull request brouillon, explicitement non fusionnable, ont donc été utilisées :
 
-- branche : `codex/rncp-cd-gate-proof-v7` ;
+- branche isolée dédiée au test de la règle CD ;
 - commit volontairement rouge : `ef393f873ce3337c4ba83b84cf75eb5ce07549b4` ;
 - pull request brouillon `#46`, fermée après collecte des preuves ;
 - unique défaut injecté : variable TypeScript inutilisée dans un fichier de
