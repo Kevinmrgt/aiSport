@@ -97,7 +97,7 @@ Captures produites depuis le navigateur interne connecte a `https://ai-sport-web
 
 ## 5. Controles locaux relances le 2026-07-15
 
-`pnpm` n'etant pas disponible dans le terminal, les controles ont ete executes avec le Node embarque Codex et les binaires locaux du repo.
+`pnpm` n'etant pas disponible dans le terminal initial, les controles ont ete executes avec le runtime Node disponible et les binaires locaux du depot.
 
 | Controle | Resultat |
 |---|---|

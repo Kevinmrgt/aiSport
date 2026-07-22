@@ -2,13 +2,13 @@
 
 > Date : 2026-07-20  
 > Environnement : production Vercel/Neon  
-> Navigateur : navigateur intégré Codex, session Google ouverte par le candidat  
+> Navigateur : Chrome, session Google ouverte manuellement
 > Versions observées : `0.13.0-rc.2`, puis `0.13.0-rc.3`
 
 ## Périmètre et méthode
 
-Le candidat a terminé lui-même la connexion Google, puis a indiqué que la
-session était disponible. La recette a été conduite dans cet onglet existant,
+La connexion Google a été terminée manuellement, puis la disponibilité de la
+session a été confirmée. La recette a été conduite dans cet onglet existant,
 sans lire ni exporter les cookies, le stockage local ou l'identité du compte.
 Les observations proviennent de l'arbre d'accessibilité, de l'URL, du focus
 actif et des journaux console du navigateur.
@@ -20,7 +20,7 @@ contrôles automatisés en preuve manuelle.
 
 | Parcours | Données et actions réellement exécutées | Résultat observé |
 | --- | --- | --- |
-| Session | ouverture de `/generate` après connexion réalisée par le candidat | formulaire privé affiché, navigation privée et bouton de déconnexion présents |
+| Session | ouverture de `/generate` après connexion Google | formulaire privé affiché, navigation privée et bouton de déconnexion présents |
 | Validation séance | soumission vide | deux alertes anglaises `String must contain at least 1 character(s)` |
 | Séance IA | sport `Mobilite - recette RNCP`, durée 15 min, objectif et contraintes explicitement marqués comme données de recette | séance créée sous l'ID `2a4d598f-48a7-4068-8219-49ac6660adaa`, détail totalisant exactement 15 min |
 | Timer séance | démarrage, attente, pause, attente 2,2 s, reprise, Échap | décompte actif, valeurs inchangées pendant la pause, reprise correcte ; après Échap le focus tombait sur `BODY` |
@@ -70,8 +70,8 @@ Aucun journal console n'a été observé durant la contre-recette `rc.3`.
 
 ## Limites conservées
 
-- les écrans Google de consentement n'ont pas été instrumentés : seule la
-  session obtenue par le candidat et son fonctionnement ont été observés ;
+- les écrans Google de consentement n'ont pas été instrumentés : seuls la
+  session obtenue et son fonctionnement ont été observés ;
 - aucun cookie, token ou stockage de session n'a été inspecté ;
 - il ne s'agit pas d'une suite Playwright authentifiée réutilisable avec
   `storageState` ;

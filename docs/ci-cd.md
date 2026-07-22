@@ -1,6 +1,6 @@
 # CI/CD — Alcide
 
-> Version candidate mise à jour le 2026-07-21. Les preuves distinguent le SHA
+> Version de référence mise à jour le 2026-07-22. Les preuves distinguent le SHA
 > applicatif correctif, le repère documentaire et le SHA finalement archivé.
 
 ## Cibles
@@ -80,8 +80,8 @@ n'avait ni règle de protection ni approbateur : il ne faut pas présenter ce
 rattachement comme une validation humaine bloquante.
 
 Le chemin positif de la baseline corrective courante est prouvé sur
-`b63280f36e44b02d5654a7f4e2caa8413e446bcb` par la CI `29916228789`, puis la
-CD `29916573448` : migration, API, Web et smoke tests sont réussis. Le repère
+`c63439e8ac8d68efd5ba091211b326ee8575fbba` par la CI `29930722308`, puis la
+CD `29931146789` : migration, API, Web et smoke tests sont réussis. Le repère
 documentaire `b3ca385c0014c6acfd5c29ebbe14fa38ca766c02`, descendant sans changement
 applicatif de `b002adb`, a ensuite passé la CI `29847808450` et la CD
 `29848187523`. Cette seconde exécution ne remplace pas la contre-recette métier
@@ -158,7 +158,7 @@ Après rollback, rejouer liveness, readiness et le parcours métier concerné.
 
 | Nature | SHA | CI | CD | Portée |
 | ------ | --- | -- | -- | ------ |
-| Baseline applicative corrective `rc.5` | `b63280f36e44b02d5654a7f4e2caa8413e446bcb` | `29916228789` succès | `29916573448` succès | Preuve canonique des correctifs NVDA, de leurs tests et de leur déploiement |
+| Baseline applicative corrective `rc.5` | `c63439e8ac8d68efd5ba091211b326ee8575fbba` | `29930722308` succès | `29931146789` succès | Preuve canonique des correctifs NVDA, de leurs tests et de leur déploiement |
 | Baseline applicative corrective `rc.4` | `ea703aef912ce9e7c49c4c9b7872a5a7b595b666` | `29907294766` succès | `29907642144` succès | Preuve canonique des dépendances, du reflow, du focus, des onglets et de leur déploiement |
 | Snapshot documentaire `v5` | `b3ca385c0014c6acfd5c29ebbe14fa38ca766c02` | `29847808450` succès | `29848187523` succès | Diff avec `b002adb` limité aux documents/PDF ; chaîne complète rejouée avant la correction documentaire `v6` |
 | Chemin rouge courant isolé | `ef393f873ce3337c4ba83b84cf75eb5ce07549b4` | `29856584668` échec | aucun run associé, conformément au filtre de branche | PR `#46` fermée sans fusion ; quatre jobs aval ignorés et inventaires Vercel production inchangés, B2-A38 |

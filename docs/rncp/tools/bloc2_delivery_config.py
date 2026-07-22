@@ -21,6 +21,9 @@ def _package_version() -> str:
 
 
 VERSION = _package_version()
+APPLICATION_SHA = "c63439e8ac8d68efd5ba091211b326ee8575fbba"
+FINAL_CI_RUN = "29930722308"
+FINAL_CD_RUN = "29931146789"
 
 
 IDENTITY_TEXT_PATTERNS = (
@@ -47,7 +50,7 @@ IDENTITY_TEXT_PATTERNS = (
         "chemin de poste nominatif",
         re.compile(r"C:\\Users\\Kevin(?:\\Documents\\AISport)?", re.IGNORECASE),
     ),
-    ("prénom du candidat", re.compile(r"\bKevin\b", re.IGNORECASE)),
+    ("prénom détecté", re.compile(r"\bKevin\b", re.IGNORECASE)),
 )
 
 
@@ -72,7 +75,7 @@ def anonymize_text(text: str) -> str:
         flags=re.IGNORECASE,
     )
     text = re.sub(r"\bKevinmrgt\b", "compte-anonymise", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bKevin\b", "Candidat anonymisé", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bKevin\b", "[identité anonymisée]", text, flags=re.IGNORECASE)
     return text
 
 

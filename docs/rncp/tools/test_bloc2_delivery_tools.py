@@ -31,9 +31,9 @@ class Bloc2DeliveryToolsTests(unittest.TestCase):
         self.assertEqual(VERSION, package["version"])
 
     def test_deployed_application_references_match_rc5(self) -> None:
-        self.assertEqual(APPLICATION_SHA, "b63280f36e44b02d5654a7f4e2caa8413e446bcb")
-        self.assertEqual(FINAL_CI_RUN, "29916228789")
-        self.assertEqual(FINAL_CD_RUN, "29916573448")
+        self.assertEqual(APPLICATION_SHA, "c63439e8ac8d68efd5ba091211b326ee8575fbba")
+        self.assertEqual(FINAL_CI_RUN, "29930722308")
+        self.assertEqual(FINAL_CD_RUN, "29931146789")
 
     def test_anonymizer_neutralizes_named_github_and_vercel_urls(self) -> None:
         source = (
