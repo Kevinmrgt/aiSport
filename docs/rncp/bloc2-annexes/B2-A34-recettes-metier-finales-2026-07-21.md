@@ -145,7 +145,7 @@ apps/web: No ESLint warnings or errors
 pnpm build
 shared: tsc réussi
 api: tsc réussi
-web: Next.js — Compiled successfully, 13/13 pages générées
+web: Next.js - Compiled successfully, 13/13 pages générées
 ```
 
 ### Production authentifiée
