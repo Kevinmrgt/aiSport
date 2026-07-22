@@ -145,7 +145,8 @@ Pour une version applicative :
 Contrôle :
 
 ```powershell
-rg -n "0\\.12\\.0|version applicative|APP_VERSION|NEXT_PUBLIC_APP_VERSION" package.json apps docs README.md CHANGELOG.md
+rg -n "0\\.12\\.0|version applicative|APP_VERSION|NEXT_PUBLIC_APP_VERSION" `
+  package.json apps docs README.md CHANGELOG.md
 ```
 
 Adapter la recherche selon la nouvelle version.
