@@ -136,7 +136,7 @@ export default async function RootLayout({ children }: { readonly children: Reac
 
         <footer className="relative z-10 border-t border-zinc-950/10 bg-[#dfe8d2]/95 backdrop-blur-xl">
           <div className="mx-auto max-w-7xl px-5 py-6 text-center text-xs font-medium text-zinc-700 lg:px-8">
-            <p>Alcide - Projet RNCP 39583</p>
+            <p>Alcide</p>
             <Link
               href="/confidentialite"
               className="mt-2 inline-block font-bold text-zinc-800 underline underline-offset-4 hover:text-zinc-950"
