@@ -16,6 +16,12 @@ dist
 **/.next
 out
 build
+docs
+output
+alcide-claude-config
+CLAUDE.md
+*.pdf
+*.pptx
 
 # Environment and secrets
 .env
