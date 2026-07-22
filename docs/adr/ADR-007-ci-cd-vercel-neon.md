@@ -2,7 +2,7 @@
 
 > Date: 2026-05-04  
 > Status: Accepted  
-> Author: Kevin + Codex
+> Projet Alcide
 
 ## Context
 

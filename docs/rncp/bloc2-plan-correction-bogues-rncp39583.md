@@ -17,19 +17,18 @@ comme identifiant de traçabilité, mais relève d'un risque d'architecture
 serverless : il n'est ni une fonctionnalité attendue, ni une recette exécutée,
 ni un scénario inclus dans ce dénominateur.
 
-Références du gel final :
+Références de la version présentée :
 
 | Référence | Rôle |
 | --------- | ---- |
-| `b63280f36e44b02d5654a7f4e2caa8413e446bcb` | baseline applicative `rc.5` testée et déployée |
+| `c63439e8ac8d68efd5ba091211b326ee8575fbba` | baseline applicative `rc.5` testée et déployée |
 | `ea703aef912ce9e7c49c4c9b7872a5a7b595b666` | baseline historique `rc.4` |
-| `rncp-bloc2-2026-07-21-v8` | repère documentaire final corrigé |
 | `rncp-bloc2-2026-07-21-v5` | snapshot documentaire antérieur avec CI/CD verte |
 | `MANIFESTE.txt` du paquet | SHA effectivement archivé et empreintes SHA-256 des livrables |
 
-La baseline de production est `0.13.0-rc.5`. La PR `#49`, la CI `29916228789`
-et la CD `29916573448` établissent sa publication ; les healthchecks et la
-validation NVDA déclarée par l'utilisateur sont consignés dans B2-A41.
+La baseline de production est `0.13.0-rc.5`. La CI `29930722308` et la CD
+`29931146789` établissent sa publication ; les healthchecks et la contre-recette
+NVDA déclarée validée sont consignés dans B2-A41.
 
 ## 2. Processus de correction
 

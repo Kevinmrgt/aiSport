@@ -17,7 +17,7 @@ publiés depuis le gel précédent :
 
 Cette détection ne rend pas fausse la sortie historique datée du 21 juillet,
 mais elle rendait obsolète l'affirmation « aucune vulnérabilité connue » pour
-la candidate remise le lendemain. Le job d'audit CI étant volontairement
+la version remise le lendemain. Le job d'audit CI étant volontairement
 bloquant dès le niveau `low`, une nouvelle CI aurait échoué.
 
 ## Correction appliquée

@@ -8,7 +8,7 @@
 > `29832944876` et E2E OAuth `29833210488` réussis.
 > Baseline canonique après le correctif de reflow, sans modification de ces règles métier :
 > `b002adb0e0e7d8d85ee493d54879e190d77d2078`, CI `29845956008`, CD `29846343559`.
-> Repère documentaire final : tag `rncp-bloc2-2026-07-21-v8`.
+> Référence : résultats datés et révisions indiquées dans chaque partie.
 > Le SHA effectivement archivé est porté par le manifeste du paquet de remise.
 
 ## 1. Environnements et données
@@ -56,14 +56,14 @@ Correctif dans les deux pages de séance :
 
 | ID     | Exécution et preuve                                                                                                                                                            | Résultat                                                                 |
 | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| CR-013 | simulations OpenAI `429`, `503` et timeout de `45 000 ms` ; test HTTP `503`, absence d'appel à `createWorkout` ; test UI du message et de la réutilisation du formulaire       | Réussi sur la candidate par simulation déterministe                      |
+| CR-013 | simulations OpenAI `429`, `503` et timeout de `45 000 ms` ; test HTTP `503`, absence d'appel à `createWorkout` ; test UI du message et de la réutilisation du formulaire       | Réussi sur la version testée par simulation déterministe                 |
 | CR-018 | page 2/2 rendue côté Web ; paramètres `page=2`, `limit=1` et `userId` transmis ; PostgreSQL réel avec trois programmes du propriétaire et un programme d'un autre compte       | Réussi, pagination et isolation confirmées                               |
 | CR-021 | suppression programme en erreur `500` ; message conservé par l'API et confirmation UI maintenue ouverte avec alerte                                                            | Réussi                                                                   |
 | CR-030 | création HTTP d'un journal avec durée active `487 s` ; PostgreSQL réel ; parcours production Timer puis enregistrement                                                         | Réussi                                                                   |
 | CR-034 | note facultative normalisée puis stockée sous l'identité authentifiée ; page Confidentialité vérifiée ; note de recette saisie en production                                   | Réussi                                                                   |
 | CR-035 | annulation, Échap, restauration du focus et panne API testés pour une séance ; confirmation maintenue ouverte                                                                  | Réussi                                                                   |
 | CR-037 | changement local autorisé ; en production, changement, rechargement et lecture de la valeur persistée, puis restauration de la valeur initiale dans un bloc `finally`          | Réussi, aucun réglage temporaire laissé                                  |
-| CR-038 | valeur `gpt-modele-interdit` envoyée à l'API locale candidate                                                                                                                  | Réussi : `400`, aucune persistance                                       |
+| CR-038 | valeur `gpt-modele-interdit` envoyée à l'API locale testée                                                                                                                     | Réussi : `400`, aucune persistance                                       |
 | CR-040 | dashboard rendu avec zéro séance et zéro journal                                                                                                                               | Réussi : état « Aucune activité encore », explication et CTA `/generate` |
 | CR-041 | rendu de totaux connus (`4`, `3`, `1 h 30`, effort `6.5/10`), agrégation sport ; PostgreSQL réel isolé ; production après journalisation                                       | Réussi                                                                   |
 | CR-065 | session OAuth validée, page Programmes ouverte, séance existante ouverte, toutes les phases Timer passées, effort/feedback/note saisis, journal sauvegardé puis dashboard relu | Réussi : compteur « Terminé » de `3` à `4`                               |
