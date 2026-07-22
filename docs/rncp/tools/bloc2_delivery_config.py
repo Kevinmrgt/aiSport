@@ -10,6 +10,13 @@ ROOT = Path(__file__).resolve().parents[3]
 DELIVERY_DATE = "2026-07-22"
 DELIVERY_DATE_FR = "22 juillet 2026"
 ANONYMIZED_MODE = True
+PUBLIC_REPOSITORY_URL = "https://github.com/Kevinmrgt/aiSport"
+_PUBLIC_REPOSITORY_SENTINEL = "__ALCIDE_PUBLIC_REPOSITORY_URL__"
+_PUBLIC_REPOSITORY_EXACT_PATTERN = re.compile(
+    r"https?://(?:www\.)?github\.com/kevinmrgt/aisport"
+    r"(?=$|[\s<>()\[\],.;:!?])",
+    re.IGNORECASE,
+)
 
 
 def _package_version() -> str:
@@ -55,7 +62,11 @@ IDENTITY_TEXT_PATTERNS = (
 
 
 def anonymize_text(text: str) -> str:
-    """Neutralise les identifiants connus sans modifier les sources Markdown."""
+    """Neutralise les identifiants connus, sauf l'URL publique remise au jury."""
+    text = _PUBLIC_REPOSITORY_EXACT_PATTERN.sub(
+        _PUBLIC_REPOSITORY_SENTINEL,
+        text,
+    )
     text = re.sub(
         r"https?://(?:www\.)?github\.com/kevinmrgt/aisport",
         "https://github.com/compte-anonymise/depot-anonymise",
@@ -76,11 +87,19 @@ def anonymize_text(text: str) -> str:
     )
     text = re.sub(r"\bKevinmrgt\b", "compte-anonymise", text, flags=re.IGNORECASE)
     text = re.sub(r"\bKevin\b", "[identité anonymisée]", text, flags=re.IGNORECASE)
-    return text
+    return text.replace(_PUBLIC_REPOSITORY_SENTINEL, PUBLIC_REPOSITORY_URL)
 
 
 def identity_findings(text: str) -> list[str]:
-    return [label for label, pattern in IDENTITY_TEXT_PATTERNS if pattern.search(text)]
+    inspected = _PUBLIC_REPOSITORY_EXACT_PATTERN.sub(
+        "<depot-public-autorise>",
+        text,
+    )
+    return [
+        label
+        for label, pattern in IDENTITY_TEXT_PATTERNS
+        if pattern.search(inspected)
+    ]
 
 
 def assert_anonymized_text(text: str, context: str) -> None:

@@ -1,5 +1,7 @@
 # B2-A36 - Audit accessibilite final public et authentifie
 
+> Repère de lecture : les 55 tests Web cités dans cette preuve correspondent à la campagne du 21 juillet. La baseline finale `rc.5` ajoute deux tests de non-régression et compte 57 tests Web, soit 241 tests au total.
+
 > Date d'execution : 2026-07-21
 > Application observee : `https://ai-sport-web.vercel.app`
 > Source locale au debut du controle : `bac3b916770cabbbc92e3cda0d58ac3ed7e5e119`

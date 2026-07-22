@@ -26,6 +26,7 @@ from bloc2_delivery_config import (
     APPLICATION_SHA,
     DELIVERY_DATE,
     DELIVERY_DATE_FR,
+    PUBLIC_REPOSITORY_URL,
     VERSION,
     anonymize_text,
     assert_anonymized_pdf,
@@ -445,15 +446,21 @@ def parse_markdown(source: str, base_dir: Path, skip_preamble: bool = False):
 
 
 def cover_story():
+    repository = html.escape(PUBLIC_REPOSITORY_URL, quote=True)
+    repository_cell = Paragraph(
+        f'<link href="{repository}" color="#1D4ED8"><u>{repository}</u></link>'
+        f'<br/><font name="Courier">révision déployée {APPLICATION_SHA[:7]}</font>',
+        STYLES["Cellx"],
+    )
     summary = Table(
         [
             ["Certification", "RNCP39583 - Expert en développement logiciel"],
             ["Épreuve", "Bloc 2 - Concevoir et développer des applications logicielles"],
             ["Projet", "Alcide - coach sportif assisté par IA"],
             ["Version", f"{VERSION} - dossier finalisé le {DELIVERY_DATE_FR}"],
-            ["Code source", f"Dépôt GitHub transmis avec la remise - révision {APPLICATION_SHA[:7]}"],
+            ["Code source", repository_cell],
             ["Règle", "30 pages maximum hors annexes - rendu individuel"],
-            ["Identité", "Dossier anonymisé conformément au règlement de certification"],
+            ["Identité", "Données de recette anonymisées ; dépôt public communiqué dans le rendu"],
         ],
         colWidths=[4.2 * cm, 12.5 * cm],
     )

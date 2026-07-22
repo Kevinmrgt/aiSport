@@ -1,5 +1,7 @@
 # B2-A39 - Correction des avis de dépendances du 22 juillet 2026
 
+> Repère de lecture : le relevé 55 Web / 239 total ci-dessous est celui de la baseline intermédiaire `rc.4`. La baseline finale `rc.5` ajoute deux tests Web de non-régression et compte 57 Web / 241 total.
+
 > Compétences : C2.1.2, C2.2.3, C2.3.2
 > Version publiée : `0.13.0-rc.4`
 > Date du contrôle : 2026-07-22

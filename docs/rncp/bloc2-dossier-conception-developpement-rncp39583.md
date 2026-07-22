@@ -3,8 +3,8 @@
 > Concevoir et développer des applications logicielles
 > Version de production : `0.13.0-rc.5`, commit `c63439e8ac8d68efd5ba091211b326ee8575fbba`
 > Validation de cette version : CI `29930722308`, CD `29931146789`
-> Dépôt GitHub : lien transmis avec la remise ; la révision ci-dessus permet de retrouver exactement la version contrôlée.
-> Dossier anonymisé, actualisé le 22 juillet 2026
+> Dépôt GitHub public : [https://github.com/Kevinmrgt/aiSport](https://github.com/Kevinmrgt/aiSport), branche `main` ; la révision ci-dessus permet de retrouver exactement la version contrôlée.
+> Données de recette anonymisées, dossier actualisé le 22 juillet 2026
 
 ## 1. Cadre officiel et composition du rendu
 
@@ -137,17 +137,19 @@ Le workflow `.github/workflows/ci.yml` applique les étapes suivantes :
 9. construction des images Docker API et Web ;
 10. publication des rapports de couverture et du rapport Playwright.
 
-Le run de consolidation `29832575391` sur `main` a réussi les six jobs. Les rapports bruts
+Le run historique de consolidation `29832575391` sur `main` a réussi les six jobs. Les rapports bruts
 API, Web, PostgreSQL, shared et Playwright sont disponibles comme artefacts
 GitHub Actions. Cette chaîne a exécuté 170 tests API, 55 Web, 14 shared,
 les recettes PostgreSQL, le smoke Playwright public, les builds et les deux
-images Docker. Après les derniers correctifs, la CI `29930722308` a rejoué la
-chaîne complète sur `c63439e` avec les six jobs au vert.
+images Docker. Après l'ajout de deux tests Web de non-régression avec les
+derniers correctifs, la CI finale `29930722308` a rejoué 170 tests API,
+57 Web et 14 shared sur `c63439e`, soit 241 tests, avec les six jobs au vert.
 
 Les nombres de cette chaîne désignent les suites complètes. Les rapports de
 couverture instrumentent séparément 155 tests API, 43 tests Web, 8 tests
 PostgreSQL et 14 tests shared. Les suites complètes comptent 170 tests API, 55
-tests Web et 14 tests shared ; le périmètre PostgreSQL RNCP comprend les 8 tests
+tests Web et 14 tests shared sur le run historique, puis 57 tests Web dans la
+baseline finale `rc.5` ; le périmètre PostgreSQL RNCP comprend les 8 tests
 de couverture et une recette de sécurité SQL supplémentaire, soit 9 contrôles.
 
 ## 5. Architecture logicielle maintenable
@@ -228,8 +230,8 @@ Playwright, sans gonfler artificiellement le taux unitaire. Les seuils de chaque
 périmètre runtime dépassent la majorité demandée par le référentiel.
 
 Ainsi, les valeurs 155/43/8/14 du tableau correspondent aux tests inclus dans
-les rapports de couverture API/Web/PostgreSQL/shared. Les valeurs 170/55/9/14
-utilisées dans la synthèse correspondent aux suites complètes API/Web, aux 8
+les rapports de couverture API/Web/PostgreSQL/shared. Les valeurs 170/57/9/14
+utilisées dans la synthèse finale correspondent aux suites complètes API/Web, aux 8
 tests PostgreSQL instrumentés complétés par la recette de sécurité SQL, et à la
 suite shared inchangée.
 
@@ -289,7 +291,7 @@ Les preuves automatisées réelles sont :
   arbre d'accessibilité et alertes ;
 - 16 mesures de zoom Chromium natif B2-A37 à 200/400 % sur les huit routes :
   quatre troncatures détectées à 400 %, corrigées par retour à la ligne puis
-  validées par 55 tests Web, typecheck, build, CI/CD et **16/16 sur la
+  validées par la suite finale de 57 tests Web, typecheck, build, CI/CD et **16/16 sur la
   production corrigée** ;
 - 2/2 tests de structure après correction des deux titres de formulaire en
   `h2`, plus le contre-contrôle authentifié de `/programs/generate` ;
