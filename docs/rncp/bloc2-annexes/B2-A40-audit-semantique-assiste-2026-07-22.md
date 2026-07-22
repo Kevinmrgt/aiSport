@@ -2,11 +2,11 @@
 
 > Competences : C2.2.1, C2.2.3, C2.3.1, C2.3.2  
 > Application observee : `https://ai-sport-web.vercel.app`  
-> Baseline de production : `0.13.0-rc.3`, commit `b002adb0e0e7d8d85ee493d54879e190d77d2078`  
-> Correctifs : candidate locale `0.13.0-rc.4`, non publiee  
+> Baseline de production : `0.13.0-rc.4`, commit `ea703aef912ce9e7c49c4c9b7872a5a7b595b666`
+> CI `main` : `29907294766` ; CD : `29907642144`
 > Date du controle : 2026-07-22  
-> Statut : structure automatisee controlee ; deux anomalies corrigees localement ;
-> restitution vocale reelle non executee.
+> Statut : structure automatisee controlee ; deux anomalies corrigees et
+> contre-recettees en production ; restitution vocale reelle non executee.
 
 ## Objectif
 
@@ -62,7 +62,7 @@ aucune cible `aria-describedby` ne manquait. Sur la production `rc.3`, le
 focus est toutefois reste sur le bouton d'envoi au lieu d'etre place sur le
 premier champ invalide.
 
-Le correctif local recherche le premier champ signale par le schema de
+Le correctif recherche le premier champ signale par le schema de
 validation et lui donne le focus. Il est applique aux formulaires de seance et
 de programme dans :
 
@@ -71,8 +71,9 @@ de programme dans :
 
 Les tests de composants verifient desormais la presence des alertes, l'absence
 d'appel du service et le focus sur le champ Sport. La suite Web reste verte :
-**55/55 tests**, typecheck et lint reussis. Le correctif n'est pas revendique
-comme deploye.
+**55/55 tests**, typecheck et lint reussis. Apres deploiement, une soumission
+vide sur `/generate` a produit les deux alertes attendues et place le focus sur
+`INPUT#input-sport[name="sport"]`. B2-BUG-040 est donc clos en production.
 
 ## Onglets d'un programme
 
@@ -87,6 +88,11 @@ panneau actif demeure focalisable. Un test de non-regression verifie que chaque
 valeur `aria-controls` correspond a un element existant et que le panneau
 precedent devient masque apres changement d'onglet. Resultat local :
 **55/55 tests Web**, typecheck et lint reussis.
+
+La contre-recette sur `/programs/{id}` en production `rc.4` a trouve trois
+onglets et trois panneaux. Les trois valeurs `aria-controls` resolvent un
+`tabpanel` existant, un seul onglet porte `aria-selected="true"` et les deux
+panneaux inactifs sont `hidden`. B2-BUG-041 est donc clos en production.
 
 ## Confirmation de suppression
 
@@ -103,10 +109,10 @@ Aucune seance n'a ete supprimee pendant ce controle.
 
 ## Anomalies et tracabilite
 
-| Identifiant | Observation en production `rc.3` | Correction locale `rc.4` | Non-regression | Etat |
+| Identifiant | Observation en production `rc.3` | Correction `rc.4` | Non-regression | Etat |
 | ----------- | -------------------------------- | -------------------------- | -------------- | ---- |
-| B2-BUG-040 | apres soumission invalide, le focus reste sur le bouton | focaliser le premier controle invalide dans les deux formulaires | assertions Testing Library, 55/55 Web, types et lint | corrige localement ; production a rejouer |
-| B2-BUG-041 | deux onglets referencent des panneaux absents | conserver tous les panneaux dans le DOM et masquer les inactifs | relations `aria-controls` resolues par test, 55/55 Web, types et lint | corrige localement ; production a rejouer |
+| B2-BUG-040 | apres soumission invalide, le focus reste sur le bouton | focaliser le premier controle invalide dans les deux formulaires | assertions Testing Library, CI `29907294766`, focus `input-sport` observe sur `rc.4` | clos en production |
+| B2-BUG-041 | deux onglets referencent des panneaux absents | conserver tous les panneaux dans le DOM et masquer les inactifs | CI `29907294766`, 3/3 cibles resolues et panneaux inactifs masques sur `rc.4` | clos en production |
 
 ## Conclusion et limites
 
@@ -115,7 +121,10 @@ et les trois routes dynamiques examinees. Il apporte aussi une preuve concrete
 de la gestion du focus lors de l'annulation d'une suppression et a permis de
 detecter deux regressions qui ne ressortaient pas des campagnes precedentes.
 
-Les corrections sont validees localement mais ne sont ni publiees, ni
-contre-recettees sur la production. Aucune ecoute avec un lecteur d'ecran n'a
-ete realisee. Cette annexe renforce donc la preuve d'actions d'accessibilite,
-sans constituer une declaration de conformite RGAA exhaustive.
+Les corrections ont passe la CI/CD et la contre-recette de production. Le rejeu
+authentifie a reussi 33/33 tests, le zoom natif 16/16 et l'echantillonnage
+composite classe 78/79 signatures et 165/166 contextes en succes automatise ;
+le dernier contexte reste reserve a une qualification humaine. Aucune ecoute
+avec un lecteur d'ecran n'a ete realisee. Cette annexe renforce donc la preuve
+d'actions d'accessibilite, sans constituer une declaration de conformite RGAA
+exhaustive.

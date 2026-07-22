@@ -50,7 +50,7 @@ finale de production.
 | --- | --- | --- | --- |
 | 1. Images | Images Next.js publiques et décoratives | axe public, inspection des noms accessibles | **Partiel** : présence d'alternatives contrôlée automatiquement ; pertinence éditoriale non auditée image par image |
 | 2. Cadres | Aucun `iframe` ou `frame` dans les composants observés | recherche source et échantillon navigateur | **Non applicable observé** |
-| 3. Couleurs | Textes, boutons, focus, fonds opaques et composites | axe `color-contrast`, calculs sRGB, regroupement par signature de rendu | **Partiel** : 0 violation calculable ; 416 nœuds `incomplete` ramenés à 79 signatures à décider humainement |
+| 3. Couleurs | Textes, boutons, focus, fonds opaques et composites | axe `color-contrast`, calculs sRGB, regroupement et échantillonnage composite | **Partiel** : 0 violation calculable ; 78/79 signatures et 165/166 contextes passent l'échantillonnage, un contexte reste à décider humainement |
 | 4. Multimédia | Aucun lecteur audio ou vidéo dans les composants observés | recherche source et échantillon navigateur | **Non applicable observé** |
 | 5. Tableaux | Aucun tableau de données dans les états observés | recherche source et échantillon navigateur | **Non applicable observé** |
 | 6. Liens | Navigation, lien d'évitement, cartes et actions | axe public, inventaire tabulable, cycle `Tab` | **Couvert sur l'échantillon** ; pertinence de tous les intitulés futurs à maintenir |
@@ -82,9 +82,9 @@ stockage OAuth local :
 - préqualification des contrastes composites : **416 occurrences regroupées en
   79 signatures de rendu et 166 contextes route-signature**, dont 34 signatures
   P1 et 45 P2 pour la revue humaine ;
-- échantillonnage automatisé du fond composite sous les glyphes : **69
-  signatures / 150 contextes sans alerte**, **8 / 14 avec alerte potentielle**
-  et **2 / 2 non concluants** ;
+- échantillonnage post-déploiement du fond composite sous les glyphes : **78/79
+  signatures et 165/166 contextes en succès automatisé**, un contexte réservé
+  à une qualification humaine ;
 - tests de structure des deux formulaires : **2/2 réussis** ;
 - audit sémantique authentifié B2-A40 : **huit routes principales et trois
   détails dynamiques**, sans contenu principal ou titre principal multiple,
@@ -97,13 +97,11 @@ comme conformes sans vérification humaine. Le regroupement reproductible par
 cause axe, couleur, fond, graisse, corps et seuil WCAG réduit la liste de revue,
 mais ne remplace pas la mesure sur le pixel composite le plus défavorable.
 
-Les 14 alertes potentielles ont conduit à renforcer localement les fonds et
+Les 14 alertes potentielles initiales ont conduit à renforcer les fonds et
 textes de la navigation, des métriques, des libellés de section, de
-l'introduction, du pied de page et de la page de confidentialité. Les 55 tests
-Web, le lint, les types et le build sont verts après correction. Ces correctifs
-ne sont pas encore déployés : le rejeu de production et la contre-mesure des
-79 signatures restent requis. Les deux contextes non concluants nécessitent
-toujours une mesure humaine.
+l'introduction, du pied de page et de la page de confidentialité. Les
+correctifs ont passé la CI `29907294766`, la CD `29907642144` et le rejeu de
+production. Le seul contexte encore non tranché nécessite une mesure humaine.
 
 ## Audit sémantique complémentaire du 22 juillet
 
@@ -120,11 +118,10 @@ Deux anomalies ont été reproduites sur la production `rc.3` :
 - deux onglets d'un programme désignaient des panneaux absents avec
   `aria-controls`.
 
-La candidate locale `rc.4` focalise maintenant le premier champ invalide et
-conserve tous les panneaux d'onglets dans le DOM en masquant les inactifs. Les
-tests de non-régression sont inclus dans la suite Web, toujours verte en
-**55/55**, avec typecheck et lint réussis. Ces correctifs ne sont pas présentés
-comme déployés ; une contre-recette de production reste nécessaire.
+La version `rc.4` focalise maintenant le premier champ invalide et conserve
+tous les panneaux d'onglets dans le DOM en masquant les inactifs. Après la CI
+et la CD vertes, la contre-recette de production a observé le focus sur
+`input-sport` et 3/3 relations `aria-controls` résolues.
 
 ## Contrôles humains et règles de preuve
 
