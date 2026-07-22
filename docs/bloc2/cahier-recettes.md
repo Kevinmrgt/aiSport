@@ -86,10 +86,12 @@ contre-recette NVDA a été déclarée validée. Cette conclusion reste limitée
 parcours décrits et ne vaut pas déclaration de conformité RGAA exhaustive.
 
 Les rapports de couverture instrumentent 155 tests API, 43 Web, 8 PostgreSQL et
-14 shared. Les suites complètes comptent 170 tests API, 55 Web et 14 shared ; le
-neuvième contrôle PostgreSQL RNCP est la recette de sécurité SQL exécutée hors
-du rapport de couverture. Ces deux présentations mesurent donc des périmètres
-différents et ne se contredisent pas.
+14 shared. La campagne historique B2-A34 comptait 170 tests API, 55 Web et 14
+shared. Deux tests Web de non-régression ont ensuite été ajoutés avec les
+correctifs `rc.5` : la CI finale `29930722308` compte donc 170 API, 57 Web et
+14 shared, soit 241 tests. Le neuvième contrôle PostgreSQL RNCP est la recette
+de sécurité SQL exécutée hors du rapport de couverture. Ces présentations
+mesurent des versions et des périmètres explicitement distincts.
 
 ### Compléments automatisés du 2026-07-21
 

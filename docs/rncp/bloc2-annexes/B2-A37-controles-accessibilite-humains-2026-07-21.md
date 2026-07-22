@@ -1,5 +1,7 @@
 # B2-A37 - Zoom natif, contrastes et contre-recette d'accessibilité
 
+> Repère de lecture : les 55 tests Web cités dans cette preuve correspondent à la campagne du 21 juillet. La baseline finale `rc.5` ajoute deux tests de non-régression et compte 57 tests Web, soit 241 tests au total.
+
 > Date d'exécution : 2026-07-21
 > Production observée : `https://ai-sport-web.vercel.app`
 > Chromium : `147.0.7727.15`

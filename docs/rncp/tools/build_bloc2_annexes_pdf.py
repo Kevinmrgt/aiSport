@@ -10,6 +10,7 @@ from reportlab.platypus import PageBreak, Paragraph, Spacer, Table, TableStyle
 from bloc2_delivery_config import (
     ANONYMIZED_MODE,
     DELIVERY_DATE,
+    PUBLIC_REPOSITORY_URL,
     VERSION,
     anonymize_text,
     assert_anonymized_pdf,
@@ -170,7 +171,12 @@ def annex_cover_story():
             "Preuves sélectionnées, livrables d'évaluation et documentation d'exploitation complète - hors limite des 30 pages du dossier",
             STYLES["CoverSub"],
         ),
-        Spacer(1, 4.2 * cm),
+        Paragraph(
+            f'Code source public : <link href="{PUBLIC_REPOSITORY_URL}" color="#FFFFFF">'
+            f'<u>{PUBLIC_REPOSITORY_URL}</u></link>',
+            STYLES["CoverSub"],
+        ),
+        Spacer(1, 3.1 * cm),
         table,
         Spacer(1, 0.8 * cm),
         Paragraph(

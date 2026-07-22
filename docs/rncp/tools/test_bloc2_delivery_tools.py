@@ -10,6 +10,7 @@ from reportlab.pdfgen import canvas
 
 from bloc2_delivery_config import (
     ROOT,
+    PUBLIC_REPOSITORY_URL,
     VERSION,
     anonymize_text,
     assert_anonymized_pdf,
@@ -44,6 +45,21 @@ class Bloc2DeliveryToolsTests(unittest.TestCase):
         assert_anonymized_text(sanitized, "test")
         self.assertIn("compte-anonymise/depot-anonymise", sanitized)
         self.assertIn("deploiement-anonymise.vercel.app", sanitized)
+
+    def test_anonymizer_keeps_the_explicit_public_repository_url(self) -> None:
+        source = f"Dépôt public : {PUBLIC_REPOSITORY_URL}"
+        sanitized = anonymize_text(source)
+        self.assertEqual(sanitized, source)
+        assert_anonymized_text(sanitized, "dépôt public")
+
+    def test_pdf_gate_allows_the_explicit_public_repository_link(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "public-repository.pdf"
+            pdf = canvas.Canvas(str(target))
+            pdf.drawString(72, 760, PUBLIC_REPOSITORY_URL)
+            pdf.linkURL(PUBLIC_REPOSITORY_URL, (72, 750, 280, 775))
+            pdf.save()
+            assert_anonymized_pdf(target)
 
     def test_pdf_gate_detects_hidden_named_link(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
