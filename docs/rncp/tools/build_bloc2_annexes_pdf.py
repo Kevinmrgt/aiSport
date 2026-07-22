@@ -127,7 +127,7 @@ def annex_cover_story():
         "B2-A38": "Preuve négative dynamique du blocage CI vers CD",
         "B2-A39": "Correction des dépendances et audit de sécurité rc.4",
         "B2-A40": "Audit sémantique authentifié et contre-recette rc.4",
-        "B2-A41": "Parcours réel NVDA, résultats et anomalies",
+        "B2-A41": "Parcours réel NVDA et contre-recette rc.5",
     }
     for filename in SELECTED:
         identifier = filename.split("-")[0] + "-" + filename.split("-")[1]

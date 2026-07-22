@@ -1,7 +1,7 @@
 # Manuel utilisateur - Alcide
 
 > Livrable Bloc 2 RNCP39583 - Documentation d'exploitation utilisateur.
-> Version observée en production : `0.13.0-rc.4` - baseline `ea703aef912ce9e7c49c4c9b7872a5a7b595b666`.
+> Version observée en production : `0.13.0-rc.5` - baseline `b63280f36e44b02d5654a7f4e2caa8413e446bcb`.
 
 ## 1. Présentation
 
@@ -137,8 +137,9 @@ Pour vérifier l'accessibilité en démonstration, utiliser la touche `Tab` pour
 Le reflow a été contre-recetté en production avec un zoom Chromium natif à
 200 % et 400 % sur huit routes, soit 16 contrôles réussis sur 16. Les 166
 contextes composites de l'échantillon sont décidés dans B2-A37. Un parcours
-technique NVDA est consigné dans B2-A41, sans revendication de validation
-auditive humaine ni de conformité RGAA exhaustive.
+technique NVDA, les correctifs `rc.5` et la validation NVDA déclarée par
+l'utilisateur sont consignés dans B2-A41, sans revendication de conformité
+RGAA exhaustive ni d'appréciation auditive détaillée.
 
 ## 12. Problèmes courants
 

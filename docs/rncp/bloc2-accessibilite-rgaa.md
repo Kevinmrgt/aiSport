@@ -54,13 +54,13 @@ finale de production.
 | 4. Multimédia | Aucun lecteur audio ou vidéo dans les composants observés | recherche source et échantillon navigateur | **Non applicable observé** |
 | 5. Tableaux | Aucun tableau de données dans les états observés | recherche source et échantillon navigateur | **Non applicable observé** |
 | 6. Liens | Navigation, lien d'évitement, cartes et actions | axe public, inventaire tabulable, cycle `Tab` | **Couvert sur l'échantillon** ; pertinence de tous les intitulés futurs à maintenir |
-| 7. Scripts | Formulaires, erreurs, dialogues, Timer, onglets | tests composants, alertes `role="alert"`, clavier, arbre AX et parcours NVDA B2-A41 | **Partiel** : restitution réelle exécutée ; faux message `NEXT_REDIRECT` corrigé localement, contre-recette requise |
+| 7. Scripts | Formulaires, erreurs, dialogues, Timer, onglets | tests composants, alertes `role="alert"`, clavier, arbre AX et parcours NVDA B2-A41 | **Couvert sur l'échantillon** : restitution réelle exécutée ; faux message `NEXT_REDIRECT` corrigé, déployé et contre-recetté sur `rc.5` |
 | 8. Éléments obligatoires | Langue, titres de pages et structure HTML | axe public, arbre AX, tests de structure | **Couvert sur l'échantillon** |
 | 9. Structuration | `main`, navigation nommée, titres, listes, formulaires | arbre AX sur huit routes, tests `h1`/`h2` | **Couvert sur l'échantillon** ; deux titres internes ont été corrigés de `h1` vers `h2` |
 | 10. Présentation | Reflow, zoom, focus, longueur variable des contenus | zoom Chromium natif 200/400 %, reflow CSS, contrôle des rectangles | **Couvert sur l'échantillon** : zoom 16/16 sans rognage et 166/166 contextes composites décidés |
 | 11. Formulaires | Labels, erreurs reliées, contrôles de séance et de paramètres | axe, tests composants, clavier, alertes | **Couvert sur les formulaires échantillonnés** |
 | 12. Navigation | Skip link, menu, ordre de tabulation, absence de piège | cycles clavier complets sur huit routes | **Couvert sur l'échantillon** |
-| 13. Consultation | Contenus générés, changements dynamiques, Timer | tests composants/E2E, arbre AX et Visionneuse de parole NVDA | **Partiel** : Timer et erreurs restitués ; annonce de sauvegarde corrigée localement, confort auditif non évalué |
+| 13. Consultation | Contenus générés, changements dynamiques, Timer | tests composants/E2E, arbre AX et Visionneuse de parole NVDA | **Couvert sur l'échantillon avec réserve documentaire** : Timer et erreurs restitués ; annonce de sauvegarde corrigée dans `rc.5` et tests NVDA déclarés validés par l'utilisateur, sans protocole détaillé du rejeu |
 
 Cette matrice doit être mise à jour dès qu'un nouveau type de contenu apparaît.
 Un statut « non applicable observé » devient à réévaluer si un cadre, un média
@@ -93,7 +93,8 @@ stockage OAuth local :
   suppression annulée avec restitution du focus ;
 - parcours réel NVDA B2-A41 sur les pages publiques et authentifiées : **6
   scénarios conformes, 3 partiels et 1 non conforme**, avec trace de la
-  Visionneuse de parole ; B2-BUG-042/043 corrigés localement.
+  Visionneuse de parole sur `rc.4` ; B2-BUG-042/043 corrigés et publiés dans
+  `rc.5`, puis tests NVDA déclarés validés par l'utilisateur.
 
 Les 416 résultats `incomplete` ne sont pas 416 non-conformités : axe ne sait
 pas calculer le fond composite final. Ils ne sont pas davantage considérés
@@ -146,10 +147,13 @@ anomalie doit être reliée au plan de correction et à une contre-recette.
 Le poste de contrôle contient Narrator (`Narrator.exe`, version de fichier
 `10.0.22621.6133`) et une copie portable officielle de NVDA `2026.1.1`.
 Narrator a été lancé mais sa sortie n'a pas pu être capturée dans la session
-RDP. NVDA a réellement exécuté la grille B2-A41 avec Chrome `150.0.7871.129` ;
-sa Visionneuse de parole et son journal niveau entrée/sortie fournissent la
-trace textuelle. Aucune appréciation auditive humaine n'est déduite de cette
-trace.
+RDP. NVDA a réellement exécuté la grille B2-A41 avec Chrome `150.0.7871.129`
+sur `rc.4` ; sa Visionneuse de parole et son journal niveau entrée/sortie
+fournissent la trace textuelle. Après le déploiement de `rc.5`, l'utilisateur
+a déclaré avoir effectué et validé les tests NVDA. Cette attestation clôt la
+contre-recette de B2-BUG-042/043, sans ajouter de navigateur, version,
+verbatim ou protocole non fourni et sans constituer une appréciation auditive
+détaillée.
 
 ## Conclusion pour C2.2.3
 
@@ -159,10 +163,12 @@ tests reproductibles, un échantillon public/privé et un véritable zoom
 navigateur à 200 % et 400 %. L'audit B2-A40 renforce la preuve structurelle et
 la gestion du focus sans être assimilé à une restitution vocale.
 
-Un parcours avec un vrai lecteur d'écran est désormais consigné dans B2-A41.
-Il confirme les noms, rôles, états, alertes, onglets, commandes du Timer et
-restitutions de focus sur l'échantillon, tout en révélant deux anomalies
-B2-BUG-042/043 corrigées localement. Leur CI, déploiement et contre-recette NVDA
-restent nécessaires. Les 166 contextes composites sont décidés séparément dans
-B2-A37. La conformité RGAA exhaustive et une validation auditive humaine ne
-sont pas revendiquées.
+Un parcours avec un vrai lecteur d'écran est consigné dans B2-A41. Il confirme
+les noms, rôles, états, alertes, onglets, commandes du Timer et restitutions de
+focus sur l'échantillon, tout en ayant révélé deux anomalies B2-BUG-042/043.
+Elles sont corrigées dans `0.13.0-rc.5`, dont la CI/CD et les healthchecks sont
+verts ; l'utilisateur atteste avoir effectué et validé les tests NVDA après le
+déploiement. C2.2.3 est donc considérée **acquise sur le périmètre présenté**.
+B2-BUG-044/045 restent des améliorations P2 non bloquantes et les 166 contextes
+composites sont décidés séparément dans B2-A37. Une conformité RGAA exhaustive
+et une appréciation auditive détaillée ne sont pas revendiquées.
