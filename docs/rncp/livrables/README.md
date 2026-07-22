@@ -8,8 +8,8 @@ pas encore B2-A41 :
 1. `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.4-final-2026-07-22.pdf` ;
 2. `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.4-final-2026-07-22.pdf`.
 
-Le nouveau paquet complet `rc.5` doit être généré après fusion, CI/CD et
-contre-recette par :
+La fusion, la CI/CD et la contre-recette `rc.5` sont terminées. Le nouveau
+paquet complet doit maintenant être généré par :
 
 ```bash
 python docs/rncp/tools/build_bloc2_delivery_pack.py
@@ -35,9 +35,9 @@ Tous les PDF datés du `2026-07-16`, le fichier
 partie des preuves B2-A26 à B2-A31 et B2-A34 à B2-A36 et ne doivent pas être
 remis au jury.
 
-La version `0.13.0-rc.4` est déployée sur le SHA `ea703ae`, après la CI
-`29907294766` et la CD `29907642144`. Les healthchecks et la contre-recette
-d'accessibilité ont été rejoués sur cette baseline.
+La version `0.13.0-rc.5` est déployée sur le SHA `b63280f`, après la CI
+`29916228789` et la CD `29916573448`. Les trois healthchecks sont en HTTP 200
+et la validation NVDA déclarée par l'utilisateur est consignée dans B2-A41.
 
 Le manifeste de contrôle est
 `docs/rncp/MANIFESTE-DEPOT-BLOC2.md`. Il recense uniquement les contrôles

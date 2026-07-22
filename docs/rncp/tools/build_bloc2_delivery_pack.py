@@ -20,9 +20,9 @@ from bloc2_delivery_config import (
 )
 
 DATE = DELIVERY_DATE
-APPLICATION_SHA = "ea703aef912ce9e7c49c4c9b7872a5a7b595b666"
-FINAL_CI_RUN = "29907294766"
-FINAL_CD_RUN = "29907642144"
+APPLICATION_SHA = "b63280f36e44b02d5654a7f4e2caa8413e446bcb"
+FINAL_CI_RUN = "29916228789"
+FINAL_CD_RUN = "29916573448"
 PACK_NAME = f"alcide-bloc2-rncp39583-{VERSION}-final-{DATE}"
 PACK_DIR = ROOT / "output" / PACK_NAME
 PACK_ZIP = ROOT / "output" / f"{PACK_NAME}.zip"
@@ -419,7 +419,7 @@ def build_readme_text() -> str:
                 "- LIV-04 - docs/rncp/bloc2-matrice-user-stories-preuves.md - matrice user stories, écrans, recettes et preuves complète",
                 "- B2-A39 - preuve de correction des dépendances et d'audit de sécurité rc.4",
                 "- B2-A40 - audit sémantique authentifié et contre-recette de production du focus/des onglets",
-                "- B2-A41 - parcours réel NVDA, transcriptions techniques, résultats et anomalies",
+                "- B2-A41 - campagne NVDA rc.4, correctifs et validation déclarée de la contre-recette rc.5",
                 "",
                 "Les trois manuels sont également lisibles à la fin du PDF d'annexes et présents dans l'archive source :",
                 "- DOC-01 - docs/deployment.md",

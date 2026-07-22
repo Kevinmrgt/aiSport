@@ -30,8 +30,9 @@ dans les annexes.
   `apps/api/src/repositories/`.
 
 La couverture accessibilité ne doit pas être interprétée comme une conformité
-RGAA exhaustive : CR-055 reste partiel dans le cahier de recettes. B2-A37
+RGAA exhaustive : CR-055 est clos avec une réserve documentaire. B2-A37
 indique que les 166 contextes composites de l'échantillon sont décidés. B2-A41
-consigne un parcours réel NVDA, avec 6 scénarios conformes, 3 partiels et 1 non
-conforme ; deux correctifs restent à déployer et contre-recetter et aucune
-validation auditive humaine n'est revendiquée.
+consigne la campagne NVDA détaillée sur `rc.4`, les correctifs publiés dans
+`rc.5` et la validation NVDA déclarée par l'utilisateur. B2-BUG-044/045 restent
+des améliorations P2 non bloquantes ; aucune appréciation auditive détaillée
+n'est revendiquée.
