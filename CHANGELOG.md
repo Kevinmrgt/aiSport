@@ -104,7 +104,6 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 - Workflow GitHub Actions `Monitoring - Production health` : verification horaire des healthchecks API/Web, artifact de preuve et issue automatique en cas d'echec.
 - Templates GitHub Issues Bloc 4 : consignation d'anomalie et cas support client.
 - Pull request template avec checklist MCO/RNCP.
-- Setup MCP local documente : Filesystem, Playwright, Vercel et exemple GitHub MCP sans secret.
 - `docs/rncp/bloc4-preuves-mco-a-completer.md` : checklist des preuves restantes avant depot.
 - Test unitaire API pour le healthcheck.
 - Recette navigateur instrumentée des pages publiques avec artefacts JSON/PNG, reflow 320 px, axe, console, focus et redirections sans session sur Chromium et Firefox.

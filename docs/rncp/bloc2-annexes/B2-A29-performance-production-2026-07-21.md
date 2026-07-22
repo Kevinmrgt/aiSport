@@ -1,7 +1,7 @@
 # B2-A29 - Mesure de performance des healthchecks de production
 
 > Date UTC : 2026-07-21 de 09:36:34 à 09:37:07
-> Poste : environnement candidat Windows, réseau réel
+> Poste : environnement Windows, réseau réel
 > Script : `scripts/measure-production-health.mjs`
 
 ## Protocole

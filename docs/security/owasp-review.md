@@ -10,7 +10,7 @@
 
 Cette revue suit les dix catégories OWASP Top 10 2021. Elle distingue :
 
-- **contrôlé** : mesure présente et testée sur la version candidate ;
+- **contrôlé** : mesure présente et testée sur la version de référence ;
 - **partiel** : mesure utile présente, avec risque résiduel identifié ;
 - **à prouver** : code présent mais preuve finale non encore exécutée.
 
@@ -104,7 +104,7 @@ Risques résiduels :
 Contrôles : lockfile, installation figée, audit dès le niveau low rendu bloquant en
 CI, versions Next.js/React situées sur une ligne corrigée.
 
-Contrôle local du 2026-07-20 sur la candidate `0.13.0-rc.3` :
+Contrôle local du 2026-07-20 sur la version `0.13.0-rc.3` :
 `pnpm audit --audit-level=low` termine avec le code 0 et indique
 `No known vulnerabilities found`. Les six alertes précédentes ont été corrigées
 par des overrides ciblés, puis le lint, les types, 198 tests, les builds et
@@ -131,7 +131,7 @@ healthchecks `rc.4` ferment la contre-vérification de production.
 
 La baseline courante `0.13.0-rc.5` conserve ces versions corrigées. Elle a
 repassé l'audit de production au seuil `low`, le lint, les types, 241 tests,
-les builds et la CI `29916228789`, puis la CD `29916573448` et les healthchecks
+les builds et la CI `29930722308`, puis la CD `29931146789` et les healthchecks
 HTTP 200. Les correctifs `rc.5` portent sur la restitution d'accessibilité et
 ne relâchent aucun contrôle de sécurité décrit dans cette revue.
 
@@ -139,7 +139,7 @@ ne relâchent aucun contrôle de sécurité décrit dans cette revue.
 
 Contrôles de code : Google OAuth, stratégie de session JWT Auth.js avec durée
 maximale configurée et vérification serveur sur chaque parcours protégé. Les
-attributs réels du cookie et l'expiration doivent être relevés sur la candidate
+attributs réels du cookie et l'expiration doivent être relevés sur la version
 déployée ; ils ne sont pas considérés comme prouvés par la seule configuration.
 
 La suite Playwright authentifiée n'utilise plus une fixture vide. B2-A26 prouve
@@ -168,7 +168,7 @@ Les tentatives d'auth invalides, erreurs applicatives, appels IA et erreurs DB
 disposent d'appels de journalisation dans le code. Une recette contrôlée a
 obtenu HTTP 401 et vérifié l'événement serveur d'authentification refusée, sans
 secret, valeur hostile ni stack dans la réponse client. Le monitoring planifié
-de production a réussi sur la candidate et B2-A29 a obtenu 150/150 réponses
+de production a réussi sur la version déployée et B2-A29 a obtenu 150/150 réponses
 valides sur les trois healthchecks ; B2-A35.
 
 Risque résiduel : `console.*` n'offre ni corrélation systématique, ni rétention,
@@ -186,7 +186,7 @@ Preuves : tests timeout/retry et revue des appels réseau serveur.
 
 ## Synthèse des risques
 
-| Catégorie                 | État candidat                 | Preuve finale requise                                 |
+| Catégorie                 | État observé                  | Preuve finale requise                                 |
 | ------------------------- | ----------------------------- | ----------------------------------------------------- |
 | A01 Accès                 | Contrôlé                      | PostgreSQL multi-utilisateur + API                    |
 | A02 Cryptographie/données | Contrôlé avec limites         | inspection ressources navigateur et politique données |

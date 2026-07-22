@@ -44,7 +44,7 @@ Résultat :
 
 ## Conclusion mise à jour
 
-Ce blocage initial provenait uniquement du PATH local. Il a été levé avec le runtime pnpm disponible dans l'environnement Codex.
+Ce blocage initial provenait uniquement du `PATH` local. Il a été levé avec le runtime pnpm disponible sur le poste.
 
 Preuve de résolution :
 

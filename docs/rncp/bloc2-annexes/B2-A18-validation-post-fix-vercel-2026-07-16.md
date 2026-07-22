@@ -73,7 +73,7 @@ La racine Web `https://ai-sport-web.vercel.app` repond egalement en HTTP 200.
 
 ## 4. Validation navigateur connecte
 
-Controle realise dans le navigateur interne Codex sur la production `https://ai-sport-web.vercel.app`, avec session Google active.
+Controle realise dans un navigateur sur la production `https://ai-sport-web.vercel.app`, avec session Google active.
 
 | Parcours | Resultat | URL finale ou preuve |
 |---|---|---|
