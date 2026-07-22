@@ -6,7 +6,9 @@
 > Pull request de la baseline déployée : `#43`.
 > Repère documentaire de la baseline : tag `rncp-bloc2-2026-07-21-v8`.
 > Le tag `rncp-bloc2-2026-07-21-v5` reste le snapshot documentaire antérieur validé en CI/CD.
-> Le SHA archivé de la baseline et ses empreintes figurent dans le `MANIFESTE.txt` du paquet `rc.3` ; le manifeste `rc.4` reste à produire.
+> Le SHA archivé et les empreintes de la remise `rc.4` figurent dans le
+> `MANIFESTE.txt` généré avec le paquet ; ils ne modifient pas la baseline de
+> production `rc.3`.
 
 ## Règles de preuve
 
@@ -27,8 +29,8 @@ artefact et anomalie éventuelle.
 | Élément                             | Valeur                                                                                                                         |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | Scénarios de recette comptabilisés  | 59 ; CR-049 est un risque architectural suivi séparément et n'entre pas dans le dénominateur                                  |
-| Scénarios clos                      | 57 : résultats exécutés/observés et contrôles automatisés dont les preuves sont conservées                                     |
-| Scénarios non clos                  | CR-055 partiel (contrôles humains) et CR-063 partiel (paquet `rc.4` à générer et inspecter)                                    |
+| Scénarios clos                      | 58 : résultats exécutés/observés et contrôles automatisés dont les preuves sont conservées                                     |
+| Scénarios non clos                  | CR-055 partiel : qualification humaine des contrastes composites et parcours avec lecteur d'écran réel                         |
 | Échecs fonctionnels finaux          | Aucun connu ; quatre écarts reproduits sur `rc.2` ont été corrigés puis contre-recettés sur `rc.3`                             |
 | SHA/tag testé                       | baseline déployée `b002adb0e0e7d8d85ee493d54879e190d77d2078` et tag `v8` ; candidate locale `rc.4` sans SHA publié ni tag final |
 | Environnement                       | baseline `rc.3` : local/CI/production ; candidate `rc.4` : contrôles locaux Node 24 uniquement                                |
@@ -38,10 +40,10 @@ Les 59 scénarios ne sont pas tous des manipulations manuelles : le statut
 `🧪 Automatisé` désigne un cas réellement exécuté dans l'environnement indiqué.
 Le statut
 `✅ Exécuté` désigne une recette ou une observation conservée. CR-055 n'est pas
-inclus dans les 57 scénarios clos tant que sa réserve humaine n'est pas levée.
-CR-063 n'est pas non plus clos pour `rc.4` tant que le PDF et le ZIP n'ont pas
-été générés, inspectés et validés par la gate. Le builder est configuré pour
-refuser un état suivi sale, une fuite d'identité ou un livrable incohérent.
+inclus dans les 58 scénarios clos tant que sa réserve humaine n'est pas levée.
+CR-063 est clos localement : le PDF et le ZIP `rc.4` ont été générés, toutes les
+pages inspectées et la gate a validé la découvrabilité, la navigation,
+l'anonymisation, la décompression et les empreintes.
 
 ### Contrôles locaux de la candidate `0.13.0-rc.4` — 2026-07-22
 
@@ -64,8 +66,8 @@ refuser un état suivi sale, une fuite d'identité ou un livrable incohérent.
 | Paramètres et dashboard | CR-036 à CR-041 (6) | 6 clos | B2-A25, B2-A34 |
 | Sécurité fonctionnelle | CR-042 à CR-048 et CR-050 (8) | 8 clos | B2-A35, audit `low` local `rc.4`, B2-A39 |
 | Accessibilité | CR-051 à CR-055 (5) | 4 clos ; CR-055 partiel | B2-A25, B2-A36, B2-A37 |
-| Qualité, intégration et déploiement | CR-056 à CR-065 (10) | 9 clos ; CR-063 partiel | B2-A19, B2-A22, B2-A38, scripts du paquet |
-| **Total** | **59** | **57 clos ; 2 partiels** | **index des annexes et présent cahier** |
+| Qualité, intégration et déploiement | CR-056 à CR-065 (10) | 10 clos | B2-A19, B2-A22, B2-A38, manifeste du paquet |
+| **Total** | **59** | **58 clos ; 1 partiel** | **index des annexes et présent cahier** |
 
 CR-049 est conservé sous son identifiant pour assurer la traçabilité du risque,
 mais il ne correspond pas à une fonctionnalité livrée ni à une recette exécutée.
@@ -240,15 +242,14 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 | CR-060 | Readiness API             | DB/clé disponibles puis indisponibles                                    | 200 prêt ; 503 avec dépendance défaillante                                          | tests route + curl  | ✅ Cas automatisés verts ; readiness production 200, DB/IA `ok`                                                   |
 | CR-061 | CI complète               | pousser le SHA final                                                     | tous les jobs obligatoires verts                                                    | run GitHub          | ✅ Run final `29845956008` réussi sur `b002adb`                                                                   |
 | CR-062 | CD sans contournement     | CI échoue puis réussit                                                   | aucun déploiement après échec ; déploiement après succès                            | runs GitHub + B2-A38 | ✅ Fermé sans toucher à `main` : CI courante `29856584668` rouge sur PR isolée, quatre jobs aval ignorés, aucun run CD associé et inventaires Vercel production API/Web identiques avant/après ; politique YAML 6/6. Chemin vert `29845956008` → `29846343559`. Limite : aucun commit volontairement rouge sur `main`. |
-| CR-063 | Version immuable          | construire le paquet depuis un état Git propre et vérifier PDF, source, SHA et empreintes | build refusé si fichiers suivis modifiés ; PDF principal ≤ 30 pages ; livrables de premier niveau présents ; archive et PDF anonymisés ; SHA-256 consignés | `build_bloc2_delivery_pack.py` + manifeste | ⏳ Partiel pour `rc.4` : contrôles de découvrabilité et d'anonymisation implémentés dans les scripts ; génération, inspection visuelle, décompression et validation finale du nouveau paquet encore à exécuter. |
+| CR-063 | Version immuable          | construire le paquet depuis un état Git propre et vérifier PDF, source, SHA et empreintes | build refusé si fichiers suivis modifiés ; PDF principal ≤ 30 pages ; livrables de premier niveau présents ; archive et PDF anonymisés ; SHA-256 consignés | `build_bloc2_delivery_pack.py` + manifeste | ✅ Paquet `rc.4` généré depuis un état suivi propre : dossier 11 pages, annexes 72 pages, LIV-01 à LIV-04 et B2-A39 présents, 22/187 signets, 42 liens internes par PDF, anonymisation et ZIP imbriqué validés, empreintes consignées. |
 | CR-064 | Production API/Web        | déployer le SHA final                                                    | liveness/readiness/Web en 200                                                       | curl daté           | ✅ CD final `29846343559`, HTTP 200 `rc.3`, DB et configuration IA `ok`                                           |
 | CR-065 | Parcours post-déploiement | login, séance, programme, Timer, journal, dashboard                      | parcours complet sans erreur                                                        | recette production  | ✅ Session OAuth, Programmes, Timer, effort/feedback/douleur, journal et dashboard `3 → 4` en production ; B2-A34 |
 
 ## Critère de clôture C2.3.1
 
 Les 59 scénarios de recette sont reliés à une preuve ou à une réserve explicite :
-57 sont clos ; CR-055 reste partiel pour les contrôles humains et CR-063 pour
-la génération et l'inspection du paquet `rc.4`. CR-062 combine une CI rouge
+58 sont clos ; seul CR-055 reste partiel pour les contrôles humains. CR-062 combine une CI rouge
 courante isolée, un inventaire Vercel avant/après et six tests de politique.
 CR-049 demeure un risque architectural hors dénominateur. Les tests
 Vitest/Playwright ne sont pas présentés comme un audit RGAA exhaustif.
