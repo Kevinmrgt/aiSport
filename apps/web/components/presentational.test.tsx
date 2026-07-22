@@ -153,10 +153,19 @@ describe('composants de presentation', () => {
     ] as unknown as ProgramWeek[];
 
     render(<ProgramWeekTabs weeks={weeks} programId="program-1" />);
+    const tabs = screen.getAllByRole('tab');
+    expect(document.querySelectorAll('[role="tabpanel"]')).toHaveLength(2);
+    for (const tab of tabs) {
+      const panelId = tab.getAttribute('aria-controls');
+      expect(panelId).toBeTruthy();
+      expect(document.getElementById(panelId ?? '')).toBeTruthy();
+    }
+
     const firstTab = screen.getByRole('tab', { name: 'Sem. 1' });
     fireEvent.keyDown(firstTab, { key: 'ArrowRight' });
     expect(screen.getByRole('heading', { name: 'Intensite' })).toBeTruthy();
     expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'Sem. 2' }));
+    expect(document.getElementById(firstTab.getAttribute('aria-controls') ?? '')?.hidden).toBe(true);
     fireEvent.keyDown(document.activeElement ?? document, { key: 'Home' });
     expect(screen.getByRole('heading', { name: 'Base' })).toBeTruthy();
     fireEvent.keyDown(document.activeElement ?? document, { key: 'End' });

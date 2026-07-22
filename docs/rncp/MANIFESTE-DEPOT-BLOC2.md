@@ -38,15 +38,16 @@ documentaires ; la baseline applicative déployée reste alors explicitement
 `b002adb`.
 
 La candidate locale `0.13.0-rc.4` corrige les avis de dépendances détectés le
-22 juillet et alimente le paquet corrigé. Elle ne devient une baseline de
-production qu'après publication, CI/CD verte et contre-recette explicite.
+22 juillet, le focus des formulaires invalides et les relations des onglets.
+Elle ne devient une baseline de production qu'après publication, CI/CD verte
+et contre-recette explicite.
 
 ## 2. Pièces finales à déposer
 
 |  N° | Pièce                | Fichier                                                                       | Contrôle                                                                                                   |
 | --: | -------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 |  01 | Dossier écrit        | `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.4-final-2026-07-22.pdf` | maximum officiel de 30 pages hors annexes ; pagination, sommaire, liens et rendu visuel contrôlés          |
-|  02 | Annexes techniques   | `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.4-final-2026-07-22.pdf` | preuves A20, A25 à A31 et A34 à A39, quatre livrables complets et trois manuels ; limites explicites        |
+|  02 | Annexes techniques   | `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.4-final-2026-07-22.pdf` | preuves A20, A25 à A31 et A34 à A40, quatre livrables complets et trois manuels ; limites explicites        |
 |  03 | Code source          | archive Git produite par `docs/rncp/tools/build_bloc2_delivery_pack.py`       | fichiers suivis du commit de remise, dont les trois manuels complets ; aucun secret, état OAuth, `.env` ou dépendance locale |
 |  04 | Notice et empreintes | `LISEZ-MOI.txt` et `MANIFESTE.txt` dans le paquet                             | ordre de lecture, SHA Git et SHA-256 de chaque pièce                                                       |
 
@@ -55,11 +56,12 @@ dans le `MANIFESTE.txt` du paquet. Elles ne sont pas dupliquées ici afin d'évi
 qu'une correction documentaire laisse une empreinte historique présentée comme
 courante.
 
-Le paquet local `alcide-bloc2-rncp39583-0.13.0-rc.4-final-2026-07-22.zip` a été
-généré depuis un état Git suivi propre. Sa gate a validé un dossier de 11 pages,
-72 pages d'annexes, les quatre livrables structurants, B2-A39, la navigation,
-l'anonymisation, la décompression du ZIP imbriqué et les empreintes. Le
-`MANIFESTE.txt` interne reste la source des SHA-256 des pièces.
+Le paquet local `alcide-bloc2-rncp39583-0.13.0-rc.4-final-2026-07-22.zip` doit
+être renouvelé après commit. Les PDF régénérés comptent 11 pages pour le dossier
+et 74 pages d'annexes ; ils intègrent les quatre livrables structurants,
+B2-A39/A40 et leur navigation/anonymisation ont été contrôlées. La
+décompression du ZIP imbriqué et les empreintes seront renouvelées par la gate
+du paquet. Le `MANIFESTE.txt` interne reste la source des SHA-256 des pièces.
 
 Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 `final-2026-07-21` sont historiques et ne doivent pas être remis.
@@ -76,10 +78,10 @@ Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 | Frameworks et paradigmes                         | dossier §6 et ADR                                             |
 | Tests unitaires                                  | dossier §8, rapports API/Web/PostgreSQL/shared, B2-A31        |
 | Sécurité                                         | dossier §9, revue OWASP, B2-A35 et B2-A39                     |
-| Accessibilité                                    | dossier §10, B2-A20/B2-A36/B2-A37, axe, zoom, clavier, tri contraste et limites humaines |
+| Accessibilité                                    | dossier §10, B2-A20/B2-A36/B2-A37/B2-A40, axe, zoom, clavier, sémantique, tri contraste et limites humaines |
 | Historique des versions                          | dossier §11, Git et `CHANGELOG.md`                            |
 | Dernière version fonctionnelle, fiable et viable | dossier §11, CI/CD/healthchecks et B2-A28/B2-A37              |
-| Plan de tests et recette                         | dossier §12, cahier complet et B2-A34 à B2-A39                |
+| Plan de tests et recette                         | dossier §12, cahier complet et B2-A34 à B2-A40                |
 | Plan de correction des bogues                    | dossier §13 et registre B2-BUG                                |
 | Manuel de déploiement                            | dossier §14 et `docs/deployment.md`                           |
 | Manuel utilisateur                               | dossier §15 et manuel utilisateur autonome                    |

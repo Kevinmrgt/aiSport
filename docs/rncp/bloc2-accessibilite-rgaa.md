@@ -85,7 +85,11 @@ stockage OAuth local :
 - échantillonnage automatisé du fond composite sous les glyphes : **69
   signatures / 150 contextes sans alerte**, **8 / 14 avec alerte potentielle**
   et **2 / 2 non concluants** ;
-- tests de structure des deux formulaires : **2/2 réussis**.
+- tests de structure des deux formulaires : **2/2 réussis** ;
+- audit sémantique authentifié B2-A40 : **huit routes principales et trois
+  détails dynamiques**, sans contenu principal ou titre principal multiple,
+  sans commande visible non nommée ni identifiant dupliqué ; confirmation de
+  suppression annulée avec restitution du focus.
 
 Les 416 résultats `incomplete` ne sont pas 416 non-conformités : axe ne sait
 pas calculer le fond composite final. Ils ne sont pas davantage considérés
@@ -100,6 +104,27 @@ Web, le lint, les types et le build sont verts après correction. Ces correctifs
 ne sont pas encore déployés : le rejeu de production et la contre-mesure des
 79 signatures restent requis. Les deux contextes non concluants nécessitent
 toujours une mesure humaine.
+
+## Audit sémantique complémentaire du 22 juillet
+
+B2-A40 contrôle la présence d'un `main#main-content` et d'un seul `h1`, le
+lien d'évitement, les noms accessibles, les identifiants et les relations ARIA
+sur les huit routes principales. Les pages de détail d'un programme, d'une
+séance de programme et d'une séance enregistrée complètent l'échantillon. Les
+deux pages Timer exposent les régions dynamiques attendues.
+
+Deux anomalies ont été reproduites sur la production `rc.3` :
+
+- après une soumission invalide, les alertes étaient correctement reliées aux
+  champs mais le focus restait sur le bouton ;
+- deux onglets d'un programme désignaient des panneaux absents avec
+  `aria-controls`.
+
+La candidate locale `rc.4` focalise maintenant le premier champ invalide et
+conserve tous les panneaux d'onglets dans le DOM en masquant les inactifs. Les
+tests de non-régression sont inclus dans la suite Web, toujours verte en
+**55/55**, avec typecheck et lint réussis. Ces correctifs ne sont pas présentés
+comme déployés ; une contre-recette de production reste nécessaire.
 
 ## Contrôles humains et règles de preuve
 
@@ -127,7 +152,8 @@ liste des 79 signatures, soit 166 contextes de contraste à renseigner.
 L'exigence RNCP de présenter les actions mises en œuvre pour permettre l'accès
 aux personnes en situation de handicap est étayée par des correctifs, des
 tests reproductibles, un échantillon public/privé et un véritable zoom
-navigateur à 200 % et 400 %.
+navigateur à 200 % et 400 %. L'audit B2-A40 renforce la preuve structurelle et
+la gestion du focus sans être assimilé à une restitution vocale.
 
 Deux limites restent volontairement explicites : la qualification humaine des
 fonds composites signalés `incomplete` et un parcours avec un vrai lecteur
