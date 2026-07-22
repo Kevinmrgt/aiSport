@@ -55,6 +55,12 @@ dans le `MANIFESTE.txt` du paquet. Elles ne sont pas dupliquées ici afin d'évi
 qu'une correction documentaire laisse une empreinte historique présentée comme
 courante.
 
+Le paquet local `alcide-bloc2-rncp39583-0.13.0-rc.4-final-2026-07-22.zip` a été
+généré depuis un état Git suivi propre. Sa gate a validé un dossier de 11 pages,
+72 pages d'annexes, les quatre livrables structurants, B2-A39, la navigation,
+l'anonymisation, la décompression du ZIP imbriqué et les empreintes. Le
+`MANIFESTE.txt` interne reste la source des SHA-256 des pièces.
+
 Les anciens PDF de `docs/rncp/livrables/` et les exports non suffixés
 `final-2026-07-21` sont historiques et ne doivent pas être remis.
 
