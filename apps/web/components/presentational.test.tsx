@@ -165,15 +165,15 @@ describe('composants de presentation', () => {
 
   it('distingue un lien actif, racine et une navigation en attente', () => {
     pathnameMock.mockReturnValue('/workouts/detail');
-    const { rerender } = render(
-      <ActiveNavLink href="/workouts" label="Seances" icon="activity" />,
-    );
+    const { rerender } = render(<ActiveNavLink href="/workouts" label="Seances" icon="activity" />);
     expect(screen.getByRole('link').getAttribute('aria-current')).toBe('page');
 
     pathnameMock.mockReturnValue('/dashboard');
     rerender(<ActiveNavLink href="/" label="Accueil" icon="home" compact />);
     const link = screen.getByRole('link');
     expect(link.getAttribute('aria-current')).toBeNull();
+    expect(link.classList.contains('text-zinc-200')).toBe(true);
+    expect(link.classList.contains('text-zinc-400')).toBe(false);
     fireEvent.click(link);
     expect(link.getAttribute('aria-busy')).toBe('true');
   });

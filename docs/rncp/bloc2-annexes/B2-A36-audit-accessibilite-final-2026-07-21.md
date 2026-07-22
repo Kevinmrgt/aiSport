@@ -153,7 +153,7 @@ titres internes restent de niveau 2 et continuent de nommer leur formulaire. Res
 | Identifiant | Observation                                                                | Action                                                                                      | Etat                                            |
 | ----------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------- |
 | B2-A36-01   | Deux `h1` sur chacune des pages de generation                              | Titres internes passes en `h2` et test de non-regression ajoute                             | Corrige et contre-recette en production 33/33   |
-| B2-A36-02   | Axe ne peut pas calculer les contrastes composites                         | Audit detaille rejoue : 0 violation, 19 nœuds calcules conformes et 416 nœuds incomplets regroupes en 79 signatures ; revue humaine requise | Partiellement couvert, voir B2-A37 |
+| B2-A36-02   | Axe ne peut pas calculer les contrastes composites                         | Audit detaille rejoue : 0 violation, 19 nœuds calcules conformes et 416 nœuds incomplets regroupes en 79 signatures ; échantillonnage pixel du 2026-07-22 : 69 signatures sans alerte, 8 avec alerte et 2 non concluantes ; correctifs locaux à redéployer et contre-recetter | Partiellement couvert, voir B2-A37 |
 | B2-A36-03   | Aucun lecteur d'ecran reel utilise pendant cette campagne                  | Narrator disponible, NVDA absent ; grille operateur prete pour une restitution documentee | Ouvert : aucune ecoute realisee |
 | B2-A36-04   | Limite historique : le reflow initial reposait uniquement sur des viewports CSS | Audit natif à 200/400 %, détection puis correction des troncatures de métriques et cartes | Clos : correctif `b002adb` déployé, zoom natif production 16/16, voir B2-A37 |
 
@@ -175,3 +175,16 @@ ici. L'arbre d'accessibilite Chromium apporte une preuve structurelle utile,
 mais ne permet pas de conclure sur la qualite de la restitution vocale ni sur
 le confort d'usage reel. Le statut global reste donc « conformite RGAA non
 determinee », sans revendication de conformite exhaustive.
+
+## Addendum du 22 juillet 2026
+
+Le rejeu de la production a confirmé **33/33 tests**, **0 violation axe** et le
+même périmètre de **79 signatures / 166 contextes**. L'échantillonnage des
+pixels composites, détaillé dans B2-A37, a isolé 14 alertes sur 8 signatures et
+2 contextes non concluants. Les contrastes concernés ont été renforcés dans la
+source locale ; **55/55 tests Web**, le typecheck et le lint réussissent.
+
+Cet addendum ne transforme pas la production observée le 21 juillet : les
+correctifs doivent encore être déployés puis contre-recettés. La mesure humaine
+des deux contextes non concluants et les dix parcours Narrator/NVDA restent
+ouverts. Aucune écoute avec un lecteur d'écran n'a été effectuée.

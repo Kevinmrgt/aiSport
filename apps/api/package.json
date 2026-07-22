@@ -1,6 +1,6 @@
 {
   "name": "api",
-  "version": "0.13.0-rc.3",
+  "version": "0.13.0-rc.4",
   "private": true,
   "type": "module",
   "engines": {
@@ -24,10 +24,10 @@
   },
   "dependencies": {
     "@alcide/shared": "workspace:*",
-    "@hono/node-server": "^1.13.7",
+    "@hono/node-server": "^2.0.11",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.45.2",
-    "hono": "^4.12.25",
+    "hono": "^4.12.31",
     "pg": "^8.13.1",
     "zod": "^3.24.1"
   },
