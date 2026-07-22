@@ -1,15 +1,13 @@
 # Guide de deploiement - Alcide
 
-> Version applicative candidate locale: 0.13.0-rc.4
-> Baseline applicative déployée: b002adb0e0e7d8d85ee493d54879e190d77d2078
-> Version déployée observée: 0.13.0-rc.3
+> Version applicative déployée: 0.13.0-rc.4
+> Baseline applicative déployée: ea703aef912ce9e7c49c4c9b7872a5a7b595b666
 > Date de verification documentaire initiale: 2026-05-07
-> Derniere verification Bloc 2 et contre-recette de production: 2026-07-21
+> Derniere verification Bloc 2 et contre-recette de production: 2026-07-22
 
-La candidate `0.13.0-rc.4` corrige localement les avis de dépendances relevés
-le 2026-07-22. Son audit, son lint, ses types, ses 239 tests et ses builds sont
-verts en local. Elle n'est pas présentée comme publiée : la CI/CD et la
-contre-recette de production restent à exécuter après autorisation.
+La version `0.13.0-rc.4` corrige les avis de dépendances relevés le 2026-07-22,
+le focus des formulaires invalides et les relations d'onglets. Elle a passé la
+CI `29907294766`, la CD `29907642144` et la contre-recette de production.
 
 ## Production canonique
 
@@ -72,8 +70,8 @@ DATABASE_URL
 ```
 
 Le token doit autoriser `vercel pull/build/deploy` sur les deux projets. Le run
-CD canonique `29846343559`, déclenché automatiquement après la CI `29845956008`,
-a réussi sur le SHA `b002adb0e0e7d8d85ee493d54879e190d77d2078` : migration,
+CD canonique `29907642144`, déclenché automatiquement après la CI `29907294766`,
+a réussi sur le SHA `ea703aef912ce9e7c49c4c9b7872a5a7b595b666` : migration,
 API, Web et smoke tests de production. Les productions automatiques de
 l'intégration Git sont annulées par `ignoreCommand`, puis une seule production
 GitHub Actions aboutit par projet. Les runs `29747228594` et `29747592571`
@@ -143,8 +141,8 @@ Checklist:
 - [x] Web healthcheck HTTP 200 après déploiement
 - [x] Génération d'une séance testée avec un compte authentifié, puis donnée de recette supprimée (B2-A25)
 - [x] Génération d'un programme testée avec un compte authentifié, puis donnée de recette supprimée (B2-A25)
-- [x] run CI automatique vert sur la baseline applicative livrée (`29845956008`)
-- [x] run CD automatique vert sur la baseline applicative livrée (`29846343559`)
+- [x] run CI automatique vert sur la baseline applicative livrée (`29907294766`)
+- [x] run CD automatique vert sur la baseline applicative livrée (`29907642144`)
 - [x] zoom natif 200/400 % contre-recetté en production, 16/16, puis suite
       d'accessibilité rejouée, 33/33
 

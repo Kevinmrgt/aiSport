@@ -119,16 +119,15 @@ transitives `brace-expansion` et `shell-quote` ont fait échouer la CI
 contre-vérification. L'audit bloquant au niveau `low` est de nouveau vert dans
 la CI de consolidation `29832575391`, puis dans la CI canonique `29845956008`.
 
-Actualisation du 2026-07-22 : un nouvel audit de la candidate locale a détecté
+Actualisation du 2026-07-22 : un nouvel audit de la version `rc.4` a détecté
 cinq avis publiés depuis le gel précédent : un avis `high` sur `sharp` et quatre
-avis `moderate` concernant `hono` et `@hono/node-server`. La candidate locale
+avis `moderate` concernant `hono` et `@hono/node-server`. La version
 `0.13.0-rc.4` les corrige avec `sharp@0.35.3`, `hono@4.12.31` et
 `@hono/node-server@2.0.11`. L'audit de production au seuil `low`, le lint, la
 vérification des types, les 239 tests et les builds sont de nouveau verts en
-local. B2-A39 conserve le constat, les versions résolues et les commandes de
-contre-vérification. Cette actualisation ne préjuge pas de la CI/CD ni de la
-production : leur contre-vérification reste à exécuter après publication
-autorisée de la candidate.
+localement et dans la CI `29907294766`. B2-A39 conserve le constat, les versions
+résolues et les commandes de contre-vérification. La CD `29907642144` et les
+healthchecks `rc.4` ferment la contre-vérification de production.
 
 ## A07 — Identification and Authentication Failures — contrôlé avec limites
 

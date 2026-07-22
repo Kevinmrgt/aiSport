@@ -17,7 +17,7 @@ dans les annexes.
 | En tant qu'utilisateur, je veux voir une synthèse personnelle de mes séances créées et terminées, de la durée, de l'effort et des sports pratiqués. | `/dashboard`. | `app/dashboard/page.tsx`, `getTopSports()` ; `serverApi.getStats()` → `GET /workouts/stats` et `getSessionLogStats()` → `GET /session-logs/stats`. | CR-040, CR-041 et CR-065 | B2-A25 (agrégation sport corrigée), B2-A34 (état vide, totaux, isolation et incrément production). |
 | En tant qu'utilisateur, je veux connaître le fournisseur IA, choisir un modèle autorisé et recevoir une confirmation ou une erreur explicite. | `/settings`. | `SettingsForm`, action serveur de `app/settings/page.tsx` ; `serverApi.getAiSettings()` et `saveAiSettings()` → `GET /settings`, `PUT /settings` ; contrôleur et repository Settings. | CR-036 à CR-039 | B2-A25 (lecture en production), B2-A34 (persistance, restauration et rejet du modèle non autorisé). |
 | En tant qu'utilisateur, je veux supprimer une séance ou un programme après confirmation, sans perdre le contrôle du focus ni masquer une erreur API. | Cartes de `/workouts` et `/programs`, ainsi que détail `/programs/[id]`. | `DeleteConfirmationButton`, `DeleteWorkoutButton`, `DeleteProgramButton` ; `serverApi.deleteWorkout()` et `deleteProgram()` → `DELETE /workouts/:id`, `DELETE /programs/:id`. | CR-021, CR-024 et CR-035 | B2-A19 (suppression et ownership PostgreSQL), B2-A25 (suppression réelle et interaction), B2-A34 (annulation, Échap et erreurs API). |
-| En tant qu'utilisateur, y compris au clavier ou sur petit écran, je veux comprendre et actionner les parcours publics et privés sans perte d'information. | `/`, `/login`, `/confidentialite`, `/dashboard`, `/generate`, `/programs`, `/programs/generate`, `/workouts`, `/settings`, dialogues de suppression et Timer. | Structure sémantique des pages et formulaires, `ProgramWeekTabs`, `DeleteConfirmationButton`, `Timer` ; tests Playwright/axe et tests de structure/composants. | CR-051 à CR-055 | B2-A20 (public 320 px/clavier/axe), B2-A25 (contrôles authentifiés et focus), B2-A30 (reflow authentifié), B2-A36 (audit automatisable final), B2-A37 (zoom natif et limites humaines). |
+| En tant qu'utilisateur, y compris au clavier, avec un lecteur d'écran ou sur petit écran, je veux comprendre et actionner les parcours publics et privés sans perte d'information. | `/`, `/login`, `/confidentialite`, `/dashboard`, `/generate`, `/programs`, `/programs/generate`, `/workouts`, `/settings`, dialogues de suppression et Timer. | Structure sémantique des pages et formulaires, `ProgramWeekTabs`, `DeleteConfirmationButton`, `Timer` ; tests Playwright/axe, tests de structure/composants et parcours NVDA. | CR-051 à CR-055 | B2-A20 (public 320 px/clavier/axe), B2-A25 (contrôles authentifiés et focus), B2-A30 (reflow authentifié), B2-A36 (audit automatisable final), B2-A37 (zoom et contrastes), B2-A40 (sémantique), B2-A41 (NVDA réel et écarts). |
 
 ## Sources et limite de lecture
 
@@ -31,5 +31,7 @@ dans les annexes.
 
 La couverture accessibilité ne doit pas être interprétée comme une conformité
 RGAA exhaustive : CR-055 reste partiel dans le cahier de recettes. B2-A37
-indique que la revue humaine exhaustive des contrastes composites et le parcours
-avec un lecteur d'écran réel n'ont pas été exécutés.
+indique que les 166 contextes composites de l'échantillon sont décidés. B2-A41
+consigne un parcours réel NVDA, avec 6 scénarios conformes, 3 partiels et 1 non
+conforme ; deux correctifs restent à déployer et contre-recetter et aucune
+validation auditive humaine n'est revendiquée.

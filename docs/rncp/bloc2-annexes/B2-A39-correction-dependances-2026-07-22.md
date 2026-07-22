@@ -1,10 +1,9 @@
 # B2-A39 - Correction des avis de dépendances du 22 juillet 2026
 
 > Compétences : C2.1.2, C2.2.3, C2.3.2
-> Version candidate locale : `0.13.0-rc.4`
+> Version publiée : `0.13.0-rc.4`
 > Date du contrôle : 2026-07-22
-> Statut : correction locale validée ; CI, CD et contre-recette de production à
-> consigner après publication autorisée de la branche.
+> Statut : correction publiée, CI/CD verte et healthchecks de production validés.
 
 ## Anomalie détectée
 
@@ -63,6 +62,23 @@ La validation complète locale a également réussi :
 | total | 239/239 |
 | build shared/API/Next.js | réussi |
 
+## Publication et validation distante
+
+La pull request `#47` a fusionné la correction dans `main`. Le SHA applicatif
+`ea703aef912ce9e7c49c4c9b7872a5a7b595b666` a passé les contrôles suivants :
+
+| Contrôle distant | Résultat |
+| ---------------- | -------- |
+| CI de la pull request `29906947215` | 6 jobs réussis |
+| CI `main` `29907294766` | 6 jobs réussis |
+| CD `29907642144` | migration, API, Web et smoke tests réussis |
+| API `/health` | HTTP 200, version `0.13.0-rc.4` |
+| API `/health/ready` | HTTP 200, base et configuration IA `ok` |
+| Web `/api/health` | HTTP 200, version `0.13.0-rc.4` |
+
+La contre-recette d'accessibilité authentifiée a ensuite réussi à **33/33** et
+le zoom natif à **16/16** sur la production `rc.4`.
+
 ## Portée et limite
 
 Les avis Hono concernaient notamment des modules ou adaptateurs non utilisés
@@ -70,7 +86,7 @@ directement par Alcide, et les images traitées par Next.js sont des ressources
 locales. La correction a néanmoins été appliquée sans dérogation, car la règle
 qualité du projet refuse toute vulnérabilité connue à partir du niveau `low`.
 
-Cette annexe prouve l'état local du lockfile et de la candidate. Elle ne doit
-pas être présentée comme une preuve de déploiement. Les identifiants de la
-nouvelle CI, de la CD et la vérification des healthchecks `0.13.0-rc.4` devront
-être ajoutés uniquement après leur exécution réelle.
+Cette annexe prouve à la fois la correction locale et son passage réel dans la
+chaîne CI/CD. Elle ne remplace pas l'écoute humaine au lecteur d'écran. Le
+dernier contexte composite initialement réservé est décidé séparément dans
+B2-A37 par une borne conservatrice reproductible.

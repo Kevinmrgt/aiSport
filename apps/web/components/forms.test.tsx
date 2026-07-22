@@ -46,6 +46,52 @@ describe('formulaires metier', () => {
     );
   });
 
+  it('ne transforme pas une redirection Next reussie en alerte metier', async () => {
+    const redirectError = Object.assign(new Error('NEXT_REDIRECT'), {
+      digest: 'NEXT_REDIRECT;push;/workouts/workout-1;303;',
+    });
+    const onSubmit = vi.fn().mockRejectedValue(redirectError);
+    render(
+      <WorkoutForm
+        onSubmit={onSubmit}
+        costEstimate={{
+          modelLabel: 'GPT-5.4 mini',
+          inputTokens: 1_200,
+          outputTokens: 1_800,
+          totalUsdLabel: '$0.009',
+        }}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText(/sport/i), { target: { value: 'course' } });
+    fireEvent.change(screen.getByLabelText(/objectifs/i), {
+      target: { value: 'Ameliorer mon endurance' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /generer la seance/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('ne transforme pas une redirection Next de programme en alerte metier', async () => {
+    const redirectError = Object.assign(new Error('NEXT_REDIRECT'), {
+      digest: 'NEXT_REDIRECT;push;/programs/program-1;303;',
+    });
+    const onSubmit = vi.fn().mockRejectedValue(redirectError);
+    render(<ProgramForm onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByLabelText(/^sport/i), {
+      target: { value: 'course' },
+    });
+    fireEvent.change(screen.getByLabelText(/objectifs/i), {
+      target: { value: 'Preparer une course' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /generer le programme/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
   it('affiche l erreur metier renvoyee pendant une generation de programme', async () => {
     const onSubmit = vi.fn().mockResolvedValue({ error: 'Service IA indisponible' });
     render(<ProgramForm onSubmit={onSubmit} />);
@@ -119,9 +165,13 @@ describe('formulaires metier', () => {
     );
 
     fireEvent.change(screen.getByLabelText('Modele OpenAI'), { target: { value: 'gpt-5.4' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    const saveButton = screen.getByRole('button', { name: 'Enregistrer' });
+    saveButton.focus();
+    fireEvent.click(saveButton);
 
     await waitFor(() => expect(onSave).toHaveBeenCalledWith({ model: 'gpt-5.4' }));
-    expect((await screen.findByRole('status')).textContent).toContain('Parametres sauvegardes');
+    const status = await screen.findByRole('status');
+    expect(status.textContent).toContain('Parametres sauvegardes');
+    expect(document.activeElement).toBe(saveButton);
   });
 });
