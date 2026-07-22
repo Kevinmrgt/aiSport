@@ -54,6 +54,7 @@ SELECTED = [
     "B2-A38-preuve-negative-ci-cd-2026-07-21.md",
     "B2-A39-correction-dependances-2026-07-22.md",
     "B2-A40-audit-semantique-assiste-2026-07-22.md",
+    "B2-A41-parcours-nvda-production-2026-07-22.md",
 ]
 
 CORE_DELIVERABLES = [
@@ -125,7 +126,8 @@ def annex_cover_story():
         "B2-A37": "Zoom natif, contrastes et contre-recette",
         "B2-A38": "Preuve négative dynamique du blocage CI vers CD",
         "B2-A39": "Correction des dépendances et audit de sécurité rc.4",
-        "B2-A40": "Audit sémantique authentifié et corrections locales",
+        "B2-A40": "Audit sémantique authentifié et contre-recette rc.4",
+        "B2-A41": "Parcours réel NVDA, résultats et anomalies",
     }
     for filename in SELECTED:
         identifier = filename.split("-")[0] + "-" + filename.split("-")[1]

@@ -9,6 +9,7 @@ import { AlcideMascotPrompt } from './AlcideMascotPrompt';
 import { GlassPanel, MetricPill } from './PremiumPrimitives';
 import { GenerateProgramInputSchema } from '@alcide/shared';
 import type { GenerateProgramInput } from '@alcide/shared';
+import { isNextRedirectError } from '@/lib/next-navigation';
 
 interface ProgramFormProps {
   onSubmit: (data: GenerateProgramInput) => Promise<{ error?: string } | void>;
@@ -89,6 +90,7 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
         setGlobalError(result.error);
       }
     } catch (error) {
+      if (isNextRedirectError(error)) return;
       setGlobalError(
         error instanceof Error ? error.message : 'Une erreur est survenue, veuillez reessayer',
       );
