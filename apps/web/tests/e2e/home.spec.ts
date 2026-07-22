@@ -34,7 +34,7 @@ test.describe('Page d\'accueil', () => {
   test('RGAA 4.1 — footer sémantique présent', async ({ page }) => {
     const footer = page.locator('footer');
     await expect(footer).toBeVisible();
-    await expect(footer).toContainText('RNCP 39583');
+    await expect(footer).toContainText('Alcide');
   });
 
   test('lien "Se connecter" redirige vers /login', async ({ page }) => {
