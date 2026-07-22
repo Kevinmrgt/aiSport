@@ -1,7 +1,7 @@
 # Manuel de mise à jour - Alcide
 
 > Livrable Bloc 2 RNCP39583 - Documentation technique d'exploitation et d'évolution.
-> Version exploitée : `0.13.0-rc.4` - baseline déployée `ea703aef912ce9e7c49c4c9b7872a5a7b595b666`.
+> Version exploitée : `0.13.0-rc.5` - baseline déployée `b63280f36e44b02d5654a7f4e2caa8413e446bcb`.
 
 ## 1. Objectif
 
