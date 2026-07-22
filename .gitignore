@@ -37,10 +37,8 @@ logs/
 *.swp
 *.swo
 
-# Claude Code — fichiers locaux contenant des tokens/permissions
+# Local assistant configuration and credentials
 .claude/settings.local.json
-
-# Codex local workspace config
 .codex/
 
 # OS
@@ -53,5 +51,10 @@ Thumbs.db
 # Python generated files
 __pycache__/
 *.py[cod]
+
+# Document generation workspaces and packaged deliveries
+tmp/
+output/alcide-bloc2-rncp39583-*/
+output/alcide-bloc2-rncp39583-*.zip
 
 .vercel

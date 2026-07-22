@@ -23,6 +23,7 @@ from reportlab.platypus.tableofcontents import TableOfContents
 
 from bloc2_delivery_config import (
     ANONYMIZED_MODE,
+    APPLICATION_SHA,
     DELIVERY_DATE,
     DELIVERY_DATE_FR,
     VERSION,
@@ -233,7 +234,7 @@ def styles():
 STYLES = styles()
 
 
-class CandidateDocument(SimpleDocTemplate):
+class Bloc2Document(SimpleDocTemplate):
     def __init__(self, *args, toc_max_level: int = 2, **kwargs):
         self.toc_max_level = toc_max_level
         super().__init__(*args, **kwargs)
@@ -450,6 +451,7 @@ def cover_story():
             ["Épreuve", "Bloc 2 - Concevoir et développer des applications logicielles"],
             ["Projet", "Alcide - coach sportif assisté par IA"],
             ["Version", f"{VERSION} - dossier finalisé le {DELIVERY_DATE_FR}"],
+            ["Code source", f"Dépôt GitHub transmis avec la remise - révision {APPLICATION_SHA[:7]}"],
             ["Règle", "30 pages maximum hors annexes - rendu individuel"],
             ["Identité", "Dossier anonymisé conformément au règlement de certification"],
         ],
@@ -502,7 +504,7 @@ def toc_story():
 
 def build_pdf(source: Path = SOURCE, output: Path = OUTPUT) -> Path:
     output.parent.mkdir(parents=True, exist_ok=True)
-    document = CandidateDocument(
+    document = Bloc2Document(
         str(output),
         pagesize=A4,
         leftMargin=1.5 * cm,
@@ -510,7 +512,7 @@ def build_pdf(source: Path = SOURCE, output: Path = OUTPUT) -> Path:
         topMargin=1.45 * cm,
         bottomMargin=1.55 * cm,
         title=f"Dossier Bloc 2 RNCP39583 - Alcide - final {DELIVERY_DATE}",
-        author="Candidat RNCP39583 - dossier anonymisé",
+        author="Projet Alcide - dossier anonymisé",
         subject="Code source et documentation associée - Bloc 2",
         creator="Générateur documentaire Alcide - ReportLab",
         keywords="RNCP39583, Bloc 2, conception, développement, Alcide, certification",
