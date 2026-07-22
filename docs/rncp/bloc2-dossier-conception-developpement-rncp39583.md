@@ -55,7 +55,7 @@ du jury.
 | C2.2.2 Tests unitaires                         | shared 14, API 170, Web 57 sur `rc.5`                         | étayé                                                   |
 | C2.2.3 Sécurité, accessibilité, conformité     | OWASP, A35 à A37, dépendances A39, audits A40/A41              | acquise sur le périmètre présenté ; réserve RGAA exhaustive |
 | C2.2.4 Déploiement progressif et versionnement | baseline `rc.5`, CI `29916228789`, CD `29916573448`, smoke tests | étayé                                                   |
-| C2.3.1 Cahier de recettes                      | 59 scénarios : 58 clos, CR-063 à rejouer                      | partiel jusqu'à reconstruction du paquet                  |
+| C2.3.1 Cahier de recettes                      | 59 scénarios clos ; CR-063 validé par le paquet final         | acquise sur le périmètre présenté                         |
 | C2.3.2 Correction des bogues                   | registre B2-BUG et tests de non-régression                    | étayé                                                   |
 | C2.4.1 Documentation d'exploitation            | trois manuels présents et versionnés                          | étayé                                                   |
 
@@ -358,10 +358,11 @@ La campagne de fermeture B2-A34 à B2-A41 ajoute les erreurs OpenAI, pagination,
 suppression en erreur, journal avec notes de douleur, modèle interdit,
 dashboard vide/alimenté, parcours Timer/journal/dashboard de production,
 injection, XSS, secrets, CORS, CSP et audits d'accessibilité multi-page et
-sémantique et parcours réel NVDA. Le cahier compte 59 scénarios de recette :
-58 sont clos. CR-055 est clos avec une réserve documentaire après publication
-des correctifs et validation NVDA déclarée par l'utilisateur. CR-063 doit être
-rejoué après intégration de B2-A41. CR-062 est fermé par la preuve négative isolée B2-A38 ; CR-049
+sémantique et parcours réel NVDA. Le cahier compte 59 scénarios de recette,
+tous clos. CR-055 est clos avec une réserve documentaire après publication des
+correctifs et validation NVDA déclarée par l'utilisateur. CR-063 est clos par
+la génération, l'inspection et la vérification du paquet final incluant B2-A41.
+CR-062 est fermé par la preuve négative isolée B2-A38 ; CR-049
 est suivi séparément comme risque architectural, hors dénominateur. La baseline
 `rc.5` a passé la CI/CD et les smoke tests ; la contre-recette NVDA est déclarée
 validée par l'utilisateur. La campagne accessibilité antérieure reste verte en
@@ -426,7 +427,7 @@ et tests complets. B2-A27 fournit un exemple réel où une nouvelle alerte a fai
 | Compétence | Annexes principales                   | Démonstration                                    |
 | ---------- | ------------------------------------- | ------------------------------------------------ |
 | C2.1.1     | B2-A21, A22, A28, A29                 | healthchecks et protocole CD                     |
-| C2.1.2     | B2-A16, A23, A27, A28, A39            | CI `rc.4` et contrôles locaux                     |
+| C2.1.2     | B2-A16, A23, A27, A28, A39            | CI `rc.5` et contrôles locaux                     |
 | C2.2.1     | matrice user stories, B2-A25, A26, A30 | besoins, écrans et production desktop/mobile     |
 | C2.2.2     | B2-A19, A28, A31                      | rapports de couverture séparés                   |
 | C2.2.3     | B2-A20, A23 à A30, A35 à A41           | OWASP, dépendances, axe, clavier, zoom, sémantique, NVDA |
@@ -436,11 +437,11 @@ et tests complets. B2-A27 fournit un exemple réel où une nouvelle alerte a fai
 | C2.4.1     | manuels et B2-A22                     | déployer, utiliser, mettre à jour                |
 
 Le PDF et le ZIP `rc.4` existants constituent un paquet historique antérieur à
-B2-A41. L'index détaillé, la matrice user stories et les pièces complètes seront
-intégrés comme livrables de premier niveau dans le paquet `rc.5`. La CI/CD et
-la contre-recette NVDA sont terminées ; restent la reconstruction, l'inspection
-et le calcul des empreintes. Les
-preuves historiques restent conservées sans être assimilées à cette remise.
+B2-A41. Le paquet final `rc.5` intègre l'index détaillé, la matrice user stories
+et les pièces complètes comme livrables de premier niveau. Ses 92 pages ont été
+inspectées ; l'anonymisation, la décompression et les empreintes ont été
+vérifiées. Les preuves historiques restent conservées sans être assimilées à
+cette remise.
 
 ## 18. Vérifications administratives restant avant dépôt
 
@@ -477,5 +478,5 @@ les builds et la CI/CD. Un parcours réel NVDA 2026.1.1 est
 consigné dans B2-A41 : 6 scénarios conformes, 3 partiels et 1 non conforme. Les
 correctifs B2-BUG-042/043 sont publiés et leur contre-recette NVDA est déclarée
 validée par l'utilisateur. SR-09/SR-10 restent des améliorations P2 non
-bloquantes. Le paquet doit ensuite être
-reconstruit avant d'appliquer les consignes administratives du campus.
+bloquantes. Le paquet final est construit et contrôlé ; seules les consignes
+administratives du campus et le dépôt restent à appliquer.

@@ -8,14 +8,15 @@ pas encore B2-A41 :
 1. `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.4-final-2026-07-22.pdf` ;
 2. `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.4-final-2026-07-22.pdf`.
 
-La fusion, la CI/CD et la contre-recette `rc.5` sont terminées. Le nouveau
-paquet complet doit maintenant être généré par :
+La fusion, la CI/CD, la contre-recette et la construction du paquet `rc.5` sont
+terminées. Le paquet complet est reproductible par :
 
 ```bash
 python docs/rncp/tools/build_bloc2_delivery_pack.py
 ```
 
-Il contient ces deux PDF, une archive Git du code source, une notice et les
+Le paquet final `output/alcide-bloc2-rncp39583-0.13.0-rc.5-final-2026-07-22.zip`
+contient ces deux PDF, une archive Git du code source, une notice et les
 empreintes SHA-256. Le PDF d'annexes intègre en entier le cahier de recettes,
 le plan de correction des bogues, la revue OWASP et la matrice user
 stories/preuves. L'archive source exclut les fichiers non suivis : aucun
@@ -25,7 +26,8 @@ n'y est ajouté.
 Le paquet local historique est
 `output/alcide-bloc2-rncp39583-0.13.0-rc.4-final-2026-07-22.zip`. Le dossier
 compte 11 pages et les annexes 75 pages. Il ne doit pas être remis comme paquet
-courant ; les nouvelles empreintes seront produites avec `rc.5`.
+courant. Le paquet `rc.5` compte 11 pages de dossier et 81 pages d'annexes ;
+ses empreintes courantes figurent dans son `MANIFESTE.txt` interne.
 
 ## Versions historiques
 

@@ -5,7 +5,7 @@
 > Pull request de publication : `#49` ; CI `29916228789` ; CD `29916573448`.
 > Repère documentaire de la baseline : tag `rncp-bloc2-2026-07-21-v8`.
 > Le tag `rncp-bloc2-2026-07-21-v5` reste le snapshot documentaire antérieur validé en CI/CD.
-> Le SHA archivé et les empreintes de la remise `rc.5` figureront dans le
+> Le SHA archivé et les empreintes de la remise `rc.5` figurent dans le
 > `MANIFESTE.txt` généré avec le paquet ; ils ne modifient pas la baseline de
 > production `rc.5`.
 
@@ -28,19 +28,19 @@ artefact et anomalie éventuelle.
 | Élément                             | Valeur                                                                                                                         |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | Scénarios de recette comptabilisés  | 59 ; CR-049 est un risque architectural suivi séparément et n'entre pas dans le dénominateur                                  |
-| Scénarios clos                      | 58 : résultats exécutés/observés et contrôles automatisés dont les preuves sont conservées                                     |
-| Scénarios non clos                  | CR-063 à rejouer après intégration de B2-A41                                                                                  |
+| Scénarios clos                      | 59 : résultats exécutés/observés et contrôles automatisés dont les preuves sont conservées                                     |
+| Scénarios non clos                  | Aucun dans le périmètre du cahier                                                                                            |
 | Échecs fonctionnels finaux          | Aucun connu ; B2-BUG-042/043 sont corrigés et validés sur `rc.5` ; B2-BUG-044/045 restent des améliorations P2 non bloquantes  |
 | SHA/tag testé                       | baseline déployée `b63280f36e44b02d5654a7f4e2caa8413e446bcb` ; repère documentaire historique `v8`                          |
 | Environnement                       | baseline `rc.5` en CI/production ; trois endpoints de santé en HTTP 200                                                       |
-| Artefacts                           | preuves A20, A25 à A41 ; matrice user stories ; paquet `rc.5` à générer et inspecter                                           |
+| Artefacts                           | preuves A20, A25 à A41 ; matrice user stories ; paquet `rc.5` généré, inspecté et vérifié                                      |
 
 Les 59 scénarios ne sont pas tous des manipulations manuelles : le statut
 `🧪 Automatisé` désigne un cas réellement exécuté dans l'environnement indiqué.
-Le statut
-`✅ Exécuté` désigne une recette ou une observation conservée. CR-063 n'est pas
-inclus dans les 58 scénarios clos tant que le paquet incluant B2-A41 n'a pas
-été reconstruit et inspecté.
+Le statut `✅ Exécuté` désigne une recette ou une observation conservée. CR-063
+est clos par la génération du paquet incluant B2-A41, l'inspection de ses 92
+pages, sa décompression, son contrôle d'anonymisation et la comparaison des
+empreintes SHA-256.
 
 ### Contrôles de la version `0.13.0-rc.5` — 2026-07-22
 
@@ -65,8 +65,8 @@ inclus dans les 58 scénarios clos tant que le paquet incluant B2-A41 n'a pas
 | Paramètres et dashboard | CR-036 à CR-041 (6) | 6 clos | B2-A25, B2-A34 |
 | Sécurité fonctionnelle | CR-042 à CR-048 et CR-050 (8) | 8 clos | B2-A35, audit `low` local `rc.4`, B2-A39 |
 | Accessibilité | CR-051 à CR-055 (5) | 5 clos | B2-A25, B2-A36, B2-A37, B2-A40, B2-A41 |
-| Qualité, intégration et déploiement | CR-056 à CR-065 (10) | 9 clos ; CR-063 à rejouer | B2-A19, B2-A22, B2-A38, manifeste du paquet |
-| **Total** | **59** | **58 clos ; CR-063 à rejouer** | **index des annexes et présent cahier** |
+| Qualité, intégration et déploiement | CR-056 à CR-065 (10) | 10 clos | B2-A19, B2-A22, B2-A38, manifeste du paquet |
+| **Total** | **59** | **59 clos** | **index des annexes et présent cahier** |
 
 CR-049 est conservé sous son identifiant pour assurer la traçabilité du risque,
 mais il ne correspond pas à une fonctionnalité livrée ni à une recette exécutée.
@@ -244,14 +244,15 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 | CR-060 | Readiness API             | DB/clé disponibles puis indisponibles                                    | 200 prêt ; 503 avec dépendance défaillante                                          | tests route + curl  | ✅ Cas automatisés verts ; readiness production 200, DB/IA `ok`                                                   |
 | CR-061 | CI complète               | pousser le SHA final                                                     | tous les jobs obligatoires verts                                                    | run GitHub          | ✅ Run final `29916228789` réussi sur `b63280f`                                                                   |
 | CR-062 | CD sans contournement     | CI échoue puis réussit                                                   | aucun déploiement après échec ; déploiement après succès                            | runs GitHub + B2-A38 | ✅ Fermé sans toucher à `main` : CI courante `29856584668` rouge sur PR isolée, quatre jobs aval ignorés, aucun run CD associé et inventaires Vercel production API/Web identiques avant/après ; politique YAML 6/6. Chemin vert `29845956008` → `29846343559`. Limite : aucun commit volontairement rouge sur `main`. |
-| CR-063 | Version immuable          | construire le paquet depuis un état Git propre et vérifier PDF, source, SHA et empreintes | build refusé si fichiers suivis modifiés ; PDF principal ≤ 30 pages ; livrables de premier niveau présents ; archive et PDF anonymisés ; SHA-256 consignés | `build_bloc2_delivery_pack.py` + manifeste | ⏳ À rejouer : fusion, CI/CD et contre-recette `rc.5` sont terminées ; restent la génération, l'inspection, la décompression et la vérification des empreintes du paquet incluant B2-A41. |
+| CR-063 | Version immuable          | construire le paquet depuis un état Git propre et vérifier PDF, source, SHA et empreintes | build refusé si fichiers suivis modifiés ; PDF principal ≤ 30 pages ; livrables de premier niveau présents ; archive et PDF anonymisés ; SHA-256 consignés | `build_bloc2_delivery_pack.py` + manifeste | ✅ Clos sur `rc.5` : paquet généré depuis un état Git propre avec B2-A41 ; dossier 11 pages et annexes 81 pages inspectés ; anonymisation validée ; ZIP décompressé ; quatre empreintes internes comparées avec succès. Le `MANIFESTE.txt` de la dernière génération fait foi. |
 | CR-064 | Production API/Web        | déployer le SHA final                                                    | liveness/readiness/Web en 200                                                       | curl daté           | ✅ CD final `29916573448`, HTTP 200 `rc.5`, DB et configuration IA `ok`                                           |
 | CR-065 | Parcours post-déploiement | login, séance, programme, Timer, journal, dashboard                      | parcours complet sans erreur                                                        | recette production  | ✅ Session OAuth, Programmes, Timer, effort/feedback/douleur, journal et dashboard `3 → 4` en production ; B2-A34 |
 
 ## Critère de clôture C2.3.1
 
-Les 59 scénarios de recette sont reliés à une preuve ou à une réserve explicite :
-58 sont clos ; seul CR-063 doit être rejoué après reconstruction du paquet.
+Les 59 scénarios de recette sont reliés à une preuve ou à une réserve explicite
+et sont clos. CR-063 est validé par la construction, l'inspection, la
+décompression et la comparaison des empreintes du paquet `rc.5`.
 CR-055 est clos sur l'échantillon par les mesures, la campagne technique, le
 déploiement `rc.5` et la validation NVDA déclarée par le candidat. CR-062 combine une CI rouge
 courante isolée, un inventaire Vercel avant/après et six tests de politique.
