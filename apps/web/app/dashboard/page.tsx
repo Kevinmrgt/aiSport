@@ -85,7 +85,7 @@ export default async function DashboardPage() {
         <div className="space-y-6">
           <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <div className="metric-card">
-              <dt className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-400">
+              <dt className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-200">
                 Seances creees
               </dt>
               <dd className="mt-3 text-5xl font-black tabular-nums text-primary-300">
@@ -94,7 +94,7 @@ export default async function DashboardPage() {
             </div>
 
             <div className="metric-card">
-              <dt className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-400">
+              <dt className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-200">
                 Termine
               </dt>
               <dd className="mt-3 text-5xl font-black tabular-nums text-white">
@@ -103,7 +103,7 @@ export default async function DashboardPage() {
             </div>
 
             <div className="metric-card">
-              <dt className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-400">
+              <dt className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-200">
                 Temps realise
               </dt>
               <dd className="mt-3 text-3xl font-black text-white">
@@ -112,12 +112,12 @@ export default async function DashboardPage() {
             </div>
 
             <div className="metric-card">
-              <dt className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-400">
+              <dt className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-200">
                 Effort moyen
               </dt>
               <dd className="mt-3 text-3xl font-black tabular-nums text-white">
                 {sessionStats.averageEffort !== null ? sessionStats.averageEffort.toFixed(1) : '--'}
-                <span className="text-lg text-zinc-500"> / 10</span>
+                <span className="text-lg text-zinc-200"> / 10</span>
               </dd>
             </div>
           </dl>

@@ -23,6 +23,9 @@ describe('pages publiques et etats de chargement', () => {
   it('rend la page d accueil et ses appels a l action', () => {
     render(<HomePage />);
     expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('Alcide prepare');
+    const introduction = screen.getByText(/Selectionnez votre sport/i);
+    expect(introduction.classList.contains('bg-zinc-950/85')).toBe(true);
+    expect(introduction.classList.contains('text-zinc-100')).toBe(true);
     expect(screen.getByRole('link', { name: 'Creer une seance' }).getAttribute('href')).toBe(
       '/generate',
     );
@@ -37,6 +40,7 @@ describe('pages publiques et etats de chargement', () => {
     expect(screen.getByRole('button', { name: /continuer avec google/i })).toBeTruthy();
     rerender(<PrivacyPage />);
     expect(screen.getByRole('heading', { name: /confidentialit/i })).toBeTruthy();
+    expect(screen.getByText(/Information mise/i).classList.contains('text-zinc-200')).toBe(true);
     rerender(<NotFound />);
     expect(screen.getByRole('heading', { name: 'Page introuvable' })).toBeTruthy();
     consoleError.mockRestore();
@@ -45,7 +49,12 @@ describe('pages publiques et etats de chargement', () => {
   it('journalise le digest sans exposer l erreur et permet de reessayer', () => {
     const reset = vi.fn();
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    render(<ErrorPage error={Object.assign(new Error('secret interne'), { digest: 'digest-1' })} reset={reset} />);
+    render(
+      <ErrorPage
+        error={Object.assign(new Error('secret interne'), { digest: 'digest-1' })}
+        reset={reset}
+      />,
+    );
 
     expect(screen.queryByText('secret interne')).toBeNull();
     expect(consoleError).toHaveBeenCalledWith('[ErrorBoundary]', 'digest-1');

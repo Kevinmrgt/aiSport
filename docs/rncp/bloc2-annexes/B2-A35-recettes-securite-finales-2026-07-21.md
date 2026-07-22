@@ -33,7 +33,8 @@ absent de la CSP de production.
 | ------------------------------------- | ----------------------------------------------------------- |
 | Date et heure de fin des observations | 2026-07-21, 14:26 CEST / 12:26 UTC                          |
 | Révision de base locale               | `bac3b916770cabbbc92e3cda0d58ac3ed7e5e119` (`main`)         |
-| Gel applicatif final                  | `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`, CI/CD réussies  |
+| Baseline de la campagne sécurité      | `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`, CI/CD réussies  |
+| Baseline canonique déployée           | `b002adb0e0e7d8d85ee493d54879e190d77d2078`, CI `29845956008`, CD `29846343559` |
 | État local                            | révision de base avec tests et documents RNCP non commités  |
 | Système                               | Windows NT 10.0.22631                                       |
 | Node.js                               | 24.14.0                                                     |
@@ -52,6 +53,10 @@ utilisateur jetable, insère et relit la charge via le repository, vérifie la
 table puis supprime l'utilisateur par cascade. Aucun test n'appelle OpenAI ou
 OAuth. Les requêtes de production sont uniquement des `GET`, `HEAD` ou
 pré-requêtes `OPTIONS`.
+
+Le passage de `0d5c6b6` à `b002adb` corrige uniquement le reflow de composants
+Web. Il ne modifie pas les contrôles de sécurité testés ici ; la CI canonique a
+néanmoins rejoué l'ensemble des jobs avant le CD final.
 
 ## Résultat par scénario
 

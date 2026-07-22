@@ -17,7 +17,8 @@ export default function PrivacyPage() {
         </h1>
         <p className="muted-copy mt-4 max-w-3xl">
           Alcide est un prototype de coaching sportif. Cette page décrit les traitements réellement
-          présents dans l&apos;application ; elle ne prétend pas offrir des fonctions encore absentes.
+          présents dans l&apos;application ; elle ne prétend pas offrir des fonctions encore
+          absentes.
         </p>
       </header>
 
@@ -58,8 +59,8 @@ export default function PrivacyPage() {
           </h2>
           <p className="mt-3 text-sm leading-6 text-zinc-300">
             Une note de douleur peut révéler une information sensible. Sa saisie est facultative :
-            n&apos;indiquez que ce qui est utile au suivi sportif. Alcide ne remplace ni un diagnostic
-            ni l&apos;avis d&apos;un professionnel de santé.
+            n&apos;indiquez que ce qui est utile au suivi sportif. Alcide ne remplace ni un
+            diagnostic ni l&apos;avis d&apos;un professionnel de santé.
           </p>
         </section>
 
@@ -69,8 +70,8 @@ export default function PrivacyPage() {
           </h2>
           <p className="mt-3 text-sm leading-6 text-zinc-300">
             Aucune durée de conservation automatique n&apos;est encore configurée dans ce prototype.
-            Les données restent donc conservées en base tant qu&apos;elles ne sont pas supprimées par
-            le responsable du projet. Ce point doit être défini avant toute mise en production
+            Les données restent donc conservées en base tant qu&apos;elles ne sont pas supprimées
+            par le responsable du projet. Ce point doit être défini avant toute mise en production
             réelle.
           </p>
         </section>
@@ -89,7 +90,7 @@ export default function PrivacyPage() {
           </p>
         </section>
 
-        <p className="border-t border-white/10 pt-5 text-xs text-zinc-400">
+        <p className="border-t border-white/10 pt-5 text-xs text-zinc-200">
           Information mise à jour le 20 juillet 2026. Pour revenir au service, consultez{' '}
           <Link href="/" className="font-bold text-primary-300 underline underline-offset-4">
             l&apos;accueil Alcide

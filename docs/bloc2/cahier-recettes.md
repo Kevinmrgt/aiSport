@@ -1,18 +1,21 @@
 # Cahier de recettes — Alcide
 
 > Bloc 2 RNCP39583 — C2.3.1, compétence éliminatoire
-> Version consolidée : 2026-07-21
-> Baseline applicative déployée : `b002adb0e0e7d8d85ee493d54879e190d77d2078`.
-> Pull request applicative finale : `#43`.
-> Repère documentaire : tag `rncp-bloc2-2026-07-21-v5`.
-> Le SHA réellement archivé et les empreintes des livrables figurent dans le `MANIFESTE.txt` du paquet.
+> Candidate corrigée locale : `0.13.0-rc.4` au 2026-07-22.
+> Baseline applicative déployée inchangée : `0.13.0-rc.3`, commit `b002adb0e0e7d8d85ee493d54879e190d77d2078`.
+> Pull request de la baseline déployée : `#43`.
+> Repère documentaire de la baseline : tag `rncp-bloc2-2026-07-21-v8`.
+> Le tag `rncp-bloc2-2026-07-21-v5` reste le snapshot documentaire antérieur validé en CI/CD.
+> Le SHA archivé et les empreintes de la remise `rc.4` figurent dans le
+> `MANIFESTE.txt` généré avec le paquet ; ils ne modifient pas la baseline de
+> production `rc.3`.
 
 ## Règles de preuve
 
 | Code          | Signification                                                                                        |
 | ------------- | ---------------------------------------------------------------------------------------------------- |
-| ✅ Exécuté    | scénario exécuté sur la version candidate, résultat et preuve conservés                              |
-| 🧪 Automatisé | test présent et exécuté dans la CI finale ; preuve fonctionnelle individuelle à relier si nécessaire |
+| ✅ Exécuté    | scénario exécuté sur une version explicitement identifiée, résultat et preuve conservés               |
+| 🧪 Automatisé | test exécuté automatiquement ; l'environnement local, CI ou production doit être précisé             |
 | 📎 Historique | preuve obtenue sur une ancienne version, à ne pas assimiler à la version finale                      |
 | ⏳ À exécuter | scénario préparé mais sans preuve suffisante                                                         |
 | ❌ Échec      | résultat différent de l'attendu, anomalie obligatoire                                                |
@@ -25,13 +28,50 @@ artefact et anomalie éventuelle.
 
 | Élément                             | Valeur                                                                                                                         |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Scénarios inventoriés               | 60                                                                                                                             |
-| Scénarios exécutés sur le SHA final | Gel Git confirmé après CI/CD ; chaque scénario possède un résultat ou une limite reliée au plan de correction                  |
-| Scénarios réussis                   | Non convertis en pourcentage : 170 tests API, 55 Web, 14 shared, 9 PostgreSQL RNCP et les parcours authentifiés sont détaillés |
-| Scénarios en échec                  | Quatre écarts ont été reproduits sur `rc.2`, corrigés puis contre-recettés sur `rc.3` ; aucune gate CI/CD finale en échec      |
-| SHA/tag testé                       | application `b002adb0e0e7d8d85ee493d54879e190d77d2078` ; repère documentaire `rncp-bloc2-2026-07-21-v5` ; SHA archivé porté par le manifeste |
-| Environnement                       | Local/CI Node 24 + PostgreSQL de test, puis production Vercel/Neon                                                             |
-| Artefacts                           | annexes finales A20 et A25 à A31, rapports CI, captures authentifiées et paquet de remise daté du 2026-07-21                   |
+| Scénarios de recette comptabilisés  | 59 ; CR-049 est un risque architectural suivi séparément et n'entre pas dans le dénominateur                                  |
+| Scénarios clos                      | 58 : résultats exécutés/observés et contrôles automatisés dont les preuves sont conservées                                     |
+| Scénarios non clos                  | CR-055 partiel : qualification humaine des contrastes composites et parcours avec lecteur d'écran réel                         |
+| Échecs fonctionnels finaux          | Aucun connu ; quatre écarts reproduits sur `rc.2` ont été corrigés puis contre-recettés sur `rc.3`                             |
+| SHA/tag testé                       | baseline déployée `b002adb0e0e7d8d85ee493d54879e190d77d2078` et tag `v8` ; candidate locale `rc.4` sans SHA publié ni tag final |
+| Environnement                       | baseline `rc.3` : local/CI/production ; candidate `rc.4` : contrôles locaux Node 24 uniquement                                |
+| Artefacts                           | preuves historiques A20, A25 à A38 ; corrections locales `rc.4` B2-A39/A40 ; matrice user stories ; paquet `rc.4` à régénérer |
+
+Les 59 scénarios ne sont pas tous des manipulations manuelles : le statut
+`🧪 Automatisé` désigne un cas réellement exécuté dans l'environnement indiqué.
+Le statut
+`✅ Exécuté` désigne une recette ou une observation conservée. CR-055 n'est pas
+inclus dans les 58 scénarios clos tant que sa réserve humaine n'est pas levée.
+CR-063 est clos localement : le PDF et le ZIP `rc.4` ont été générés, toutes les
+pages inspectées et la gate a validé la découvrabilité, la navigation,
+l'anonymisation, la décompression et les empreintes.
+
+### Contrôles locaux de la candidate `0.13.0-rc.4` — 2026-07-22
+
+| Contrôle | Résultat local | Limite |
+| -------- | -------------- | ------ |
+| Dépendances résolues | `sharp 0.35.3`, `hono 4.12.31`, `@hono/node-server 2.0.11` | cinq avis nouvellement détectés corrigés dans le lockfile |
+| `pnpm audit --prod --audit-level=low` | aucune vulnérabilité connue | exécution locale consignée dans B2-A39 |
+| Lint et types | verts | aucune exécution CI de `rc.4` revendiquée |
+| Tests | 239/239 : shared 14, API 170, Web 55 | ne vaut pas une contre-recette de production |
+| Builds | verts | aucun push, CD ou déploiement de `rc.4` réalisé |
+| Audit sémantique authentifié | huit routes principales, trois détails et confirmation de suppression contrôlés | deux anomalies reproduites sur `rc.3`, corrigées et testées localement dans B2-A40 |
+
+### Matrice fonctionnalités → scénarios → preuves
+
+| Fonctionnalité | Scénarios comptés | État | Preuves principales |
+| -------------- | ----------------- | ---- | ------------------- |
+| Authentification et session | CR-001 à CR-004 (4) | 4 clos | B2-A25, B2-A30, E2E OAuth `29833210488` |
+| Génération de séance | CR-010 à CR-015 (6) | 6 clos | B2-A25, B2-A34, CI applicative |
+| Programmes | CR-016 à CR-021 (6) | 6 clos | B2-A25, B2-A34, PostgreSQL réel |
+| Séances, Timer et journalisation | CR-022 à CR-035 (14) | 14 clos | B2-A25, B2-A34, tests API/Web/PostgreSQL |
+| Paramètres et dashboard | CR-036 à CR-041 (6) | 6 clos | B2-A25, B2-A34 |
+| Sécurité fonctionnelle | CR-042 à CR-048 et CR-050 (8) | 8 clos | B2-A35, audit `low` local `rc.4`, B2-A39 |
+| Accessibilité | CR-051 à CR-055 (5) | 4 clos ; CR-055 partiel | B2-A25, B2-A36, B2-A37, B2-A40 |
+| Qualité, intégration et déploiement | CR-056 à CR-065 (10) | 10 clos | B2-A19, B2-A22, B2-A38, manifeste du paquet |
+| **Total** | **59** | **58 clos ; 1 partiel** | **index des annexes et présent cahier** |
+
+CR-049 est conservé sous son identifiant pour assurer la traçabilité du risque,
+mais il ne correspond pas à une fonctionnalité livrée ni à une recette exécutée.
 
 ### Campagne de fermeture des risques éliminatoires du 2026-07-21
 
@@ -39,7 +79,7 @@ artefact et anomalie éventuelle.
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------ |
 | Métier et erreurs           | 9/9 API ciblés, 9/9 Web ciblés, 170/170 API, 55/55 Web, 8/8 PostgreSQL et parcours production CR-065 réussi         | B2-A34 |
 | Sécurité                    | 6/6 API, 1/1 PostgreSQL réel, 1/1 rendu XSS, 6/6 Playwright Chromium/Firefox, audit propre et production inspectée  | B2-A35 |
-| Accessibilité automatisable | 33/33 Playwright production authentifiée et 2/2 tests de structure ; 3 publiques et 5 privées, plus contre-contrôle | B2-A36 |
+| Accessibilité automatisable | 33/33 Playwright production authentifiée, 2/2 tests de structure et audit sémantique de huit routes principales + trois détails | B2-A36, B2-A40 |
 
 Les correctifs CR-038, confirmation de journalisation et hiérarchie des titres
 ont passé la CI `29832575391`, le CD `29832944876`, les smoke tests et la
@@ -65,6 +105,8 @@ différents et ne se contredisent pas.
 | Couverture shared              | 14/14                      | B2-A31 : 100 % lignes/statements/fonctions et 92,85 % branches sur les schémas partagés                                                  |
 | CI finale `main`               | Succès des six jobs        | run `29845956008` sur `b002adb` : audit, qualité, tests API/Web/shared, PostgreSQL, Playwright, build et Docker                           |
 | CD final Vercel                | Succès                     | run `29846343559` : migration, API, Web et smoke tests                                                                                   |
+| Snapshot documentaire `v5`     | Succès CI/CD                | `b3ca385` : diff applicatif nul depuis `b002adb`, CI `29847808450`, CD `29848187523` ; preuve antérieure, ne remplace pas la contre-recette de `b002adb` |
+| Repère documentaire final `v8` | Contrôles locaux du paquet  | corrections de cohérence, réserves et manuels ; SHA archivé et empreintes portés par le manifeste final                               |
 | E2E OAuth post-déploiement     | 6/6                        | run `29833210488` : session dédiée restaurée puis supprimée du runner                                                                    |
 | Accessibilité post-déploiement | 33/33 + zoom natif 16/16   | production `b002adb` : 3 pages publiques et 5 privées, reflow, clavier, contraste axe, arbre AX et zoom Chromium 200/400 %              |
 
@@ -172,8 +214,13 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 | CR-046 | CORS hostile         | requête avec origine non autorisée                     | absence d'autorisation CORS                                      | curl automatisé         | ✅ Origine hostile refusée localement et en production ; origine officielle seule autorisée ; B2-A35   |
 | CR-047 | Headers/CSP          | inspecter réponse production                           | headers présents ; `unsafe-eval` absent en production            | test headers/curl       | ✅ CSP/HSTS/headers contrôlés en production ; `unsafe-eval` absent, `unsafe-inline` documenté ; B2-A35 |
 | CR-048 | Rate limit local     | dépasser quota dans un processus                       | 429 et `Retry-After`                                             | test middleware         | 🧪 Automatisé, CI finale verte                                                                         |
-| CR-049 | Rate limit distribué | répartir charge sur plusieurs instances                | quota global cohérent                                            | test avec store partagé | ⏳ Non implémenté, risque accepté                                                                      |
-| CR-050 | Audit dépendances    | lancer audit sur lockfile final                        | aucune vulnérabilité connue au niveau `low`                      | rapport CI + B2-A23     | ✅ Exécuté localement et dans la CI finale : audit propre                                              |
+| CR-050 | Audit dépendances    | lancer audit sur lockfile final                        | aucune vulnérabilité connue au niveau `low`                      | B2-A39                  | ✅ `rc.4` locale : cinq avis corrigés, audit `low` propre ; lint, types, 239 tests et builds verts. CI/CD et production non exécutées. |
+
+### Risque architectural associé — hors comptage de la recette
+
+| ID | Risque | État réel | Décision et preuve |
+| -- | ------ | --------- | ----------------- |
+| CR-049 | Le rate limit en mémoire n'est pas global entre plusieurs instances serverless. | Non implémenté et non exécuté avec un store partagé. | Risque accepté pour le prototype ; le 429 local de CR-048 ne prouve pas un quota distribué. Industrialisation : store partagé et test multi-instance. |
 
 ## Accessibilité RGAA 4.1.2 / WCAG 2.1 AA
 
@@ -181,9 +228,9 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 | ------ | ----------------------- | ----------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | CR-051 | Pages publiques         | axe complet sur `/` et `/login`                                   | aucune violation applicable non traitée                   | Playwright/axe                     | ✅ Exécuté localement puis en CI finale sur le périmètre public ; ne vaut pas audit RGAA manuel                                                                   |
 | CR-052 | Pages authentifiées     | axe sur generate, programmes, listes, détail, dashboard, settings | aucune violation applicable non traitée                   | Playwright avec vrai storage state | ✅ Cinq pages privées auditées sans violation de contraste axe, arbre AX contrôlé ; `/programs/generate` contre-vérifié ; B2-A36                                  |
-| CR-053 | Clavier                 | parcourir navigation, formulaires, tabs, suppressions, Timer      | toutes actions atteignables, ordre/focus cohérents        | audit manuel + tests composants    | ✅ Cycle Tab complet et focus perceptible sur 3 pages publiques et 5 privées ; dialogues/Timer couverts séparément ; B2-A25/B2-A36                                |
+| CR-053 | Clavier                 | parcourir navigation, formulaires, tabs, suppressions, Timer      | toutes actions atteignables, ordre/focus cohérents        | audit navigateur + tests composants | ✅ Cycle Tab complet et focus perceptible sur 3 pages publiques et 5 privées ; annulation de suppression avec restitution du focus ; focus du premier champ invalide et relations d'onglets corrigés puis testés localement ; B2-A25/B2-A36/B2-A40 |
 | CR-054 | Reflow/mobile           | 320 px CSS et viewport mobile                                     | aucune perte d'information/action ni scroll 2D injustifié | captures + audit manuel            | ✅ Reflow 640/320 px sur 3 pages publiques et 5 privées, plus `/programs/generate`, sans débordement ; B2-A36                                                     |
-| CR-055 | Zoom/contraste/annonces | zoom 200/400 %, contraste, lecteur d'écran                        | contenu lisible et annonces compréhensibles               | grille RGAA manuelle               | 🧪 Zoom natif clos : correctif déployé et 16/16 en production ; revue humaine des composites et vrai lecteur d'écran restent ouverts ; B2-A36/A37 |
+| CR-055 | Zoom/contraste/annonces | zoom 200/400 %, contraste, lecteur d'écran                        | contenu lisible et annonces compréhensibles               | grille RGAA manuelle               | ⏳ Partiel : rejeu production `rc.3` 33/33, zéro violation axe, 416 `incomplete` ; échantillonnage pixel 69 signatures/150 contextes conformes, 8/14 en alerte, 2/2 non concluants. B2-A40 confirme les régions et relations sémantiques sur huit routes et trois détails, sans restitution vocale. Correctifs CSS et focus/onglets locaux validés par 55/55 tests Web, types et lint, mais non déployés/rejoués ; aucune écoute Narrator/NVDA exécutée ; B2-A37/A40. |
 
 ## Qualité, intégration et déploiement
 
@@ -191,19 +238,19 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 | ------ | ------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | CR-056 | Tests et couvertures      | lancer `pnpm test:coverage`                                              | API/Web/PostgreSQL/shared mesurés séparément ; exclusions expliquées                | rapports CI         | ✅ CI `29819423534` verte ; quatre rapports publiés, dont shared 100 % lignes/statements/fonctions                |
 | CR-057 | PostgreSQL réel           | PostgreSQL 16 et migrations, puis tests repositories/ownership sans skip | tests et couverture d'intégration réussis                                           | B2-A19 + rapport CI | ✅ 8/8 locaux sur `69b21ef-dirty`, puis job PostgreSQL final vert dans `29742672052`                              |
-| CR-058 | Qualité/build             | lint, typecheck, build sous Node 24                                      | toutes commandes réussies                                                           | logs CI             | ✅ Exécuté dans `29742672052`                                                                                     |
+| CR-058 | Qualité/build             | lint, typecheck, build sous Node 24                                      | toutes commandes réussies                                                           | logs CI + B2-A39    | ✅ Baseline `rc.3` : CI `29742672052` ; candidate `rc.4` : lint, types et builds verts localement uniquement     |
 | CR-059 | Docker                    | construire API/Web et contrôler la procédure migrate/seed                | images Node 24 non-root ; migrate/seed fonctionnels                                 | CI + B2-A22         | ✅ Images finales construites en CI ; migrate/seed validés localement ; clone vierge non archivé                  |
 | CR-060 | Readiness API             | DB/clé disponibles puis indisponibles                                    | 200 prêt ; 503 avec dépendance défaillante                                          | tests route + curl  | ✅ Cas automatisés verts ; readiness production 200, DB/IA `ok`                                                   |
 | CR-061 | CI complète               | pousser le SHA final                                                     | tous les jobs obligatoires verts                                                    | run GitHub          | ✅ Run final `29845956008` réussi sur `b002adb`                                                                   |
-| CR-062 | CD sans contournement     | CI échoue puis réussit                                                   | aucun déploiement après échec ; déploiement après succès                            | runs GitHub         | 🧪 Chemin de succès et chaînage `workflow_run` prouvés ; scénario d'échec non rejoué pour cette remise            |
-| CR-063 | Version immuable          | comparer package, tag, SHA, health et changelog                          | version cohérente et distinction explicite entre SHA applicatif, repère documentaire et SHA archivé | manifeste           | 🧪 Distinction documentée ; contrôle final du SHA archivé et des empreintes à faire après régénération du paquet corrigé |
+| CR-062 | CD sans contournement     | CI échoue puis réussit                                                   | aucun déploiement après échec ; déploiement après succès                            | runs GitHub + B2-A38 | ✅ Fermé sans toucher à `main` : CI courante `29856584668` rouge sur PR isolée, quatre jobs aval ignorés, aucun run CD associé et inventaires Vercel production API/Web identiques avant/après ; politique YAML 6/6. Chemin vert `29845956008` → `29846343559`. Limite : aucun commit volontairement rouge sur `main`. |
+| CR-063 | Version immuable          | construire le paquet depuis un état Git propre et vérifier PDF, source, SHA et empreintes | build refusé si fichiers suivis modifiés ; PDF principal ≤ 30 pages ; livrables de premier niveau présents ; archive et PDF anonymisés ; SHA-256 consignés | `build_bloc2_delivery_pack.py` + manifeste | ✅ Paquet `rc.4` validé depuis un état suivi propre : dossier 11 pages, annexes 74 pages, LIV-01 à LIV-04 et B2-A39/A40 présents, 22/195 signets et 42/44 liens internes ; anonymisation, ZIP imbriqué, décompression et empreintes validés. |
 | CR-064 | Production API/Web        | déployer le SHA final                                                    | liveness/readiness/Web en 200                                                       | curl daté           | ✅ CD final `29846343559`, HTTP 200 `rc.3`, DB et configuration IA `ok`                                           |
 | CR-065 | Parcours post-déploiement | login, séance, programme, Timer, journal, dashboard                      | parcours complet sans erreur                                                        | recette production  | ✅ Session OAuth, Programmes, Timer, effort/feedback/douleur, journal et dashboard `3 → 4` en production ; B2-A34 |
 
 ## Critère de clôture C2.3.1
 
-Les 60 scénarios sont maintenant renseignés par un résultat exécuté, une limite
-ou un risque accepté relié au plan de correction. Les correctifs ont passé la
-CI/CD finale et la contre-recette de production. CR-055 conserve une
-contre-recette post-déploiement et deux contrôles humains explicites ; les tests
+Les 59 scénarios de recette sont reliés à une preuve ou à une réserve explicite :
+58 sont clos ; seul CR-055 reste partiel pour les contrôles humains. CR-062 combine une CI rouge
+courante isolée, un inventaire Vercel avant/après et six tests de politique.
+CR-049 demeure un risque architectural hors dénominateur. Les tests
 Vitest/Playwright ne sont pas présentés comme un audit RGAA exhaustif.
