@@ -15,4 +15,5 @@ overrides:
   'js-yaml@>=4.0.0 <=4.1.1': 4.3.0
   'postcss@<8.5.10': 8.5.20
   'shell-quote@<=1.8.4': 1.9.0
+  sharp: 0.35.3
   vite: 7.3.5

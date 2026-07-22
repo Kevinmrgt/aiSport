@@ -4,8 +4,8 @@
 
 Les annexes B2-A17 et B2-A18 portent sur la version `0.12.0`. Elles sont
 conservées pour la traçabilité, mais leurs conclusions « final » ou « validable »
-ne s'appliquent pas à la candidate `0.13.0-rc.3` et ne doivent pas être reprises
-comme preuves du SHA final.
+ne s'appliquent ni à la baseline de production `0.13.0-rc.3` ni à la candidate
+locale `0.13.0-rc.4` et ne doivent pas être reprises comme preuves du SHA final.
 
 | ID     | Compétences                                                  | Pièce                                                                                                   | Statut                                   | Source ou commande                                                                 |
 | ------ | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------- |
@@ -17,6 +17,11 @@ comme preuves du SHA final.
 > preuve de la candidate courante.
 
 > Index des preuves à joindre au dossier Bloc 2. Les pièces doivent rester datées et reliées à une compétence.
+
+> État au 22 juillet 2026 : la production reste en `0.13.0-rc.3` sur
+> `b002adb0e0e7d8d85ee493d54879e190d77d2078`. La candidate `0.13.0-rc.4` a
+> uniquement été contrôlée localement ; aucun push, run CI/CD ou déploiement de
+> cette candidate n'est revendiqué.
 
 ## Annexes obligatoires recommandées
 
@@ -55,8 +60,15 @@ comme preuves du SHA final.
 | B2-A34 | C2.2.2 / C2.3.1 / C2.3.2                   | Fermeture des recettes métier, erreurs IA, modèles, journaux et dashboard                                     | 9/9 API, 9/9 Web, suites complètes vertes et parcours production CR-065 `3 → 4`                                              | `docs/rncp/bloc2-annexes/B2-A34-recettes-metier-finales-2026-07-21.md`                             |
 | B2-A35 | C2.2.3 / C2.3.1                            | Recettes sécurité SQL-like, XSS, secrets, CORS, CSP/headers et journalisation                                 | Campagne `0d5c6b6`, contrôles inchangés et CI rejouée sur `b002adb` ; `unsafe-inline` conservé comme risque résiduel          | `docs/rncp/bloc2-annexes/B2-A35-recettes-securite-finales-2026-07-21.md`                           |
 | B2-A36 | C2.2.1 / C2.2.3 / C2.3.1 / C2.3.2          | Audit accessibilité final public/privé : reflow, clavier, focus, contrastes, arbre AX et alertes              | 33/33 Playwright + 2/2 structure ; prolongé par le zoom natif et les limites humaines de B2-A37                              | `docs/rncp/bloc2-annexes/B2-A36-audit-accessibilite-final-2026-07-21.md`                           |
-| B2-A37 | C2.2.3 / C2.3.1 / C2.3.2                   | Zoom Chromium natif 200/400 %, audit détaillé des contrastes et correction des textes rognés                   | Production `b002adb` : 33/33 accessibilité et zoom natif 16/16 ; composites et lecteur d'écran réel encore ouverts           | `docs/rncp/bloc2-annexes/B2-A37-controles-accessibilite-humains-2026-07-21.md`                     |
+| B2-A37 | C2.2.3 / C2.3.1 / C2.3.2                   | Zoom 200/400 %, audit détaillé des contrastes, échantillonnage pixel et limites lecteur d'écran                 | Rejeu production `rc.3` : 33/33, zéro violation, 416 `incomplete` ; tri pixel 69/150 conformes, 8/14 alertes, 2/2 non concluants ; correctifs CSS locaux 55/55/types/lint, non déployés ; aucune écoute réelle Narrator/NVDA | `docs/rncp/bloc2-annexes/B2-A37-controles-accessibilite-humains-2026-07-21.md`                     |
 | B2-A38 | C2.1.2 / C2.2.4 / C2.3.1 / C2.3.2        | Preuve négative CI/CD courante sur branche et PR isolées                                                       | CI `29856584668` rouge, jobs aval ignorés, aucun CD associé, inventaires Vercel production inchangés, politique 6/6           | `docs/rncp/bloc2-annexes/B2-A38-preuve-negative-ci-cd-2026-07-21.md`                               |
+| B2-A39 | C2.1.2 / C2.2.3 / C2.3.1 / C2.3.2        | Correction locale des cinq avis de dépendances détectés le 22 juillet                                         | `sharp 0.35.3`, `hono 4.12.31`, `@hono/node-server 2.0.11` ; audit `low`, lint, types, 239 tests et builds verts localement ; CI/CD/production en attente | `docs/rncp/bloc2-annexes/B2-A39-correction-dependances-2026-07-22.md`                              |
+| LIV-04 | C2.2.1 / C2.3.1                            | Matrice complète besoins/user stories, écrans, composants, scénarios et preuves                               | Présente dans les sources et intégrée au générateur d'annexes ; paquet `rc.4` à générer et inspecter                          | `docs/rncp/bloc2-matrice-user-stories-preuves.md`                                                  |
+
+Les scripts du paquet `rc.4` prévoient aussi le cahier de recettes, le plan de
+correction, la revue OWASP et LIV-04 comme livrables complets de premier niveau,
+avec contrôles d'anonymisation des PDF et du ZIP. Cette correction reste à
+valider par la génération, l'inspection visuelle et la décompression du paquet.
 
 ## Règles de nommage
 

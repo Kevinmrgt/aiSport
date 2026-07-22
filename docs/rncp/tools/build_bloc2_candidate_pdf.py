@@ -21,6 +21,15 @@ from reportlab.platypus import (
 )
 from reportlab.platypus.tableofcontents import TableOfContents
 
+from bloc2_delivery_config import (
+    ANONYMIZED_MODE,
+    DELIVERY_DATE,
+    DELIVERY_DATE_FR,
+    VERSION,
+    anonymize_text,
+    assert_anonymized_pdf,
+)
+
 
 ROOT = Path(__file__).resolve().parents[3]
 SOURCE = ROOT / "docs" / "rncp" / "bloc2-dossier-conception-developpement-rncp39583.md"
@@ -28,7 +37,7 @@ OUTPUT = (
     ROOT
     / "output"
     / "pdf"
-    / "dossier-bloc2-rncp39583-alcide-v0.13.0-rc.3-final-2026-07-21.pdf"
+    / f"dossier-bloc2-rncp39583-alcide-v{VERSION}-final-{DELIVERY_DATE}.pdf"
 )
 
 INK = colors.HexColor("#182015")
@@ -440,7 +449,7 @@ def cover_story():
             ["Certification", "RNCP39583 - Expert en développement logiciel"],
             ["Épreuve", "Bloc 2 - Concevoir et développer des applications logicielles"],
             ["Projet", "Alcide - coach sportif assisté par IA"],
-            ["Version", "0.13.0-rc.3 - dossier finalisé le 21 juillet 2026"],
+            ["Version", f"{VERSION} - dossier finalisé le {DELIVERY_DATE_FR}"],
             ["Règle", "30 pages maximum hors annexes - rendu individuel"],
             ["Identité", "Dossier anonymisé conformément au règlement de certification"],
         ],
@@ -500,7 +509,7 @@ def build_pdf(source: Path = SOURCE, output: Path = OUTPUT) -> Path:
         rightMargin=1.5 * cm,
         topMargin=1.45 * cm,
         bottomMargin=1.55 * cm,
-        title="Dossier Bloc 2 RNCP39583 - Alcide - final 2026-07-21",
+        title=f"Dossier Bloc 2 RNCP39583 - Alcide - final {DELIVERY_DATE}",
         author="Candidat RNCP39583 - dossier anonymisé",
         subject="Code source et documentation associée - Bloc 2",
         creator="Générateur documentaire Alcide - ReportLab",
@@ -510,8 +519,13 @@ def build_pdf(source: Path = SOURCE, output: Path = OUTPUT) -> Path:
     )
     story = cover_story()
     story.extend(toc_story())
-    story.extend(parse_markdown(source.read_text(encoding="utf-8"), source.parent, skip_preamble=True))
+    markdown = source.read_text(encoding="utf-8")
+    if ANONYMIZED_MODE:
+        markdown = anonymize_text(markdown)
+    story.extend(parse_markdown(markdown, source.parent, skip_preamble=True))
     document.multiBuild(story, onFirstPage=cover_page, onLaterPages=page_footer)
+    if ANONYMIZED_MODE:
+        assert_anonymized_pdf(output)
     return output
 
 
