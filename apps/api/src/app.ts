@@ -24,7 +24,16 @@ app.use(
   cors({
     origin: frontendUrl,
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'x-session-token', 'x-internal-secret', 'x-user-id', 'x-user-email', 'x-user-name'],
+    allowHeaders: [
+      'Content-Type',
+      'Authorization',
+      'x-session-token',
+      'x-internal-secret',
+      'x-user-id',
+      'x-user-email',
+      'x-user-name',
+      'x-auth-method',
+    ],
     credentials: true,
     maxAge: 86_400,
   }),

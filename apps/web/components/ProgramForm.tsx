@@ -6,13 +6,16 @@ import { Select } from './ui/Select';
 import { Button } from './ui/Button';
 import { Icon } from './ui/Icon';
 import { AlcideMascotPrompt } from './AlcideMascotPrompt';
+import { GenerationQuotaNotice } from './GenerationQuotaNotice';
 import { GlassPanel, MetricPill } from './PremiumPrimitives';
 import { GenerateProgramInputSchema } from '@alcide/shared';
 import type { GenerateProgramInput } from '@alcide/shared';
+import type { GenerationQuota } from '@alcide/shared';
 import { isNextRedirectError } from '@/lib/next-navigation';
 
 interface ProgramFormProps {
   onSubmit: (data: GenerateProgramInput) => Promise<{ error?: string } | void>;
+  generationQuota: GenerationQuota;
 }
 
 const LEVEL_OPTIONS = [
@@ -41,7 +44,7 @@ const DURATION_OPTIONS = [
   { value: '60', label: '60 minutes' },
 ];
 
-export function ProgramForm({ onSubmit }: ProgramFormProps) {
+export function ProgramForm({ onSubmit, generationQuota }: ProgramFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof GenerateProgramInput, string>>>({});
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -55,6 +58,7 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
     goals: '',
     constraints: '',
   });
+  const quotaExhausted = generationQuota.limited && generationQuota.remaining === 0;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -125,6 +129,8 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
         description="Choisis le rythme et la duree. Je calibre les semaines pour garder une progression nette."
         icon="layers"
       />
+
+      <GenerationQuotaNotice quota={generationQuota} />
 
       {isLoading && (
         <div
@@ -219,7 +225,12 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
 
       <div className="grid gap-2 sm:grid-cols-3">
         <MetricPill icon="calendar" label="Cycle" value={`${formData.weeks_count} sem.`} />
-        <MetricPill icon="activity" label="Rythme" value={`${formData.sessions_per_week}/sem.`} tone="lime" />
+        <MetricPill
+          icon="activity"
+          label="Rythme"
+          value={`${formData.sessions_per_week}/sem.`}
+          tone="lime"
+        />
         <MetricPill
           icon="timer"
           label="Seance"
@@ -271,8 +282,18 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
         />
       </div>
 
-      <Button type="submit" isLoading={isLoading} size="lg" className="mt-2 w-full" disabled={isLoading}>
-        {isLoading ? 'Preparation du programme...' : 'Generer le programme'}
+      <Button
+        type="submit"
+        isLoading={isLoading}
+        size="lg"
+        className="mt-2 w-full"
+        disabled={isLoading || quotaExhausted}
+      >
+        {quotaExhausted
+          ? 'Quota jury atteint'
+          : isLoading
+            ? 'Preparation du programme...'
+            : 'Generer le programme'}
       </Button>
     </form>
   );

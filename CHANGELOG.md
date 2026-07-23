@@ -9,6 +9,27 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ---
 
+## [0.13.0-rc.7] — 2026-07-23
+
+### Added
+
+- Quota persistant de **30 générations** pour l'identité jury, partagé entre
+  les séances et les programmes.
+- Affichage du nombre de générations restantes sur les deux formulaires et
+  désactivation de la soumission lorsque le quota est épuisé.
+- Endpoint authentifié `/generation-quota` et migration PostgreSQL dédiée.
+
+### Security
+
+- Réservation atomique du crédit côté API avant tout appel OpenAI : la limite
+  ne dépend pas du navigateur et résiste aux requêtes simultanées.
+- La 31e génération est refusée en HTTP 429 avant l'appel IA. Une réservation
+  est recréditée si la génération ou sa sauvegarde échoue ; supprimer un
+  résultat réussi ne restitue pas de crédit.
+- Les comptes Google restent hors quota.
+
+---
+
 ## [0.13.0-rc.6] — 2026-07-23
 
 ### Added

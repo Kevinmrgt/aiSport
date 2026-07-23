@@ -7,16 +7,25 @@ import {
   deleteWorkout,
   getWorkoutStatsByUser,
 } from '../repositories/workout.repository.js';
-import type { GenerateWorkoutInput, WorkoutRecord, WorkoutListResponse, WorkoutStats } from '@alcide/shared';
+import type {
+  GenerateWorkoutInput,
+  WorkoutRecord,
+  WorkoutListResponse,
+  WorkoutStats,
+} from '@alcide/shared';
+import { runWithGenerationQuota, type GenerationAccessMode } from './generation-quota.service.js';
 
 // Logique metier : ne connait pas HTTP ni Drizzle.
 export async function generateAndSaveWorkout(
   userId: string,
   input: GenerateWorkoutInput,
+  accessMode: GenerationAccessMode = 'standard',
 ): Promise<WorkoutRecord> {
-  const aiConfig = await resolveAiConfig(userId);
-  const workout = await generateWorkout(input, aiConfig);
-  return createWorkout(userId, workout);
+  return runWithGenerationQuota(userId, accessMode, async () => {
+    const aiConfig = await resolveAiConfig(userId);
+    const workout = await generateWorkout(input, aiConfig);
+    return createWorkout(userId, workout);
+  });
 }
 
 export async function getUserWorkouts(
@@ -30,10 +39,7 @@ export async function getUserStats(userId: string): Promise<WorkoutStats> {
   return getWorkoutStatsByUser(userId);
 }
 
-export async function getWorkoutDetail(
-  workoutId: string,
-  userId: string,
-): Promise<WorkoutRecord> {
+export async function getWorkoutDetail(workoutId: string, userId: string): Promise<WorkoutRecord> {
   return findWorkoutById(workoutId, userId);
 }
 

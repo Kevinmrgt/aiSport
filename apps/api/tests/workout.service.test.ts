@@ -17,6 +17,12 @@ vi.mock('../src/controllers/settings.controller.js', () => ({
   resolveAiConfig: vi.fn().mockResolvedValue({ provider: 'openai', apiKey: 'test-key' }),
 }));
 
+vi.mock('../src/services/generation-quota.service.js', () => ({
+  runWithGenerationQuota: vi.fn(
+    async (_userId: string, _accessMode: string, operation: () => Promise<unknown>) => operation(),
+  ),
+}));
+
 // Mock du repository (dépend de la BDD — testé en intégration)
 vi.mock('../src/repositories/workout.repository.js', () => ({
   createWorkout: vi.fn(),
@@ -33,6 +39,7 @@ import {
   findWorkoutById,
   deleteWorkout,
 } from '../src/repositories/workout.repository.js';
+import { runWithGenerationQuota } from '../src/services/generation-quota.service.js';
 
 const mockWorkoutData = {
   title: 'Séance Test',
@@ -73,7 +80,10 @@ describe('WorkoutService', () => {
 
       const result = await generateAndSaveWorkout('user-123', mockInput);
 
-      expect(generateWithAi).toHaveBeenCalledWith(mockInput, expect.objectContaining({ provider: 'openai' }));
+      expect(generateWithAi).toHaveBeenCalledWith(
+        mockInput,
+        expect.objectContaining({ provider: 'openai' }),
+      );
       expect(createWorkout).toHaveBeenCalledWith('user-123', mockWorkoutData);
       expect(result.id).toBe('workout-abc');
     });
@@ -86,13 +96,34 @@ describe('WorkoutService', () => {
       await expect(generateAndSaveWorkout('user-123', mockInput)).rejects.toThrow(AppError);
       expect(createWorkout).not.toHaveBeenCalled();
     });
+
+    it('applique le quota partage au compte jury', async () => {
+      vi.mocked(generateWithAi).mockResolvedValue(mockWorkoutData);
+      vi.mocked(createWorkout).mockResolvedValue(mockWorkoutRecord);
+
+      await generateAndSaveWorkout('user-123', mockInput, 'jury');
+
+      expect(runWithGenerationQuota).toHaveBeenCalledWith('user-123', 'jury', expect.any(Function));
+    });
   });
 
   describe('getUserWorkouts', () => {
-    it('retourne la liste paginée des workouts de l\'utilisateur', async () => {
+    it("retourne la liste paginée des workouts de l'utilisateur", async () => {
       const mockResponse = {
-        workouts: [{ id: 'w1', title: 'Séance 1', sport: 'yoga', difficulty: 'beginner' as const, durationMinutes: 45, createdAt: '2026-01-01T00:00:00.000Z' }],
-        total: 1, page: 1, limit: 9, hasMore: false,
+        workouts: [
+          {
+            id: 'w1',
+            title: 'Séance 1',
+            sport: 'yoga',
+            difficulty: 'beginner' as const,
+            durationMinutes: 45,
+            createdAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+        total: 1,
+        page: 1,
+        limit: 9,
+        hasMore: false,
       };
       vi.mocked(findWorkoutsByUser).mockResolvedValue(mockResponse);
 
@@ -115,7 +146,7 @@ describe('WorkoutService', () => {
   });
 
   describe('getWorkoutDetail', () => {
-    it('retourne le workout si l\'ownership est valide', async () => {
+    it("retourne le workout si l'ownership est valide", async () => {
       vi.mocked(findWorkoutById).mockResolvedValue(mockWorkoutRecord);
 
       const result = await getWorkoutDetail('workout-abc', 'user-123');
@@ -124,7 +155,7 @@ describe('WorkoutService', () => {
       expect(result.id).toBe('workout-abc');
     });
 
-    it('propage l\'erreur 403 si ownership invalide', async () => {
+    it("propage l'erreur 403 si ownership invalide", async () => {
       vi.mocked(findWorkoutById).mockRejectedValue(AppError.forbidden('Accès refusé'));
 
       await expect(getWorkoutDetail('workout-abc', 'autre-user')).rejects.toMatchObject({
@@ -134,7 +165,7 @@ describe('WorkoutService', () => {
   });
 
   describe('removeWorkout', () => {
-    it('supprime le workout si l\'ownership est valide', async () => {
+    it("supprime le workout si l'ownership est valide", async () => {
       vi.mocked(deleteWorkout).mockResolvedValue(undefined);
 
       await removeWorkout('workout-abc', 'user-123');
@@ -142,7 +173,7 @@ describe('WorkoutService', () => {
       expect(deleteWorkout).toHaveBeenCalledWith('workout-abc', 'user-123');
     });
 
-    it('propage l\'erreur 403 si ownership invalide', async () => {
+    it("propage l'erreur 403 si ownership invalide", async () => {
       vi.mocked(deleteWorkout).mockRejectedValue(AppError.forbidden('Accès refusé'));
 
       await expect(removeWorkout('workout-abc', 'autre-user')).rejects.toMatchObject({

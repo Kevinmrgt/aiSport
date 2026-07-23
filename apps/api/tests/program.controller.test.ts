@@ -24,7 +24,7 @@ import {
   removeProgram,
 } from '../src/services/program.service.js';
 
-const mockAuth = { userId: 'user-123', email: 'test@example.com' };
+const mockAuth = { userId: 'user-123', email: 'test@example.com', accessMode: 'jury' as const };
 const programId = '22222222-2222-4222-8222-222222222222';
 const otherProgramId = '33333333-3333-4333-8333-333333333333';
 
@@ -120,14 +120,19 @@ describe('ProgramController', () => {
       });
 
       expect(res.status).toBe(201);
-      const body = await res.json() as { id: string; weeksCount: number };
+      const body = (await res.json()) as { id: string; weeksCount: number };
       expect(body.id).toBe(programId);
       expect(body.weeksCount).toBe(2);
+      expect(generateAndSaveProgram).toHaveBeenCalledWith(
+        'user-123',
+        expect.objectContaining({ sport: 'course' }),
+        'jury',
+      );
     });
 
     it('retourne 503 si le service IA est indisponible', async () => {
       vi.mocked(generateAndSaveProgram).mockRejectedValue(
-        AppError.serviceUnavailable("Impossible de générer le programme"),
+        AppError.serviceUnavailable('Impossible de générer le programme'),
       );
 
       const app = createTestApp();
@@ -153,8 +158,22 @@ describe('ProgramController', () => {
   describe('handleGetPrograms', () => {
     it('retourne la liste paginée des programmes', async () => {
       const mockResponse = {
-        programs: [{ id: 'p1', title: 'Programme Test', sport: 'yoga', difficulty: 'beginner' as const, weeksCount: 2, sessionsPerWeek: 2, sessionDurationMinutes: 30, createdAt: '2026-01-01T00:00:00.000Z' }],
-        total: 1, page: 1, limit: 9, hasMore: false,
+        programs: [
+          {
+            id: 'p1',
+            title: 'Programme Test',
+            sport: 'yoga',
+            difficulty: 'beginner' as const,
+            weeksCount: 2,
+            sessionsPerWeek: 2,
+            sessionDurationMinutes: 30,
+            createdAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+        total: 1,
+        page: 1,
+        limit: 9,
+        hasMore: false,
       };
       vi.mocked(getUserPrograms).mockResolvedValue(mockResponse);
 
@@ -164,7 +183,7 @@ describe('ProgramController', () => {
       const res = await app.request('/programs');
 
       expect(res.status).toBe(200);
-      const body = await res.json() as { programs: unknown[]; total: number };
+      const body = (await res.json()) as { programs: unknown[]; total: number };
       expect(body.programs).toHaveLength(1);
       expect(body.total).toBe(1);
     });
@@ -180,7 +199,7 @@ describe('ProgramController', () => {
       const res = await app.request(`/programs/${programId}`);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as { id: string; data: unknown };
+      const body = (await res.json()) as { id: string; data: unknown };
       expect(body.id).toBe(programId);
       expect(body.data).toBeDefined();
     });
@@ -195,7 +214,7 @@ describe('ProgramController', () => {
       expect(res.status).toBe(404);
     });
 
-    it('retourne 403 si l\'ownership est invalide', async () => {
+    it("retourne 403 si l'ownership est invalide", async () => {
       vi.mocked(getProgramDetail).mockRejectedValue(AppError.forbidden('Accès refusé'));
 
       const app = createTestApp();
