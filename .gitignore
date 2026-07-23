@@ -56,5 +56,7 @@ __pycache__/
 tmp/
 output/alcide-bloc2-rncp39583-*/
 output/alcide-bloc2-rncp39583-*.zip
+# PDF contenant les identifiants temporaires remis au jury.
+output/jury-private/
 
 .vercel

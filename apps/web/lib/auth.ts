@@ -1,12 +1,26 @@
 import NextAuth from 'next-auth';
+import type { NextAuthConfig } from 'next-auth';
+import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
+import { juryAwareJwt } from '@/lib/auth-callbacks';
+import { verifyJuryCredentials } from '@/lib/jury-auth';
 
-// OWASP A07: configuration Auth.js sécurisée
-export const { handlers, signIn, signOut, auth } = NextAuth({
+export const authConfig = {
   providers: [
     Google({
       clientId: process.env['AUTH_GOOGLE_ID'],
       clientSecret: process.env['AUTH_GOOGLE_SECRET'],
+    }),
+    Credentials({
+      id: 'jury',
+      name: 'Accès jury',
+      credentials: {
+        identifier: { label: 'Identifiant jury', type: 'text' },
+        password: { label: 'Mot de passe', type: 'password' },
+      },
+      authorize(credentials) {
+        return verifyJuryCredentials(credentials);
+      },
     }),
   ],
   // Requis sur Vercel — le host est derrière un proxy
@@ -17,13 +31,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     error: '/login',
   },
   callbacks: {
-    // Inclure l'ID utilisateur dans le token pour le passer au backend
-    jwt({ token, user }) {
-      if (user?.id) {
-        token.userId = user.id;
-      }
-      return token;
-    },
+    // OWASP A07 : révocation immédiate des sessions jury au changement de
+    // secret, à l'expiration absolue ou à l'activation du kill switch.
+    jwt: juryAwareJwt,
     session({ session, token }) {
       if (token.userId && typeof token.userId === 'string') {
         session.user.id = token.userId;
@@ -36,4 +46,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 jours
   },
-});
+} satisfies NextAuthConfig;
+
+// OWASP A07: configuration Auth.js sécurisée
+export const { handlers, signIn, signOut, auth } = NextAuth(authConfig);

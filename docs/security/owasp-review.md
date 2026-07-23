@@ -150,6 +150,22 @@ couverts par B2-A25. La suite finale ajoute le reflow mobile et axe : 6/6 dans
 la CI post-déploiement `29833210488`. L'expiration et la rotation automatique
 restent à tester.
 
+La version `0.13.0-rc.6` ajoute un fournisseur Credentials réservé au jury,
+sans modifier le parcours Google. Le mot de passe n'est jamais stocké en clair :
+Vercel ne reçoit qu'un hash `scrypt` salé, comparé avec
+`timingSafeEqual`. L'identité technique possède un e-mail dédié ; l'API
+continue à résoudre son propre UUID PostgreSQL et à appliquer l'ownership.
+L'accès est absent de l'interface si sa configuration est incomplète, désactivée
+ou expirée. Le callback JWT revalide à chaque lecture le kill switch, la date
+absolue et une empreinte de configuration : expiration, désactivation et
+rotation du hash ou de la version de session invalident donc aussi les sessions
+existantes. La version de session doit être renouvelée avant chaque
+réactivation afin qu'un ancien cookie ne redevienne pas valide. Les échecs
+affichent un message générique. Le callback `/api/auth/callback/jury` est
+protégé dans Vercel Firewall par une fenêtre fixe de 10 tentatives par minute et
+par IP, ce qui réduit le risque de brute force et de consommation CPU de
+`scrypt`.
+
 ## A08 — Software and Data Integrity Failures — contrôlé
 
 Contrôles : lockfile, `--frozen-lockfile`, CI avant CD, migrations versionnées,
