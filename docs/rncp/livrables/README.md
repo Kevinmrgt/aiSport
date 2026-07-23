@@ -2,8 +2,8 @@
 
 Deux PDF constituent la remise écrite :
 
-1. `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.7-final-2026-07-23.pdf` ;
-2. `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.7-final-2026-07-23.pdf`.
+1. `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.8-final-2026-07-23.pdf` ;
+2. `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.8-final-2026-07-23.pdf`.
 
 Le premier document reste sous la limite de 30 pages hors annexes. Le second
 regroupe les preuves sélectionnées, le cahier de recettes, le plan de correction
@@ -31,13 +31,13 @@ l'anonymisation et les empreintes avant de créer l'archive de remise.
 
 ## Version applicative de référence
 
-- version : `0.13.0-rc.7` ;
-- commit déployé : `d42e7f2c8fc86f26c46f850d32eb748870c6140d` ;
-- CI : `29994929981` ;
-- CD : `29995297354` ;
+- version : `0.13.0-rc.8` ;
+- commit déployé : `f817073de7ed7220fbbc38d396f1d181811012bd` ;
+- CI : `29999207578` ;
+- CD : `29999526386` ;
 - API liveness/readiness et Web : HTTP 200 le 23 juillet 2026.
 - accès jury : 30 générations réussies maximum, partagées entre séances et
   programmes, compteur persistant contrôlé en production.
 
 Les anciens PDF ont été retirés de cet emplacement afin d'éviter toute remise
-d'une version `rc.2`, `rc.3` ou `rc.6` par erreur.
+d'une version `rc.2`, `rc.3`, `rc.6` ou `rc.7` par erreur.
