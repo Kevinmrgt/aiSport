@@ -2,8 +2,8 @@
 
 Deux PDF constituent la remise écrite :
 
-1. `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.5-final-2026-07-22.pdf` ;
-2. `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.5-final-2026-07-22.pdf`.
+1. `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.5-final-2026-07-23.pdf` ;
+2. `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.5-final-2026-07-23.pdf`.
 
 Le premier document reste sous la limite de 30 pages hors annexes. Le second
 regroupe les preuves sélectionnées, le cahier de recettes, le plan de correction

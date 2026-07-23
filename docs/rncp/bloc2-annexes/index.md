@@ -19,8 +19,8 @@ pas être reprises comme preuves du SHA final.
 > Index des preuves à joindre au dossier Bloc 2. Les pièces doivent rester datées et reliées à une compétence.
 
 > État au 22 juillet 2026 : la production est en `0.13.0-rc.5` sur
-> `b63280f36e44b02d5654a7f4e2caa8413e446bcb`, après la CI `29916228789`, la
-> CD `29916573448` et la validation NVDA déclarée par l'utilisateur.
+> `c63439e8ac8d68efd5ba091211b326ee8575fbba`, après la CI `29930722308`, la
+> CD `29931146789` et la validation NVDA déclarée par l'utilisateur.
 
 ## Annexes obligatoires recommandées
 
@@ -68,7 +68,7 @@ pas être reprises comme preuves du SHA final.
 
 Le paquet `rc.4` existant, validé sur 75 pages, est historique et antérieur à
 B2-A41. La remise `rc.5` intègre le cahier de recettes, le plan de correction,
-la revue OWASP, LIV-04 et B2-A41. Le dossier compte 11 pages et les annexes 81 ;
+la revue OWASP, LIV-04 et B2-A41. Le dossier compte 11 pages et les annexes 84 ;
 le rendu intégral, l'anonymisation PDF/ZIP, la décompression et les empreintes
 ont été contrôlés.
 

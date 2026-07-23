@@ -7,8 +7,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[3]
-DELIVERY_DATE = "2026-07-22"
-DELIVERY_DATE_FR = "22 juillet 2026"
+DELIVERY_DATE = "2026-07-23"
+DELIVERY_DATE_FR = "23 juillet 2026"
 ANONYMIZED_MODE = True
 PUBLIC_REPOSITORY_URL = "https://github.com/Kevinmrgt/aiSport"
 _PUBLIC_REPOSITORY_SENTINEL = "__ALCIDE_PUBLIC_REPOSITORY_URL__"

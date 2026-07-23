@@ -4,17 +4,14 @@
 > Version de production : `0.13.0-rc.5`, commit `c63439e8ac8d68efd5ba091211b326ee8575fbba`
 > Validation de cette version : CI `29930722308`, CD `29931146789`
 > Dépôt GitHub public : [https://github.com/Kevinmrgt/aiSport](https://github.com/Kevinmrgt/aiSport), branche `main` ; la révision ci-dessus permet de retrouver exactement la version contrôlée.
-> Données de recette anonymisées, dossier actualisé le 22 juillet 2026
+> Données de recette anonymisées, dossier actualisé le 23 juillet 2026
 
-## 1. Cadre officiel et composition du rendu
+## 1. Composition du rendu
 
-L'évaluation du Bloc 2 est une mise en situation professionnelle sous la forme
-d'un projet individuel. Le rendu comprend le code source, la documentation
-associée et un dossier écrit de 30 pages maximum hors annexes.
-Le référentiel public France Compétences et le règlement spécial Ynov
-identifient seize éléments à présenter.
+Le rendu réunit le code source, la documentation associée et le dossier écrit.
+Le tableau indique où retrouver chaque élément présenté.
 
-| Attendu officiel                                 | Emplacement principal dans ce rendu           |
+| Élément présenté                                 | Emplacement principal dans ce rendu           |
 | ------------------------------------------------ | --------------------------------------------- |
 | Protocole de déploiement continu                 | section 3 et manuel de déploiement            |
 | Critères de qualité et de performance            | section 3, annexes B2-A28 et B2-A29           |
@@ -33,19 +30,9 @@ identifient seize éléments à présenter.
 | Manuel utilisateur                               | section 15                                    |
 | Manuel de mise à jour                            | section 16                                    |
 
-Le jury est composé de deux professionnels externes. Un bloc est validé si au
-moins 50 % des neuf compétences sont acquises et si aucune compétence
-éliminatoire n'est non acquise. Les quatre compétences éliminatoires sont
-C2.2.1, C2.2.2, C2.2.3 et C2.3.1.
-
-Sources : [fiche RNCP39583](https://www.francecompetences.fr/recherche/rncp/39583/),
-référentiel officiel pages 7 à 10 et règlement spécial Ynov version 1.01 du
-15 septembre 2025 fournis avec le dossier.
-
 ## 2. Repères de lecture et preuves disponibles
 
-Le tableau ci-dessous sert de guide. Il indique où retrouver les éléments
-présentés, sans préjuger de l'évaluation qui reste du ressort du jury.
+Le tableau ci-dessous indique où retrouver chaque ensemble de preuves.
 
 | Compétence                                     | Preuve principale                                             | Ce qui est montré                                     |
 | ---------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------- |
@@ -85,8 +72,8 @@ Le déploiement continu commence uniquement après une CI verte sur `main` :
 migration Drizzle, déploiement API, smoke test API, déploiement Web puis smoke
 test Web. Le run `29832944876` a exécuté cette séquence sur la baseline de
 consolidation `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`, avant le correctif
-final de reflow. La baseline corrective courante
-La publication initiale de `rc.5` a été contrôlée sur `b63280f`. Le dernier
+final de reflow. La publication initiale de `rc.5` a été contrôlée sur
+`b63280f`. Le dernier
 correctif Web porte la version à `c63439e8ac8d68efd5ba091211b326ee8575fbba` :
 la CI `29930722308` et le CD `29931146789` ont réussi. Les healthchecks ont
 répondu HTTP 200 avec la version `0.13.0-rc.5`, PostgreSQL `ok` et configuration
