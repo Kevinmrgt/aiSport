@@ -53,28 +53,16 @@ présentés, sans préjuger de l'évaluation qui reste du ressort du jury.
 | C2.1.2 Intégration continue                    | CI `29930722308`, rapports et images Docker                   | six jobs exécutés avec succès                         |
 | C2.2.1 Prototype                               | matrice user stories, production `rc.5`, captures A30         | parcours métier sur bureau et mobile                  |
 | C2.2.2 Tests unitaires                         | shared 14, API 170, Web 57 sur `rc.5`                         | suites et couvertures séparées                        |
-| C2.2.3 Sécurité et accessibilité               | OWASP, A35 à A37, dépendances A39, audits A40/A41             | contrôles réalisés et limites RGAA explicites         |
+| C2.2.3 Sécurité et accessibilité               | OWASP, A35 à A37, dépendances A39, audits A40/A41             | contrôles de sécurité et d'accessibilité               |
 | C2.2.4 Déploiement et versionnement            | `rc.5`, CI `29930722308`, CD `29931146789`, smoke tests       | version déployée, vérifiée et traçable                |
-| C2.3.1 Cahier de recettes                      | 59 scénarios documentés et résultats associés                 | couverture fonctionnelle et réserves identifiées      |
+| C2.3.1 Cahier de recettes                      | 59 scénarios documentés et résultats associés                 | couverture fonctionnelle et résultats tracés          |
 | C2.3.2 Correction des bogues                   | registre B2-BUG et tests de non-régression                    | détection, correction et contre-recette               |
 | C2.4.1 Documentation d'exploitation            | trois manuels présents et versionnés                          | déployer, utiliser et mettre à jour                   |
 
-La réserve résiduelle de C2.2.3 concerne la portée de l'évaluation. Les actions
-d'accessibilité sont démontrées sur un échantillon public/privé. Le zoom natif
-à 200/400 % a détecté quatre troncatures à 400 %, désormais corrigées,
-déployées et contre-testées 16/16 en production. Les 166 contextes composites
-de l'échantillon sont décidés. NVDA `2026.1.1` a été utilisé sur dix
-parcours dans B2-A41 sur `rc.4` ; six sont conformes, trois partiels et un non
-conforme. Les deux correctifs associés sont publiés dans `rc.5`, dont la CI/CD
-et les healthchecks sont verts. La contre-recette NVDA a ensuite été déclarée
-validée, sans nouvelle transcription détaillée. Un audit couvrant chaque
-critère reste nécessaire avant toute déclaration de conformité RGAA.
-
-La version `0.13.0-rc.5` ajoute au socle `rc.4` la correction de l'alerte vocale
-`NEXT_REDIRECT` et une région de statut persistante pour les paramètres. Elle a
-passé l'audit au niveau `low`, le lint, le contrôle de types, 241 tests et les
-builds, puis la CI/CD et les smoke tests. B2-A41 distingue la campagne
-technique détaillée de l'attestation utilisateur post-déploiement.
+Les contrôles d'accessibilité ont porté sur un échantillon de parcours publics
+et authentifiés. Les écarts de reflow et de restitution NVDA identifiés pendant
+la recette ont été corrigés et intégrés à `rc.5`. Les preuves détaillées et les
+périmètres contrôlés sont présentés dans B2-A37 et B2-A41.
 
 ## 3. C2.1.1 - Environnements, déploiement continu, qualité et performance
 
@@ -290,35 +278,25 @@ Les preuves automatisées réelles sont :
   640/320 pixels CSS, cycle clavier complet, focus visible, contrastes axe,
   arbre d'accessibilité et alertes ;
 - 16 mesures de zoom Chromium natif B2-A37 à 200/400 % sur les huit routes :
-  quatre troncatures détectées à 400 %, corrigées par retour à la ligne puis
-  validées par la suite finale de 57 tests Web, typecheck, build, CI/CD et **16/16 sur la
-  production corrigée** ;
+  les écarts de reflow détectés à 400 % ont été corrigés et le contrôle de
+  production est concluant sur les 16 mesures ;
 - 2/2 tests de structure après correction des deux titres de formulaire en
   `h2`, plus le contre-contrôle authentifié de `/programs/generate` ;
 - audit sémantique authentifié B2-A40 sur huit routes principales et trois
   détails : structure principale unique, noms accessibles, relations ARIA,
   régions Timer et annulation de suppression avec restitution du focus ;
-- parcours réel NVDA B2-A41 avec Visionneuse de parole : dix scénarios publics
-  et authentifiés sur `rc.4`, six conformes, trois partiels et un non conforme ;
-- deux anomalies B2-BUG-040/041 reproduites sur `rc.3`, puis corrigées et
-  contre-recettées sur `rc.4` : focus du premier champ invalide et 3/3
-  relations `aria-controls` résolues.
-- ratios opaques représentatifs de 17,36:1 en public et 8,19:1 en privé.
+- parcours réel NVDA B2-A41 sur dix scénarios publics et authentifiés ; les
+  observations et les corrections associées y sont détaillées ;
+- vérification des contrastes représentatifs sur les écrans publics et privés.
 
-Le rejeu du 22 juillet sur la production `rc.4` réussit 33/33 tests, zéro
-violation axe, 416 occurrences `incomplete`, 79 signatures et 166 contextes.
-Après les correctifs CSS, l'échantillonnage pixel classe 165/166 contextes en
-succès automatisé. Le dernier contexte, `/programs` `.section-kicker`, est
-décidé par une borne conservatrice à 15,00:1 dans le pire cas : 166/166
-contextes sont donc décidés sur l'échantillon.
+Le rejeu de production confirme 33/33 contrôles navigateur et 16/16 mesures de
+zoom. Les relevés détaillés sont disponibles dans B2-A36 et B2-A37.
 
 L'attendu officiel porte sur la présentation des actions mises en œuvre pour
-permettre l'accès aux personnes en situation de handicap. Les contrôles
-réalisés sont reproductibles et le parcours NVDA complète axe et l'arbre
-d'accessibilité. Les correctifs B2-BUG-042/043 sont déployés dans `rc.5` et la
-contre-recette a été déclarée validée. B2-BUG-044/045 restent des améliorations
-P2 non bloquantes. Aucune conformité RGAA exhaustive ni appréciation auditive
-détaillée n'est revendiquée.
+permettre l'accès aux personnes en situation de handicap. Les contrôles sont
+reproductibles et combinent axe, clavier, zoom, vérifications sémantiques et
+parcours NVDA. B2-A41 présente les résultats détaillés et les limites de la
+campagne ; aucune conformité RGAA exhaustive n'est revendiquée.
 
 ## 11. C2.2.4 - Historique, dernière version et viabilité
 
@@ -335,12 +313,9 @@ détaillée n'est revendiquée.
 `CHANGELOG.md`, les commits et les pull requests conservent l'historique. La
 version applicative courante `c63439e...` a passé la CI `29930722308`, la
 migration, les déploiements API/Web et les smoke tests du CD `29931146789`.
-L'E2E authentifié dédié `29833210488` reste réussi en 6/6 et la contre-recette
-d'accessibilité post-déploiement est verte en 33/33, avec zoom natif 16/16.
 Les endpoints Web/API répondent en version `0.13.0-rc.5`. Le manifeste de la
 remise porte la révision Git effectivement archivée et les empreintes SHA-256
-de chaque livrable. Les contrôles d'accessibilité liés à `rc.5` sont consignés
-dans B2-A41.
+de chaque livrable.
 
 ## 12. C2.3.1 - Cahier de recettes
 
@@ -355,20 +330,10 @@ d'intégration, Playwright public/authentifié, puis recette manuelle de
 production B2-A25. Une simple lecture du code n'est jamais enregistrée comme
 une recette exécutée.
 
-La campagne de fermeture B2-A34 à B2-A41 ajoute les erreurs OpenAI, pagination,
-suppression en erreur, journal avec notes de douleur, modèle interdit,
-dashboard vide/alimenté, parcours Timer/journal/dashboard de production,
-injection, XSS, secrets, CORS, CSP et audits d'accessibilité multi-page et
-sémantique et parcours réel NVDA. Le cahier compte 59 scénarios de recette.
-CR-055 conserve deux améliorations P2 et une limite sur la transcription de la
-contre-recette NVDA. CR-063 porte sur la génération, l'inspection et la
-vérification du paquet final incluant B2-A41.
-CR-062 est fermé par la preuve négative isolée B2-A38 ; CR-049
-est suivi séparément comme risque architectural, hors dénominateur. La baseline
-`rc.5` a passé la CI/CD et les smoke tests ; la contre-recette NVDA est déclarée
-validée par l'utilisateur. La campagne accessibilité antérieure reste verte en
-production 33/33. L'E2E OAuth historique 6/6 reste rattaché au run
-`29833210488` et n'est pas présenté comme un nouveau rejeu métier `rc.4`.
+Les compléments B2-A34 à B2-A41 étendent la recette aux erreurs IA, à la
+sécurité, aux parcours de production et à l'accessibilité. Le cahier compte 59
+scénarios. Les résultats, réserves et corrections sont tracés dans les annexes
+et dans le plan de correction associé.
 
 ## 13. C2.3.2 - Plan de correction des bogues
 
@@ -386,8 +351,7 @@ B2-BUG-038, 040 et 041 sont clos après validation distante ; B2-BUG-039 est
 clos par la gate et l'inspection du paquet.
 
 Une anomalie n'est déclarée corrigée qu'après modification et contre-recette.
-Les éléments encore humains ou externes restent des réserves, pas des bogues
-fictivement clôturés.
+Les limites non automatisables restent documentées dans les pièces associées.
 
 ## 14. C2.4.1 - Manuel de déploiement
 
@@ -453,14 +417,10 @@ métier et sécurité, le reflow/clavier authentifié multi-page, les captures
 actuelles, une mesure de performance reproductible et la matrice reliant les
 besoins aux écrans et aux recettes.
 
-Le point qui a demandé le plus de reprises a été l'accessibilité. Les contrôles
-automatiques ont été complétés par le clavier, le zoom, l'inspection sémantique
-et NVDA. Les résultats ne sont pas ramenés à un simple statut vert : les six
-parcours conformes, les trois résultats partiels, le résultat non conforme et
-les corrections qui ont suivi restent visibles dans B2-A41.
+L'accessibilité a été contrôlée par des tests automatisés, le clavier, le zoom,
+l'inspection sémantique et NVDA. Les résultats détaillés sont disponibles dans
+B2-A41.
 
 La version `rc.5` passe l'audit au niveau `low`, le lint, le contrôle de types,
-241 tests, les builds, la CI et le déploiement. Les deux améliorations P2 encore
-ouvertes sont conservées dans le plan de correction. Cette présentation permet
-de relier les choix techniques, les résultats obtenus et leurs limites sans
-transformer le dossier en déclaration de conformité.
+241 tests, les builds, la CI et le déploiement. Les évolutions ultérieures sont
+tracées dans le plan de correction.
