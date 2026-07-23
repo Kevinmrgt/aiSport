@@ -53,26 +53,18 @@ test.describe('recettes metier finales avec session OAuth dediee', () => {
     expect(session.user?.email?.trim().toLowerCase()).toBe(expectedEmail);
   });
 
-  test('CR-037 change un modele autorise, verifie sa persistance puis restaure la valeur', async ({
-    page,
-  }) => {
+  test('CR-037 garde les choix techniques hors de l interface utilisateur', async ({ page }) => {
     await page.goto('/settings');
     await expect(page).toHaveURL(/\/settings$/);
-    const model = page.getByLabel('Modele OpenAI');
-    await expect(model).toBeVisible();
-    const initialModel = await model.inputValue();
-    const alternateModel = initialModel === 'gpt-5.4' ? 'gpt-5.4-mini' : 'gpt-5.4';
+    await expect(page.getByRole('heading', { name: 'Mon coach Alcide' })).toBeVisible();
+    await expect(page.getByText(/adapte automatiquement chaque proposition/i)).toBeVisible();
 
-    try {
-      await model.selectOption(alternateModel);
-      await page.getByRole('button', { name: 'Enregistrer' }).click();
-      await expect(page.getByRole('status')).toContainText('Parametres sauvegardes.');
-      await page.reload();
-      await expect(page.getByLabel('Modele OpenAI')).toHaveValue(alternateModel);
-    } finally {
-      await page.getByLabel('Modele OpenAI').selectOption(initialModel);
-      await page.getByRole('button', { name: 'Enregistrer' }).click();
-      await expect(page.getByRole('status')).toContainText('Parametres sauvegardes.');
+    const pageText = (await page.locator('main').innerText())
+      .normalize('NFKD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLocaleLowerCase('fr-FR');
+    for (const technicalTerm of ['openai', 'gpt-', 'modele', 'provider', 'prix', 'cout estime']) {
+      expect(pageText).not.toContain(technicalTerm);
     }
   });
 

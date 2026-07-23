@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ProgramForm } from './ProgramForm';
 import { SessionCompletionForm } from './SessionCompletionForm';
-import { SettingsForm } from './SettingsForm';
 import { WorkoutForm } from './WorkoutForm';
 import type { SessionCompletionPayload } from './SessionCompletionForm';
 
@@ -14,18 +13,7 @@ describe('formulaires metier', () => {
 
   it('bloque une generation de seance invalide puis soumet les donnees valides', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
-    render(
-      <WorkoutForm
-        onSubmit={onSubmit}
-        costEstimate={{
-          modelLabel: 'GPT-5.4 mini',
-          inputTokens: 1_200,
-          outputTokens: 1_800,
-          totalUsdLabel: '$0.009',
-        }}
-        generationQuota={unlimitedQuota}
-      />,
-    );
+    render(<WorkoutForm onSubmit={onSubmit} generationQuota={unlimitedQuota} />);
 
     fireEvent.click(screen.getByRole('button', { name: /generer la seance/i }));
     expect(await screen.findAllByRole('alert')).not.toHaveLength(0);
@@ -50,23 +38,26 @@ describe('formulaires metier', () => {
     );
   });
 
+  it('masque les informations techniques et tarifaires du formulaire de seance', () => {
+    render(<WorkoutForm onSubmit={vi.fn()} generationQuota={unlimitedQuota} />);
+
+    const formText = screen
+      .getByRole('form', { name: /construire le training/i })
+      .textContent?.normalize('NFKD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLocaleLowerCase('fr-FR');
+
+    for (const hiddenTerm of ['modele', 'estime', 'sortie', 'prix', 'cout', '$']) {
+      expect(formText).not.toContain(hiddenTerm);
+    }
+  });
+
   it('ne transforme pas une redirection Next reussie en alerte metier', async () => {
     const redirectError = Object.assign(new Error('NEXT_REDIRECT'), {
       digest: 'NEXT_REDIRECT;push;/workouts/workout-1;303;',
     });
     const onSubmit = vi.fn().mockRejectedValue(redirectError);
-    render(
-      <WorkoutForm
-        onSubmit={onSubmit}
-        costEstimate={{
-          modelLabel: 'GPT-5.4 mini',
-          inputTokens: 1_200,
-          outputTokens: 1_800,
-          totalUsdLabel: '$0.009',
-        }}
-        generationQuota={unlimitedQuota}
-      />,
-    );
+    render(<WorkoutForm onSubmit={onSubmit} generationQuota={unlimitedQuota} />);
 
     fireEvent.change(screen.getByLabelText(/sport/i), { target: { value: 'course' } });
     fireEvent.change(screen.getByLabelText(/objectifs/i), {
@@ -180,25 +171,5 @@ describe('formulaires metier', () => {
     expect(submitted?.completedAt).toBeTruthy();
     expect(Number.isNaN(Date.parse(submitted?.completedAt ?? ''))).toBe(false);
     expect((await screen.findByRole('status')).textContent).toContain('Retour enregistre');
-  });
-
-  it('sauvegarde un changement de modele et confirme le succes', async () => {
-    const onSave = vi.fn().mockResolvedValue(undefined);
-    render(
-      <SettingsForm
-        initial={{ provider: 'openai', hasApiKey: true, model: 'gpt-5.4-mini' }}
-        onSave={onSave}
-      />,
-    );
-
-    fireEvent.change(screen.getByLabelText('Modele OpenAI'), { target: { value: 'gpt-5.4' } });
-    const saveButton = screen.getByRole('button', { name: 'Enregistrer' });
-    saveButton.focus();
-    fireEvent.click(saveButton);
-
-    await waitFor(() => expect(onSave).toHaveBeenCalledWith({ model: 'gpt-5.4' }));
-    const status = await screen.findByRole('status');
-    expect(status.textContent).toContain('Parametres sauvegardes');
-    expect(document.activeElement).toBe(saveButton);
   });
 });
