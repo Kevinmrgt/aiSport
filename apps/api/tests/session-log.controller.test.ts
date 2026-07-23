@@ -22,7 +22,11 @@ import {
   getSessionLogStatsByUser,
 } from '../src/repositories/session-log.repository.js';
 
-const mockAuth = { userId: '11111111-1111-1111-1111-111111111111', email: 'test@example.com' };
+const mockAuth = {
+  userId: '11111111-1111-1111-1111-111111111111',
+  email: 'test@example.com',
+  accessMode: 'standard' as const,
+};
 const workoutId = '22222222-2222-2222-2222-222222222222';
 
 function createTestApp() {
@@ -95,7 +99,7 @@ describe('SessionLogController', () => {
           perceivedEffort: 7,
         }),
       );
-      const body = await res.json() as { id: string; completedAt: string };
+      const body = (await res.json()) as { id: string; completedAt: string };
       expect(body.id).toBe(mockSessionLog.id);
       expect(body.completedAt).toBe('2026-05-01T10:00:00.000Z');
     });
@@ -136,7 +140,7 @@ describe('SessionLogController', () => {
 
       expect(res.status).toBe(200);
       expect(findRecentSessionLogsByUser).toHaveBeenCalledWith(mockAuth.userId, 5);
-      const body = await res.json() as { sessionLogs: unknown[] };
+      const body = (await res.json()) as { sessionLogs: unknown[] };
       expect(body.sessionLogs).toHaveLength(1);
     });
   });
@@ -158,7 +162,7 @@ describe('SessionLogController', () => {
 
       expect(res.status).toBe(200);
       expect(getSessionLogStatsByUser).toHaveBeenCalledWith(mockAuth.userId);
-      const body = await res.json() as { totalCompleted: number; lastCompletedAt: string };
+      const body = (await res.json()) as { totalCompleted: number; lastCompletedAt: string };
       expect(body.totalCompleted).toBe(3);
       expect(body.lastCompletedAt).toBe('2026-05-02T08:00:00.000Z');
     });

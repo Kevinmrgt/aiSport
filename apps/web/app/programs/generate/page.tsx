@@ -12,6 +12,8 @@ export default async function GenerateProgramPage() {
     redirect('/login');
   }
 
+  const generationQuota = await serverApi.getGenerationQuota();
+
   async function handleGenerate(data: GenerateProgramInput): Promise<{ error?: string } | void> {
     'use server';
     let programId: string;
@@ -63,7 +65,7 @@ export default async function GenerateProgramPage() {
         </div>
       </header>
 
-      <ProgramForm onSubmit={handleGenerate} />
+      <ProgramForm onSubmit={handleGenerate} generationQuota={generationQuota} />
     </div>
   );
 }
