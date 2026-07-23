@@ -3,6 +3,8 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { ProgramForm } from './ProgramForm';
 import { WorkoutForm } from './WorkoutForm';
 
+const unlimitedQuota = { limited: false, limit: null, used: 0, remaining: null } as const;
+
 describe('RNCP accessibilite - hierarchie des formulaires de generation', () => {
   afterEach(cleanup);
 
@@ -16,6 +18,7 @@ describe('RNCP accessibilite - hierarchie des formulaires de generation', () => 
           outputTokens: 1_800,
           totalUsdLabel: '$0.009',
         }}
+        generationQuota={unlimitedQuota}
       />,
     );
 
@@ -25,7 +28,12 @@ describe('RNCP accessibilite - hierarchie des formulaires de generation', () => 
   });
 
   it('expose le titre du formulaire de programme au niveau 2', () => {
-    render(<ProgramForm onSubmit={vi.fn().mockResolvedValue(undefined)} />);
+    render(
+      <ProgramForm
+        onSubmit={vi.fn().mockResolvedValue(undefined)}
+        generationQuota={unlimitedQuota}
+      />,
+    );
 
     expect(
       screen.getByRole('heading', { level: 2, name: 'Construire la progression' }),

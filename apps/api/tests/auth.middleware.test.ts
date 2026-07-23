@@ -88,12 +88,34 @@ describe('authMiddleware', () => {
     );
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { userId: string; email: string };
+    const body = (await res.json()) as {
+      userId: string;
+      email: string;
+      accessMode: string;
+    };
     expect(body.userId).toBe(MOCK_DB_UUID);
     expect(body.email).toBe('user@example.com');
+    expect(body.accessMode).toBe('standard');
   });
 
-  it('retourne 401 si SERVICE_SECRET n\'est pas configuré', async () => {
+  it('propage le mode jury depuis le contexte service-to-service', async () => {
+    const app = createApp();
+    const res = await app.fetch(
+      new Request('http://localhost/protected', {
+        headers: {
+          'x-internal-secret': VALID_SECRET,
+          'x-user-id': 'jury-session',
+          'x-user-email': 'jury@alcide.invalid',
+          'x-auth-method': 'jury',
+        },
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect((await res.json()) as object).toMatchObject({ accessMode: 'jury' });
+  });
+
+  it("retourne 401 si SERVICE_SECRET n'est pas configuré", async () => {
     delete process.env['SERVICE_SECRET'];
     const app = createApp();
     const res = await app.fetch(
@@ -105,7 +127,7 @@ describe('authMiddleware', () => {
     expect(res.status).toBe(401);
   });
 
-  it('console.warn est appelé lors d\'un secret invalide (OWASP A09)', async () => {
+  it("console.warn est appelé lors d'un secret invalide (OWASP A09)", async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const app = createApp();
 
@@ -115,10 +137,7 @@ describe('authMiddleware', () => {
       }),
     );
 
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('[Auth]'),
-      expect.any(Object),
-    );
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('[Auth]'), expect.any(Object));
     warnSpy.mockRestore();
   });
 });

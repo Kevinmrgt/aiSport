@@ -25,12 +25,14 @@ describe('serverApi', () => {
     vi.spyOn(console, 'info').mockImplementation(() => undefined);
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     process.env['SERVICE_SECRET'] = 'secret-test';
+    delete process.env['JURY_ACCESS_EMAIL'];
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     vi.useRealTimers();
+    delete process.env['JURY_ACCESS_EMAIL'];
   });
 
   it('refuse tout appel sans session avant de contacter l API', async () => {
@@ -61,6 +63,24 @@ describe('serverApi', () => {
       'x-user-id': 'user-1',
       'x-user-email': 'sportif@example.test',
       'x-user-name': 'Sportif Test',
+      'x-auth-method': 'standard',
+    });
+  });
+
+  it('marque le contexte jury uniquement pour l email jury configure', async () => {
+    process.env['JURY_ACCESS_EMAIL'] = 'jury@alcide.invalid';
+    authMock.mockResolvedValue({
+      user: { id: 'jury-session', email: 'JURY@ALCIDE.INVALID', name: 'Jury' },
+    } as never);
+    const fetchMock = vi
+      .fn<(url: string, init: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(response({ limited: true, limit: 30, used: 0, remaining: 30 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await serverApi.getGenerationQuota();
+
+    expect(fetchMock.mock.calls[0]?.[1]?.headers).toMatchObject({
+      'x-auth-method': 'jury',
     });
   });
 
@@ -71,6 +91,7 @@ describe('serverApi', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await serverApi.generateWorkout({ sport: 'course' } as never);
+    await serverApi.getGenerationQuota();
     await serverApi.getStats();
     await serverApi.getWorkout('workout-1');
     await serverApi.deleteWorkout('workout-1');
@@ -93,7 +114,11 @@ describe('serverApi', () => {
     expect(calls).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ url: 'http://localhost:3001/workouts/generate', method: 'POST' }),
-        expect.objectContaining({ url: 'http://localhost:3001/workouts/workout-1', method: 'DELETE' }),
+        expect.objectContaining({ url: 'http://localhost:3001/generation-quota', method: 'GET' }),
+        expect.objectContaining({
+          url: 'http://localhost:3001/workouts/workout-1',
+          method: 'DELETE',
+        }),
         expect.objectContaining({ url: 'http://localhost:3001/programs?page=3&limit=4' }),
         expect.objectContaining({ url: 'http://localhost:3001/session-logs/recent?limit=5' }),
         expect.objectContaining({ url: 'http://localhost:3001/session-logs/recent?limit=12' }),
@@ -134,10 +159,11 @@ describe('serverApi', () => {
     vi.useFakeTimers();
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockImplementation((_url: string, init: RequestInit) =>
-        new Promise<Response>((_resolve, reject) => {
-          init.signal?.addEventListener('abort', () => reject(new Error('aborted')));
-        }),
+      vi.fn().mockImplementation(
+        (_url: string, init: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            init.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+          }),
       ),
     );
 

@@ -7,16 +7,24 @@ import {
   findProgramById,
   deleteProgram,
 } from '../repositories/program.repository.js';
-import type { GenerateProgramInput, TrainingProgramRecord, ProgramListResponse } from '@alcide/shared';
+import type {
+  GenerateProgramInput,
+  TrainingProgramRecord,
+  ProgramListResponse,
+} from '@alcide/shared';
+import { runWithGenerationQuota, type GenerationAccessMode } from './generation-quota.service.js';
 
 // Logique metier : ne connait pas HTTP ni Drizzle.
 export async function generateAndSaveProgram(
   userId: string,
   input: GenerateProgramInput,
+  accessMode: GenerationAccessMode = 'standard',
 ): Promise<TrainingProgramRecord> {
-  const aiConfig = await resolveAiConfig(userId);
-  const program = await generateProgram(input, aiConfig);
-  return createProgram(userId, program);
+  return runWithGenerationQuota(userId, accessMode, async () => {
+    const aiConfig = await resolveAiConfig(userId);
+    const program = await generateProgram(input, aiConfig);
+    return createProgram(userId, program);
+  });
 }
 
 export async function getUserPrograms(

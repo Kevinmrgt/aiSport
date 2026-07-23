@@ -15,6 +15,12 @@ vi.mock('../src/services/program-ai.service.js', () => ({
   generateProgram: vi.fn(),
 }));
 
+vi.mock('../src/services/generation-quota.service.js', () => ({
+  runWithGenerationQuota: vi.fn(
+    async (_userId: string, _accessMode: string, operation: () => Promise<unknown>) => operation(),
+  ),
+}));
+
 vi.mock('../src/repositories/workout.repository.js', () => ({
   createWorkout: vi.fn(),
   findWorkoutsByUser: vi.fn(),
@@ -55,7 +61,7 @@ function createTestApp(): Hono {
   const app = new Hono();
   app.onError(handleError);
   app.use('*', async (ctx, next) => {
-    ctx.set('auth', { userId, email: 'rncp@example.test' });
+    ctx.set('auth', { userId, email: 'rncp@example.test', accessMode: 'standard' });
     await next();
   });
   return app;
