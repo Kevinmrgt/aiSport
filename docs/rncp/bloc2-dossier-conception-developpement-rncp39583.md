@@ -1,8 +1,8 @@
 # Dossier Bloc 2 RNCP39583 - Alcide
 
 > Concevoir et développer des applications logicielles
-> Version de production : `0.13.0-rc.6`, commit `b5f941311fb034831f2c6a310c61585ad7b3f092`
-> Validation de cette version : CI `29990178784`, CD `29990426551`
+> Version de production : `0.13.0-rc.7`, commit `d42e7f2c8fc86f26c46f850d32eb748870c6140d`
+> Validation de cette version : CI `29994929981`, CD `29995297354`
 > Prototype en production : [https://ai-sport-web.vercel.app](https://ai-sport-web.vercel.app)
 > Dépôt GitHub public : [https://github.com/Kevinmrgt/aiSport](https://github.com/Kevinmrgt/aiSport), branche `main` ; la révision ci-dessus permet de retrouver exactement la version contrôlée.
 > Données de recette anonymisées, dossier actualisé le 23 juillet 2026
@@ -38,12 +38,12 @@ Le tableau ci-dessous indique où retrouver chaque ensemble de preuves.
 | Compétence                                  | Preuve principale                                       | Ce qui est montré                            |
 | ------------------------------------------- | ------------------------------------------------------- | -------------------------------------------- |
 | C2.1.1 Environnements, qualité, performance | Node 24, Docker, Vercel, Neon, healthchecks, mesure A29 | environnements et résultats mesurés          |
-| C2.1.2 Intégration continue                 | CI `29990178784`, rapports et images Docker             | six jobs exécutés avec succès                |
-| C2.2.1 Prototype                            | matrice user stories, production `rc.6`, captures A30   | parcours métier sur bureau et mobile         |
-| C2.2.2 Tests unitaires                      | shared 14, API 170, Web 72 sur `rc.6`                   | suites et couvertures séparées               |
+| C2.1.2 Intégration continue                 | CI `29994929981`, rapports et images Docker             | six jobs exécutés avec succès                |
+| C2.2.1 Prototype                            | matrice user stories, production `rc.7`, captures A30   | parcours métier sur bureau et mobile         |
+| C2.2.2 Tests unitaires                      | shared 14, API 179, Web 74 sur `rc.7`                   | 267 tests et intégration PostgreSQL          |
 | C2.2.3 Sécurité et accessibilité            | OWASP, A35 à A37, dépendances A39, audits A40/A41       | contrôles de sécurité et d'accessibilité     |
-| C2.2.4 Déploiement et versionnement         | `rc.6`, CI `29990178784`, CD `29990426551`, smoke tests | version déployée, vérifiée et traçable       |
-| C2.3.1 Cahier de recettes                   | 62 scénarios documentés et résultats associés           | couverture fonctionnelle et résultats tracés |
+| C2.2.4 Déploiement et versionnement         | `rc.7`, CI `29994929981`, CD `29995297354`, smoke tests | version déployée, vérifiée et traçable       |
+| C2.3.1 Cahier de recettes                   | 65 scénarios documentés et résultats associés           | couverture fonctionnelle et résultats tracés |
 | C2.3.2 Correction des bogues                | registre B2-BUG et tests de non-régression              | détection, correction et contre-recette      |
 | C2.4.1 Documentation d'exploitation         | trois manuels présents et versionnés                    | déployer, utiliser et mettre à jour          |
 
@@ -58,6 +58,9 @@ Le prototype autonome est accessible à l'URL
 d'évaluation, un accès jury temporaire documenté dans l'édition confidentielle.
 Cet accès utilise la même session Auth.js et les mêmes contrôles d'autorisation
 que les autres utilisateurs ; il ne s'agit pas d'une route non protégée.
+Il est limité à 30 générations réussies au total, partagées entre séances et
+programmes. Le compteur visible sur les deux formulaires est persistant et
+géré atomiquement par l'API et PostgreSQL ; le parcours Google reste illimité.
 
 ## 3. C2.1.1 - Environnements, déploiement continu, qualité et performance
 
@@ -81,11 +84,18 @@ migration Drizzle, déploiement API, smoke test API, déploiement Web puis smoke
 test Web. Le run `29832944876` a exécuté cette séquence sur la baseline de
 consolidation `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`, avant le correctif
 final de reflow. La publication initiale de `rc.5` a été contrôlée sur
-`b63280f`. Le dernier
-correctif Web porte la version à `c63439e8ac8d68efd5ba091211b326ee8575fbba` :
+`b63280f`. Le dernier correctif Web de cette version porte la révision
+`c63439e8ac8d68efd5ba091211b326ee8575fbba` :
 la CI `29930722308` et le CD `29931146789` ont réussi. Les healthchecks ont
 répondu HTTP 200 avec la version `0.13.0-rc.5`, PostgreSQL `ok` et configuration
 IA `ok`.
+
+La baseline courante `d42e7f2c8fc86f26c46f850d32eb748870c6140d`
+ajoute le quota jury persistant et atomique. La CI `29994929981` a validé les
+267 tests (14 shared, 179 API et 74 Web), l'intégration PostgreSQL concurrente,
+les builds et les images Docker. La CD `29995297354` a réussi la migration, les
+déploiements API/Web et les smoke tests ; les trois healthchecks répondent
+HTTP 200 en `0.13.0-rc.7`, base et configuration IA `ok`.
 
 ### Critères mesurables retenus
 
@@ -212,11 +222,10 @@ visibles à 0 % dans le rapport ; elles sont complétées par les recettes
 Playwright, sans gonfler artificiellement le taux unitaire. Les seuils de chaque
 périmètre runtime dépassent la majorité demandée par le référentiel.
 
-Ainsi, les valeurs 155/43/8/14 du tableau correspondent aux tests inclus dans
-les rapports de couverture API/Web/PostgreSQL/shared. Les valeurs 170/57/9/14
-utilisées dans la synthèse finale correspondent aux suites complètes API/Web, aux 8
-tests PostgreSQL instrumentés complétés par la recette de sécurité SQL, et à la
-suite shared inchangée.
+Ainsi, les valeurs 155/43/8/14 du tableau correspondent aux rapports de
+couverture historiques API/Web/PostgreSQL/shared. La baseline `rc.7` exécute
+les suites complètes de 179 tests API, 74 Web et 14 shared, soit 267 tests,
+auxquels s'ajoute l'intégration PostgreSQL réelle et concurrente du quota.
 
 Le harnais couvre notamment validation des formulaires, invariants de durée IA,
 retry et timeout, erreurs 401/403/404/429/503, ownership, Timer, focus des
@@ -235,9 +244,18 @@ OWASP Top 10. Les mesures effectivement mises en oeuvre comprennent :
 - CSP, CORS et en-têtes de sécurité ;
 - secrets exclus du navigateur et du dépôt ;
 - rate limiting, timeout et erreurs explicites ;
+- quota jury persistant de 30 générations réussies, partagé entre séances et
+  programmes et réservé atomiquement dans PostgreSQL ;
 - audit de dépendances bloquant en CI ;
 - actions GitHub épinglées et chaîne CI/CD testée ;
 - journalisation des erreurs d'authentification, limites et appels IA.
+
+Le quota n'est pas un simple compteur d'interface : la 31e demande jury est
+refusée par l'API en HTTP 429 avec le code
+`GENERATION_QUOTA_EXCEEDED`. Une erreur IA ou d'enregistrement libère la
+réservation ; supprimer une génération réussie ne rembourse pas le quota. Les
+sessions Google ne sont pas limitées par ce mécanisme. Les tests PostgreSQL
+concurrents prouvent que 30 réservations au maximum peuvent réussir.
 
 B2-A27 consigne une première correction de vulnérabilités révélées par la CI le
 21 juillet. Une nouvelle veille locale du 22 juillet a ensuite détecté cinq
@@ -304,12 +322,13 @@ campagne ; aucune conformité RGAA exhaustive n'est revendiquée.
 | 0.13.0-rc.4           | dépendances, contrastes, focus et onglets corrigés ; CI/CD et contre-recette vertes              |
 | 0.13.0-rc.5           | alertes de redirection et statut de sauvegarde corrigés ; CI/CD, healthchecks et validation NVDA |
 | 0.13.0-rc.6           | accès jury temporaire sécurisé, Firewall, PDF public/privé et recette navigateur de production   |
+| 0.13.0-rc.7           | quota jury de 30 succès, compteur API/PostgreSQL atomique, partagé et recette production          |
 | finalisation du rendu | OAuth Playwright sécurisé, shared couvert, mobile authentifié et preuves consolidées             |
 
 `CHANGELOG.md`, les commits et les pull requests conservent l'historique. La
-version applicative courante `b5f9413...` a passé la CI `29990178784`, la
-migration, les déploiements API/Web et les smoke tests du CD `29990426551`.
-Les endpoints Web/API répondent en version `0.13.0-rc.6`. Le manifeste de la
+version applicative courante `d42e7f2...` a passé la CI `29994929981`, la
+migration, les déploiements API/Web et les smoke tests du CD `29995297354`.
+Les endpoints Web/API répondent en version `0.13.0-rc.7`. Le manifeste de la
 remise porte la révision Git effectivement archivée et les empreintes SHA-256
 de chaque livrable.
 
@@ -327,7 +346,7 @@ production B2-A25. Une simple lecture du code n'est jamais enregistrée comme
 une recette exécutée.
 
 Les compléments B2-A34 à B2-A42 étendent la recette aux erreurs IA, à la
-sécurité, aux parcours de production et à l'accessibilité. Le cahier compte 62
+sécurité, aux parcours de production et à l'accessibilité. Le cahier compte 65
 scénarios. Les résultats, réserves et corrections sont tracés dans les annexes
 et dans le plan de correction associé.
 
@@ -388,7 +407,7 @@ et tests complets. B2-A27 fournit un exemple réel où une nouvelle alerte a fai
 | Compétence | Annexes principales                          | Démonstration                                            |
 | ---------- | -------------------------------------------- | -------------------------------------------------------- |
 | C2.1.1     | B2-A22, A28, A29                             | Docker, healthchecks et protocole CD                     |
-| C2.1.2     | B2-A27, A28, A38, A39                        | CI `rc.6`, audit et blocage du CD                        |
+| C2.1.2     | B2-A27, A28, A38, A39, A42                   | CI `rc.7`, audit et blocage du CD                        |
 | C2.2.1     | matrice user stories, B2-A25, A26, A30       | besoins, écrans et production desktop/mobile             |
 | C2.2.2     | B2-A19, A28, A31                             | rapports de couverture séparés                           |
 | C2.2.3     | B2-A20, A25 à A30, A35 à A42                 | OWASP, dépendances, axe, clavier, zoom, sémantique, NVDA |
@@ -397,8 +416,8 @@ et tests complets. B2-A27 fournit un exemple réel où une nouvelle alerte a fai
 | C2.3.2     | LIV-02, B2-A25, A27, A34, A36, A37, A40, A41 | anomalies et non-régressions                             |
 | C2.4.1     | manuels et B2-A22                            | déployer, utiliser, mettre à jour                        |
 
-Les anciens PDF `rc.2` et `rc.3` correspondent à des étapes de travail. La
-remise `rc.6` rassemble l'index détaillé, la matrice user stories, les preuves
+Les anciens PDF `rc.2`, `rc.3` et `rc.6` correspondent à des étapes de travail.
+La remise `rc.7` rassemble l'index détaillé, la matrice user stories, les preuves
 sélectionnées et les trois manuels. Le nombre de pages, l'anonymisation, la
 navigation et les empreintes sont contrôlés après chaque régénération.
 
@@ -406,7 +425,7 @@ navigation et les empreintes sont contrôlés après chaque régénération.
 
 Alcide dispose d'un code source versionné, d'une architecture structurée, de
 tests couvrant majoritairement chaque périmètre runtime, d'une CI/CD réelle sur
-la baseline `rc.6`, d'une production contrôlée, d'un cahier de recettes, d'un
+la baseline `rc.7`, d'une production contrôlée, d'un cahier de recettes, d'un
 plan de correction et des trois manuels demandés. Les preuves incluent la
 session Playwright hors Git, la couverture autonome de `shared`, les recettes
 métier et sécurité, le reflow/clavier authentifié multi-page, les captures
@@ -417,6 +436,9 @@ L'accessibilité a été contrôlée par des tests automatisés, le clavier, le 
 l'inspection sémantique et NVDA. Les résultats détaillés sont disponibles dans
 B2-A41.
 
-La version `rc.6` passe l'audit au niveau `low`, le lint, le contrôle de types,
-256 tests, les builds, la CI, le déploiement et la recette navigateur jury. Les évolutions ultérieures sont
+La version `rc.7` passe l'audit au niveau `low`, le lint, le contrôle de types,
+267 tests, l'intégration PostgreSQL concurrente, les builds, la CI, le
+déploiement et la recette navigateur jury. Celle-ci a confirmé la connexion,
+29/30 générations restantes après une validation, le même compteur sur les
+deux pages et zéro erreur console. Les évolutions ultérieures sont
 tracées dans le plan de correction.

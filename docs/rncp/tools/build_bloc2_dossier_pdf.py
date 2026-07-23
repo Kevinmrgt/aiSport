@@ -27,6 +27,7 @@ from bloc2_delivery_config import (
     APPLICATION_SHA,
     DELIVERY_DATE,
     DELIVERY_DATE_FR,
+    JURY_GENERATION_QUOTA_NOTICE,
     PUBLIC_REPOSITORY_URL,
     JuryPdfAccess,
     VERSION,
@@ -460,6 +461,7 @@ def jury_access_table(jury_access: JuryPdfAccess):
             STYLES["Cellx"],
         )],
         ["Parcours", "Section « Accès jury » -> ouvrir l’espace de démonstration -> /generate"],
+        ["Quota", Paragraph(JURY_GENERATION_QUOTA_NOTICE, STYLES["Cellx"])],
     ]
     if jury_access.expires_at:
         rows.append(["Expiration", html.escape(jury_access.expires_at)])
