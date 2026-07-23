@@ -5,12 +5,13 @@ doivent encore être confirmées avec le campus.
 
 ## Contrôles techniques
 
-- [x] version de production `0.13.0-rc.5` disponible ;
-- [x] commit `c63439e8ac8d68efd5ba091211b326ee8575fbba` validé par la CI
-      `29930722308` et la CD `29931146789` ;
+- [x] version de production `0.13.0-rc.6` disponible ;
+- [x] commit `b5f941311fb034831f2c6a310c61585ad7b3f092` validé par la CI
+      `29990178784` et la CD `29990426551` ;
 - [x] API liveness/readiness et Web en HTTP 200 ;
 - [x] audit de dépendances au seuil `low` sans vulnérabilité connue ;
-- [x] lint, contrôle de types, 241 tests et builds réussis ;
+- [x] lint, contrôle de types, 256 tests et builds réussis ;
+- [x] accès jury temporaire contre-recetté dans le navigateur de production ;
 - [x] images Docker construites dans la CI ;
 - [x] dossier principal inférieur à 30 pages hors annexes ;
 - [x] sommaires, signets, liens, métadonnées et langue des PDF contrôlés ;

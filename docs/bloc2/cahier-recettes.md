@@ -1,11 +1,11 @@
 # Cahier de recettes — Alcide
 
 > Bloc 2 RNCP39583 — C2.3.1, compétence éliminatoire
-> Version déployée : `0.13.0-rc.5` au 2026-07-22, commit `c63439e8ac8d68efd5ba091211b326ee8575fbba`.
-> Validation de la version : CI `29930722308` ; CD `29931146789`.
-> Le SHA archivé et les empreintes de la remise `rc.5` figurent dans le
+> Version déployée : `0.13.0-rc.6` au 2026-07-23, commit `b5f941311fb034831f2c6a310c61585ad7b3f092`.
+> Validation de la version : CI `29990178784` ; CD `29990426551`.
+> Le SHA archivé et les empreintes de la remise `rc.6` figurent dans le
 > `MANIFESTE.txt` généré avec le paquet ; ils ne modifient pas la baseline de
-> production `rc.5`.
+> production `rc.6`.
 
 ## Règles de preuve
 
@@ -29,9 +29,9 @@ artefact et anomalie éventuelle.
 | Scénarios avec résultat            | 62 : exécutions, observations ou contrôles automatisés avec une preuve associée                                               |
 | Réserves                           | CR-055 conserve deux améliorations P2 et une contre-recette NVDA sans transcription détaillée                                 |
 | Échecs fonctionnels finaux         | Aucun connu ; B2-BUG-042/043 sont corrigés et validés sur `rc.5` ; B2-BUG-044/045 restent des améliorations P2 non bloquantes |
-| SHA testé                          | baseline déployée `c63439e8ac8d68efd5ba091211b326ee8575fbba`                                                                  |
-| Environnement                      | baseline `rc.5` en CI/production ; trois endpoints de santé en HTTP 200                                                       |
-| Artefacts                          | preuves A20, A25 à A41 ; matrice user stories ; paquet `rc.5` généré, inspecté et vérifié                                     |
+| SHA testé                          | baseline déployée `b5f941311fb034831f2c6a310c61585ad7b3f092`                                                                  |
+| Environnement                      | baseline `rc.6` en CI/production ; trois endpoints de santé en HTTP 200                                                       |
+| Artefacts                          | preuves A20, A25 à A42 ; matrice user stories ; paquet `rc.6` généré, inspecté et vérifié                                     |
 
 Les 62 scénarios ne sont pas tous des manipulations manuelles : le statut
 `Automatisé - Automatisé` désigne un cas réellement exécuté dans l'environnement indiqué.
@@ -39,6 +39,19 @@ Le statut `Exécuté` désigne une recette ou une observation conservée. CR-063
 est vérifié par la génération du paquet incluant B2-A41, le contrôle visuel des
 deux PDF, la décompression, le contrôle d'anonymisation et la comparaison des
 empreintes SHA-256.
+
+### Contrôles de la version `0.13.0-rc.6` — 2026-07-23
+
+| Contrôle                | Résultat                                                       |
+| ----------------------- | -------------------------------------------------------------- |
+| Audit, lint et types    | réussis localement et dans la CI `29990178784`                 |
+| Tests                   | 256/256 : shared 14, API 170, Web 72                           |
+| Playwright accès jury   | 18/18 sur Chromium et Firefox                                  |
+| Builds et images Docker | réussis dans les six jobs de CI                                |
+| CD                      | `29990426551` : migration, API, Web et smoke tests réussis     |
+| Santé production        | liveness/readiness/Web HTTP 200 en `rc.6`, DB et IA `ok`       |
+| Recette navigateur jury | échec générique, session, pages privées et déconnexion validés |
+| PDF public / privé      | URL publique contrôlée ; secrets exclus des PDF publics        |
 
 ### Contrôles de la version `0.13.0-rc.5` — 2026-07-22
 

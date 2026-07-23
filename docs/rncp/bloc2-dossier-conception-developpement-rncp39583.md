@@ -1,8 +1,8 @@
 # Dossier Bloc 2 RNCP39583 - Alcide
 
 > Concevoir et développer des applications logicielles
-> Version de production : `0.13.0-rc.5`, commit `c63439e8ac8d68efd5ba091211b326ee8575fbba`
-> Validation de cette version : CI `29930722308`, CD `29931146789`
+> Version de production : `0.13.0-rc.6`, commit `b5f941311fb034831f2c6a310c61585ad7b3f092`
+> Validation de cette version : CI `29990178784`, CD `29990426551`
 > Prototype en production : [https://ai-sport-web.vercel.app](https://ai-sport-web.vercel.app)
 > Dépôt GitHub public : [https://github.com/Kevinmrgt/aiSport](https://github.com/Kevinmrgt/aiSport), branche `main` ; la révision ci-dessus permet de retrouver exactement la version contrôlée.
 > Données de recette anonymisées, dossier actualisé le 23 juillet 2026
@@ -38,11 +38,11 @@ Le tableau ci-dessous indique où retrouver chaque ensemble de preuves.
 | Compétence                                  | Preuve principale                                       | Ce qui est montré                            |
 | ------------------------------------------- | ------------------------------------------------------- | -------------------------------------------- |
 | C2.1.1 Environnements, qualité, performance | Node 24, Docker, Vercel, Neon, healthchecks, mesure A29 | environnements et résultats mesurés          |
-| C2.1.2 Intégration continue                 | CI `29930722308`, rapports et images Docker             | six jobs exécutés avec succès                |
-| C2.2.1 Prototype                            | matrice user stories, production `rc.5`, captures A30   | parcours métier sur bureau et mobile         |
-| C2.2.2 Tests unitaires                      | shared 14, API 170, Web 57 sur `rc.5`                   | suites et couvertures séparées               |
+| C2.1.2 Intégration continue                 | CI `29990178784`, rapports et images Docker             | six jobs exécutés avec succès                |
+| C2.2.1 Prototype                            | matrice user stories, production `rc.6`, captures A30   | parcours métier sur bureau et mobile         |
+| C2.2.2 Tests unitaires                      | shared 14, API 170, Web 72 sur `rc.6`                   | suites et couvertures séparées               |
 | C2.2.3 Sécurité et accessibilité            | OWASP, A35 à A37, dépendances A39, audits A40/A41       | contrôles de sécurité et d'accessibilité     |
-| C2.2.4 Déploiement et versionnement         | `rc.5`, CI `29930722308`, CD `29931146789`, smoke tests | version déployée, vérifiée et traçable       |
+| C2.2.4 Déploiement et versionnement         | `rc.6`, CI `29990178784`, CD `29990426551`, smoke tests | version déployée, vérifiée et traçable       |
 | C2.3.1 Cahier de recettes                   | 62 scénarios documentés et résultats associés           | couverture fonctionnelle et résultats tracés |
 | C2.3.2 Correction des bogues                | registre B2-BUG et tests de non-régression              | détection, correction et contre-recette      |
 | C2.4.1 Documentation d'exploitation         | trois manuels présents et versionnés                    | déployer, utiliser et mettre à jour          |
@@ -303,12 +303,13 @@ campagne ; aucune conformité RGAA exhaustive n'est revendiquée.
 | 0.13.0-rc.3           | corrections issues de la recette authentifiée                                                    |
 | 0.13.0-rc.4           | dépendances, contrastes, focus et onglets corrigés ; CI/CD et contre-recette vertes              |
 | 0.13.0-rc.5           | alertes de redirection et statut de sauvegarde corrigés ; CI/CD, healthchecks et validation NVDA |
+| 0.13.0-rc.6           | accès jury temporaire sécurisé, Firewall, PDF public/privé et recette navigateur de production   |
 | finalisation du rendu | OAuth Playwright sécurisé, shared couvert, mobile authentifié et preuves consolidées             |
 
 `CHANGELOG.md`, les commits et les pull requests conservent l'historique. La
-version applicative courante `c63439e...` a passé la CI `29930722308`, la
-migration, les déploiements API/Web et les smoke tests du CD `29931146789`.
-Les endpoints Web/API répondent en version `0.13.0-rc.5`. Le manifeste de la
+version applicative courante `b5f9413...` a passé la CI `29990178784`, la
+migration, les déploiements API/Web et les smoke tests du CD `29990426551`.
+Les endpoints Web/API répondent en version `0.13.0-rc.6`. Le manifeste de la
 remise porte la révision Git effectivement archivée et les empreintes SHA-256
 de chaque livrable.
 
@@ -326,7 +327,7 @@ production B2-A25. Une simple lecture du code n'est jamais enregistrée comme
 une recette exécutée.
 
 Les compléments B2-A34 à B2-A42 étendent la recette aux erreurs IA, à la
-sécurité, aux parcours de production et à l'accessibilité. Le cahier compte 59
+sécurité, aux parcours de production et à l'accessibilité. Le cahier compte 62
 scénarios. Les résultats, réserves et corrections sont tracés dans les annexes
 et dans le plan de correction associé.
 
@@ -387,17 +388,17 @@ et tests complets. B2-A27 fournit un exemple réel où une nouvelle alerte a fai
 | Compétence | Annexes principales                          | Démonstration                                            |
 | ---------- | -------------------------------------------- | -------------------------------------------------------- |
 | C2.1.1     | B2-A22, A28, A29                             | Docker, healthchecks et protocole CD                     |
-| C2.1.2     | B2-A27, A28, A38, A39                        | CI `rc.5`, audit et blocage du CD                        |
+| C2.1.2     | B2-A27, A28, A38, A39                        | CI `rc.6`, audit et blocage du CD                        |
 | C2.2.1     | matrice user stories, B2-A25, A26, A30       | besoins, écrans et production desktop/mobile             |
 | C2.2.2     | B2-A19, A28, A31                             | rapports de couverture séparés                           |
-| C2.2.3     | B2-A20, A25 à A30, A35 à A41                 | OWASP, dépendances, axe, clavier, zoom, sémantique, NVDA |
+| C2.2.3     | B2-A20, A25 à A30, A35 à A42                 | OWASP, dépendances, axe, clavier, zoom, sémantique, NVDA |
 | C2.2.4     | B2-A22, A25, A28                             | Git, migration, CD, smoke tests                          |
 | C2.3.1     | LIV-01, B2-A20, A25, A26, A30, A34 à A42     | cahier et recettes exécutées                             |
 | C2.3.2     | LIV-02, B2-A25, A27, A34, A36, A37, A40, A41 | anomalies et non-régressions                             |
 | C2.4.1     | manuels et B2-A22                            | déployer, utiliser, mettre à jour                        |
 
 Les anciens PDF `rc.2` et `rc.3` correspondent à des étapes de travail. La
-remise `rc.5` rassemble l'index détaillé, la matrice user stories, les preuves
+remise `rc.6` rassemble l'index détaillé, la matrice user stories, les preuves
 sélectionnées et les trois manuels. Le nombre de pages, l'anonymisation, la
 navigation et les empreintes sont contrôlés après chaque régénération.
 
@@ -405,7 +406,7 @@ navigation et les empreintes sont contrôlés après chaque régénération.
 
 Alcide dispose d'un code source versionné, d'une architecture structurée, de
 tests couvrant majoritairement chaque périmètre runtime, d'une CI/CD réelle sur
-la baseline `rc.5`, d'une production contrôlée, d'un cahier de recettes, d'un
+la baseline `rc.6`, d'une production contrôlée, d'un cahier de recettes, d'un
 plan de correction et des trois manuels demandés. Les preuves incluent la
 session Playwright hors Git, la couverture autonome de `shared`, les recettes
 métier et sécurité, le reflow/clavier authentifié multi-page, les captures
@@ -416,6 +417,6 @@ L'accessibilité a été contrôlée par des tests automatisés, le clavier, le 
 l'inspection sémantique et NVDA. Les résultats détaillés sont disponibles dans
 B2-A41.
 
-La version `rc.5` passe l'audit au niveau `low`, le lint, le contrôle de types,
-241 tests, les builds, la CI et le déploiement. Les évolutions ultérieures sont
+La version `rc.6` passe l'audit au niveau `low`, le lint, le contrôle de types,
+256 tests, les builds, la CI, le déploiement et la recette navigateur jury. Les évolutions ultérieures sont
 tracées dans le plan de correction.
