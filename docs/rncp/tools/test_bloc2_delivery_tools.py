@@ -13,6 +13,8 @@ from reportlab.pdfgen import canvas
 
 from bloc2_delivery_config import (
     APPLICATION_URL,
+    JURY_GENERATION_LIMIT,
+    JURY_GENERATION_QUOTA_NOTICE,
     ROOT,
     PUBLIC_REPOSITORY_URL,
     VERSION,
@@ -38,10 +40,17 @@ class Bloc2DeliveryToolsTests(unittest.TestCase):
         package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
         self.assertEqual(VERSION, package["version"])
 
-    def test_deployed_application_references_match_rc6(self) -> None:
-        self.assertEqual(APPLICATION_SHA, "b5f941311fb034831f2c6a310c61585ad7b3f092")
-        self.assertEqual(FINAL_CI_RUN, "29990178784")
-        self.assertEqual(FINAL_CD_RUN, "29990426551")
+    def test_deployed_application_references_match_rc7(self) -> None:
+        self.assertEqual(APPLICATION_SHA, "d42e7f2c8fc86f26c46f850d32eb748870c6140d")
+        self.assertEqual(FINAL_CI_RUN, "29994929981")
+        self.assertEqual(FINAL_CD_RUN, "29995297354")
+
+    def test_jury_quota_notice_documents_the_complete_rule(self) -> None:
+        self.assertEqual(JURY_GENERATION_LIMIT, 30)
+        self.assertIn("30 générations réussies maximum", JURY_GENERATION_QUOTA_NOTICE)
+        self.assertIn("séances et les programmes", JURY_GENERATION_QUOTA_NOTICE)
+        self.assertIn("compteur visible", JURY_GENERATION_QUOTA_NOTICE)
+        self.assertIn("31e demande est bloquée", JURY_GENERATION_QUOTA_NOTICE)
 
     def test_application_url_is_the_public_vercel_deployment(self) -> None:
         self.assertEqual(APPLICATION_URL, "https://ai-sport-web.vercel.app")
@@ -140,6 +149,7 @@ class Bloc2DeliveryToolsTests(unittest.TestCase):
             private_text = "\n".join(
                 page.extract_text() or "" for page in private_reader.pages
             )
+            private_text_normalized = " ".join(private_text.split())
             public_uris = []
             for page in public_reader.pages:
                 for annotation_ref in page.get("/Annots", []):
@@ -154,6 +164,7 @@ class Bloc2DeliveryToolsTests(unittest.TestCase):
             self.assertNotIn(access.password, public_text)
             self.assertIn(access.identifier, private_text)
             self.assertIn(access.password, private_text)
+            self.assertIn(JURY_GENERATION_QUOTA_NOTICE, private_text_normalized)
 
     def test_anonymizer_neutralizes_named_github_and_vercel_urls(self) -> None:
         source = (

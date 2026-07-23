@@ -1,7 +1,7 @@
 # Manuel de mise à jour - Alcide
 
 > Livrable Bloc 2 RNCP39583 - Documentation technique d'exploitation et d'évolution.
-> Version exploitée : `0.13.0-rc.6` - baseline déployée `b5f941311fb034831f2c6a310c61585ad7b3f092`.
+> Version exploitée : `0.13.0-rc.7` - baseline déployée `d42e7f2c8fc86f26c46f850d32eb748870c6140d`.
 
 ## 1. Objectif
 
@@ -91,6 +91,12 @@ pnpm db:migrate
 
 5. Vérifier les fonctionnalités concernées.
 
+Pour le quota jury, vérifier en particulier la table
+`generation_quotas`, sa clé utilisateur et l'atomicité de l'incrément. La
+migration ne doit ni remettre à zéro un compteur existant, ni appliquer la
+limite aux comptes Google. Le test d'intégration PostgreSQL concurrent doit
+confirmer que 30 réservations au maximum sont acceptées.
+
 Critères de prudence :
 
 - éviter les suppressions destructrices non justifiées ;
@@ -178,7 +184,10 @@ Puis vérifier manuellement :
 3. génération ou consultation avec données seedées ;
 4. liste des séances ;
 5. détail et timer ;
-6. dashboard.
+6. dashboard ;
+7. avec une session jury, même compteur sur `/generate` et
+   `/programs/generate`, puis refus HTTP 429
+   `GENERATION_QUOTA_EXCEEDED` lorsque la limite est atteinte.
 
 ## 9. Rollback
 
@@ -194,6 +203,8 @@ Rollback base de données :
 
 - privilégier une sauvegarde/restauration lorsque la migration est destructive ;
 - éviter de lancer une migration inverse non testée ;
+- ne pas supprimer `generation_quotas` ni réinitialiser ses compteurs sans
+  décision explicite, car une suppression de contenu ne rembourse pas le quota ;
 - consigner précisément le changement de schéma et l'impact utilisateur.
 
 ## 10. Traçabilité

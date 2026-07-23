@@ -460,7 +460,7 @@ def build_readme_text() -> str:
                 "- B2-A39 - preuve de correction des dépendances et d'audit de sécurité rc.4",
                 "- B2-A40 - audit sémantique authentifié et contre-recette de production du focus/des onglets",
                 "- B2-A41 - campagne NVDA rc.4, correctifs et validation déclarée de la contre-recette rc.5",
-                "- B2-A42 - accès jury sécurisé, CI/CD rc.6 et recette navigateur de production",
+                "- B2-A42 - accès jury sécurisé, quota de 30 générations, CI/CD rc.7 et recette navigateur de production",
                 "",
                 "Les trois manuels sont également lisibles à la fin du PDF d'annexes et présents dans l'archive source :",
                 "- DOC-01 - docs/deployment.md",

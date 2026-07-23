@@ -5,6 +5,9 @@
 > Baseline historique déployée après le correctif de reflow : `b002adb...`, CI
 > `29845956008`, CD `29846343559`. Ce correctif ne modifie pas les contrôles de
 > sécurité décrits ci-dessous.
+> Baseline de production courante : `0.13.0-rc.7`,
+> `d42e7f2c8fc86f26c46f850d32eb748870c6140d`, CI `29994929981`, CD
+> `29995297354`.
 
 ## Méthode et échelle
 
@@ -72,11 +75,19 @@ Contrôles : architecture en couches, schémas partagés, invariants métier sur
 sorties IA, timeouts, retry borné, erreurs typées, contrôle d'ownership et limite
 de taille des entrées.
 
-Risque résiduel majeur : le rate limit utilise un `Map` mémoire par processus.
-Il protège un processus unique mais ne garantit pas un quota global sur Vercel
-avec cold starts ou plusieurs instances. Le passage à un store distribué
-atomique reste nécessaire avant de présenter cette limite comme garantie de
-production.
+Le quota de l'accès jury repose sur un compteur PostgreSQL persistant et une
+réservation atomique, partagé entre les générations de séances et de
+programmes. Il est limité à 30 générations réussies. La suppression d'un
+résultat ne rend pas l'unité consommée ; un échec IA ou d'enregistrement en base
+libère la réservation. Les comptes Google ne sont pas limités par ce mécanisme.
+Le test PostgreSQL lance 31 réservations concurrentes et observe exactement 30
+acceptations et un refus, ce qui couvre le risque de dépassement par concurrence.
+
+Risque résiduel majeur : le rate limit général, distinct du quota jury, utilise
+un `Map` mémoire par processus. Il protège un processus unique mais ne garantit
+pas une limite globale sur Vercel avec cold starts ou plusieurs instances. Le
+passage à un store distribué atomique reste nécessaire avant de présenter ce
+rate limit comme une garantie de production.
 
 ## A05 — Security Misconfiguration — contrôlé avec risque résiduel
 
@@ -135,10 +146,18 @@ les builds et la CI `29930722308`, puis la CD `29931146789` et les healthchecks
 HTTP 200. Les correctifs `rc.5` portent sur la restitution d'accessibilité et
 ne relâchent aucun contrôle de sécurité décrit dans cette revue.
 
-La baseline courante `0.13.0-rc.6` passe à son tour l'audit `low`, le lint, les
-types, 256 tests et les builds dans la CI `29990178784`. La CD `29990426551`,
-les healthchecks HTTP 200 et la recette navigateur de B2-A42 confirment le
-déploiement de l'accès jury sans régression des contrôles précédents.
+La baseline historique `0.13.0-rc.6` passe à son tour l'audit `low`, le lint,
+les types, 256 tests et les builds dans la CI `29990178784`. La CD
+`29990426551`, les healthchecks HTTP 200 et la recette navigateur de B2-A42
+confirment le déploiement de l'accès jury sans régression des contrôles
+précédents.
+
+La baseline de production `0.13.0-rc.7` conserve ces correctifs. L'audit
+`low`, le lint, les types, 267 tests unitaires/composants — shared 14, API 179,
+Web 74 —, l'intégration PostgreSQL dédiée et les E2E sont verts dans la CI
+`29994929981`. La CD `29995297354`, les healthchecks et la recette navigateur,
+qui affiche 29 générations restantes après une génération de validation,
+confirment son déploiement.
 
 ## A07 — Identification and Authentication Failures — contrôlé avec limites
 
@@ -171,6 +190,13 @@ protégé dans Vercel Firewall par une fenêtre fixe de 10 tentatives par minute
 par IP, ce qui réduit le risque de brute force et de consommation CPU de
 `scrypt`.
 
+La version `0.13.0-rc.7` borne cet accès à 30 générations réussies, partagées
+entre séances et programmes. Le Web ne décide pas seul du droit à générer :
+l'API reconnaît le mode jury transmis par le serveur authentifié, réserve
+atomiquement le quota dans PostgreSQL et renvoie HTTP 429 lorsque le plafond est
+atteint. Les échecs techniques sont remboursés, contrairement à la suppression
+d'un résultat déjà généré. Les sessions Google restent hors de ce quota.
+
 ## A08 — Software and Data Integrity Failures — contrôlé
 
 Contrôles : lockfile, `--frozen-lockfile`, CI avant CD, migrations versionnées,
@@ -182,6 +208,11 @@ est conservé dans le manifeste. La CI `29832575391` puis le CD `29832944876`
 prouvent l'enchaînement sur la baseline de consolidation `0d5c6b6...`. Le même
 enchaînement est confirmé sur la baseline canonique `b002adb...` par la CI
 `29845956008` et le CD `29846343559`.
+
+La chaîne courante est confirmée sur
+`d42e7f2c8fc86f26c46f850d32eb748870c6140d` par la CI `29994929981`, puis la
+CD `29995297354`, qui applique la migration du quota avant les déploiements API
+et Web.
 
 ## A09 — Security Logging and Monitoring Failures — contrôlé avec limites
 
