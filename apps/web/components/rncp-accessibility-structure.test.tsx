@@ -12,12 +12,6 @@ describe('RNCP accessibilite - hierarchie des formulaires de generation', () => 
     render(
       <WorkoutForm
         onSubmit={vi.fn().mockResolvedValue(undefined)}
-        costEstimate={{
-          modelLabel: 'GPT-5.4 mini',
-          inputTokens: 1_200,
-          outputTokens: 1_800,
-          totalUsdLabel: '$0.009',
-        }}
         generationQuota={unlimitedQuota}
       />,
     );

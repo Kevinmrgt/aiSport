@@ -3,7 +3,7 @@ import { checkReadiness } from '../lib/readiness.js';
 
 const healthRouter = new Hono();
 const appVersion =
-  process.env['APP_VERSION'] ?? process.env['npm_package_version'] ?? '0.13.0-rc.7';
+  process.env['APP_VERSION'] ?? process.env['npm_package_version'] ?? '0.13.0-rc.8';
 
 healthRouter.get('/', (ctx) => {
   ctx.header('Cache-Control', 'no-store, max-age=0');
