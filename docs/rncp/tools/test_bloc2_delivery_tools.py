@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
+import subprocess
 import tempfile
 import unittest
 import zipfile
@@ -9,14 +12,18 @@ from pathlib import Path
 from reportlab.pdfgen import canvas
 
 from bloc2_delivery_config import (
+    APPLICATION_URL,
     ROOT,
     PUBLIC_REPOSITORY_URL,
     VERSION,
     anonymize_text,
     assert_anonymized_pdf,
     assert_anonymized_text,
+    jury_password_matches_hash,
+    load_jury_access_from_env,
 )
 from build_bloc2_annexes_pdf import CORE_DELIVERABLES, SELECTED
+from build_bloc2_dossier_pdf import build_pdf as build_dossier_pdf
 from build_bloc2_delivery_pack import (
     APPLICATION_SHA,
     FINAL_CD_RUN,
@@ -35,6 +42,118 @@ class Bloc2DeliveryToolsTests(unittest.TestCase):
         self.assertEqual(APPLICATION_SHA, "c63439e8ac8d68efd5ba091211b326ee8575fbba")
         self.assertEqual(FINAL_CI_RUN, "29930722308")
         self.assertEqual(FINAL_CD_RUN, "29931146789")
+
+    def test_application_url_is_the_public_vercel_deployment(self) -> None:
+        self.assertEqual(APPLICATION_URL, "https://ai-sport-web.vercel.app")
+
+    def test_private_jury_loader_requires_both_credentials(self) -> None:
+        with self.assertRaisesRegex(ValueError, "sont requis"):
+            load_jury_access_from_env({})
+        with self.assertRaisesRegex(ValueError, "sont requis"):
+            load_jury_access_from_env({"BLOC2_JURY_IDENTIFIER": "jury-alcide"})
+        with self.assertRaisesRegex(ValueError, "sont requis"):
+            load_jury_access_from_env(
+                {"BLOC2_JURY_PASSWORD": "mot-de-passe-test-tres-long"}
+            )
+
+    def test_private_jury_loader_preserves_explicit_values(self) -> None:
+        access = load_jury_access_from_env(
+            {
+                "BLOC2_JURY_IDENTIFIER": "jury-alcide",
+                "BLOC2_JURY_PASSWORD": "mot-de-passe-test-tres-long",
+                "BLOC2_JURY_EXPIRES_AT": "31 décembre 2026 à 23 h 59",
+            }
+        )
+        self.assertEqual(access.identifier, "jury-alcide")
+        self.assertEqual(access.password, "mot-de-passe-test-tres-long")
+        self.assertEqual(access.expires_at, "31 décembre 2026 à 23 h 59")
+
+    def test_private_jury_loader_verifies_the_runtime_hash(self) -> None:
+        password = "mot-de-passe-test-tres-long"
+        salt = b"0123456789abcdef"
+        derived = hashlib.scrypt(
+            password.encode(),
+            salt=salt,
+            n=16_384,
+            r=8,
+            p=1,
+            dklen=32,
+            maxmem=64 * 1024 * 1024,
+        )
+        encoded_hash = "$".join(
+            [
+                "scrypt",
+                "16384",
+                "8",
+                "1",
+                base64.urlsafe_b64encode(salt).decode().rstrip("="),
+                base64.urlsafe_b64encode(derived).decode().rstrip("="),
+            ]
+        )
+        environment = {
+            "BLOC2_JURY_IDENTIFIER": "jury-alcide",
+            "BLOC2_JURY_PASSWORD": password,
+            "JURY_ACCESS_PASSWORD_HASH": encoded_hash,
+        }
+        self.assertTrue(jury_password_matches_hash(password, encoded_hash))
+        access = load_jury_access_from_env(environment, verify_runtime_hash=True)
+        self.assertEqual(access.identifier, "jury-alcide")
+        with self.assertRaisesRegex(ValueError, "ne correspond pas"):
+            load_jury_access_from_env(
+                {**environment, "BLOC2_JURY_PASSWORD": "autre-mot-de-passe-tres-long"},
+                verify_runtime_hash=True,
+            )
+
+    def test_private_jury_output_is_ignored_by_git(self) -> None:
+        result = subprocess.run(
+            ["git", "check-ignore", "output/jury-private/example.pdf"],
+            cwd=ROOT,
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+        self.assertEqual(
+            result.stdout.strip().replace("\\", "/"),
+            "output/jury-private/example.pdf",
+        )
+
+    def test_public_pdf_excludes_private_credentials_and_keeps_clickable_url(self) -> None:
+        from pypdf import PdfReader
+
+        access = load_jury_access_from_env(
+            {
+                "BLOC2_JURY_IDENTIFIER": "jury-sentinel-private",
+                "BLOC2_JURY_PASSWORD": "Sentinel-Private-Password!2026",
+            }
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            public_pdf = Path(directory) / "public.pdf"
+            private_pdf = Path(directory) / "private.pdf"
+            build_dossier_pdf(output=public_pdf)
+            build_dossier_pdf(output=private_pdf, jury_access=access)
+
+            public_reader = PdfReader(str(public_pdf))
+            private_reader = PdfReader(str(private_pdf))
+            public_text = "\n".join(
+                page.extract_text() or "" for page in public_reader.pages
+            )
+            private_text = "\n".join(
+                page.extract_text() or "" for page in private_reader.pages
+            )
+            public_uris = []
+            for page in public_reader.pages:
+                for annotation_ref in page.get("/Annots", []):
+                    annotation = annotation_ref.get_object()
+                    action = annotation.get("/A")
+                    if action and action.get_object().get("/S") == "/URI":
+                        public_uris.append(str(action.get_object().get("/URI")))
+
+            self.assertIn(APPLICATION_URL, public_text)
+            self.assertTrue(any(APPLICATION_URL in uri for uri in public_uris))
+            self.assertNotIn(access.identifier, public_text)
+            self.assertNotIn(access.password, public_text)
+            self.assertIn(access.identifier, private_text)
+            self.assertIn(access.password, private_text)
 
     def test_anonymizer_neutralizes_named_github_and_vercel_urls(self) -> None:
         source = (

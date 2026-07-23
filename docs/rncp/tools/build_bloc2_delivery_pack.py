@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import io
+import os
 import re
 import shutil
 import subprocess
@@ -11,6 +12,7 @@ from pathlib import Path, PurePosixPath
 
 from bloc2_delivery_config import (
     ANONYMIZED_MODE,
+    APPLICATION_URL,
     APPLICATION_SHA,
     DELIVERY_DATE,
     FINAL_CD_RUN,
@@ -165,6 +167,40 @@ def validate_pdf(path: Path, maximum_pages: int | None = None) -> tuple[int, str
     if ANONYMIZED_MODE:
         assert_anonymized_pdf(path)
     return pages, text
+
+
+def validate_public_jury_pdf(path: Path, text: str) -> None:
+    from pypdf import PdfReader
+
+    private_markers = (
+        "ACCÈS JURY CONFIDENTIEL",
+        "Accès jury contrôlé - confidentiel",
+    )
+    for marker in private_markers:
+        if marker in text:
+            raise ValueError(f"{path.name}: marqueur d'édition privée détecté")
+
+    for variable in ("BLOC2_JURY_IDENTIFIER", "BLOC2_JURY_PASSWORD"):
+        value = os.environ.get(variable)
+        if value and value in text:
+            raise ValueError(f"{path.name}: valeur privée {variable} détectée")
+
+    reader = PdfReader(str(path))
+    title = str(reader.metadata.title or "") if reader.metadata else ""
+    if "confidentielle" in title.lower():
+        raise ValueError(f"{path.name}: métadonnée d'édition privée détectée")
+
+    application_links = []
+    for page in reader.pages:
+        for annotation_ref in page.get("/Annots", []):
+            annotation = annotation_ref.get_object()
+            action = annotation.get("/A")
+            if action and action.get_object().get("/S") == "/URI":
+                uri = str(action.get_object().get("/URI"))
+                if uri.startswith(APPLICATION_URL):
+                    application_links.append(uri)
+    if APPLICATION_URL not in text or not application_links:
+        raise ValueError(f"{path.name}: URL applicative texte ou lien cliquable absent")
 
 
 def validate_pdf_navigation(
@@ -500,6 +536,8 @@ def build_delivery_pack() -> None:
 
     dossier_pages, dossier_text = validate_pdf(DOSSIER, maximum_pages=30)
     annex_pages, annex_text = validate_pdf(ANNEXES)
+    validate_public_jury_pdf(DOSSIER, dossier_text)
+    validate_public_jury_pdf(ANNEXES, annex_text)
     dossier_outlines, dossier_links, dossier_tagged = validate_pdf_navigation(
         DOSSIER,
         minimum_outlines=10,
@@ -530,6 +568,8 @@ def build_delivery_pack() -> None:
         "B2-A39",
         "B2-A40",
         "B2-A41",
+        "B2-A42",
+        APPLICATION_URL,
         "29833210488",
         APPLICATION_SHA[:7],
         FINAL_CI_RUN,
