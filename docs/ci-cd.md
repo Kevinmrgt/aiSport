@@ -1,6 +1,6 @@
 # CI/CD — Alcide
 
-> Version de référence mise à jour le 2026-07-22. Les preuves distinguent le SHA
+> Version de référence mise à jour le 2026-07-23. Les preuves distinguent le SHA
 > applicatif correctif, le repère documentaire et le SHA finalement archivé.
 
 ## Cibles
@@ -32,6 +32,12 @@ vers `main` et lancement manuel de contrôle. Ses gates sont :
 Les rapports API, intégration DB, Web et Playwright sont publiés comme artefacts
 distincts. Un pourcentage de couverture n'est jamais présenté sans son
 périmètre et ses exclusions.
+
+La baseline `0.13.0-rc.7` exécute 267 tests unitaires et de composants : 14
+pour `packages/shared`, 179 pour l'API et 74 pour le Web. Le job PostgreSQL
+ajoute un test d'intégration dédié au quota jury : 31 réservations concurrentes
+produisent exactement 30 acceptations et un refus. Les tests E2E restent une
+gate distincte.
 
 ## Playwright authentifié
 
@@ -79,10 +85,13 @@ une reprise. Au relevé du 2026-07-20, l'environnement GitHub `production`
 n'avait ni règle de protection ni approbateur : il ne faut pas présenter ce
 rattachement comme une validation humaine bloquante.
 
-Le chemin positif de la baseline corrective courante est prouvé sur
-`c63439e8ac8d68efd5ba091211b326ee8575fbba` par la CI `29930722308`, puis la
-CD `29931146789` : migration, API, Web et smoke tests sont réussis. Le repère
-documentaire `b3ca385c0014c6acfd5c29ebbe14fa38ca766c02`, descendant sans changement
+Le chemin positif de la baseline applicative courante est prouvé sur
+`d42e7f2c8fc86f26c46f850d32eb748870c6140d` par la CI `29994929981`, puis la
+CD `29995297354` : migration du compteur de quota, API, Web et smoke tests sont
+réussis. La recette navigateur de production confirme l'accès jury et
+l'affichage de 29 générations restantes après une génération de validation.
+Le repère documentaire `b3ca385c0014c6acfd5c29ebbe14fa38ca766c02`,
+descendant sans changement
 applicatif de `b002adb`, a ensuite passé la CI `29847808450` et la CD
 `29848187523`. Cette seconde exécution ne remplace pas la contre-recette métier
 et accessibilité de `b002adb` ; elle confirme que le snapshot documentaire
@@ -158,6 +167,7 @@ Après rollback, rejouer liveness, readiness et le parcours métier concerné.
 
 | Nature                                 | SHA                                        | CI                   | CD                                                   | Portée                                                                                                                     |
 | -------------------------------------- | ------------------------------------------ | -------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Baseline quota jury `rc.7`             | `d42e7f2c8fc86f26c46f850d32eb748870c6140d` | `29994929981` succès | `29995297354` succès                                 | Quota persistant et atomique de 30 générations partagées, remboursement des échecs, test concurrent et recette à 29 restantes |
 | Baseline accès jury `rc.6`             | `b5f941311fb034831f2c6a310c61585ad7b3f092` | `29990178784` succès | `29990426551` succès                                 | Accès jury sécurisé, Firewall, healthchecks et recette navigateur de production                                            |
 | Baseline applicative corrective `rc.5` | `c63439e8ac8d68efd5ba091211b326ee8575fbba` | `29930722308` succès | `29931146789` succès                                 | Preuve canonique des correctifs NVDA, de leurs tests et de leur déploiement                                                |
 | Baseline applicative corrective `rc.4` | `ea703aef912ce9e7c49c4c9b7872a5a7b595b666` | `29907294766` succès | `29907642144` succès                                 | Preuve canonique des dépendances, du reflow, du focus, des onglets et de leur déploiement                                  |

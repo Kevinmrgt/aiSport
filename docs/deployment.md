@@ -1,14 +1,14 @@
 # Guide de deploiement - Alcide
 
-> Version applicative déployée: 0.13.0-rc.6
-> Baseline applicative déployée: b5f941311fb034831f2c6a310c61585ad7b3f092
+> Version applicative déployée: 0.13.0-rc.7
+> Baseline applicative déployée: d42e7f2c8fc86f26c46f850d32eb748870c6140d
 > Date de verification documentaire initiale: 2026-05-07
 > Derniere verification Bloc 2 et contre-recette de production: 2026-07-23
 
-La version `0.13.0-rc.6` conserve les correctifs de restitution NVDA et ajoute
-l'accès jury temporaire sécurisé. Elle a passé la CI `29990178784`, la CD
-`29990426551`, les smoke tests et la recette navigateur de production du
-23 juillet 2026.
+La version `0.13.0-rc.7` conserve les correctifs de restitution NVDA et l'accès
+jury temporaire sécurisé, puis lui ajoute un quota global de 30 générations
+réussies. Elle a passé la CI `29994929981`, la CD `29995297354`, les smoke tests
+et la recette navigateur de production du 23 juillet 2026.
 
 ## Production canonique
 
@@ -102,13 +102,33 @@ DATABASE_URL
 ```
 
 Le token doit autoriser `vercel pull/build/deploy` sur les deux projets. Le run
-CD canonique `29931146789`, déclenché automatiquement après la CI `29930722308`,
-a réussi sur le SHA `c63439e8ac8d68efd5ba091211b326ee8575fbba` : migration,
+CD canonique `29995297354`, déclenché automatiquement après la CI `29994929981`,
+a réussi sur le SHA `d42e7f2c8fc86f26c46f850d32eb748870c6140d` : migration,
 API, Web et smoke tests de production. Les productions automatiques de
 l'intégration Git sont annulées par `ignoreCommand`, puis une seule production
 GitHub Actions aboutit par projet. Les runs `29747228594` et `29747592571`
 restent des preuves historiques du même protocole avant la correction finale de
 reflow.
+
+## Quota de génération du jury
+
+Le quota s'applique uniquement à la session Auth.js identifiée comme accès jury.
+Les comptes Google restent illimités. Il autorise 30 générations réussies au
+total, avec un compteur unique partagé par `/generate` et
+`/programs/generate`. Le compteur est stocké dans PostgreSQL et ne dépend donc
+pas de l'instance Vercel qui traite la requête.
+
+La réservation d'une unité est atomique et précède l'appel à l'IA. La 31e
+demande reçoit un refus HTTP 429, y compris en cas de concurrence. La
+suppression ultérieure d'une séance ou d'un programme ne rembourse pas une
+génération réussie. Un échec de l'appel IA ou de l'enregistrement en base libère
+en revanche la réservation afin de ne pas pénaliser le jury pour une erreur
+technique. Le test d'intégration PostgreSQL dédié lance 31 réservations
+concurrentes et vérifie 30 acceptations pour un refus.
+
+La contre-recette navigateur de production a effectué une génération de
+validation et vérifié l'affichage de 29 générations restantes sur l'interface
+jury.
 
 ## Deploiement manuel Vercel
 
@@ -173,8 +193,11 @@ Checklist:
 - [x] Web healthcheck HTTP 200 après déploiement
 - [x] Génération d'une séance testée avec un compte authentifié, puis donnée de recette supprimée (B2-A25)
 - [x] Génération d'un programme testée avec un compte authentifié, puis donnée de recette supprimée (B2-A25)
-- [x] run CI automatique vert sur la baseline applicative livrée (`29930722308`)
-- [x] run CD automatique vert sur la baseline applicative livrée (`29931146789`)
+- [x] Quota jury persistant affiché à 29/30 après une génération de validation
+- [x] 31 réservations concurrentes testées sur PostgreSQL : 30 acceptées, 1 refusée
+- [x] 267 tests unitaires/composants verts (shared 14, API 179, Web 74), intégration PostgreSQL dédiée et E2E verts
+- [x] run CI automatique vert sur la baseline applicative livrée (`29994929981`)
+- [x] run CD automatique vert sur la baseline applicative livrée (`29995297354`)
 - [x] zoom natif 200/400 % contre-recetté en production, 16/16, puis suite
       d'accessibilité rejouée, 33/33
 

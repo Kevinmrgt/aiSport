@@ -5,13 +5,15 @@ doivent encore être confirmées avec le campus.
 
 ## Contrôles techniques
 
-- [x] version de production `0.13.0-rc.6` disponible ;
-- [x] commit `b5f941311fb034831f2c6a310c61585ad7b3f092` validé par la CI
-      `29990178784` et la CD `29990426551` ;
+- [x] version de production `0.13.0-rc.7` disponible ;
+- [x] commit `d42e7f2c8fc86f26c46f850d32eb748870c6140d` validé par la CI
+      `29994929981` et la CD `29995297354` ;
 - [x] API liveness/readiness et Web en HTTP 200 ;
 - [x] audit de dépendances au seuil `low` sans vulnérabilité connue ;
-- [x] lint, contrôle de types, 256 tests et builds réussis ;
+- [x] lint, contrôle de types, 267 tests, intégration PostgreSQL concurrente et builds réussis ;
 - [x] accès jury temporaire contre-recetté dans le navigateur de production ;
+- [x] quota jury de 30 succès partagé entre séances/programmes : 29/30 après
+      une validation, compteur identique sur les deux pages et zéro erreur console ;
 - [x] images Docker construites dans la CI ;
 - [x] dossier principal inférieur à 30 pages hors annexes ;
 - [x] sommaires, signets, liens, métadonnées et langue des PDF contrôlés ;

@@ -12,6 +12,7 @@ from bloc2_delivery_config import (
     ANONYMIZED_MODE,
     APPLICATION_URL,
     DELIVERY_DATE,
+    JURY_GENERATION_QUOTA_NOTICE,
     PUBLIC_REPOSITORY_URL,
     JuryPdfAccess,
     VERSION,
@@ -247,6 +248,7 @@ def jury_access_story(jury_access: JuryPdfAccess):
             f"<font name='Courier'>{html.escape(jury_access.password)}</font>",
             STYLES["Cellx"],
         )],
+        ["Quota", Paragraph(JURY_GENERATION_QUOTA_NOTICE, STYLES["Cellx"])],
     ]
     if jury_access.expires_at:
         rows.append(["Expiration", html.escape(jury_access.expires_at)])
@@ -279,7 +281,8 @@ def jury_access_story(jury_access: JuryPdfAccess):
         Paragraph(
             "Mode d’emploi : ouvrir l’URL ; dans « Accès jury », saisir les deux valeurs ; "
             "valider « Ouvrir l’espace de démonstration » ; vérifier l’arrivée sur /generate ; "
-            "parcourir l’application puis utiliser « Se déconnecter ».",
+            f"{JURY_GENERATION_QUOTA_NOTICE} Parcourir l’application puis utiliser "
+            "« Se déconnecter ».",
             STYLES["Bodyx"],
         ),
     ]

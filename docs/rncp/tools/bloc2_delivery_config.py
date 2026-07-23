@@ -34,9 +34,14 @@ def _package_version() -> str:
 
 
 VERSION = _package_version()
-APPLICATION_SHA = "b5f941311fb034831f2c6a310c61585ad7b3f092"
-FINAL_CI_RUN = "29990178784"
-FINAL_CD_RUN = "29990426551"
+APPLICATION_SHA = "d42e7f2c8fc86f26c46f850d32eb748870c6140d"
+FINAL_CI_RUN = "29994929981"
+FINAL_CD_RUN = "29995297354"
+JURY_GENERATION_LIMIT = 30
+JURY_GENERATION_QUOTA_NOTICE = (
+    f"{JURY_GENERATION_LIMIT} générations réussies maximum, partagées entre les "
+    "séances et les programmes ; compteur visible ; la 31e demande est bloquée."
+)
 
 
 @dataclass(frozen=True)

@@ -1,7 +1,7 @@
 # Manuel utilisateur - Alcide
 
 > Livrable Bloc 2 RNCP39583 - Documentation d'exploitation utilisateur.
-> Version observée en production : `0.13.0-rc.6` - baseline `b5f941311fb034831f2c6a310c61585ad7b3f092`.
+> Version observée en production : `0.13.0-rc.7` - baseline `d42e7f2c8fc86f26c46f850d32eb748870c6140d`.
 
 ## 1. Présentation
 
@@ -34,6 +34,18 @@ session invalident les sessions déjà ouvertes. Avant toute réactivation, la
 version de session doit être renouvelée pour empêcher la réutilisation d'un
 ancien cookie.
 
+Le compte jury dispose de **30 générations réussies au maximum**, partagées
+entre les séances et les programmes. Les pages `/generate` et
+`/programs/generate` affichent le même nombre de générations restantes. Ce
+compteur est conservé entre les connexions et les appareils :
+
+- une séance ou un programme généré avec succès consomme une unité ;
+- une erreur IA ou d'enregistrement ne consomme pas définitivement l'unité ;
+- supprimer ensuite une séance ou un programme ne restitue pas l'unité ;
+- à zéro, les formulaires indiquent `Quota jury atteint` et toute nouvelle
+  demande est refusée ;
+- cette limite ne concerne pas les comptes connectés avec Google.
+
 ### Accès utilisateur avec Google
 
 1. Depuis la page d'accueil, cliquer sur le bouton de connexion.
@@ -58,7 +70,9 @@ Résultat attendu :
 - une demande valide crée une séance ;
 - l'utilisateur est redirigé vers le détail de la séance.
 
-En cas d'erreur IA ou serveur, un message d'erreur est affiché à l'utilisateur et la génération peut être relancée.
+En cas d'erreur IA ou serveur, un message d'erreur est affiché à l'utilisateur
+et la génération peut être relancée. Pour le compte jury, l'échec n'est pas
+décompté définitivement du quota.
 
 ## 4. Générer un programme
 
@@ -168,7 +182,8 @@ RGAA exhaustive ni d'appréciation auditive détaillée.
 | Redirection vers login       | Session absente ou expirée                               | Se reconnecter                                                                                             |
 | Section Accès jury absente   | Accès temporaire désactivé, expiré ou mal configuré      | Utiliser Google ou contacter le responsable de la démonstration                                            |
 | Connexion jury impossible    | Identifiants invalides, accès expiré ou désactivé        | Vérifier le PDF confidentiel puis contacter le responsable de la démonstration, sans multiplier les essais |
-| Génération impossible        | IA indisponible, clé absente ou quota atteint            | Réessayer plus tard ou vérifier les paramètres                                                             |
+| Génération impossible        | IA indisponible, clé absente ou erreur serveur            | Réessayer plus tard ou contacter le responsable de la démonstration                                        |
+| Quota jury atteint           | 30 séances/programmes déjà générés avec succès             | Consulter les données déjà créées ; le quota ne se réinitialise pas en supprimant un résultat               |
 | Aucun résultat dans la liste | Aucun entraînement créé ou filtre trop restrictif        | Réinitialiser les filtres ou générer une séance                                                            |
 | Dashboard vide               | Aucune séance créée ou terminée                          | Générer puis exécuter une séance                                                                           |
 | Accès refusé à une séance    | Séance inexistante ou appartenant à un autre utilisateur | Revenir à la liste personnelle                                                                             |
@@ -176,10 +191,11 @@ RGAA exhaustive ni d'appréciation auditive détaillée.
 ## 13. Parcours de démonstration recommandé
 
 1. Se connecter.
-2. Générer une séance courte.
-3. Ouvrir le détail.
-4. Démarrer le timer.
-5. Revenir à la liste.
-6. Filtrer les séances.
-7. Ouvrir le dashboard.
-8. Montrer la déconnexion.
+2. Vérifier le compteur jury identique sur les deux pages de génération.
+3. Générer une séance courte.
+4. Ouvrir le détail.
+5. Démarrer le timer.
+6. Revenir à la liste.
+7. Filtrer les séances.
+8. Ouvrir le dashboard.
+9. Montrer la déconnexion.
