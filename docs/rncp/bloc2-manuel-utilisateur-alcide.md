@@ -29,8 +29,10 @@ URL de production : [https://ai-sport-web.vercel.app](https://ai-sport-web.verce
 Cet accès crée une véritable session Auth.js associée à un utilisateur de
 démonstration isolé. Il ne contourne ni la protection des routes, ni les
 contrôles d'ownership de l'API. Il est temporaire : son expiration, sa
-désactivation ou la rotation de son secret révoquent également les sessions
-déjà ouvertes.
+désactivation, la rotation de son secret ou le renouvellement de sa version de
+session invalident les sessions déjà ouvertes. Avant toute réactivation, la
+version de session doit être renouvelée pour empêcher la réutilisation d'un
+ancien cookie.
 
 ### Accès utilisateur avec Google
 

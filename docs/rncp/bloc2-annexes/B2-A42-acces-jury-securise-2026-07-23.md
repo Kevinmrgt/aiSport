@@ -18,7 +18,10 @@ d'autorisation et d'isolation des données.
   générique ;
 - expiration absolue, kill switch et empreinte de configuration revalidés par
   le callback JWT à chaque lecture de session ;
-- rotation du secret révoquant les sessions déjà ouvertes ;
+- rotation du hash ou de la version de session invalidant les sessions déjà
+  ouvertes ; la version doit aussi être renouvelée avant une réactivation ;
+- règle Vercel Firewall active sur le callback jury : 10 tentatives par minute
+  et par IP, puis refus ;
 - parcours Google historique inchangé ;
 - édition PDF confidentielle générée hors des chemins suivis par Git.
 
@@ -54,7 +57,8 @@ utilisateur.
 ## Limites et exploitation
 
 L'accès est temporaire et doit être désactivé après l'évaluation. Le PDF privé
-ne doit pas être publié. Une règle de limitation de débit doit protéger le
-callback `/api/auth/callback/jury`. Les données créées pendant l'évaluation sont
-isolées par le compte jury mais restent de vraies données de démonstration ; il
-faut éviter d'y saisir des informations personnelles ou médicales.
+ne doit pas être publié. La règle de limitation Vercel protège le callback
+`/api/auth/callback/jury`, sans remplacer la rotation du secret et de la version
+de session. Les données créées pendant l'évaluation sont isolées par le compte
+jury mais restent de vraies données de démonstration ; il faut éviter d'y
+saisir des informations personnelles ou médicales.

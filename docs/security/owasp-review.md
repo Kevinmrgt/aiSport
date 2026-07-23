@@ -158,10 +158,13 @@ continue à résoudre son propre UUID PostgreSQL et à appliquer l'ownership.
 L'accès est absent de l'interface si sa configuration est incomplète, désactivée
 ou expirée. Le callback JWT revalide à chaque lecture le kill switch, la date
 absolue et une empreinte de configuration : expiration, désactivation et
-rotation révoquent donc aussi les sessions existantes. Les échecs affichent un
-message générique. Le callback `/api/auth/callback/jury` est destiné à être
-protégé par une règle de limitation Vercel dédiée afin de réduire le risque de
-brute force et de consommation CPU de `scrypt`.
+rotation du hash ou de la version de session invalident donc aussi les sessions
+existantes. La version de session doit être renouvelée avant chaque
+réactivation afin qu'un ancien cookie ne redevienne pas valide. Les échecs
+affichent un message générique. Le callback `/api/auth/callback/jury` est
+protégé dans Vercel Firewall par une fenêtre fixe de 10 tentatives par minute et
+par IP, ce qui réduit le risque de brute force et de consommation CPU de
+`scrypt`.
 
 ## A08 — Software and Data Integrity Failures — contrôlé
 
