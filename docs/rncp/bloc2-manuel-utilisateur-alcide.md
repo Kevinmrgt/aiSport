@@ -136,16 +136,16 @@ avant de les renseigner.
 
 Si aucune séance n'existe, le dashboard propose de commencer par une première génération.
 
-## 9. Paramétrer l'IA
+## 9. Consulter l'espace Coach
 
-La page de paramètres permet uniquement de choisir un modèle OpenAI parmi les
-modèles proposés. OpenAI est le fournisseur de l'application et la clé API est
-gérée par l'exploitant côté serveur. L'utilisateur ne peut ni saisir une clé,
-ni choisir un autre fournisseur.
+La page `Coach` présente le fonctionnement de l'accompagnement Alcide. Les
+séances et programmes s'adaptent automatiquement au niveau, à l'objectif, à la
+durée et aux contraintes renseignés dans les formulaires de génération.
 
-Si la lecture ou l'enregistrement des paramètres échoue, l'interface affiche
-une erreur ; elle ne doit pas présenter une valeur de secours comme si elle
-avait été enregistrée.
+Les choix techniques du moteur de génération sont administrés côté serveur.
+Ils ne sont ni modifiables ni affichés à l'utilisateur : aucun fournisseur,
+nom de modèle, prix estimé ou volume technique de sortie n'apparaît dans
+l'interface.
 
 ## 10. Supprimer une séance
 

@@ -3,7 +3,6 @@ import { auth } from '@/lib/auth';
 import { WorkoutForm } from '@/components/WorkoutForm';
 import { GlassPanel, MetricPill, ProgressRing } from '@/components/PremiumPrimitives';
 import { serverApi } from '@/lib/server-api';
-import { estimateWorkoutGenerationCost } from '@/lib/ai-pricing';
 import type { GenerateWorkoutInput } from '@alcide/shared';
 
 export default async function GeneratePage() {
@@ -13,11 +12,7 @@ export default async function GeneratePage() {
     redirect('/login');
   }
 
-  const [aiSettings, generationQuota] = await Promise.all([
-    serverApi.getAiSettings(),
-    serverApi.getGenerationQuota(),
-  ]);
-  const costEstimate = estimateWorkoutGenerationCost(aiSettings.model);
+  const generationQuota = await serverApi.getGenerationQuota();
 
   async function handleGenerate(data: GenerateWorkoutInput): Promise<{ error?: string } | void> {
     'use server';
@@ -70,11 +65,7 @@ export default async function GeneratePage() {
         </div>
       </header>
 
-      <WorkoutForm
-        onSubmit={handleGenerate}
-        costEstimate={costEstimate}
-        generationQuota={generationQuota}
-      />
+      <WorkoutForm onSubmit={handleGenerate} generationQuota={generationQuota} />
     </div>
   );
 }

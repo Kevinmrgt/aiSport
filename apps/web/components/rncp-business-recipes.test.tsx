@@ -18,17 +18,11 @@ import { serverApi } from '@/lib/server-api';
 import DashboardPage from '@/app/dashboard/page';
 import ProgramsPage from '@/app/programs/page';
 import PrivacyPage from '@/app/confidentialite/page';
+import SettingsPage from '@/app/settings/page';
 import { DeleteConfirmationButton } from './DeleteConfirmationButton';
 import { SessionCompletionForm } from './SessionCompletionForm';
-import { SettingsForm } from './SettingsForm';
 import { WorkoutForm } from './WorkoutForm';
 
-const costEstimate = {
-  modelLabel: 'GPT-5.4 mini',
-  inputTokens: 1_200,
-  outputTokens: 1_800,
-  totalUsdLabel: '$0.009',
-};
 const unlimitedQuota = { limited: false, limit: null, used: 0, remaining: null } as const;
 
 describe('recettes UI metier RNCP Bloc 2', () => {
@@ -45,13 +39,7 @@ describe('recettes UI metier RNCP Bloc 2', () => {
     const onSubmit = vi.fn().mockResolvedValue({
       error: 'OpenAI est temporairement indisponible. Reessayez plus tard.',
     });
-    render(
-      <WorkoutForm
-        onSubmit={onSubmit}
-        costEstimate={costEstimate}
-        generationQuota={unlimitedQuota}
-      />,
-    );
+    render(<WorkoutForm onSubmit={onSubmit} generationQuota={unlimitedQuota} />);
 
     fireEvent.change(screen.getByLabelText(/^sport/i), { target: { value: 'course' } });
     fireEvent.change(screen.getByLabelText(/objectifs/i), {
@@ -182,20 +170,20 @@ describe('recettes UI metier RNCP Bloc 2', () => {
     expect(screen.getByText(/ne remplace ni un diagnostic/i)).toBeTruthy();
   });
 
-  it('CR-037 change le modele autorise et confirme sa sauvegarde', async () => {
-    const onSave = vi.fn().mockResolvedValue(undefined);
-    render(
-      <SettingsForm
-        initial={{ provider: 'openai', hasApiKey: false, model: 'gpt-5.4-mini' }}
-        onSave={onSave}
-      />,
-    );
+  it('CR-037 garde les choix techniques hors de l interface utilisateur', async () => {
+    render(await SettingsPage());
 
-    fireEvent.change(screen.getByLabelText('Modele OpenAI'), { target: { value: 'gpt-5.5' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(screen.getByRole('heading', { name: 'Mon coach Alcide' })).toBeTruthy();
+    expect(screen.getByText(/adapte automatiquement chaque proposition/i)).toBeTruthy();
 
-    await waitFor(() => expect(onSave).toHaveBeenCalledWith({ model: 'gpt-5.5' }));
-    expect((await screen.findByRole('status')).textContent).toContain('Parametres sauvegardes.');
+    const pageText = document.body.textContent
+      ?.normalize('NFKD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLocaleLowerCase('fr-FR');
+
+    for (const technicalTerm of ['openai', 'gpt-', 'modele', 'provider', 'prix', 'cout estime']) {
+      expect(pageText).not.toContain(technicalTerm);
+    }
   });
 
   it('CR-040 affiche un etat vide comprehensible sans journal ni seance', async () => {

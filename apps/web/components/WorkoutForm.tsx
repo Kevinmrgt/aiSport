@@ -7,7 +7,7 @@ import { Button } from './ui/Button';
 import { Icon } from './ui/Icon';
 import { AlcideMascotPrompt } from './AlcideMascotPrompt';
 import { GenerationQuotaNotice } from './GenerationQuotaNotice';
-import { GlassPanel, MetricPill } from './PremiumPrimitives';
+import { GlassPanel } from './PremiumPrimitives';
 import { GenerateWorkoutInputSchema } from '@alcide/shared';
 import type { GenerateWorkoutInput } from '@alcide/shared';
 import type { GenerationQuota } from '@alcide/shared';
@@ -15,12 +15,6 @@ import { isNextRedirectError } from '@/lib/next-navigation';
 
 interface WorkoutFormProps {
   onSubmit: (data: GenerateWorkoutInput) => Promise<{ error?: string } | void>;
-  costEstimate: {
-    modelLabel: string;
-    inputTokens: number;
-    outputTokens: number;
-    totalUsdLabel: string;
-  };
   generationQuota: GenerationQuota;
 }
 
@@ -30,7 +24,7 @@ const LEVEL_OPTIONS = [
   { value: 'advanced', label: 'Avance' },
 ];
 
-export function WorkoutForm({ onSubmit, costEstimate, generationQuota }: WorkoutFormProps) {
+export function WorkoutForm({ onSubmit, generationQuota }: WorkoutFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof GenerateWorkoutInput, string>>>({});
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -104,12 +98,6 @@ export function WorkoutForm({ onSubmit, costEstimate, generationQuota }: Workout
         <span className="icon-bubble bg-primary-300 text-zinc-950">
           <Icon name="zap" className="h-4 w-4" />
         </span>
-      </div>
-
-      <div className="grid gap-2 sm:grid-cols-3">
-        <MetricPill icon="target" label="Modele" value={costEstimate.modelLabel} tone="lime" />
-        <MetricPill icon="timer" label="Estime" value={costEstimate.totalUsdLabel} />
-        <MetricPill icon="spark" label="Sortie" value="Prete" tone="orange" />
       </div>
 
       <AlcideMascotPrompt
