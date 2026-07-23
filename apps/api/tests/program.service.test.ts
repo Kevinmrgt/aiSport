@@ -18,6 +18,12 @@ vi.mock('../src/controllers/settings.controller.js', () => ({
   resolveAiConfig: vi.fn().mockResolvedValue({ provider: 'openai', apiKey: 'test-key' }),
 }));
 
+vi.mock('../src/services/generation-quota.service.js', () => ({
+  runWithGenerationQuota: vi.fn(
+    async (_userId: string, _accessMode: string, operation: () => Promise<unknown>) => operation(),
+  ),
+}));
+
 // Mock du repository (dépend de la BDD — testé en intégration)
 vi.mock('../src/repositories/program.repository.js', () => ({
   createProgram: vi.fn(),
@@ -33,6 +39,7 @@ import {
   findProgramById,
   deleteProgram,
 } from '../src/repositories/program.repository.js';
+import { runWithGenerationQuota } from '../src/services/generation-quota.service.js';
 
 const mockProgramData = {
   title: 'Programme Course — 2 semaines (Débutant)',
@@ -53,7 +60,9 @@ const mockProgramData = {
           title: 'Séance 1',
           focus: 'Endurance',
           duration_minutes: 30,
-          exercises: [{ name: 'Footing', description: 'Courir', rest_seconds: 60, duration_seconds: 600 }],
+          exercises: [
+            { name: 'Footing', description: 'Courir', rest_seconds: 60, duration_seconds: 600 },
+          ],
         },
       ],
     },
@@ -67,7 +76,14 @@ const mockProgramData = {
           title: 'Séance 3',
           focus: 'Endurance+',
           duration_minutes: 30,
-          exercises: [{ name: 'Jogging', description: 'Rythme moyen', rest_seconds: 60, duration_seconds: 900 }],
+          exercises: [
+            {
+              name: 'Jogging',
+              description: 'Rythme moyen',
+              rest_seconds: 60,
+              duration_seconds: 900,
+            },
+          ],
         },
       ],
     },
@@ -109,14 +125,17 @@ describe('ProgramService', () => {
 
       const result = await generateAndSaveProgram('user-123', mockInput);
 
-      expect(generateWithAi).toHaveBeenCalledWith(mockInput, expect.objectContaining({ provider: 'openai' }));
+      expect(generateWithAi).toHaveBeenCalledWith(
+        mockInput,
+        expect.objectContaining({ provider: 'openai' }),
+      );
       expect(createProgram).toHaveBeenCalledWith('user-123', mockProgramData);
       expect(result.id).toBe('program-abc');
     });
 
     it('propage les erreurs du service IA sans appeler le repository', async () => {
       vi.mocked(generateWithAi).mockRejectedValue(
-        AppError.serviceUnavailable("Impossible de générer le programme"),
+        AppError.serviceUnavailable('Impossible de générer le programme'),
       );
 
       await expect(generateAndSaveProgram('user-123', mockInput)).rejects.toMatchObject({
@@ -124,22 +143,36 @@ describe('ProgramService', () => {
       });
       expect(createProgram).not.toHaveBeenCalled();
     });
+
+    it('applique le quota partage au compte jury', async () => {
+      vi.mocked(generateWithAi).mockResolvedValue(mockProgramData);
+      vi.mocked(createProgram).mockResolvedValue(mockProgramRecord);
+
+      await generateAndSaveProgram('user-123', mockInput, 'jury');
+
+      expect(runWithGenerationQuota).toHaveBeenCalledWith('user-123', 'jury', expect.any(Function));
+    });
   });
 
   describe('getUserPrograms', () => {
-    it('retourne la liste paginée des programmes de l\'utilisateur', async () => {
+    it("retourne la liste paginée des programmes de l'utilisateur", async () => {
       const mockResponse = {
-        programs: [{
-          id: 'p1',
-          title: 'Programme Test',
-          sport: 'yoga',
-          difficulty: 'beginner' as const,
-          weeksCount: 3,
-          sessionsPerWeek: 3,
-          sessionDurationMinutes: 45,
-          createdAt: '2026-01-01T00:00:00.000Z',
-        }],
-        total: 1, page: 1, limit: 9, hasMore: false,
+        programs: [
+          {
+            id: 'p1',
+            title: 'Programme Test',
+            sport: 'yoga',
+            difficulty: 'beginner' as const,
+            weeksCount: 3,
+            sessionsPerWeek: 3,
+            sessionDurationMinutes: 45,
+            createdAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+        total: 1,
+        page: 1,
+        limit: 9,
+        hasMore: false,
       };
       vi.mocked(findProgramsByUser).mockResolvedValue(mockResponse);
 
@@ -152,7 +185,7 @@ describe('ProgramService', () => {
   });
 
   describe('getProgramDetail', () => {
-    it('retourne le programme si l\'ownership est valide', async () => {
+    it("retourne le programme si l'ownership est valide", async () => {
       vi.mocked(findProgramById).mockResolvedValue(mockProgramRecord);
 
       const result = await getProgramDetail('program-abc', 'user-123');
@@ -162,7 +195,7 @@ describe('ProgramService', () => {
       expect(getProgramSessionTimedSeconds(result.data.weeks[0]!.sessions[0]!)).toBe(30 * 60);
     });
 
-    it('propage l\'erreur 403 si ownership invalide', async () => {
+    it("propage l'erreur 403 si ownership invalide", async () => {
       vi.mocked(findProgramById).mockRejectedValue(AppError.forbidden('Accès refusé'));
 
       await expect(getProgramDetail('program-abc', 'autre-user')).rejects.toMatchObject({
@@ -170,7 +203,7 @@ describe('ProgramService', () => {
       });
     });
 
-    it('propage l\'erreur 404 si programme introuvable', async () => {
+    it("propage l'erreur 404 si programme introuvable", async () => {
       vi.mocked(findProgramById).mockRejectedValue(AppError.notFound('Programme'));
 
       await expect(getProgramDetail('inexistant', 'user-123')).rejects.toMatchObject({
@@ -180,7 +213,7 @@ describe('ProgramService', () => {
   });
 
   describe('removeProgram', () => {
-    it('supprime le programme si l\'ownership est valide', async () => {
+    it("supprime le programme si l'ownership est valide", async () => {
       vi.mocked(deleteProgram).mockResolvedValue(undefined);
 
       await removeProgram('program-abc', 'user-123');
@@ -188,7 +221,7 @@ describe('ProgramService', () => {
       expect(deleteProgram).toHaveBeenCalledWith('program-abc', 'user-123');
     });
 
-    it('propage l\'erreur 403 si ownership invalide', async () => {
+    it("propage l'erreur 403 si ownership invalide", async () => {
       vi.mocked(deleteProgram).mockRejectedValue(AppError.forbidden('Accès refusé'));
 
       await expect(removeProgram('program-abc', 'autre-user')).rejects.toMatchObject({

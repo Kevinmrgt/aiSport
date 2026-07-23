@@ -8,8 +8,10 @@ const testDatabaseUrl = process.env['TEST_DATABASE_URL'];
 const describeWithDatabase = testDatabaseUrl ? describe : describe.skip;
 const ownerId = randomUUID();
 const otherUserId = randomUUID();
+const quotaOwnerId = randomUUID();
 const ownerEmail = `integration-${ownerId}@alcide.test`;
 const otherEmail = `integration-${otherUserId}@alcide.test`;
+const quotaOwnerEmail = `integration-quota-${quotaOwnerId}@alcide.test`;
 
 function workoutFixture(overrides: Partial<Workout> = {}): Workout {
   return {
@@ -66,6 +68,7 @@ describeWithDatabase('repositories PostgreSQL', () => {
     await db.insert(users).values([
       { id: ownerId, email: ownerEmail, name: 'Integration owner' },
       { id: otherUserId, email: otherEmail, name: 'Integration other' },
+      { id: quotaOwnerId, email: quotaOwnerEmail, name: 'Integration quota owner' },
     ]);
   });
 
@@ -73,7 +76,31 @@ describeWithDatabase('repositories PostgreSQL', () => {
     const { db, pool } = await import('../src/db/index.js');
     await db.delete(users).where(eq(users.id, ownerId));
     await db.delete(users).where(eq(users.id, otherUserId));
+    await db.delete(users).where(eq(users.id, quotaOwnerId));
     await pool.end();
+  });
+
+  it('reserve au plus 30 generations meme avec 31 requetes concurrentes', async () => {
+    const {
+      getGenerationQuotaUsage,
+      releaseGenerationSlot,
+      reserveGenerationSlot,
+    } = await import('../src/repositories/generation-quota.repository.js');
+
+    const reservations = await Promise.all(
+      Array.from({ length: 31 }, () => reserveGenerationSlot(quotaOwnerId, 30)),
+    );
+
+    expect(reservations.filter((reservation) => reservation !== null)).toHaveLength(30);
+    expect(reservations.filter((reservation) => reservation === null)).toHaveLength(1);
+    await expect(getGenerationQuotaUsage(quotaOwnerId, 30)).resolves.toBe(30);
+
+    await releaseGenerationSlot(quotaOwnerId);
+    await expect(getGenerationQuotaUsage(quotaOwnerId, 30)).resolves.toBe(29);
+    await expect(reserveGenerationSlot(quotaOwnerId, 30)).resolves.toMatchObject({
+      used: 30,
+      remaining: 0,
+    });
   });
 
   it('persiste, relit et protege une seance par son proprietaire', async () => {

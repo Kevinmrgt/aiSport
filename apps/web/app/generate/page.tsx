@@ -13,7 +13,10 @@ export default async function GeneratePage() {
     redirect('/login');
   }
 
-  const aiSettings = await serverApi.getAiSettings();
+  const [aiSettings, generationQuota] = await Promise.all([
+    serverApi.getAiSettings(),
+    serverApi.getGenerationQuota(),
+  ]);
   const costEstimate = estimateWorkoutGenerationCost(aiSettings.model);
 
   async function handleGenerate(data: GenerateWorkoutInput): Promise<{ error?: string } | void> {
@@ -67,7 +70,11 @@ export default async function GeneratePage() {
         </div>
       </header>
 
-      <WorkoutForm onSubmit={handleGenerate} costEstimate={costEstimate} />
+      <WorkoutForm
+        onSubmit={handleGenerate}
+        costEstimate={costEstimate}
+        generationQuota={generationQuota}
+      />
     </div>
   );
 }

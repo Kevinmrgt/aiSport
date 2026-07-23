@@ -6,9 +6,11 @@ import { Select } from './ui/Select';
 import { Button } from './ui/Button';
 import { Icon } from './ui/Icon';
 import { AlcideMascotPrompt } from './AlcideMascotPrompt';
+import { GenerationQuotaNotice } from './GenerationQuotaNotice';
 import { GlassPanel, MetricPill } from './PremiumPrimitives';
 import { GenerateWorkoutInputSchema } from '@alcide/shared';
 import type { GenerateWorkoutInput } from '@alcide/shared';
+import type { GenerationQuota } from '@alcide/shared';
 import { isNextRedirectError } from '@/lib/next-navigation';
 
 interface WorkoutFormProps {
@@ -19,6 +21,7 @@ interface WorkoutFormProps {
     outputTokens: number;
     totalUsdLabel: string;
   };
+  generationQuota: GenerationQuota;
 }
 
 const LEVEL_OPTIONS = [
@@ -27,7 +30,7 @@ const LEVEL_OPTIONS = [
   { value: 'advanced', label: 'Avance' },
 ];
 
-export function WorkoutForm({ onSubmit, costEstimate }: WorkoutFormProps) {
+export function WorkoutForm({ onSubmit, costEstimate, generationQuota }: WorkoutFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof GenerateWorkoutInput, string>>>({});
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -39,6 +42,7 @@ export function WorkoutForm({ onSubmit, costEstimate }: WorkoutFormProps) {
     goals: '',
     constraints: '',
   });
+  const quotaExhausted = generationQuota.limited && generationQuota.remaining === 0;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -113,6 +117,8 @@ export function WorkoutForm({ onSubmit, costEstimate }: WorkoutFormProps) {
         description="Donne-moi le sport, la duree et ton objectif. Je transforme le brief en training clair."
         icon="zap"
       />
+
+      <GenerationQuotaNotice quota={generationQuota} />
 
       {globalError && (
         <div
@@ -211,8 +217,18 @@ export function WorkoutForm({ onSubmit, costEstimate }: WorkoutFormProps) {
         />
       </div>
 
-      <Button type="submit" isLoading={isLoading} size="lg" className="mt-2 w-full">
-        {isLoading ? 'Preparation en cours...' : 'Generer la seance'}
+      <Button
+        type="submit"
+        isLoading={isLoading}
+        size="lg"
+        className="mt-2 w-full"
+        disabled={isLoading || quotaExhausted}
+      >
+        {quotaExhausted
+          ? 'Quota jury atteint'
+          : isLoading
+            ? 'Preparation en cours...'
+            : 'Generer la seance'}
       </Button>
     </form>
   );

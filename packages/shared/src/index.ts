@@ -60,3 +60,6 @@ export type {
   SessionFeedback,
   SessionSourceType,
 } from './types/session-log.types.js';
+
+// Types TypeScript — quota de generations
+export type { GenerationQuota } from './types/generation-quota.types.js';

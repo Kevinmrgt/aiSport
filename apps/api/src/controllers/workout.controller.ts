@@ -42,13 +42,17 @@ export async function handleGenerateWorkout(ctx: Context): Promise<Response> {
     throw AppError.badRequest('Données invalides', parsed.error.flatten());
   }
 
-  const workout = await generateAndSaveWorkout(auth.userId, {
-    sport: parsed.data.sport,
-    level: parsed.data.level,
-    duration_minutes: parsed.data.duration_minutes,
-    goals: parsed.data.goals,
-    constraints: parsed.data.constraints,
-  });
+  const workout = await generateAndSaveWorkout(
+    auth.userId,
+    {
+      sport: parsed.data.sport,
+      level: parsed.data.level,
+      duration_minutes: parsed.data.duration_minutes,
+      goals: parsed.data.goals,
+      constraints: parsed.data.constraints,
+    },
+    auth.accessMode,
+  );
 
   return ctx.json(
     {

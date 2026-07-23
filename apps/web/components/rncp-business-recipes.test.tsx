@@ -29,6 +29,7 @@ const costEstimate = {
   outputTokens: 1_800,
   totalUsdLabel: '$0.009',
 };
+const unlimitedQuota = { limited: false, limit: null, used: 0, remaining: null } as const;
 
 describe('recettes UI metier RNCP Bloc 2', () => {
   beforeEach(() => {
@@ -44,7 +45,13 @@ describe('recettes UI metier RNCP Bloc 2', () => {
     const onSubmit = vi.fn().mockResolvedValue({
       error: 'OpenAI est temporairement indisponible. Reessayez plus tard.',
     });
-    render(<WorkoutForm onSubmit={onSubmit} costEstimate={costEstimate} />);
+    render(
+      <WorkoutForm
+        onSubmit={onSubmit}
+        costEstimate={costEstimate}
+        generationQuota={unlimitedQuota}
+      />,
+    );
 
     fireEvent.change(screen.getByLabelText(/^sport/i), { target: { value: 'course' } });
     fireEvent.change(screen.getByLabelText(/objectifs/i), {

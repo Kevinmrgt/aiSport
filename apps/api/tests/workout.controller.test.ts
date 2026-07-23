@@ -23,7 +23,7 @@ import {
   removeWorkout,
 } from '../src/services/workout.service.js';
 
-const mockAuth = { userId: 'user-123', email: 'test@example.com' };
+const mockAuth = { userId: 'user-123', email: 'test@example.com', accessMode: 'jury' as const };
 const workoutId = '22222222-2222-4222-8222-222222222222';
 const otherWorkoutId = '33333333-3333-4333-8333-333333333333';
 
@@ -67,26 +67,40 @@ describe('WorkoutController', () => {
       const app = createTestApp();
       app.post('/workouts/generate', handleGenerateWorkout);
 
-      const res = await app.fetch(new Request('http://localhost/workouts/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sport: 'course', level: 'beginner', duration_minutes: 30, goals: 'Améliorer endurance' }),
-      }));
+      const res = await app.fetch(
+        new Request('http://localhost/workouts/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sport: 'course',
+            level: 'beginner',
+            duration_minutes: 30,
+            goals: 'Améliorer endurance',
+          }),
+        }),
+      );
 
       expect(res.status).toBe(201);
       const body = (await res.json()) as { title: string };
       expect(body.title).toBe('Séance Test');
+      expect(generateAndSaveWorkout).toHaveBeenCalledWith(
+        'user-123',
+        expect.objectContaining({ sport: 'course' }),
+        'jury',
+      );
     });
 
     it('retourne 400 si les données sont invalides', async () => {
       const app = createTestApp();
       app.post('/workouts/generate', handleGenerateWorkout);
 
-      const res = await app.fetch(new Request('http://localhost/workouts/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sport: '' }),
-      }));
+      const res = await app.fetch(
+        new Request('http://localhost/workouts/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sport: '' }),
+        }),
+      );
 
       expect(res.status).toBe(400);
     });
@@ -95,22 +109,30 @@ describe('WorkoutController', () => {
       const app = createTestApp();
       app.post('/workouts/generate', handleGenerateWorkout);
 
-      const res = await app.fetch(new Request('http://localhost/workouts/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: 'pas du json{{{',
-      }));
+      const res = await app.fetch(
+        new Request('http://localhost/workouts/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: 'pas du json{{{',
+        }),
+      );
 
       expect(res.status).toBe(400);
     });
   });
 
   describe('handleGetWorkouts', () => {
-    it('retourne la liste des workouts de l\'utilisateur', async () => {
-      const mockList = [{
-        id: 'w1', title: 'Séance 1', sport: 'yoga',
-        difficulty: 'beginner' as const, durationMinutes: 45, createdAt: '2026-01-01T00:00:00.000Z',
-      }];
+    it("retourne la liste des workouts de l'utilisateur", async () => {
+      const mockList = [
+        {
+          id: 'w1',
+          title: 'Séance 1',
+          sport: 'yoga',
+          difficulty: 'beginner' as const,
+          durationMinutes: 45,
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+      ];
       vi.mocked(getUserWorkouts).mockResolvedValue(mockList);
 
       const app = createTestApp();
@@ -138,7 +160,7 @@ describe('WorkoutController', () => {
       expect(body.exercises).toHaveLength(1);
     });
 
-    it('propage l\'erreur 404 du service si workout introuvable', async () => {
+    it("propage l'erreur 404 du service si workout introuvable", async () => {
       const { AppError } = await import('../src/types/app-error.js');
       vi.mocked(getWorkoutDetail).mockRejectedValue(AppError.notFound('Workout introuvable'));
 
@@ -167,20 +189,24 @@ describe('WorkoutController', () => {
       const app = createTestApp();
       app.delete('/workouts/:id', handleDeleteWorkout);
 
-      const res = await app.fetch(new Request(`http://localhost/workouts/${workoutId}`, { method: 'DELETE' }));
+      const res = await app.fetch(
+        new Request(`http://localhost/workouts/${workoutId}`, { method: 'DELETE' }),
+      );
       expect(res.status).toBe(200);
       const body = (await res.json()) as { message: string };
       expect(body.message).toBe('Entraînement supprimé');
     });
 
-    it('propage l\'erreur 403 si ownership invalide', async () => {
+    it("propage l'erreur 403 si ownership invalide", async () => {
       const { AppError } = await import('../src/types/app-error.js');
       vi.mocked(removeWorkout).mockRejectedValue(AppError.forbidden('Accès refusé'));
 
       const app = createTestApp();
       app.delete('/workouts/:id', handleDeleteWorkout);
 
-      const res = await app.fetch(new Request(`http://localhost/workouts/${otherWorkoutId}`, { method: 'DELETE' }));
+      const res = await app.fetch(
+        new Request(`http://localhost/workouts/${otherWorkoutId}`, { method: 'DELETE' }),
+      );
       expect(res.status).toBe(403);
     });
 
