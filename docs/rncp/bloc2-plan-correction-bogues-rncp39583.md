@@ -21,17 +21,18 @@ Références de la version présentée :
 
 | Référence                                  | Rôle                                                          |
 | ------------------------------------------ | ------------------------------------------------------------- |
-| `d42e7f2c8fc86f26c46f850d32eb748870c6140d` | baseline applicative `rc.7` testée et déployée                |
+| `f817073de7ed7220fbbc38d396f1d181811012bd` | baseline applicative `rc.8` testée et déployée                |
+| `d42e7f2c8fc86f26c46f850d32eb748870c6140d` | baseline historique `rc.7`                                    |
 | `b5f941311fb034831f2c6a310c61585ad7b3f092` | baseline historique `rc.6`                                    |
 | `c63439e8ac8d68efd5ba091211b326ee8575fbba` | baseline applicative `rc.5` testée et déployée                |
 | `ea703aef912ce9e7c49c4c9b7872a5a7b595b666` | baseline historique `rc.4`                                    |
 | `rncp-bloc2-2026-07-21-v5`                 | snapshot documentaire antérieur avec CI/CD verte              |
 | `MANIFESTE.txt` du paquet                  | SHA effectivement archivé et empreintes SHA-256 des livrables |
 
-La baseline de production est `0.13.0-rc.7`. La CI `29994929981` et la CD
-`29995297354` établissent sa publication ; les healthchecks et la recette de
-l'accès jury sont consignés dans B2-A42. La contre-recette NVDA historique
-reste consignée dans B2-A41.
+La baseline de production est `0.13.0-rc.8`. La CI `29999207578` et la CD
+`29999526386` établissent sa publication ; les healthchecks et la recette de
+l'accès jury et de l'interface sont consignés dans B2-A43. La preuve initiale
+du quota reste dans B2-A42 et la contre-recette NVDA historique dans B2-A41.
 
 ## 2. Processus de correction
 
@@ -105,7 +106,7 @@ reste consignée dans B2-A41.
 | B2-BUG-044 | Parcours NVDA SR-09 2026-07-22             |       P2 | La suppression réussit, mais aucun message final explicite n'a été capturé après confirmation                                                         | La disparition de la carte sert de retour visuel sans message persistant dédié                                                 | Ajouter ou confirmer une région vive de succès, puis vérifier la restitution et le retour du focus                                          | test composant et rejeu NVDA de production                                                        | Ouvert non bloquant ; confirmation, focus initial, Échap et suppression effective sont validés, annonce finale à compléter, B2-A41.                                                                                                                    |
 | B2-BUG-045 | Parcours NVDA SR-10 2026-07-22             |       P2 | La déconnexion atteint bien `/`, mais le titre de destination n'a pas été capturé spontanément                                                        | Le changement de route ne produit pas nécessairement une annonce de page dans le navigateur observé                            | Contre-recetter le titre et le focus après navigation, puis ajouter une annonce de route si nécessaire                                      | rejeu NVDA de production                                                                          | Ouvert non bloquant ; action de déconnexion et lien « Se connecter » accessibles, annonce de destination à compléter, B2-A41.                                                                                                                          |
 | B2-BUG-046 | Revue accès jury 2026-07-23                |       P0 | Le compte jury pouvait déclencher un nombre illimité de générations IA payantes                                                                       | L'accès Credentials était sécurisé, mais aucune limite persistante n'était attachée à cette identité                            | Ajouter un quota API/PostgreSQL atomique de 30 succès, partagé séances/programmes, sans limiter Google                                      | tests unitaires/API, intégration PostgreSQL concurrente et recette navigateur production           | Clos sur `rc.7` : 31e demande refusée en HTTP 429 `GENERATION_QUOTA_EXCEEDED`, erreurs IA/DB remboursées, suppressions non remboursées ; compteur commun observé à 29/30 sur les deux pages, zéro erreur console, B2-A42.                                                                                             |
-| B2-BUG-047 | Revue expérience utilisateur 2026-07-23    |       P1 | Le formulaire de génération et la page Coach exposaient le modèle, le fournisseur, un prix estimé et des métriques de sortie sans utilité métier       | Des informations d'exploitation avaient été intégrées à l'interface utilisateur lors du prototypage                             | Retirer ces informations du front, conserver la configuration côté serveur et reformuler la page Coach en langage métier                    | tests composants/Web et E2E de non-exposition, build puis recette navigateur production            | Corrigé dans `rc.8` : informations techniques et tarifaires retirées de `/generate` et `/settings` ; validation CI et production à consigner.                                                                                                                                                                    |
+| B2-BUG-047 | Revue expérience utilisateur 2026-07-23    |       P1 | Le formulaire de génération et la page Coach exposaient le modèle, le fournisseur, un prix estimé et des métriques de sortie sans utilité métier       | Des informations d'exploitation avaient été intégrées à l'interface utilisateur lors du prototypage                             | Retirer ces informations du front, conserver la configuration côté serveur et reformuler la page Coach en langage métier                    | tests composants/Web et E2E de non-exposition, build puis recette navigateur production            | Clos sur `rc.8` : 261 tests, CI `29999207578`, CD `29999526386`, healthchecks HTTP 200 et recette navigateur sans terme technique/tarifaire ni erreur console ; B2-A43.                                                                                                                                             |
 
 ## 5. Fiches bugs réelles déjà disponibles
 

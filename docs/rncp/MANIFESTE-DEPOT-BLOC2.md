@@ -10,10 +10,10 @@
 | ---------------- | ---------------------------------------------------------- |
 | Dépôt            | `https://github.com/Kevinmrgt/aiSport`                     |
 | Branche publique | `main`                                                     |
-| Version          | `0.13.0-rc.7`                                              |
-| Commit déployé   | `d42e7f2c8fc86f26c46f850d32eb748870c6140d`                 |
-| CI               | `29994929981` - six jobs réussis                           |
-| CD               | `29995297354` - migration, API, Web et smoke tests réussis |
+| Version          | `0.13.0-rc.8`                                              |
+| Commit déployé   | `f817073de7ed7220fbbc38d396f1d181811012bd`                 |
+| CI               | `29999207578` - six jobs réussis                           |
+| CD               | `29999526386` - migration, API, Web et smoke tests réussis |
 | Web              | `https://ai-sport-web.vercel.app`                          |
 | API liveness     | `https://ai-sport-api.vercel.app/health`                   |
 | API readiness    | `https://ai-sport-api.vercel.app/health/ready`             |
@@ -26,12 +26,12 @@ jury par le champ prévu sur la plateforme.
 
 |  N° | Pièce         | Fichier                                                                       | Contrôle                                                          |
 | --: | ------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-|  01 | Dossier écrit | `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.7-final-2026-07-23.pdf` | limite de 30 pages, signets, liens et rendu contrôlés             |
-|  02 | Annexes       | `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.7-final-2026-07-23.pdf` | preuves sélectionnées, quatre livrables complets et trois manuels |
+|  01 | Dossier écrit | `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.8-final-2026-07-23.pdf` | limite de 30 pages, signets, liens et rendu contrôlés             |
+|  02 | Annexes       | `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.8-final-2026-07-23.pdf` | preuves sélectionnées, quatre livrables complets et trois manuels |
 |  03 | Code source   | archive créée par `build_bloc2_delivery_pack.py`                              | liste positive, aucun `.env`, secret ou état OAuth                |
 |  04 | Empreintes    | `MANIFESTE.txt` dans le paquet                                                | SHA Git archivé et SHA-256 de chaque pièce                        |
 
-Les anciennes versions `rc.2`, `rc.3` et `rc.6` ont été retirées de l'emplacement des
+Les anciennes versions `rc.2`, `rc.3`, `rc.6` et `rc.7` ont été retirées de l'emplacement des
 livrables afin d'éviter une confusion au moment du dépôt.
 
 ## Couverture des seize éléments demandés
@@ -59,7 +59,7 @@ livrables afin d'éviter une confusion au moment du dépôt.
 
 - installation figée par `pnpm-lock.yaml` ;
 - audit de dépendances au seuil `low` sans vulnérabilité connue ;
-- lint, contrôle de types, 267 tests et builds réussis sur la version `rc.7` ;
+- lint, contrôle de types, 261 tests et builds réussis sur la version `rc.8` ;
 - intégration PostgreSQL concurrente du quota jury réussie ;
 - rapports de couverture API, Web, PostgreSQL et shared séparés ;
 - tests Playwright publics et authentifiés ;
@@ -71,6 +71,8 @@ livrables afin d'éviter une confusion au moment du dépôt.
   29/30 après une validation, compteur identique sur les deux pages, zéro
   erreur console et 31e demande refusée en HTTP 429
   `GENERATION_QUOTA_EXCEEDED` ;
+- formulaire de séance et page Coach sans modèle, fournisseur, prix estimé,
+  coût ni volume technique de sortie visible ;
 - 150/150 réponses valides sur la mesure séquentielle des healthchecks ;
 - contrôles SQL-like, XSS, secrets, CORS, CSP et en-têtes ;
 - clavier, reflow, zoom, contrastes, axe, inspection sémantique et NVDA ;
