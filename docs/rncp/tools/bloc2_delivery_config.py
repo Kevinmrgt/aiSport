@@ -1,16 +1,22 @@
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
 import json
 import io
+import os
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[3]
-DELIVERY_DATE = "2026-07-22"
-DELIVERY_DATE_FR = "22 juillet 2026"
+DELIVERY_DATE = "2026-07-23"
+DELIVERY_DATE_FR = "23 juillet 2026"
 ANONYMIZED_MODE = True
 PUBLIC_REPOSITORY_URL = "https://github.com/Kevinmrgt/aiSport"
+APPLICATION_URL = "https://ai-sport-web.vercel.app"
 _PUBLIC_REPOSITORY_SENTINEL = "__ALCIDE_PUBLIC_REPOSITORY_URL__"
 _PUBLIC_REPOSITORY_EXACT_PATTERN = re.compile(
     r"https?://(?:www\.)?github\.com/kevinmrgt/aisport"
@@ -31,6 +37,75 @@ VERSION = _package_version()
 APPLICATION_SHA = "c63439e8ac8d68efd5ba091211b326ee8575fbba"
 FINAL_CI_RUN = "29930722308"
 FINAL_CD_RUN = "29931146789"
+
+
+@dataclass(frozen=True)
+class JuryPdfAccess:
+    identifier: str
+    password: str
+    expires_at: str | None
+
+
+def load_jury_access_from_env(
+    environment: dict[str, str] | os._Environ[str] | None = None,
+    verify_runtime_hash: bool = False,
+) -> JuryPdfAccess:
+    """Charge les secrets de l'édition privée sans jamais les journaliser."""
+    values = os.environ if environment is None else environment
+    identifier = values.get("BLOC2_JURY_IDENTIFIER", "").strip()
+    password = values.get("BLOC2_JURY_PASSWORD", "")
+    expires_at = values.get("BLOC2_JURY_EXPIRES_AT", "").strip() or None
+
+    if not identifier or not password:
+        raise ValueError(
+            "BLOC2_JURY_IDENTIFIER et BLOC2_JURY_PASSWORD sont requis "
+            "pour l'édition jury privée."
+        )
+    if len(identifier) > 128 or len(password) < 20 or len(password) > 256:
+        raise ValueError("Format des identifiants de l'édition jury privée invalide.")
+    if verify_runtime_hash:
+        runtime_hash = values.get("JURY_ACCESS_PASSWORD_HASH", "")
+        if not runtime_hash or not jury_password_matches_hash(password, runtime_hash):
+            raise ValueError(
+                "Le mot de passe de l'édition privée ne correspond pas "
+                "au hash runtime JURY_ACCESS_PASSWORD_HASH."
+            )
+    return JuryPdfAccess(
+        identifier=identifier,
+        password=password,
+        expires_at=expires_at,
+    )
+
+
+def _base64url_decode(value: str) -> bytes:
+    padding = "=" * (-len(value) % 4)
+    return base64.urlsafe_b64decode(value + padding)
+
+
+def jury_password_matches_hash(password: str, encoded_hash: str) -> bool:
+    parts = encoded_hash.split("$")
+    if len(parts) != 6 or parts[0] != "scrypt":
+        return False
+    try:
+        cost, block_size, parallelization = map(int, parts[1:4])
+        if (cost, block_size, parallelization) != (16_384, 8, 1):
+            return False
+        salt = _base64url_decode(parts[4])
+        expected = _base64url_decode(parts[5])
+        if not 16 <= len(salt) <= 64 or len(expected) != 32:
+            return False
+        candidate = hashlib.scrypt(
+            password.encode("utf-8"),
+            salt=salt,
+            n=cost,
+            r=block_size,
+            p=parallelization,
+            dklen=len(expected),
+            maxmem=64 * 1024 * 1024,
+        )
+    except (ValueError, TypeError):
+        return False
+    return hmac.compare_digest(candidate, expected)
 
 
 IDENTITY_TEXT_PATTERNS = (

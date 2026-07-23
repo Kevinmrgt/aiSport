@@ -3,66 +3,61 @@
 > Concevoir et développer des applications logicielles
 > Version de production : `0.13.0-rc.5`, commit `c63439e8ac8d68efd5ba091211b326ee8575fbba`
 > Validation de cette version : CI `29930722308`, CD `29931146789`
+> Prototype en production : [https://ai-sport-web.vercel.app](https://ai-sport-web.vercel.app)
 > Dépôt GitHub public : [https://github.com/Kevinmrgt/aiSport](https://github.com/Kevinmrgt/aiSport), branche `main` ; la révision ci-dessus permet de retrouver exactement la version contrôlée.
-> Données de recette anonymisées, dossier actualisé le 22 juillet 2026
+> Données de recette anonymisées, dossier actualisé le 23 juillet 2026
 
-## 1. Cadre officiel et composition du rendu
+## 1. Composition du rendu
 
-L'évaluation du Bloc 2 est une mise en situation professionnelle sous la forme
-d'un projet individuel. Le rendu comprend le code source, la documentation
-associée et un dossier écrit de 30 pages maximum hors annexes.
-Le référentiel public France Compétences et le règlement spécial Ynov
-identifient seize éléments à présenter.
+Le rendu réunit le code source, la documentation associée et le dossier écrit.
+Le tableau indique où retrouver chaque élément présenté.
 
-| Attendu officiel                                 | Emplacement principal dans ce rendu           |
-| ------------------------------------------------ | --------------------------------------------- |
-| Protocole de déploiement continu                 | section 3 et manuel de déploiement            |
-| Critères de qualité et de performance            | section 3, annexes B2-A28 et B2-A29           |
-| Protocole d'intégration continue                 | section 4                                     |
-| Architecture maintenable                         | section 5                                     |
+| Élément présenté                                 | Emplacement principal dans ce rendu              |
+| ------------------------------------------------ | ------------------------------------------------ |
+| Protocole de déploiement continu                 | section 3 et manuel de déploiement               |
+| Critères de qualité et de performance            | section 3, annexes B2-A28 et B2-A29              |
+| Protocole d'intégration continue                 | section 4                                        |
+| Architecture maintenable                         | section 5                                        |
 | Présentation d'un prototype                      | section 7, matrice user stories et annexe B2-A30 |
-| Frameworks et paradigmes                         | section 6                                     |
-| Jeu de tests unitaires                           | section 8 et annexe B2-A31                    |
-| Mesures de sécurité                              | section 9 et revue OWASP                      |
-| Accessibilité aux personnes handicapées          | section 10                                    |
-| Historique des versions                          | section 11 et `CHANGELOG.md`                  |
-| Dernière version fonctionnelle, fiable et viable | sections 7 et 11                              |
-| Cahier de recettes                               | section 12 et `docs/bloc2/cahier-recettes.md` |
-| Plan de correction des bogues                    | section 13                                    |
-| Manuel de déploiement                            | section 14                                    |
-| Manuel utilisateur                               | section 15                                    |
-| Manuel de mise à jour                            | section 16                                    |
-
-Le jury est composé de deux professionnels externes. Un bloc est validé si au
-moins 50 % des neuf compétences sont acquises et si aucune compétence
-éliminatoire n'est non acquise. Les quatre compétences éliminatoires sont
-C2.2.1, C2.2.2, C2.2.3 et C2.3.1.
-
-Sources : [fiche RNCP39583](https://www.francecompetences.fr/recherche/rncp/39583/),
-référentiel officiel pages 7 à 10 et règlement spécial Ynov version 1.01 du
-15 septembre 2025 fournis avec le dossier.
+| Frameworks et paradigmes                         | section 6                                        |
+| Jeu de tests unitaires                           | section 8 et annexe B2-A31                       |
+| Mesures de sécurité                              | section 9 et revue OWASP                         |
+| Accessibilité aux personnes handicapées          | section 10                                       |
+| Historique des versions                          | section 11 et `CHANGELOG.md`                     |
+| Dernière version fonctionnelle, fiable et viable | sections 7 et 11                                 |
+| Cahier de recettes                               | section 12 et `docs/bloc2/cahier-recettes.md`    |
+| Plan de correction des bogues                    | section 13                                       |
+| Manuel de déploiement                            | section 14                                       |
+| Manuel utilisateur                               | section 15                                       |
+| Manuel de mise à jour                            | section 16                                       |
 
 ## 2. Repères de lecture et preuves disponibles
 
-Le tableau ci-dessous sert de guide. Il indique où retrouver les éléments
-présentés, sans préjuger de l'évaluation qui reste du ressort du jury.
+Le tableau ci-dessous indique où retrouver chaque ensemble de preuves.
 
-| Compétence                                     | Preuve principale                                             | Ce qui est montré                                     |
-| ---------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------- |
-| C2.1.1 Environnements, qualité, performance    | Node 24, Docker, Vercel, Neon, healthchecks, mesure A29       | environnements et résultats mesurés                   |
-| C2.1.2 Intégration continue                    | CI `29930722308`, rapports et images Docker                   | six jobs exécutés avec succès                         |
-| C2.2.1 Prototype                               | matrice user stories, production `rc.5`, captures A30         | parcours métier sur bureau et mobile                  |
-| C2.2.2 Tests unitaires                         | shared 14, API 170, Web 57 sur `rc.5`                         | suites et couvertures séparées                        |
-| C2.2.3 Sécurité et accessibilité               | OWASP, A35 à A37, dépendances A39, audits A40/A41             | contrôles de sécurité et d'accessibilité               |
-| C2.2.4 Déploiement et versionnement            | `rc.5`, CI `29930722308`, CD `29931146789`, smoke tests       | version déployée, vérifiée et traçable                |
-| C2.3.1 Cahier de recettes                      | 59 scénarios documentés et résultats associés                 | couverture fonctionnelle et résultats tracés          |
-| C2.3.2 Correction des bogues                   | registre B2-BUG et tests de non-régression                    | détection, correction et contre-recette               |
-| C2.4.1 Documentation d'exploitation            | trois manuels présents et versionnés                          | déployer, utiliser et mettre à jour                   |
+| Compétence                                  | Preuve principale                                       | Ce qui est montré                            |
+| ------------------------------------------- | ------------------------------------------------------- | -------------------------------------------- |
+| C2.1.1 Environnements, qualité, performance | Node 24, Docker, Vercel, Neon, healthchecks, mesure A29 | environnements et résultats mesurés          |
+| C2.1.2 Intégration continue                 | CI `29930722308`, rapports et images Docker             | six jobs exécutés avec succès                |
+| C2.2.1 Prototype                            | matrice user stories, production `rc.5`, captures A30   | parcours métier sur bureau et mobile         |
+| C2.2.2 Tests unitaires                      | shared 14, API 170, Web 57 sur `rc.5`                   | suites et couvertures séparées               |
+| C2.2.3 Sécurité et accessibilité            | OWASP, A35 à A37, dépendances A39, audits A40/A41       | contrôles de sécurité et d'accessibilité     |
+| C2.2.4 Déploiement et versionnement         | `rc.5`, CI `29930722308`, CD `29931146789`, smoke tests | version déployée, vérifiée et traçable       |
+| C2.3.1 Cahier de recettes                   | 62 scénarios documentés et résultats associés           | couverture fonctionnelle et résultats tracés |
+| C2.3.2 Correction des bogues                | registre B2-BUG et tests de non-régression              | détection, correction et contre-recette      |
+| C2.4.1 Documentation d'exploitation         | trois manuels présents et versionnés                    | déployer, utiliser et mettre à jour          |
 
 Les contrôles d'accessibilité ont porté sur un échantillon de parcours publics
 et authentifiés. Les écarts de reflow et de restitution NVDA identifiés pendant
 la recette ont été corrigés et intégrés à `rc.5`. Les preuves détaillées et les
 périmètres contrôlés sont présentés dans B2-A37 et B2-A41.
+
+Le prototype autonome est accessible à l'URL
+[https://ai-sport-web.vercel.app](https://ai-sport-web.vercel.app). La page
+`/login` conserve le parcours Google et propose, pendant la période
+d'évaluation, un accès jury temporaire documenté dans l'édition confidentielle.
+Cet accès utilise la même session Auth.js et les mêmes contrôles d'autorisation
+que les autres utilisateurs ; il ne s'agit pas d'une route non protégée.
 
 ## 3. C2.1.1 - Environnements, déploiement continu, qualité et performance
 
@@ -85,8 +80,8 @@ Le déploiement continu commence uniquement après une CI verte sur `main` :
 migration Drizzle, déploiement API, smoke test API, déploiement Web puis smoke
 test Web. Le run `29832944876` a exécuté cette séquence sur la baseline de
 consolidation `0d5c6b6041333e2b756e59cb5d4440cc7ef7128b`, avant le correctif
-final de reflow. La baseline corrective courante
-La publication initiale de `rc.5` a été contrôlée sur `b63280f`. Le dernier
+final de reflow. La publication initiale de `rc.5` a été contrôlée sur
+`b63280f`. Le dernier
 correctif Web porte la version à `c63439e8ac8d68efd5ba091211b326ee8575fbba` :
 la CI `29930722308` et le CD `29931146789` ont réussi. Les healthchecks ont
 répondu HTTP 200 avec la version `0.13.0-rc.5`, PostgreSQL `ok` et configuration
@@ -99,7 +94,7 @@ IA `ok`.
 | Lint et typecheck                      | aucune erreur                                       | réussi                                                     |
 | Tests                                  | 100 % des suites sélectionnées réussies             | réussi                                                     |
 | Couverture de chaque périmètre runtime | majorité des lignes, seuils CI respectés            | shared 100 %, API 85,64 %, Web 69,04 %, PostgreSQL 93,70 % |
-| Audit de dépendances                   | aucune vulnérabilité connue au niveau low           | réussi localement et en CI sur `rc.5`, B2-A39/A41             |
+| Audit de dépendances                   | aucune vulnérabilité connue au niveau low           | réussi localement et en CI sur `rc.5`, B2-A39/A41          |
 | Production Web/API                     | 100 % de réponses valides sur 50 requêtes par route | 150/150                                                    |
 | Latence healthchecks                   | p95 inférieur ou égal à 1 000 ms                    | Web 508,63 ms, API 339,66 ms, readiness 267,11 ms          |
 | Build Web                              | bundle initial partagé documenté                    | 102 kB sur le build local final                            |
@@ -300,15 +295,15 @@ campagne ; aucune conformité RGAA exhaustive n'est revendiquée.
 
 ## 11. C2.2.4 - Historique, dernière version et viabilité
 
-| Jalons                | Contenu vérifiable                                                                   |
-| --------------------- | ------------------------------------------------------------------------------------ |
-| 0.10 à 0.12           | programmes, Timer, journaux, dashboard et durcissement progressif                    |
-| 0.13.0-rc.1           | PostgreSQL et chaîne Docker validés                                                  |
-| 0.13.0-rc.2           | audit dépendances et CD Vercel canonique                                             |
-| 0.13.0-rc.3           | corrections issues de la recette authentifiée                                        |
-| 0.13.0-rc.4           | dépendances, contrastes, focus et onglets corrigés ; CI/CD et contre-recette vertes  |
+| Jalons                | Contenu vérifiable                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------ |
+| 0.10 à 0.12           | programmes, Timer, journaux, dashboard et durcissement progressif                                |
+| 0.13.0-rc.1           | PostgreSQL et chaîne Docker validés                                                              |
+| 0.13.0-rc.2           | audit dépendances et CD Vercel canonique                                                         |
+| 0.13.0-rc.3           | corrections issues de la recette authentifiée                                                    |
+| 0.13.0-rc.4           | dépendances, contrastes, focus et onglets corrigés ; CI/CD et contre-recette vertes              |
 | 0.13.0-rc.5           | alertes de redirection et statut de sauvegarde corrigés ; CI/CD, healthchecks et validation NVDA |
-| finalisation du rendu | OAuth Playwright sécurisé, shared couvert, mobile authentifié et preuves consolidées |
+| finalisation du rendu | OAuth Playwright sécurisé, shared couvert, mobile authentifié et preuves consolidées             |
 
 `CHANGELOG.md`, les commits et les pull requests conservent l'historique. La
 version applicative courante `c63439e...` a passé la CI `29930722308`, la
@@ -330,7 +325,7 @@ d'intégration, Playwright public/authentifié, puis recette manuelle de
 production B2-A25. Une simple lecture du code n'est jamais enregistrée comme
 une recette exécutée.
 
-Les compléments B2-A34 à B2-A41 étendent la recette aux erreurs IA, à la
+Les compléments B2-A34 à B2-A42 étendent la recette aux erreurs IA, à la
 sécurité, aux parcours de production et à l'accessibilité. Le cahier compte 59
 scénarios. Les résultats, réserves et corrections sont tracés dans les annexes
 et dans le plan de correction associé.
@@ -389,17 +384,17 @@ et tests complets. B2-A27 fournit un exemple réel où une nouvelle alerte a fai
 
 ## 17. Matrice finale des preuves
 
-| Compétence | Annexes principales                   | Démonstration                                    |
-| ---------- | ------------------------------------- | ------------------------------------------------ |
-| C2.1.1     | B2-A22, A28, A29                      | Docker, healthchecks et protocole CD              |
-| C2.1.2     | B2-A27, A28, A38, A39                 | CI `rc.5`, audit et blocage du CD                 |
-| C2.2.1     | matrice user stories, B2-A25, A26, A30 | besoins, écrans et production desktop/mobile     |
-| C2.2.2     | B2-A19, A28, A31                      | rapports de couverture séparés                   |
-| C2.2.3     | B2-A20, A25 à A30, A35 à A41          | OWASP, dépendances, axe, clavier, zoom, sémantique, NVDA |
-| C2.2.4     | B2-A22, A25, A28                      | Git, migration, CD, smoke tests                  |
-| C2.3.1     | LIV-01, B2-A20, A25, A26, A30, A34 à A41 | cahier et recettes exécutées                   |
-| C2.3.2     | LIV-02, B2-A25, A27, A34, A36, A37, A40, A41 | anomalies et non-régressions                |
-| C2.4.1     | manuels et B2-A22                     | déployer, utiliser, mettre à jour                |
+| Compétence | Annexes principales                          | Démonstration                                            |
+| ---------- | -------------------------------------------- | -------------------------------------------------------- |
+| C2.1.1     | B2-A22, A28, A29                             | Docker, healthchecks et protocole CD                     |
+| C2.1.2     | B2-A27, A28, A38, A39                        | CI `rc.5`, audit et blocage du CD                        |
+| C2.2.1     | matrice user stories, B2-A25, A26, A30       | besoins, écrans et production desktop/mobile             |
+| C2.2.2     | B2-A19, A28, A31                             | rapports de couverture séparés                           |
+| C2.2.3     | B2-A20, A25 à A30, A35 à A41                 | OWASP, dépendances, axe, clavier, zoom, sémantique, NVDA |
+| C2.2.4     | B2-A22, A25, A28                             | Git, migration, CD, smoke tests                          |
+| C2.3.1     | LIV-01, B2-A20, A25, A26, A30, A34 à A42     | cahier et recettes exécutées                             |
+| C2.3.2     | LIV-02, B2-A25, A27, A34, A36, A37, A40, A41 | anomalies et non-régressions                             |
+| C2.4.1     | manuels et B2-A22                            | déployer, utiliser, mettre à jour                        |
 
 Les anciens PDF `rc.2` et `rc.3` correspondent à des étapes de travail. La
 remise `rc.5` rassemble l'index détaillé, la matrice user stories, les preuves

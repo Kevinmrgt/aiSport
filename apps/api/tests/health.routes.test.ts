@@ -28,7 +28,7 @@ describe('healthRouter', () => {
     expect(body).toMatchObject({
       status: 'ok',
       service: 'alcide-api',
-      version: '0.13.0-rc.5',
+      version: '0.13.0-rc.6',
     });
     expect(new Date(body.timestamp).toString()).not.toBe('Invalid Date');
   });
@@ -40,7 +40,7 @@ describe('healthRouter', () => {
     });
 
     const response = await healthRouter.request('/ready');
-    const body = await response.json() as { status: string; checks: unknown };
+    const body = (await response.json()) as { status: string; checks: unknown };
 
     expect(response.status).toBe(200);
     expect(body.status).toBe('ready');

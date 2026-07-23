@@ -9,11 +9,33 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ---
 
+## [0.13.0-rc.6] — 2026-07-23
+
+### Added
+
+- Accès jury temporaire sur `/login` avec une véritable session Auth.js et une
+  identité PostgreSQL dédiée, sans dépendance à un compte Google.
+- Révocation immédiate des sessions jury par expiration absolue, kill switch
+  ou rotation du secret, avec hash `scrypt` salé et comparaison constante.
+- Tests unitaires des identifiants, de l'expiration et des callbacks JWT, plus
+  un parcours Playwright connexion/session/déconnexion.
+- URL Vercel cliquable dans les PDF Bloc 2 et générateur séparé d'une édition
+  jury confidentielle, ignorée par Git.
+
+### Security
+
+- Aucun mot de passe jury en clair dans le code, le dépôt, les variables
+  d'exemple, les PDF publics ou l'archive source.
+- Message d'échec générique, limites de taille des entrées et configuration
+  prévue pour une règle Vercel Firewall sur le callback Credentials.
+
+---
+
 ## [0.13.0-rc.5] — 2026-07-22
 
-> La version `0.13.0-rc.5` a été publiée le 22 juillet 2026 sur le SHA
-> `b63280f36e44b02d5654a7f4e2caa8413e446bcb`, validée par la CI
-> `29916228789` et déployée par la CD `29916573448`. Les trois endpoints de
+> La version `0.13.0-rc.5` a été publiée initialement le 22 juillet 2026, puis
+> consolidée sur le SHA `c63439e8ac8d68efd5ba091211b326ee8575fbba`, validé
+> par la CI `29930722308` et déployé par la CD `29931146789`. Les trois endpoints de
 > santé ont répondu HTTP 200 en version `rc.5` ; le candidat a ensuite déclaré
 > avoir exécuté et validé les tests NVDA.
 
@@ -51,7 +73,7 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 - Paquet d'annexes enrichi des quatre livrables structurants complets, avec
   signets et gate d'anonymisation du texte, des liens, métadonnées, flux PDF et
   archives ZIP.
-- Paquet final Bloc 2 `rc.5` construit et contrôlé : 11 pages de dossier, 81
+- Paquet final Bloc 2 `rc.5` construit et contrôlé : 11 pages de dossier, 84
   pages d'annexes, anonymisation validée, décompression réussie et empreintes
   internes comparées.
 
@@ -63,7 +85,7 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 - Validation historique `rc.4` : lint, typecheck, 239 tests et build complet
   réussis, puis CI/CD.
 - Validation `rc.5` : audit `low` propre, lint, typecheck, **241/241 tests**,
-  build complet, CI `29916228789` et CD `29916573448` réussis.
+  build complet, CI `29930722308` et CD `29931146789` réussis.
 - Contrastes composites préqualifiés sur 79 signatures et 166 contextes après
   déploiement : 78/79 signatures et 165/166 contextes passent
   l'échantillonnage automatisé. Le dernier contexte est fermé par une borne

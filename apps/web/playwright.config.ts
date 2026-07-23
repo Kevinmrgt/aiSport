@@ -1,4 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
+import { createJuryPasswordHash } from './lib/jury-auth';
+
+const juryTestPassword = 'jury-playwright-password-2026';
+const juryTestIdentifier = 'jury-playwright';
 
 /**
  * Configuration Playwright pour les tests E2E Alcide
@@ -39,20 +43,29 @@ export default defineConfig({
     command: 'pnpm dev',
     env: {
       ...process.env,
-      AUTH_SECRET:
-        process.env['AUTH_SECRET'] ?? 'test-auth-secret-for-playwright-32chars',
+      AUTH_SECRET: process.env['AUTH_SECRET'] ?? 'test-auth-secret-for-playwright-32chars',
       AUTH_GOOGLE_ID: process.env['AUTH_GOOGLE_ID'] ?? 'test-google-client-id',
-      AUTH_GOOGLE_SECRET:
-        process.env['AUTH_GOOGLE_SECRET'] ?? 'test-google-client-secret',
+      AUTH_GOOGLE_SECRET: process.env['AUTH_GOOGLE_SECRET'] ?? 'test-google-client-secret',
       NEXTAUTH_URL: process.env['NEXTAUTH_URL'] ?? 'http://localhost:3000',
-      NEXT_PUBLIC_API_URL:
-        process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001',
-      SERVICE_SECRET:
-        process.env['SERVICE_SECRET'] ?? 'test-service-secret-for-playwright',
+      NEXT_PUBLIC_API_URL: process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001',
+      SERVICE_SECRET: process.env['SERVICE_SECRET'] ?? 'test-service-secret-for-playwright',
       PLAYWRIGHT_AUTH_STORAGE: process.env['PLAYWRIGHT_AUTH_STORAGE'] ?? '',
+      JURY_ACCESS_ENABLED: 'true',
+      JURY_ACCESS_IDENTIFIER: juryTestIdentifier,
+      JURY_ACCESS_PASSWORD_HASH: createJuryPasswordHash(
+        juryTestPassword,
+        Buffer.from('playwright-jury!'),
+      ),
+      JURY_ACCESS_USER_ID: 'jury-playwright-user',
+      JURY_ACCESS_EMAIL: 'jury-playwright@alcide.invalid',
+      JURY_ACCESS_NAME: 'Jury Playwright',
+      JURY_ACCESS_EXPIRES_AT: '2099-12-31T23:59:59.000Z',
+      JURY_ACCESS_SESSION_VERSION: 'playwright-session-v1',
+      E2E_JURY_IDENTIFIER: juryTestIdentifier,
+      E2E_JURY_PASSWORD: juryTestPassword,
     },
     url: 'http://localhost:3000',
-    reuseExistingServer: !process.env['CI'],
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 });

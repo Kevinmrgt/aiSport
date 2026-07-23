@@ -1,6 +1,6 @@
 # Manifeste de dépôt - Bloc 2 RNCP39583
 
-> État vérifié le 22 juillet 2026. Les résultats ci-dessous correspondent à
+> État vérifié le 23 juillet 2026. Les résultats ci-dessous correspondent à
 > des contrôles exécutés. Ils ne constituent pas une décision d'évaluation ni
 > une déclaration de conformité RGAA exhaustive.
 
@@ -26,8 +26,8 @@ jury par le champ prévu sur la plateforme.
 
 | N° | Pièce | Fichier | Contrôle |
 | --: | ----- | ------- | -------- |
-| 01 | Dossier écrit | `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.5-final-2026-07-22.pdf` | limite de 30 pages, signets, liens et rendu contrôlés |
-| 02 | Annexes | `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.5-final-2026-07-22.pdf` | preuves sélectionnées, quatre livrables complets et trois manuels |
+| 01 | Dossier écrit | `output/pdf/dossier-bloc2-rncp39583-alcide-v0.13.0-rc.5-final-2026-07-23.pdf` | limite de 30 pages, signets, liens et rendu contrôlés |
+| 02 | Annexes | `output/pdf/annexes-bloc2-rncp39583-alcide-v0.13.0-rc.5-final-2026-07-23.pdf` | preuves sélectionnées, quatre livrables complets et trois manuels |
 | 03 | Code source | archive créée par `build_bloc2_delivery_pack.py` | liste positive, aucun `.env`, secret ou état OAuth |
 | 04 | Empreintes | `MANIFESTE.txt` dans le paquet | SHA Git archivé et SHA-256 de chaque pièce |
 
