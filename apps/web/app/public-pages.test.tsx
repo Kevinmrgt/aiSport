@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 vi.mock('@/lib/auth', () => ({ signIn: vi.fn() }));
+vi.mock('@/lib/jury-auth', () => ({ isJuryAccessAvailable: () => true }));
 
 import ErrorPage from './error';
 import LoginPage from './(auth)/login/page';
@@ -34,16 +35,33 @@ describe('pages publiques et etats de chargement', () => {
     );
   });
 
-  it('rend les pages de connexion, confidentialite et 404', () => {
+  it('rend les pages de connexion, confidentialite et 404', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const { rerender } = render(<LoginPage />);
+    const { rerender } = render(await LoginPage({ searchParams: Promise.resolve({}) }));
     expect(screen.getByRole('button', { name: /continuer avec google/i })).toBeTruthy();
+    expect(screen.getByRole('group', { name: /accès jury/i })).toBeTruthy();
+    expect(screen.getByLabelText(/identifiant jury/i).getAttribute('autocomplete')).toBe(
+      'username',
+    );
+    expect(screen.getByLabelText(/mot de passe/i).getAttribute('autocomplete')).toBe(
+      'current-password',
+    );
     rerender(<PrivacyPage />);
     expect(screen.getByRole('heading', { name: /confidentialit/i })).toBeTruthy();
     expect(screen.getByText(/Information mise/i).classList.contains('text-zinc-200')).toBe(true);
     rerender(<NotFound />);
     expect(screen.getByRole('heading', { name: 'Page introuvable' })).toBeTruthy();
     consoleError.mockRestore();
+  });
+
+  it('affiche une erreur jury générique sans révéler la cause', async () => {
+    render(
+      await LoginPage({
+        searchParams: Promise.resolve({ error: 'CredentialsSignin', code: 'credentials' }),
+      }),
+    );
+    expect(screen.getByRole('alert').textContent).toMatch(/connexion impossible/i);
+    expect(screen.getByRole('alert').textContent).not.toMatch(/mot de passe incorrect/i);
   });
 
   it('journalise le digest sans exposer l erreur et permet de reessayer', () => {

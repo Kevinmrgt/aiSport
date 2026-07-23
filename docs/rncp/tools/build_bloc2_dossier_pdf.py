@@ -23,10 +23,12 @@ from reportlab.platypus.tableofcontents import TableOfContents
 
 from bloc2_delivery_config import (
     ANONYMIZED_MODE,
+    APPLICATION_URL,
     APPLICATION_SHA,
     DELIVERY_DATE,
     DELIVERY_DATE_FR,
     PUBLIC_REPOSITORY_URL,
+    JuryPdfAccess,
     VERSION,
     anonymize_text,
     assert_anonymized_pdf,
@@ -445,8 +447,47 @@ def parse_markdown(source: str, base_dir: Path, skip_preamble: bool = False):
     return story
 
 
-def cover_story():
+def jury_access_table(jury_access: JuryPdfAccess):
+    application = html.escape(APPLICATION_URL, quote=True)
+    rows = [
+        ["Accès", Paragraph(
+            f'<link href="{application}/login" color="#1D4ED8"><u>{application}/login</u></link>',
+            STYLES["Cellx"],
+        )],
+        ["Identifiant", Paragraph(html.escape(jury_access.identifier), STYLES["Cellx"])],
+        ["Mot de passe", Paragraph(
+            f"<font name='Courier'>{html.escape(jury_access.password)}</font>",
+            STYLES["Cellx"],
+        )],
+        ["Parcours", "Section « Accès jury » -> ouvrir l’espace de démonstration -> /generate"],
+    ]
+    if jury_access.expires_at:
+        rows.append(["Expiration", html.escape(jury_access.expires_at)])
+    table = Table(rows, colWidths=[3.2 * cm, 13.5 * cm])
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (0, -1), OLIVE),
+                ("TEXTCOLOR", (0, 0), (0, -1), colors.white),
+                ("BACKGROUND", (1, 0), (1, -1), colors.white),
+                ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 8.2),
+                ("LEADING", (0, 0), (-1, -1), 10.5),
+                ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#CBD2C6")),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ]
+        )
+    )
+    return table
+
+
+def cover_story(jury_access: JuryPdfAccess | None = None):
     repository = html.escape(PUBLIC_REPOSITORY_URL, quote=True)
+    application = html.escape(APPLICATION_URL, quote=True)
     repository_cell = Paragraph(
         f'<link href="{repository}" color="#1D4ED8"><u>{repository}</u></link>'
         f'<br/><font name="Courier">révision déployée {APPLICATION_SHA[:7]}</font>',
@@ -458,6 +499,13 @@ def cover_story():
             ["Épreuve", "Bloc 2 - Concevoir et développer des applications logicielles"],
             ["Projet", "Alcide - coach sportif assisté par IA"],
             ["Version", f"{VERSION} - dossier finalisé le {DELIVERY_DATE_FR}"],
+            [
+                "Application web",
+                Paragraph(
+                    f'<link href="{application}" color="#1D4ED8"><u>{application}</u></link>',
+                    STYLES["Cellx"],
+                ),
+            ],
             ["Code source", repository_cell],
         ],
         colWidths=[4.2 * cm, 12.5 * cm],
@@ -480,20 +528,34 @@ def cover_story():
             ]
         )
     )
-    return [
+    story = [
         Spacer(1, 1.8 * cm),
         Paragraph("DOSSIER DE CERTIFICATION", STYLES["CoverSub"]),
         Paragraph("Bloc 2", STYLES["CoverTitle"]),
         Paragraph("Concevoir et développer des applications logicielles", STYLES["CoverSub"]),
-        Spacer(1, 5.5 * cm),
+        Spacer(1, (4.2 if jury_access else 5.1) * cm),
         summary,
-        Spacer(1, 1.1 * cm),
+        Spacer(1, 0.7 * cm),
+    ]
+    if jury_access:
+        story.extend(
+            [
+                Paragraph(
+                    "ACCÈS JURY CONFIDENTIEL - ne pas diffuser",
+                    STYLES["Metax"],
+                ),
+                jury_access_table(jury_access),
+                Spacer(1, 0.35 * cm),
+            ]
+        )
+    story.extend([
         Paragraph(
             "Le dossier distingue les preuves exécutées, leurs résultats mesurés et leurs limites.",
             STYLES["CoverMeta"],
         ),
         PageBreak(),
-    ]
+    ])
+    return story
 
 
 def toc_story():
@@ -507,7 +569,11 @@ def toc_story():
     ]
 
 
-def build_pdf(source: Path = SOURCE, output: Path = OUTPUT) -> Path:
+def build_pdf(
+    source: Path = SOURCE,
+    output: Path = OUTPUT,
+    jury_access: JuryPdfAccess | None = None,
+) -> Path:
     output.parent.mkdir(parents=True, exist_ok=True)
     document = Bloc2Document(
         str(output),
@@ -516,7 +582,10 @@ def build_pdf(source: Path = SOURCE, output: Path = OUTPUT) -> Path:
         rightMargin=1.5 * cm,
         topMargin=1.45 * cm,
         bottomMargin=1.55 * cm,
-        title=f"Dossier Bloc 2 RNCP39583 - Alcide - final {DELIVERY_DATE}",
+        title=(
+            f"Dossier Bloc 2 RNCP39583 - Alcide - "
+            f"{'édition jury confidentielle' if jury_access else 'final'} {DELIVERY_DATE}"
+        ),
         author="Projet Alcide - dossier anonymisé",
         subject="Code source et documentation associée - Bloc 2",
         creator="Générateur documentaire Alcide - ReportLab",
@@ -524,7 +593,7 @@ def build_pdf(source: Path = SOURCE, output: Path = OUTPUT) -> Path:
         lang="fr-FR",
         displayDocTitle=True,
     )
-    story = cover_story()
+    story = cover_story(jury_access)
     story.extend(toc_story())
     markdown = source.read_text(encoding="utf-8")
     if ANONYMIZED_MODE:

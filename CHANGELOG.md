@@ -9,6 +9,28 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ---
 
+## [0.13.0-rc.6] — 2026-07-23
+
+### Added
+
+- Accès jury temporaire sur `/login` avec une véritable session Auth.js et une
+  identité PostgreSQL dédiée, sans dépendance à un compte Google.
+- Révocation immédiate des sessions jury par expiration absolue, kill switch
+  ou rotation du secret, avec hash `scrypt` salé et comparaison constante.
+- Tests unitaires des identifiants, de l'expiration et des callbacks JWT, plus
+  un parcours Playwright connexion/session/déconnexion.
+- URL Vercel cliquable dans les PDF Bloc 2 et générateur séparé d'une édition
+  jury confidentielle, ignorée par Git.
+
+### Security
+
+- Aucun mot de passe jury en clair dans le code, le dépôt, les variables
+  d'exemple, les PDF publics ou l'archive source.
+- Message d'échec générique, limites de taille des entrées et configuration
+  prévue pour une règle Vercel Firewall sur le callback Credentials.
+
+---
+
 ## [0.13.0-rc.5] — 2026-07-22
 
 > La version `0.13.0-rc.5` a été publiée initialement le 22 juillet 2026, puis

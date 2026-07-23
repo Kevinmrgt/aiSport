@@ -1,7 +1,16 @@
 import { signIn } from '@/lib/auth';
+import { isJuryAccessAvailable } from '@/lib/jury-auth';
 import { GlassPanel, IconBubble, MetricPill } from '@/components/PremiumPrimitives';
+import { redirect } from 'next/navigation';
 
-export default function LoginPage() {
+interface LoginPageProps {
+  searchParams: Promise<{ error?: string; code?: string }>;
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const juryAccessAvailable = isJuryAccessAvailable();
+  const error = (await searchParams)?.error;
+
   return (
     <div className="grid min-h-[72vh] items-center gap-8 lg:grid-cols-[0.9fr_1.1fr]">
       <section
@@ -13,8 +22,8 @@ export default function LoginPage() {
           Reprendre votre entrainement.
         </h1>
         <p className="muted-copy mt-4 max-w-md">
-          Connectez-vous pour retrouver vos seances, vos programmes et votre progression dans
-          l espace Alcide Pulse.
+          Connectez-vous pour retrouver vos seances, vos programmes et votre progression dans l
+          espace Alcide Pulse.
         </p>
 
         <form
@@ -37,6 +46,94 @@ export default function LoginPage() {
             </span>
           </button>
         </form>
+
+        {error === 'CredentialsSignin' && (
+          <p
+            role="alert"
+            aria-live="polite"
+            className="mt-6 max-w-sm rounded-xl border border-red-300/30 bg-red-950/45 px-4 py-3 text-sm font-bold text-red-100"
+          >
+            Connexion impossible. Vérifiez les identifiants ou la période d’accès.
+          </p>
+        )}
+
+        {juryAccessAvailable && (
+          <>
+            <div className="my-7 flex max-w-sm items-center gap-3" aria-hidden="true">
+              <span className="h-px flex-1 bg-white/15" />
+              <span className="text-xs font-black uppercase tracking-[0.18em] text-zinc-400">
+                ou
+              </span>
+              <span className="h-px flex-1 bg-white/15" />
+            </div>
+
+            <form
+              action={async (formData) => {
+                'use server';
+                try {
+                  await signIn('jury', formData);
+                } catch (error) {
+                  if (
+                    typeof error === 'object' &&
+                    error !== null &&
+                    'type' in error &&
+                    error.type === 'CredentialsSignin'
+                  ) {
+                    redirect('/login?error=CredentialsSignin');
+                  }
+
+                  throw error;
+                }
+              }}
+              className="max-w-sm space-y-4"
+            >
+              <fieldset className="space-y-4">
+                <legend className="text-lg font-black text-white">Accès jury</legend>
+                <p className="text-sm font-medium leading-6 text-zinc-300">
+                  Utilisez les identifiants temporaires remis avec le dossier confidentiel.
+                </p>
+
+                <div>
+                  <label htmlFor="jury-identifier" className="field-label">
+                    Identifiant jury
+                  </label>
+                  <input
+                    id="jury-identifier"
+                    name="identifier"
+                    type="text"
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    required
+                    maxLength={128}
+                    className="field-control mt-2"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="jury-password" className="field-label">
+                    Mot de passe
+                  </label>
+                  <input
+                    id="jury-password"
+                    name="password"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    maxLength={256}
+                    className="field-control mt-2"
+                  />
+                </div>
+
+                <input type="hidden" name="redirectTo" value="/generate" />
+
+                <button type="submit" className="action-secondary w-full justify-center">
+                  Ouvrir l’espace de démonstration
+                </button>
+              </fieldset>
+            </form>
+          </>
+        )}
       </section>
 
       <div className="relative mx-auto w-full max-w-[25rem]">

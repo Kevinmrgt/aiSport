@@ -31,8 +31,38 @@ SERVICE_SECRET=<same value as API>
 AUTH_SECRET=<Auth.js secret>
 AUTH_GOOGLE_ID=<Google OAuth client id>
 AUTH_GOOGLE_SECRET=<Google OAuth client secret>
+JURY_ACCESS_ENABLED=false
+JURY_ACCESS_IDENTIFIER=<identifiant temporaire>
+JURY_ACCESS_PASSWORD_HASH=<hash scrypt salé>
+JURY_ACCESS_USER_ID=<identité de session stable>
+JURY_ACCESS_EMAIL=<email technique dédié>
+JURY_ACCESS_NAME=<nom affiché>
+JURY_ACCESS_EXPIRES_AT=<date ISO 8601 absolue avec fuseau>
+JURY_ACCESS_SESSION_VERSION=<nonce à renouveler à chaque activation>
 NEXTAUTH_URL=https://ai-sport-web.vercel.app
 ```
+
+L'accès jury est limité à l'environnement Vercel `Production`. Le mot de passe
+en clair ne doit jamais être ajouté à Vercel ou au dépôt. Pour produire son hash
+sans écrire le secret dans l'historique PowerShell :
+
+```powershell
+$securePassword = Read-Host "Mot de passe jury" -AsSecureString
+$secretPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+try {
+  $env:JURY_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($secretPointer)
+  pnpm jury:hash
+} finally {
+  [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($secretPointer)
+  Remove-Item Env:JURY_PASSWORD -ErrorAction SilentlyContinue
+}
+```
+
+La sortie `scrypt$...` devient `JURY_ACCESS_PASSWORD_HASH`. À chaque
+réactivation, renouveler aussi `JURY_ACCESS_SESSION_VERSION` pour que les
+anciens cookies ne puissent pas redevenir valides. Le callback
+`POST /api/auth/callback/jury` est protégé dans Vercel Firewall par une fenêtre
+fixe de 10 tentatives par minute et par IP.
 
 Projet API:
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 from pathlib import Path
 
 from reportlab.lib import colors
@@ -9,8 +10,10 @@ from reportlab.platypus import PageBreak, Paragraph, Spacer, Table, TableStyle
 
 from bloc2_delivery_config import (
     ANONYMIZED_MODE,
+    APPLICATION_URL,
     DELIVERY_DATE,
     PUBLIC_REPOSITORY_URL,
+    JuryPdfAccess,
     VERSION,
     anonymize_text,
     assert_anonymized_pdf,
@@ -58,6 +61,7 @@ SELECTED = [
     "B2-A39-correction-dependances-2026-07-22.md",
     "B2-A40-audit-semantique-assiste-2026-07-22.md",
     "B2-A41-parcours-nvda-production-2026-07-22.md",
+    "B2-A42-acces-jury-securise-2026-07-23.md",
 ]
 
 CORE_DELIVERABLES = [
@@ -133,6 +137,7 @@ def annex_cover_story():
         "B2-A39": "Correction des dépendances et audit de sécurité rc.4",
         "B2-A40": "Audit sémantique authentifié et contre-recette rc.4",
         "B2-A41": "Parcours réel NVDA et contre-recette rc.5",
+        "B2-A42": "Accès jury sécurisé sans compte Google",
     }
     for filename in SELECTED:
         identifier = filename.split("-")[0] + "-" + filename.split("-")[1]
@@ -176,13 +181,13 @@ def annex_cover_story():
             f'<u>{PUBLIC_REPOSITORY_URL}</u></link>',
             STYLES["CoverSub"],
         ),
-        Spacer(1, 3.1 * cm),
-        table,
-        Spacer(1, 0.8 * cm),
         Paragraph(
-            "Les pièces historiques restent dans le dépôt mais ne sont pas présentées comme preuves de la baseline finale.",
-            STYLES["CoverMeta"],
+            f'Application web : <link href="{APPLICATION_URL}" color="#FFFFFF">'
+            f'<u>{APPLICATION_URL}</u></link>',
+            STYLES["CoverSub"],
         ),
+        Spacer(1, 2.7 * cm),
+        table,
         PageBreak(),
     ]
 
@@ -230,7 +235,60 @@ def nested_complete_document(source: str) -> str:
     return "\n".join(nested)
 
 
-def build_pdf(output: Path = OUTPUT) -> Path:
+def jury_access_story(jury_access: JuryPdfAccess):
+    application = html.escape(APPLICATION_URL, quote=True)
+    rows = [
+        ["URL", Paragraph(
+            f'<link href="{application}/login" color="#1D4ED8"><u>{application}/login</u></link>',
+            STYLES["Cellx"],
+        )],
+        ["Identifiant", Paragraph(html.escape(jury_access.identifier), STYLES["Cellx"])],
+        ["Mot de passe", Paragraph(
+            f"<font name='Courier'>{html.escape(jury_access.password)}</font>",
+            STYLES["Cellx"],
+        )],
+    ]
+    if jury_access.expires_at:
+        rows.append(["Expiration", html.escape(jury_access.expires_at)])
+    table = Table(rows, colWidths=[3.2 * cm, 13.5 * cm])
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (0, -1), OLIVE),
+                ("TEXTCOLOR", (0, 0), (0, -1), colors.white),
+                ("BACKGROUND", (1, 0), (1, -1), PALE),
+                ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#CBD2C6")),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("FONTSIZE", (0, 0), (-1, -1), 8.3),
+                ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                ("TOPPADDING", (0, 0), (-1, -1), 5),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ]
+        )
+    )
+    return [
+        Paragraph("Accès jury contrôlé - confidentiel", STYLES["H2x"]),
+        Paragraph(
+            "Ces valeurs temporaires sont réservées à l’évaluation. Ne pas diffuser ce PDF.",
+            STYLES["Metax"],
+        ),
+        table,
+        Spacer(1, 0.3 * cm),
+        Paragraph(
+            "Mode d’emploi : ouvrir l’URL ; dans « Accès jury », saisir les deux valeurs ; "
+            "valider « Ouvrir l’espace de démonstration » ; vérifier l’arrivée sur /generate ; "
+            "parcourir l’application puis utiliser « Se déconnecter ».",
+            STYLES["Bodyx"],
+        ),
+    ]
+
+
+def build_pdf(
+    output: Path = OUTPUT,
+    jury_access: JuryPdfAccess | None = None,
+) -> Path:
     missing = [filename for filename in SELECTED if not (ANNEXES / filename).is_file()]
     missing.extend(
         str(path.relative_to(ROOT))
@@ -249,7 +307,10 @@ def build_pdf(output: Path = OUTPUT) -> Path:
         topMargin=1.45 * cm,
         bottomMargin=1.55 * cm,
         toc_max_level=0,
-        title=f"Annexes Bloc 2 RNCP39583 - Alcide - final {DELIVERY_DATE}",
+        title=(
+            f"Annexes Bloc 2 RNCP39583 - Alcide - "
+            f"{'édition jury confidentielle' if jury_access else 'final'} {DELIVERY_DATE}"
+        ),
         author="Projet Alcide - dossier anonymisé",
         subject="Preuves sélectionnées et documentation d'exploitation du dossier Bloc 2",
         creator="Générateur documentaire Alcide - ReportLab",
@@ -281,6 +342,8 @@ def build_pdf(output: Path = OUTPUT) -> Path:
     for identifier, path, description in MANUALS:
         story.append(PageBreak())
         story.append(Paragraph(f"{identifier} - {description}", STYLES["H1x"]))
+        if identifier == "DOC-02" and jury_access:
+            story.extend(jury_access_story(jury_access))
         markdown = path.read_text(encoding="utf-8")
         if ANONYMIZED_MODE:
             markdown = anonymize_text(markdown)

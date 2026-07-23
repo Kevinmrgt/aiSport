@@ -15,11 +15,29 @@ Public cible :
 
 ## 2. Accéder à l'application
 
-1. Ouvrir l'application web.
-2. Depuis la page d'accueil, cliquer sur le bouton de connexion.
-3. Choisir la connexion Google.
-4. Autoriser l'application.
-5. Après connexion, l'utilisateur accède aux fonctionnalités protégées.
+URL de production : [https://ai-sport-web.vercel.app](https://ai-sport-web.vercel.app).
+
+### Accès temporaire du jury
+
+1. Ouvrir l'URL de production puis `/login`.
+2. Dans la section `Accès jury`, saisir l'identifiant et le mot de passe remis
+   dans l'édition PDF confidentielle.
+3. Cliquer sur `Ouvrir l'espace de démonstration`.
+4. Vérifier l'arrivée sur `/generate`, puis parcourir les fonctionnalités.
+5. À la fin du test, utiliser `Se déconnecter`.
+
+Cet accès crée une véritable session Auth.js associée à un utilisateur de
+démonstration isolé. Il ne contourne ni la protection des routes, ni les
+contrôles d'ownership de l'API. Il est temporaire : son expiration, sa
+désactivation ou la rotation de son secret révoquent également les sessions
+déjà ouvertes.
+
+### Accès utilisateur avec Google
+
+1. Depuis la page d'accueil, cliquer sur le bouton de connexion.
+2. Choisir la connexion Google.
+3. Autoriser l'application.
+4. Après connexion, l'utilisateur accède aux fonctionnalités protégées.
 
 Si l'utilisateur tente d'accéder directement à une page protégée sans session, il est redirigé vers la page de connexion.
 
@@ -143,13 +161,15 @@ RGAA exhaustive ni d'appréciation auditive détaillée.
 
 ## 12. Problèmes courants
 
-| Problème | Cause possible | Action utilisateur |
-|---|---|---|
-| Redirection vers login | Session absente ou expirée | Se reconnecter |
-| Génération impossible | IA indisponible, clé absente ou quota atteint | Réessayer plus tard ou vérifier les paramètres |
-| Aucun résultat dans la liste | Aucun entraînement créé ou filtre trop restrictif | Réinitialiser les filtres ou générer une séance |
-| Dashboard vide | Aucune séance créée ou terminée | Générer puis exécuter une séance |
-| Accès refusé à une séance | Séance inexistante ou appartenant à un autre utilisateur | Revenir à la liste personnelle |
+| Problème                     | Cause possible                                           | Action utilisateur                                                                                         |
+| ---------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Redirection vers login       | Session absente ou expirée                               | Se reconnecter                                                                                             |
+| Section Accès jury absente   | Accès temporaire désactivé, expiré ou mal configuré      | Utiliser Google ou contacter le responsable de la démonstration                                            |
+| Connexion jury impossible    | Identifiants invalides, accès expiré ou désactivé        | Vérifier le PDF confidentiel puis contacter le responsable de la démonstration, sans multiplier les essais |
+| Génération impossible        | IA indisponible, clé absente ou quota atteint            | Réessayer plus tard ou vérifier les paramètres                                                             |
+| Aucun résultat dans la liste | Aucun entraînement créé ou filtre trop restrictif        | Réinitialiser les filtres ou générer une séance                                                            |
+| Dashboard vide               | Aucune séance créée ou terminée                          | Générer puis exécuter une séance                                                                           |
+| Accès refusé à une séance    | Séance inexistante ou appartenant à un autre utilisateur | Revenir à la liste personnelle                                                                             |
 
 ## 13. Parcours de démonstration recommandé
 
