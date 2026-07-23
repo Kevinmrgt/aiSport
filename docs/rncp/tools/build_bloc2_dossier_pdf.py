@@ -459,8 +459,6 @@ def cover_story():
             ["Projet", "Alcide - coach sportif assisté par IA"],
             ["Version", f"{VERSION} - dossier finalisé le {DELIVERY_DATE_FR}"],
             ["Code source", repository_cell],
-            ["Règle", "30 pages maximum hors annexes - rendu individuel"],
-            ["Identité", "Données de recette anonymisées ; dépôt public communiqué dans le rendu"],
         ],
         colWidths=[4.2 * cm, 12.5 * cm],
     )
@@ -491,7 +489,7 @@ def cover_story():
         summary,
         Spacer(1, 1.1 * cm),
         Paragraph(
-            "Le dossier distingue les preuves exécutées, leurs limites et les vérifications administratives restant avant le dépôt.",
+            "Le dossier distingue les preuves exécutées, leurs résultats mesurés et leurs limites.",
             STYLES["CoverMeta"],
         ),
         PageBreak(),
