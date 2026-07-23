@@ -9,6 +9,19 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ---
 
+## [0.13.0-rc.8] — 2026-07-23
+
+### Changed
+
+- Suppression des informations techniques de modèle, fournisseur et coût
+  estimé dans l'interface utilisateur.
+- La page Coach présente désormais le fonctionnement de l'accompagnement en
+  termes métier ; la configuration du moteur reste entièrement côté serveur.
+- Le formulaire de séance ne récupère plus les paramètres IA pour son
+  affichage.
+
+---
+
 ## [0.13.0-rc.7] — 2026-07-23
 
 ### Added

@@ -74,7 +74,7 @@ empreintes SHA-256.
 | Génération de séance                | CR-010 à CR-015 (6)           | 6 renseignés                      | B2-A25, B2-A34, CI applicative                           |
 | Programmes                          | CR-016 à CR-021 (6)           | 6 renseignés                      | B2-A25, B2-A34, PostgreSQL réel                          |
 | Séances, Timer et journalisation    | CR-022 à CR-035 (14)          | 14 renseignés                     | B2-A25, B2-A34, tests API/Web/PostgreSQL                 |
-| Paramètres et dashboard             | CR-036 à CR-041 (6)           | 6 renseignés                      | B2-A25, B2-A34                                           |
+| Coach, configuration et dashboard   | CR-036 à CR-041 (6)           | 6 renseignés                      | B2-A25, B2-A34                                           |
 | Sécurité fonctionnelle              | CR-042 à CR-048 et CR-050 (8) | 8 renseignés                      | B2-A35, audit `low` local `rc.4`, B2-A39                 |
 | Accessibilité                       | CR-051 à CR-055 (5)           | 5 renseignés, réserves sur CR-055 | B2-A25, B2-A36, B2-A37, B2-A40, B2-A41                   |
 | Qualité, intégration et déploiement | CR-056 à CR-066 (11)          | 11 renseignés                     | B2-A19, B2-A22, B2-A38, B2-A42, manifeste du paquet      |
@@ -211,16 +211,16 @@ recette du SHA final et ne valent pas validation manuelle ou production.
 | CR-034 | Notes de douleur              | enregistrer une note facultative            | stockage lié au compte et information confidentialité visible | recette UI + DB                   | Exécuté - Stockage propriétaire PostgreSQL, page Confidentialité et saisie production vérifiés ; B2-A34 |
 | CR-035 | Suppression séance accessible | confirmer, annuler, Échap, erreur API       | focus géré, annulation sûre, erreur visible                   | test composant + manuel           | Exécuté - Annulation, Échap, restauration du focus et panne API avec dialogue maintenu ; B2-A25/B2-A34  |
 
-## Paramètres et dashboard
+## Coach, configuration interne et dashboard
 
-| ID     | Fonctionnalité      | Préconditions et actions     | Résultat attendu                                               | Preuve prévue            | Statut                                                                                                        |
-| ------ | ------------------- | ---------------------------- | -------------------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| CR-036 | Lire paramètres     | compte actif                 | fournisseur OpenAI serveur et modèle courant affichés          | test API/Web + E2E       | Exécuté - OpenAI serveur et GPT-5.4 mini observés en production, B2-A25                                       |
-| CR-037 | Enregistrer modèle  | choisir un modèle autorisé   | valeur persistée et confirmation                               | test controller/DB + E2E | Exécuté - Modèle changé et relu en production, puis valeur initiale restaurée ; B2-A34                        |
-| CR-038 | Modèle non autorisé | envoyer valeur arbitraire    | 400, aucune persistance                                        | test controller          | Exécuté - Défaut reproduit et allowlist API ajoutée ; valeur arbitraire rejetée 400 sans persistance ; B2-A34 |
-| CR-039 | Panne settings      | API indisponible             | erreur explicite, pas de faux défaut présenté comme enregistré | test server-api/page     | Automatisé - Automatisé, CI finale verte                                                                      |
-| CR-040 | Dashboard vide      | aucun journal                | état vide compréhensible                                       | test rendu/E2E           | Exécuté - État vide déterministe, explication et CTA `/generate` vérifiés ; B2-A34                            |
-| CR-041 | Dashboard alimenté  | plusieurs journaux du compte | totaux/durée/effort/feedback exacts et isolés                  | test PostgreSQL + E2E    | Exécuté - Totaux déterministes et isolation PostgreSQL, puis compteur production `3 → 4` ; B2-A34             |
+| ID     | Fonctionnalité                | Préconditions et actions                     | Résultat attendu                                                                | Preuve prévue            | Statut                                                                                                        |
+| ------ | ----------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| CR-036 | Consulter l'espace Coach      | compte actif, ouvrir `/settings`             | accompagnement automatique expliqué en langage métier                           | test rendu/Web + E2E     | Automatisé - Titre, étapes d'accompagnement et protection de la route vérifiés                               |
+| CR-037 | Masquer les choix techniques  | ouvrir `/settings` et `/generate`            | aucun fournisseur, modèle, prix estimé, coût ou volume de sortie affiché         | tests composants + E2E   | Automatisé - Régression dédiée sur les deux écrans ; configuration conservée côté serveur                    |
+| CR-038 | Modèle interne non autorisé   | envoyer une valeur arbitraire à l'API privée | 400, aucune persistance                                                          | test controller          | Exécuté - Défaut reproduit et allowlist API ajoutée ; valeur arbitraire rejetée 400 sans persistance ; B2-A34 |
+| CR-039 | Page Coach autonome           | rendre la page sans appeler l'API settings   | contenu disponible sans dépendance à une lecture de configuration                | test page serveur        | Automatisé - La page ne lit ni n'enregistre de paramètre technique                                           |
+| CR-040 | Dashboard vide                | aucun journal                                | état vide compréhensible                                                         | test rendu/E2E           | Exécuté - État vide déterministe, explication et CTA `/generate` vérifiés ; B2-A34                            |
+| CR-041 | Dashboard alimenté            | plusieurs journaux du compte                 | totaux/durée/effort/feedback exacts et isolés                                    | test PostgreSQL + E2E    | Exécuté - Totaux déterministes et isolation PostgreSQL, puis compteur production `3 → 4` ; B2-A34             |
 
 ## Sécurité
 
