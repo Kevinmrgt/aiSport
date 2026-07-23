@@ -27,7 +27,10 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 - Aucun mot de passe jury en clair dans le code, le dépôt, les variables
   d'exemple, les PDF publics ou l'archive source.
 - Message d'échec générique, limites de taille des entrées et configuration
-  prévue pour une règle Vercel Firewall sur le callback Credentials.
+  protégée par une règle Vercel Firewall de 10 tentatives par minute et par IP.
+- Version `b5f941311fb034831f2c6a310c61585ad7b3f092` validée par la CI
+  `29990178784`, déployée par la CD `29990426551`, puis contre-recettée dans le
+  navigateur intégré avec l'identité jury.
 
 ---
 

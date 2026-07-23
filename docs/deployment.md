@@ -1,14 +1,14 @@
 # Guide de deploiement - Alcide
 
-> Version applicative déployée: 0.13.0-rc.5
-> Baseline applicative déployée: c63439e8ac8d68efd5ba091211b326ee8575fbba
+> Version applicative déployée: 0.13.0-rc.6
+> Baseline applicative déployée: b5f941311fb034831f2c6a310c61585ad7b3f092
 > Date de verification documentaire initiale: 2026-05-07
-> Derniere verification Bloc 2 et contre-recette de production: 2026-07-22
+> Derniere verification Bloc 2 et contre-recette de production: 2026-07-23
 
-La version `0.13.0-rc.5` conserve les avis de dépendances corrigés et ajoute
-les correctifs de restitution NVDA relevés le 2026-07-22,
-le focus des formulaires invalides et les relations d'onglets. Elle a passé la
-CI `29930722308`, la CD `29931146789` et la contre-recette NVDA déclarée validée.
+La version `0.13.0-rc.6` conserve les correctifs de restitution NVDA et ajoute
+l'accès jury temporaire sécurisé. Elle a passé la CI `29990178784`, la CD
+`29990426551`, les smoke tests et la recette navigateur de production du
+23 juillet 2026.
 
 ## Production canonique
 
