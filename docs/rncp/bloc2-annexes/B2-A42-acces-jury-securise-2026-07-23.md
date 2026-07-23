@@ -89,6 +89,10 @@ utilisateur.
 
 ## Limites et exploitation
 
+Cette pièce conserve la preuve de mise en service initiale sur `rc.7`. La
+contre-recette de la baseline courante `rc.8`, sans nouvelle consommation du
+quota, est consignée dans B2-A43.
+
 L'accès est temporaire et doit être désactivé après l'évaluation. Le PDF privé
 ne doit pas être publié. La règle de limitation Vercel protège le callback
 `/api/auth/callback/jury`, sans remplacer la rotation du secret et de la version
