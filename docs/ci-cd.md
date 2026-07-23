@@ -156,13 +156,14 @@ Après rollback, rejouer liveness, readiness et le parcours métier concerné.
 
 ## État des preuves
 
-| Nature | SHA | CI | CD | Portée |
-| ------ | --- | -- | -- | ------ |
-| Baseline applicative corrective `rc.5` | `c63439e8ac8d68efd5ba091211b326ee8575fbba` | `29930722308` succès | `29931146789` succès | Preuve canonique des correctifs NVDA, de leurs tests et de leur déploiement |
-| Baseline applicative corrective `rc.4` | `ea703aef912ce9e7c49c4c9b7872a5a7b595b666` | `29907294766` succès | `29907642144` succès | Preuve canonique des dépendances, du reflow, du focus, des onglets et de leur déploiement |
-| Snapshot documentaire `v5` | `b3ca385c0014c6acfd5c29ebbe14fa38ca766c02` | `29847808450` succès | `29848187523` succès | Diff avec `b002adb` limité aux documents/PDF ; chaîne complète rejouée avant la correction documentaire `v6` |
-| Chemin rouge courant isolé | `ef393f873ce3337c4ba83b84cf75eb5ce07549b4` | `29856584668` échec | aucun run associé, conformément au filtre de branche | PR `#46` fermée sans fusion ; quatre jobs aval ignorés et inventaires Vercel production inchangés, B2-A38 |
-| Chemin rouge historique | `5c2cf08c56794bcf2885e69713b7bddd8521ae87` | `28506873066` échec | `28506912686` skipped | API/Web non exécutés dans GitHub Actions ; pas de relevé Vercel avant/après ; ancien workflow encore lançable manuellement |
+| Nature                                 | SHA                                        | CI                   | CD                                                   | Portée                                                                                                                     |
+| -------------------------------------- | ------------------------------------------ | -------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Baseline accès jury `rc.6`             | `b5f941311fb034831f2c6a310c61585ad7b3f092` | `29990178784` succès | `29990426551` succès                                 | Accès jury sécurisé, Firewall, healthchecks et recette navigateur de production                                            |
+| Baseline applicative corrective `rc.5` | `c63439e8ac8d68efd5ba091211b326ee8575fbba` | `29930722308` succès | `29931146789` succès                                 | Preuve canonique des correctifs NVDA, de leurs tests et de leur déploiement                                                |
+| Baseline applicative corrective `rc.4` | `ea703aef912ce9e7c49c4c9b7872a5a7b595b666` | `29907294766` succès | `29907642144` succès                                 | Preuve canonique des dépendances, du reflow, du focus, des onglets et de leur déploiement                                  |
+| Snapshot documentaire `v5`             | `b3ca385c0014c6acfd5c29ebbe14fa38ca766c02` | `29847808450` succès | `29848187523` succès                                 | Diff avec `b002adb` limité aux documents/PDF ; chaîne complète rejouée avant la correction documentaire `v6`               |
+| Chemin rouge courant isolé             | `ef393f873ce3337c4ba83b84cf75eb5ce07549b4` | `29856584668` échec  | aucun run associé, conformément au filtre de branche | PR `#46` fermée sans fusion ; quatre jobs aval ignorés et inventaires Vercel production inchangés, B2-A38                  |
+| Chemin rouge historique                | `5c2cf08c56794bcf2885e69713b7bddd8521ae87` | `28506873066` échec  | `28506912686` skipped                                | API/Web non exécutés dans GitHub Actions ; pas de relevé Vercel avant/après ; ancien workflow encore lançable manuellement |
 
 Le run CI `29489995458` et le run CD en échec `29490217892` décrivent un ancien
 incident de configuration Vercel sur le SHA `533f17b` : la CI était verte et la

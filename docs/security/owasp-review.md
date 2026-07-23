@@ -129,11 +129,16 @@ localement et dans la CI `29907294766`. B2-A39 conserve le constat, les versions
 résolues et les commandes de contre-vérification. La CD `29907642144` et les
 healthchecks `rc.4` ferment la contre-vérification de production.
 
-La baseline courante `0.13.0-rc.5` conserve ces versions corrigées. Elle a
+La baseline `0.13.0-rc.5` conserve ces versions corrigées. Elle a
 repassé l'audit de production au seuil `low`, le lint, les types, 241 tests,
 les builds et la CI `29930722308`, puis la CD `29931146789` et les healthchecks
 HTTP 200. Les correctifs `rc.5` portent sur la restitution d'accessibilité et
 ne relâchent aucun contrôle de sécurité décrit dans cette revue.
+
+La baseline courante `0.13.0-rc.6` passe à son tour l'audit `low`, le lint, les
+types, 256 tests et les builds dans la CI `29990178784`. La CD `29990426551`,
+les healthchecks HTTP 200 et la recette navigateur de B2-A42 confirment le
+déploiement de l'accès jury sans régression des contrôles précédents.
 
 ## A07 — Identification and Authentication Failures — contrôlé avec limites
 

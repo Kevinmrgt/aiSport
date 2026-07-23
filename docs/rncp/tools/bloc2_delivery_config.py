@@ -34,9 +34,9 @@ def _package_version() -> str:
 
 
 VERSION = _package_version()
-APPLICATION_SHA = "c63439e8ac8d68efd5ba091211b326ee8575fbba"
-FINAL_CI_RUN = "29930722308"
-FINAL_CD_RUN = "29931146789"
+APPLICATION_SHA = "b5f941311fb034831f2c6a310c61585ad7b3f092"
+FINAL_CI_RUN = "29990178784"
+FINAL_CD_RUN = "29990426551"
 
 
 @dataclass(frozen=True)
