@@ -63,6 +63,7 @@ SELECTED = [
     "B2-A40-audit-semantique-assiste-2026-07-22.md",
     "B2-A41-parcours-nvda-production-2026-07-22.md",
     "B2-A42-acces-jury-securise-2026-07-23.md",
+    "B2-A43-simplification-interface-recette-production-2026-07-23.md",
 ]
 
 CORE_DELIVERABLES = [
@@ -139,6 +140,7 @@ def annex_cover_story():
         "B2-A40": "Audit sémantique authentifié et contre-recette rc.4",
         "B2-A41": "Parcours réel NVDA et contre-recette rc.5",
         "B2-A42": "Accès jury sécurisé sans compte Google",
+        "B2-A43": "Interface métier sans prix ni détails techniques",
     }
     for filename in SELECTED:
         identifier = filename.split("-")[0] + "-" + filename.split("-")[1]

@@ -40,10 +40,10 @@ class Bloc2DeliveryToolsTests(unittest.TestCase):
         package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
         self.assertEqual(VERSION, package["version"])
 
-    def test_deployed_application_references_match_rc7(self) -> None:
-        self.assertEqual(APPLICATION_SHA, "d42e7f2c8fc86f26c46f850d32eb748870c6140d")
-        self.assertEqual(FINAL_CI_RUN, "29994929981")
-        self.assertEqual(FINAL_CD_RUN, "29995297354")
+    def test_deployed_application_references_match_rc8(self) -> None:
+        self.assertEqual(APPLICATION_SHA, "f817073de7ed7220fbbc38d396f1d181811012bd")
+        self.assertEqual(FINAL_CI_RUN, "29999207578")
+        self.assertEqual(FINAL_CD_RUN, "29999526386")
 
     def test_jury_quota_notice_documents_the_complete_rule(self) -> None:
         self.assertEqual(JURY_GENERATION_LIMIT, 30)
