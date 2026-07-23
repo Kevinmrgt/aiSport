@@ -11,10 +11,7 @@ async function ensureQuotaRow(userId: string, limit: number): Promise<void> {
   // Lors de la premiere activation, les generations deja conservees sont
   // integrees au compteur. Ensuite le compteur ne diminue plus lors d'une suppression.
   await db.execute(sql`
-    INSERT INTO ${generationQuotas} (
-      ${generationQuotas.userId},
-      ${generationQuotas.usedCount}
-    )
+    INSERT INTO ${generationQuotas} ("user_id", "used_count")
     SELECT
       CAST(${userId} AS uuid),
       LEAST(
@@ -25,7 +22,7 @@ async function ensureQuotaRow(userId: string, limit: number): Promise<void> {
           (SELECT COUNT(*) FROM ${trainingPrograms} WHERE ${trainingPrograms.userId} = CAST(${userId} AS uuid))
         )
       )::integer
-    ON CONFLICT (${generationQuotas.userId}) DO NOTHING
+    ON CONFLICT ("user_id") DO NOTHING
   `);
 }
 
