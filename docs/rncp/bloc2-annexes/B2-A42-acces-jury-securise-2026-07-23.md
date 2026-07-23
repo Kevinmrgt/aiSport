@@ -43,16 +43,28 @@ utilisateur.
 
 ## Recettes prévues et résultats
 
-| Contrôle                            | Résultat attendu                                | Résultat                                                                   |
-| ----------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------- |
-| Identifiants valides                | session Auth.js puis `/generate`                | tests unitaires réussis ; recette production à compléter après déploiement |
-| Mauvais identifiant ou mot de passe | refus générique                                 | tests unitaires réussis                                                    |
-| Accès expiré                        | formulaire absent et session refusée            | tests unitaires réussis                                                    |
-| Kill switch désactivé               | formulaire absent et session existante révoquée | tests callback JWT réussis                                                 |
-| Rotation du hash                    | session existante révoquée                      | tests callback JWT réussis                                                 |
-| Déconnexion                         | cookie supprimé et route privée redirigée       | Playwright local et recette production à compléter                         |
-| PDF public                          | URL présente, aucun secret                      | gate documentaire à exécuter                                               |
-| PDF jury privé                      | URL, mode d'emploi et identifiants présents     | contrôle privé à exécuter                                                  |
+| Contrôle                            | Résultat attendu                                | Résultat                                                  |
+| ----------------------------------- | ----------------------------------------------- | --------------------------------------------------------- |
+| Identifiants valides                | session Auth.js puis `/generate`                | réussi localement et en production sur `rc.6`             |
+| Mauvais identifiant ou mot de passe | refus générique                                 | réussi localement et en production ; aucune session créée |
+| Accès expiré                        | formulaire absent et session refusée            | tests unitaires réussis                                   |
+| Kill switch désactivé               | formulaire absent et session existante révoquée | tests callback JWT réussis                                |
+| Rotation du hash                    | session existante révoquée                      | tests callback JWT réussis                                |
+| Déconnexion                         | cookie supprimé et route privée redirigée       | Playwright local et recette production réussis            |
+| PDF public                          | URL présente, aucun secret                      | gate documentaire réussie sur les deux PDF `rc.6`         |
+| PDF jury privé                      | URL, mode d'emploi et identifiants présents     | hash runtime vérifié avant génération privée              |
+
+## Preuve de production
+
+- commit : `b5f941311fb034831f2c6a310c61585ad7b3f092` ;
+- CI : `29990178784`, six jobs réussis ;
+- CD : `29990426551`, migration, API, Web et smoke tests réussis ;
+- healthchecks : API liveness/readiness et Web en HTTP 200, version
+  `0.13.0-rc.6`, base et configuration IA `ok` ;
+- navigateur intégré : formulaire jury visible, échec générique observé,
+  connexion valide vers `/generate`, dashboard, paramètres et historique
+  accessibles, déconnexion réussie, puis `/generate` redirigé vers `/login` ;
+- console du navigateur : aucune erreur ni avertissement pendant la recette.
 
 ## Limites et exploitation
 

@@ -21,14 +21,16 @@ Références de la version présentée :
 
 | Référence                                  | Rôle                                                          |
 | ------------------------------------------ | ------------------------------------------------------------- |
+| `b5f941311fb034831f2c6a310c61585ad7b3f092` | baseline applicative `rc.6` testée et déployée                |
 | `c63439e8ac8d68efd5ba091211b326ee8575fbba` | baseline applicative `rc.5` testée et déployée                |
 | `ea703aef912ce9e7c49c4c9b7872a5a7b595b666` | baseline historique `rc.4`                                    |
 | `rncp-bloc2-2026-07-21-v5`                 | snapshot documentaire antérieur avec CI/CD verte              |
 | `MANIFESTE.txt` du paquet                  | SHA effectivement archivé et empreintes SHA-256 des livrables |
 
-La baseline de production est `0.13.0-rc.5`. La CI `29930722308` et la CD
-`29931146789` établissent sa publication ; les healthchecks et la contre-recette
-NVDA déclarée validée sont consignés dans B2-A41.
+La baseline de production est `0.13.0-rc.6`. La CI `29990178784` et la CD
+`29990426551` établissent sa publication ; les healthchecks et la recette de
+l'accès jury sont consignés dans B2-A42. La contre-recette NVDA historique
+reste consignée dans B2-A41.
 
 ## 2. Processus de correction
 

@@ -38,10 +38,10 @@ class Bloc2DeliveryToolsTests(unittest.TestCase):
         package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
         self.assertEqual(VERSION, package["version"])
 
-    def test_deployed_application_references_match_rc5(self) -> None:
-        self.assertEqual(APPLICATION_SHA, "c63439e8ac8d68efd5ba091211b326ee8575fbba")
-        self.assertEqual(FINAL_CI_RUN, "29930722308")
-        self.assertEqual(FINAL_CD_RUN, "29931146789")
+    def test_deployed_application_references_match_rc6(self) -> None:
+        self.assertEqual(APPLICATION_SHA, "b5f941311fb034831f2c6a310c61585ad7b3f092")
+        self.assertEqual(FINAL_CI_RUN, "29990178784")
+        self.assertEqual(FINAL_CD_RUN, "29990426551")
 
     def test_application_url_is_the_public_vercel_deployment(self) -> None:
         self.assertEqual(APPLICATION_URL, "https://ai-sport-web.vercel.app")
