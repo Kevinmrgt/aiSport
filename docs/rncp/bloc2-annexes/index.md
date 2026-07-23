@@ -4,7 +4,7 @@
 
 Les annexes B2-A17 et B2-A18 portent sur la version `0.12.0`. Elles sont
 conservées pour la traçabilité, mais leurs conclusions « final » ou « validable »
-ne s'appliquent pas à la baseline de production `0.13.0-rc.6` et ne doivent
+ne s'appliquent pas à la baseline de production `0.13.0-rc.7` et ne doivent
 pas être reprises comme preuves du SHA final.
 
 | ID     | Compétences                                                  | Pièce                                                                                                   | Statut                                   | Source ou commande                                                                 |
@@ -18,9 +18,9 @@ pas être reprises comme preuves du SHA final.
 
 > Index des preuves à joindre au dossier Bloc 2. Les pièces doivent rester datées et reliées à une compétence.
 
-> État au 23 juillet 2026 : la production est en `0.13.0-rc.6` sur
-> `b5f941311fb034831f2c6a310c61585ad7b3f092`, après la CI `29990178784`, la
-> CD `29990426551` et la recette navigateur de l'accès jury.
+> État au 23 juillet 2026 : la production est en `0.13.0-rc.7` sur
+> `d42e7f2c8fc86f26c46f850d32eb748870c6140d`, après la CI `29994929981`, la
+> CD `29995297354` et la recette navigateur du quota d'accès jury.
 
 ## Annexes obligatoires recommandées
 
@@ -64,11 +64,11 @@ pas être reprises comme preuves du SHA final.
 | B2-A39 | C2.1.2 / C2.2.3 / C2.3.1 / C2.3.2          | Correction des cinq avis de dépendances détectés le 22 juillet                                                | `sharp 0.35.3`, `hono 4.12.31`, `@hono/node-server 2.0.11` ; audit `low`, 239 tests et builds ; CI `29907294766`, CD `29907642144`, healthchecks `rc.4`                                                  | `docs/rncp/bloc2-annexes/B2-A39-correction-dependances-2026-07-22.md`                              |
 | B2-A40 | C2.2.1 / C2.2.3 / C2.3.1 / C2.3.2          | Audit sémantique authentifié des routes principales, détails, formulaires, onglets et suppression             | huit routes principales et trois détails contrôlés ; B2-BUG-040/041 clos après contre-recette `rc.4` ; focus `sport`, 3/3 cibles d'onglets résolues                                                      | `docs/rncp/bloc2-annexes/B2-A40-audit-semantique-assiste-2026-07-22.md`                            |
 | B2-A41 | C2.2.3 / C2.3.1 / C2.3.2                   | Parcours réel NVDA public et authentifié, avec Visionneuse de parole et journal entrée/sortie                 | campagne détaillée `rc.4` ; B2-BUG-042/043 clos sur `rc.5` après CI/CD et validation NVDA déclarée ; B2-BUG-044/045 P2 non bloquants                                                                     | `docs/rncp/bloc2-annexes/B2-A41-parcours-nvda-production-2026-07-22.md`                            |
-| B2-A42 | C2.1.1 / C2.2.1 / C2.2.3 / C2.3.1          | Accès jury temporaire sans compte Google, révocable et protégé contre les tentatives répétées                 | tests unitaires, Playwright local et recette production réussis ; Firewall actif                                                                                                                         | `docs/rncp/bloc2-annexes/B2-A42-acces-jury-securise-2026-07-23.md`                                 |
-| LIV-04 | C2.2.1 / C2.3.1                            | Matrice complète besoins/user stories, écrans, composants, scénarios et preuves                               | Présente intégralement dans le PDF d'annexes `rc.6`, avec entrée de sommaire et signet                                                                                                                   | `docs/rncp/bloc2-matrice-user-stories-preuves.md`                                                  |
+| B2-A42 | C2.1.1 / C2.2.1 / C2.2.3 / C2.3.1          | Accès jury temporaire sans compte Google, révocable, protégé et limité à 30 générations réussies              | CI/CD `rc.7`, tests API/PostgreSQL concurrents et recette production : 29/30, compteur partagé sur les deux pages, zéro erreur console                                                                    | `docs/rncp/bloc2-annexes/B2-A42-acces-jury-securise-2026-07-23.md`                                 |
+| LIV-04 | C2.2.1 / C2.3.1                            | Matrice complète besoins/user stories, écrans, composants, scénarios et preuves                               | Présente intégralement dans le PDF d'annexes `rc.7`, avec entrée de sommaire et signet                                                                                                                   | `docs/rncp/bloc2-matrice-user-stories-preuves.md`                                                  |
 
 Le paquet `rc.4` existant, validé sur 75 pages, est historique et antérieur à
-B2-A41. La remise `rc.6` intègre le cahier de recettes, le plan de correction,
+B2-A41. La remise `rc.7` intègre le cahier de recettes, le plan de correction,
 la revue OWASP, LIV-04, B2-A41 et B2-A42. Le dossier compte 11 pages et les annexes 89 ;
 le rendu intégral, l'anonymisation PDF/ZIP, la décompression et les empreintes
 ont été contrôlés.

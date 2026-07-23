@@ -7,8 +7,8 @@ puis enregistrée dans un journal pour alimenter le tableau de bord.
 - Application : <https://ai-sport-web.vercel.app>
 - Dépôt : <https://github.com/Kevinmrgt/aiSport>
 - API : <https://ai-sport-api.vercel.app/health>
-- Version présentée : `0.13.0-rc.5`
-- Révision déployée : `c63439e8ac8d68efd5ba091211b326ee8575fbba`
+- Version présentée : `0.13.0-rc.7`
+- Révision déployée : `d42e7f2c8fc86f26c46f850d32eb748870c6140d`
 
 Le projet utilise Next.js 15, Hono, PostgreSQL 16, Drizzle ORM, Auth.js,
 OpenAI, Vitest et Playwright. Le monorepo fonctionne avec Node.js 24 et pnpm
@@ -123,6 +123,15 @@ uniquement côté Web. La clé OpenAI reste uniquement côté API.
 5. Créer un programme depuis `/programs/generate`.
 6. Vérifier les listes, les filtres, les paramètres et la suppression.
 
+Le jury dispose en production d'un accès temporaire distinct de Google. Cet
+accès est plafonné à 30 générations réussies au total, partagées entre les
+séances et les programmes. Le compteur est persistant et sa réservation est
+atomique : 31 demandes concurrentes donnent 30 acceptations et un refus. Une
+suppression ne recrédite pas le quota ; un échec IA ou d'enregistrement en base
+libère en revanche la réservation. Les comptes Google restent illimités. La
+recette navigateur de production affiche 29 générations restantes après une
+génération de validation.
+
 Sans identifiants Google, les pages publiques et les healthchecks restent
 consultables. Sans clé OpenAI, l'application démarre mais la génération ne peut
 pas être testée.
@@ -142,9 +151,12 @@ pnpm build
 pnpm audit --prod --audit-level=low
 ```
 
-La CI exécute en plus PostgreSQL 16, les tests Playwright, l'audit de
-dépendances et la construction des images Docker. La CI `29930722308` et la CD
-`29931146789` ont réussi sur la révision indiquée en tête de ce README.
+La baseline comprend 267 tests unitaires et de composants : 14 dans le package
+partagé, 179 côté API et 74 côté Web. La CI exécute en plus PostgreSQL 16, dont
+le test dédié des 31 réservations concurrentes du quota jury, les tests
+Playwright E2E, l'audit de dépendances et la construction des images Docker. La
+CI `29994929981` et la CD `29995297354` ont réussi sur la révision indiquée en
+tête de ce README.
 
 ## Structure
 
