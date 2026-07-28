@@ -3,7 +3,7 @@
 > Bloc officiel : **Maintenir l'application logicielle en condition opérationnelle**
 > Projet : **Alcide / alcide**
 > Candidat : Kevin
-> Version du livrable : 2026-05-07
+> Version du livrable : 2026-07-28 — état documentaire de l'application `0.13.0-rc.3`
 > Format cible : dossier écrit exploitable pour le jury, 20 pages maximum hors annexes
 
 ---
@@ -32,15 +32,16 @@ Compétences éliminatoires à sécuriser :
 | **C4.2.1** - Consigner les anomalies détectées               | Processus de collecte, informations utiles, reproduction, analyse et préconisation | Sections 6, 7 et document [bloc4-processus-incidents.md](bloc4-processus-incidents.md) |
 | **C4.3.2** - Établir un journal des versions déployées       | Versions, corrections et évolutions documentées                                    | Section 9 et [CHANGELOG.md](../../CHANGELOG.md)                                        |
 
-Statut global : **solide mais à compléter en exploitation réelle**. Le projet dispose déjà de healthchecks, CI/CD, fiches bugs, changelog, audit et rollback documenté. Les limites principales sont l'absence de preuve d'alerting externe réellement configuré et l'absence de support client réel ; ces écarts sont signalés explicitement.
+Statut global : **base MCO versionnée, à compléter par des preuves d'exécution avant remise**. Le dépôt contient les healthchecks non cacheables, une CI/CD, un monitoring GitHub horaire, des templates d'anomalie/support, des fiches bugs, un changelog, un audit et un rollback documenté. En revanche, ce dossier ne prétend ni à l'existence d'un monitor Better Stack, ni à celle d'une capture, d'un run de monitoring ou d'une issue GitHub réellement créée : ces éléments restent à joindre ou à constater dans GitHub.
 
 Statuts utilisés dans ce livrable :
 
-| Statut                | Signification                                                                     |
-| --------------------- | --------------------------------------------------------------------------------- |
-| **Déjà en place**     | Preuve existante dans le dépôt ou la configuration projet                         |
-| **Partiel**           | Preuve réelle mais incomplète, dispersée ou sans exploitation production complète |
-| **À mettre en place** | Recommandation ou preuve manquante, non présentée comme déjà réalisée             |
+| Statut                | Signification                                                                        |
+| --------------------- | ------------------------------------------------------------------------------------ |
+| **Versionné**         | Code, configuration ou documentation présents dans le dépôt                          |
+| **Partiel**           | Élément présent, mais couverture, centralisation ou preuve d'exploitation incomplète |
+| **À exécuter/capter** | Preuve d'exécution attendue dans GitHub, Vercel, Neon ou un terminal                 |
+| **À mettre en place** | Recommandation ou capacité absente, non présentée comme déjà réalisée                |
 
 ---
 
@@ -63,8 +64,8 @@ Alcide est une application web full-stack qui génère des entraînements et pro
 
 ```mermaid
 flowchart LR
-  U["Utilisateur authentifié"] --> W["Web Next.js<br/>alcide-web.vercel.app"]
-  W --> A["API Hono<br/>alcide-api.vercel.app"]
+  U["Utilisateur authentifié"] --> W["Web Next.js<br/>ai-sport-web.vercel.app"]
+  W --> A["API Hono<br/>ai-sport-api.vercel.app"]
   A --> DB["Neon PostgreSQL<br/>DATABASE_URL"]
   A --> IA["Mistral AI<br/>MISTRAL_API_KEY ou clé utilisateur"]
   W --> G["Google OAuth<br/>Auth.js"]
@@ -77,12 +78,12 @@ flowchart LR
 
 La cible officielle du dépôt est :
 
-| Composant       | Plateforme      | URL ou accès                    |
-| --------------- | --------------- | ------------------------------- |
-| Web             | Vercel          | `https://alcide-web.vercel.app` |
-| API             | Vercel          | `https://alcide-api.vercel.app` |
-| Base de données | Neon PostgreSQL | via `DATABASE_URL`              |
-| CI/CD           | GitHub Actions  | `.github/workflows/`            |
+| Composant       | Plateforme      | URL ou accès                      |
+| --------------- | --------------- | --------------------------------- |
+| Web             | Vercel          | `https://ai-sport-web.vercel.app` |
+| API             | Vercel          | `https://ai-sport-api.vercel.app` |
+| Base de données | Neon PostgreSQL | via `DATABASE_URL`                |
+| CI/CD           | GitHub Actions  | `.github/workflows/`              |
 
 Docker Compose reste disponible pour démonstration locale ou auto-hébergement, avec PostgreSQL, API et Web, mais ce n'est pas la voie CD canonique.
 
@@ -144,18 +145,18 @@ Dependabot est configuré pour :
 
 ### 2.2 Procédure proposée
 
-| Étape                | Action                                                          | Commande ou preuve                                          | Critère de sortie                 |
-| -------------------- | --------------------------------------------------------------- | ----------------------------------------------------------- | --------------------------------- |
-| 1. Détection         | Lire PR Dependabot ou lancer une revue manuelle                 | GitHub, `pnpm outdated`, `pnpm audit --audit-level=high`    | Mise à jour qualifiée             |
-| 2. Qualification     | Identifier type : patch, minor, major, sécurité, runtime, build | changelog éditeur, advisory CVE                             | Risque estimé                     |
-| 3. Branche           | Traiter en branche dédiée                                       | `git checkout -b codex/update-deps-...`                     | Changements isolés                |
-| 4. Installation      | Mettre à jour avec lockfile                                     | `pnpm install` ou PR Dependabot                             | `pnpm-lock.yaml` cohérent         |
-| 5. Audit             | Vérifier vulnérabilités hautes                                  | `pnpm audit --audit-level=high`                             | Aucune alerte haute non justifiée |
-| 6. Validation locale | Lancer contrôles qualité                                        | `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`    | Tous les contrôles passent        |
-| 7. Validation ciblée | Tester la zone impactée                                         | E2E auth, génération IA, healthchecks, migrations si besoin | Pas de régression métier          |
-| 8. Merge             | Fusionner après CI verte                                        | `.github/workflows/ci.yml`                                  | CI validée                        |
-| 9. Déploiement       | CD Vercel ou manuel selon contexte                              | `.github/workflows/deploy-vercel.yml`                       | Smoke tests prod OK               |
-| 10. Journalisation   | Ajouter entrée si changement notable                            | `CHANGELOG.md`                                              | Version ou `Unreleased` à jour    |
+| Étape                | Action                                                          | Commande ou preuve                                          | Critère de sortie              |
+| -------------------- | --------------------------------------------------------------- | ----------------------------------------------------------- | ------------------------------ |
+| 1. Détection         | Lire PR Dependabot ou lancer une revue manuelle                 | GitHub, `pnpm outdated`, `pnpm audit --audit-level=low`     | Mise à jour qualifiée          |
+| 2. Qualification     | Identifier type : patch, minor, major, sécurité, runtime, build | changelog éditeur, advisory CVE                             | Risque estimé                  |
+| 3. Branche           | Traiter en branche dédiée                                       | `git checkout -b codex/update-deps-...`                     | Changements isolés             |
+| 4. Installation      | Mettre à jour avec lockfile                                     | `pnpm install` ou PR Dependabot                             | `pnpm-lock.yaml` cohérent      |
+| 5. Audit             | Vérifier les vulnérabilités selon la gate CI                    | `pnpm audit --audit-level=low`                              | Aucune alerte non justifiée    |
+| 6. Validation locale | Lancer contrôles qualité                                        | `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`    | Tous les contrôles passent     |
+| 7. Validation ciblée | Tester la zone impactée                                         | E2E auth, génération IA, healthchecks, migrations si besoin | Pas de régression métier       |
+| 8. Merge             | Fusionner après CI verte                                        | `.github/workflows/ci.yml`                                  | CI validée                     |
+| 9. Déploiement       | CD Vercel ou manuel selon contexte                              | `.github/workflows/deploy-vercel.yml`                       | Smoke tests prod OK            |
+| 10. Journalisation   | Ajouter entrée si changement notable                            | `CHANGELOG.md`                                              | Version ou `Unreleased` à jour |
 
 ### 2.3 Fréquence recommandée
 
@@ -214,14 +215,17 @@ tests et les builds ; la CD `29747592571` a déployé la candidate.
 
 ### 4.1 Sondes et healthchecks existants
 
-| Sonde             | Statut   | Réponse attendue                                           | Preuve                                                         |
-| ----------------- | -------- | ---------------------------------------------------------- | -------------------------------------------------------------- |
-| API `/health`     | En place | JSON `status: ok`, timestamp, version                      | [health.routes.ts](../../apps/api/src/routes/health.routes.ts) |
-| Web `/api/health` | En place | JSON `status: ok`, service, timestamp                      | [route.ts](../../apps/web/app/api/health/route.ts)             |
-| Docker PostgreSQL | En place | `pg_isready` OK                                            | [docker-compose.yml](../../docker-compose.yml)                 |
-| Docker API        | En place | `wget http://localhost:3001/health` OK                     | [docker-compose.yml](../../docker-compose.yml)                 |
-| CD API            | En place | `curl --fail https://ai-sport-api.vercel.app/health/ready` | [deploy-vercel.yml](../../.github/workflows/deploy-vercel.yml) |
-| CD Web            | En place | `curl --fail https://ai-sport-web.vercel.app/api/health`   | [deploy-vercel.yml](../../.github/workflows/deploy-vercel.yml) |
+| Sonde                   | Statut    | Réponse attendue                                                                                      | Preuve versionnée                                                                      |
+| ----------------------- | --------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| API `/health`           | Versionné | Liveness : JSON `status: ok`, service, horodatage et version                                          | [health.routes.ts](../../apps/api/src/routes/health.routes.ts)                         |
+| API `/health/ready`     | Versionné | Readiness : `status: ready` et HTTP 200 ; sinon `not_ready` et HTTP 503, avec le détail des contrôles | [health.routes.ts](../../apps/api/src/routes/health.routes.ts)                         |
+| Web `/api/health`       | Versionné | JSON `status: ok`, service, horodatage et version                                                     | [route.ts](../../apps/web/app/api/health/route.ts)                                     |
+| Anti-cache              | Versionné | Les trois réponses ci-dessus envoient `Cache-Control: no-store, max-age=0`                            | mêmes routes                                                                           |
+| Monitoring GitHub       | Versionné | Toutes les heures à `:17`, contrôle API `ready` et Web `ok`, puis artefact de rapport                 | [production-health-monitor.yml](../../.github/workflows/production-health-monitor.yml) |
+| Docker PostgreSQL / API | Versionné | `pg_isready` et `wget http://localhost:3001/health`                                                   | [docker-compose.yml](../../docker-compose.yml)                                         |
+| CD API / Web            | Versionné | Smoke API sur `/health/ready`, Web sur `/api/health`                                                  | [deploy-vercel.yml](../../.github/workflows/deploy-vercel.yml)                         |
+
+Les réponses de healthcheck et le workflow sont des preuves de configuration. Elles ne constituent pas, à elles seules, la preuve qu'une exécution planifiée a eu lieu : un run réussi et son artefact sont donc demandés dans la checklist de remise.
 
 Commandes de vérification :
 
@@ -233,17 +237,17 @@ curl -I https://ai-sport-web.vercel.app
 
 ### 4.2 Périmètre à surveiller
 
-| Zone              | Indicateur                                         | Source actuelle                                  | Statut           |
-| ----------------- | -------------------------------------------------- | ------------------------------------------------ | ---------------- |
-| Disponibilité Web | HTTP 200 `/api/health`, homepage accessible        | healthcheck Web, Vercel logs                     | En place partiel |
-| Disponibilité API | HTTP 200 `/health`                                 | healthcheck API, Vercel logs                     | En place partiel |
-| Base de données   | erreurs de connexion, latence requêtes, migrations | logs API, Neon dashboard                         | Partiel          |
-| Authentification  | erreurs OAuth, secrets invalides, 401/403          | logs Auth.js/API                                 | Partiel          |
-| Génération IA     | timeout, JSON invalide, erreurs fournisseur, durée | logs `[AiService]`, `[MistralProgramService]`    | Partiel          |
-| Rate limiting     | dépassements 429                                   | logs `[RateLimit]`                               | Partiel          |
-| Sécurité API      | secrets internes invalides, erreurs inattendues    | logs `[Auth]`, `[AppError]`, `[UnexpectedError]` | Partiel          |
-| CI/CD             | échecs de pipeline, build, audit                   | GitHub Actions                                   | En place         |
-| Déploiement       | smoke tests prod, build Vercel                     | GitHub Actions, Vercel                           | En place         |
+| Zone              | Indicateur                                         | Source actuelle                                  | Statut    |
+| ----------------- | -------------------------------------------------- | ------------------------------------------------ | --------- |
+| Disponibilité Web | HTTP 200 et `status: ok` sur `/api/health`         | workflow GitHub horaire, healthcheck Web         | Versionné |
+| Disponibilité API | HTTP 200 et `status: ready` sur `/health/ready`    | workflow GitHub horaire, readiness API           | Versionné |
+| Base de données   | erreurs de connexion, latence requêtes, migrations | logs API, Neon dashboard                         | Partiel   |
+| Authentification  | erreurs OAuth, secrets invalides, 401/403          | logs Auth.js/API                                 | Partiel   |
+| Génération IA     | timeout, JSON invalide, erreurs fournisseur, durée | logs `[AiService]`, `[MistralProgramService]`    | Partiel   |
+| Rate limiting     | dépassements 429                                   | logs `[RateLimit]`                               | Partiel   |
+| Sécurité API      | secrets internes invalides, erreurs inattendues    | logs `[Auth]`, `[AppError]`, `[UnexpectedError]` | Partiel   |
+| CI/CD             | échecs de pipeline, build, audit                   | GitHub Actions                                   | Versionné |
+| Déploiement       | smoke tests prod, build Vercel                     | GitHub Actions, Vercel                           | Versionné |
 
 ### 4.3 Logs disponibles
 
@@ -278,16 +282,26 @@ Limite actuelle : les logs sont basés sur `console.*`. Ils sont exploitables da
 
 ## 5. Alerting
 
-### 5.1 Ce qui existe déjà
+### 5.1 Canal de signalement GitHub configuré
 
-| Alerte ou signal                  | Statut            | Canal                                                      |
-| --------------------------------- | ----------------- | ---------------------------------------------------------- |
-| Échec CI GitHub Actions           | En place          | GitHub checks / notifications GitHub                       |
-| Échec CD Vercel GitHub Actions    | En place          | GitHub checks / logs workflow                              |
-| Smoke test production KO après CD | En place          | Échec workflow CD                                          |
-| Audit `pnpm audit` high           | Partiel           | Job visible mais non bloquant                              |
-| Logs runtime Vercel               | Partiel           | Dashboard Vercel, sans règle d'alerte prouvée              |
-| Healthchecks externes périodiques | À mettre en place | UptimeRobot, Better Stack, Vercel Monitoring ou équivalent |
+Le canal de signalement opérationnel actuellement **configuré** est GitHub, et non un outil externe : le workflow [Monitoring - Production health](../../.github/workflows/production-health-monitor.yml) est planifié chaque heure à `:17` (et peut être lancé manuellement), appelle les endpoints configurés, attend `ready` pour l'API et `ok` pour le Web, puis produit l'artefact `production-health-report` à chaque exécution.
+
+En cas d'échec, le workflow crée le label `monitoring` si nécessaire et :
+
+- ouvre une issue GitHub intitulée `Production healthcheck failed` si aucune issue ouverte de ce titre et de ce label n'existe ;
+- sinon, ajoute le nouveau rapport à l'issue ouverte ;
+- après un run réussi, commente puis ferme cette issue ouverte comme rétablie.
+
+Les notifications vers une personne dépendent ensuite des préférences GitHub des destinataires ; aucun e-mail, mobile, issue ou destinataire effectivement notifié n'est affirmé dans ce dossier sans capture. Le workflow est la preuve d'un mécanisme de signalement configuré ; un run et un artefact restent la preuve d'exécution à produire.
+
+| Alerte ou signal                        | Statut                | Canal / preuve                                                                                              |
+| --------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Échec du healthcheck horaire API ou Web | Versionné             | Run GitHub Actions, artefact, puis issue `Production healthcheck failed` selon la logique décrite ci-dessus |
+| Échec CI ou CD                          | Versionné             | GitHub checks et logs de workflow                                                                           |
+| Smoke test production KO après CD       | Versionné             | Échec du workflow CD                                                                                        |
+| Audit `pnpm audit --audit-level=low`    | Versionné et bloquant | Job `security-audit` de [ci.yml](../../.github/workflows/ci.yml)                                            |
+| Logs runtime Vercel                     | Partiel               | Dashboard Vercel, sans règle d'alerte versionnée prouvée                                                    |
+| Monitoring externe périodique           | À mettre en place     | Better Stack, UptimeRobot, Vercel Monitoring ou équivalent                                                  |
 
 ### 5.2 Alertes recommandées
 
@@ -304,17 +318,11 @@ Limite actuelle : les logs sont basés sur `console.*`. Ils sont exploitables da
 | CI `main` échouée              |                                    1 échec | Moyenne          | Mainteneur projet | GitHub notification         |
 | Vulnérabilité haute            |                        1 advisory confirmé | Haute            | Mainteneur projet | GitHub Dependabot/Security  |
 
-### 5.3 Modalité de signalement cible
+### 5.3 Limites et évolution recommandée
 
-Pour un prototype RNCP, la modalité minimale recommandée est :
+Pour le jury, la formulation exacte est : « GitHub Actions est le canal configuré de détection et de consignation ; son exécution doit être montrée par un run et son artefact. » Better Stack n'est qu'une amélioration envisageable : aucun monitor Better Stack, seuil, destinataire ou alerte externe n'est présenté comme créé.
 
-- UptimeRobot ou Better Stack : ping HTTP toutes les 5 minutes sur Web et API.
-- GitHub notifications : échecs CI/CD et Dependabot.
-- Vercel : runtime logs, erreurs fonctions, web analytics si activé.
-- Neon : alerte quota/connexion si disponible.
-- Canal support : adresse email ou formulaire de contact pour retours utilisateurs.
-
-Écart à produire avant dépôt : capturer une preuve d'écran ou export de configuration d'un outil de monitoring externe. À défaut, présenter clairement cette section comme **système recommandé non encore prouvé en production**.
+Si un outil externe est réellement configuré ultérieurement, le rattacher aux mêmes URLs, définir le destinataire et joindre sa capture. En son absence, une capture d'un run vert GitHub et de l'artefact suffit à démontrer le contrôle horaire ; une issue automatique ne doit être jointe que si elle provient d'un incident réel, sans provoquer de panne de production uniquement pour produire une preuve.
 
 ---
 
@@ -340,12 +348,14 @@ Cycle de vie retenu :
 Outils actuels :
 
 - fiches Markdown dans `docs/bloc4/bugs/` ;
+- [template GitHub « Anomalie Bloc 4 »](../../.github/ISSUE_TEMPLATE/anomaly_report.yml) pour la collecte structurée ;
+- [template GitHub « Cas support client Bloc 4 »](../../.github/ISSUE_TEMPLATE/support_case.yml) pour les retours support ;
 - Git / commits / branches ;
 - GitHub Actions pour validation ;
 - `CHANGELOG.md` pour traçabilité versionnée ;
 - logs Vercel/GitHub pour signaux runtime ou pipeline.
 
-Écart actuel : le dépôt contient deux fiches bugs réelles, mais pas encore d'outil ticketing externe type GitHub Issues, Linear ou Jira prouvant le workflow complet. Pour le RNCP, les fiches Markdown sont acceptables si elles sont structurées, datées, reliées aux preuves et accompagnées du processus.
+Le dépôt fournit donc deux canaux de consignation versionnés : les fiches Markdown pour les cas déjà documentés et GitHub Issues pour les nouveaux incidents et cas support. L'existence des templates ne vaut pas preuve d'une issue effectivement créée ; toute issue de mise en situation devra être explicitement marquée « simulation déclarée ».
 
 ---
 
@@ -403,24 +413,26 @@ Lien avec C4.2.2 : le correctif tire profit de l'intégration continue, car la d
 
 Preuve principale : [CHANGELOG.md](../../CHANGELOG.md)
 
-Le changelog suit une structure proche de Keep a Changelog et trace les versions `0.1.0` à `0.12.0`, avec sections `Added`, `Changed`, `Fixed` et `Security`.
+Le changelog suit une structure proche de Keep a Changelog et trace les versions `0.1.0` à `0.13.0-rc.3`, avec sections `Added`, `Changed`, `Fixed` et `Security`.
 
-| Version  | Date       | Évolutions ou corrections MCO notables                                                             |
-| -------- | ---------- | -------------------------------------------------------------------------------------------------- |
-| `0.12.0` | 2026-04-16 | Pagination/filtres, dashboard, statistiques utilisateur, correction Auth.js `trustHost` sur Vercel |
-| `0.11.0` | 2026-04-13 | Tests `validateEnv`, déploiement Vercel/Neon, documentation CI/CD enrichie                         |
-| `0.10.0` | 2026-04-13 | Healthcheck Web `/api/health`, fail-fast env vars API                                              |
-| `0.9.0`  | 2026-04-13 | Correction BUG-002 README UTF-8, `.gitattributes`                                                  |
-| `0.8.0`  | 2026-04-13 | Tests axe-core, seed de démonstration                                                              |
-| `0.7.0`  | 2026-04-13 | CRA Bloc 4, cahier de recettes enrichi                                                             |
-| `0.6.0`  | 2026-04-13 | Dockerfiles, Docker Compose, guide déploiement                                                     |
-| `0.5.0`  | 2026-04-13 | Rate limiting, BUG-001, veille technologique                                                       |
-| `0.4.0`  | 2026-04-13 | E2E Playwright, revue OWASP, CI enrichie                                                           |
-| `0.3.0`  | 2026-04-13 | Suppression workout, 404/error boundary, coverage fix                                              |
-| `0.2.0`  | 2026-04-13 | Auth service-to-service, liste et détail workouts                                                  |
-| `0.1.0`  | 2026-04-13 | Bootstrap monorepo, API Hono, PostgreSQL, Mistral, CI initiale                                     |
+| Version       | Date       | Évolutions ou corrections MCO notables                                                                                                        |
+| ------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0.13.0-rc.3` | 2026-07-20 | Candidate de référence documentaire : correctifs de recette authentifiée ; à ne pas confondre avec une preuve de production jointe au dossier |
+| `0.13.0-rc.2` | 2026-07-20 | Readiness API, healthchecks non cacheables, workflow de monitoring GitHub, artefact et templates d'issues Bloc 4                              |
+| `0.12.0`      | 2026-04-16 | Pagination/filtres, dashboard, statistiques utilisateur, correction Auth.js `trustHost` sur Vercel                                            |
+| `0.11.0`      | 2026-04-13 | Tests `validateEnv`, déploiement Vercel/Neon, documentation CI/CD enrichie                                                                    |
+| `0.10.0`      | 2026-04-13 | Healthcheck Web `/api/health`, fail-fast env vars API                                                                                         |
+| `0.9.0`       | 2026-04-13 | Correction BUG-002 README UTF-8, `.gitattributes`                                                                                             |
+| `0.8.0`       | 2026-04-13 | Tests axe-core, seed de démonstration                                                                                                         |
+| `0.7.0`       | 2026-04-13 | CRA Bloc 4, cahier de recettes enrichi                                                                                                        |
+| `0.6.0`       | 2026-04-13 | Dockerfiles, Docker Compose, guide déploiement                                                                                                |
+| `0.5.0`       | 2026-04-13 | Rate limiting, BUG-001, veille technologique                                                                                                  |
+| `0.4.0`       | 2026-04-13 | E2E Playwright, revue OWASP, CI enrichie                                                                                                      |
+| `0.3.0`       | 2026-04-13 | Suppression workout, 404/error boundary, coverage fix                                                                                         |
+| `0.2.0`       | 2026-04-13 | Auth service-to-service, liste et détail workouts                                                                                             |
+| `0.1.0`       | 2026-04-13 | Bootstrap monorepo, API Hono, PostgreSQL, Mistral, CI initiale                                                                                |
 
-Cohérence vérifiée le 2026-05-07 : [package.json](../../package.json), [CHANGELOG](../../CHANGELOG.md) et [deployment.md](../deployment.md) indiquent `0.12.0` comme version applicative de référence.
+Cohérence documentaire vérifiée le 2026-07-28 : [package.json](../../package.json) et [deployment.md](../deployment.md) indiquent la candidate `0.13.0-rc.3`, et [CHANGELOG.md](../../CHANGELOG.md) contient son entrée datée du 2026-07-20. Cette version est la référence de ce dossier ; son statut de candidate interdit de la présenter comme une preuve de déploiement sans run CD et smoke tests associés.
 
 ---
 
@@ -491,8 +503,8 @@ Checklist post-déploiement :
 - Migrations Drizzle appliquées si le schéma a changé.
 - `SERVICE_SECRET` identique côté Web et API.
 - OAuth Google callback configuré.
-- `https://alcide-api.vercel.app/health` répond 200.
-- `https://alcide-web.vercel.app/api/health` répond 200.
+- `https://ai-sport-api.vercel.app/health/ready` répond 200 avec `status: ready`.
+- `https://ai-sport-web.vercel.app/api/health` répond 200 avec `status: ok`.
 - Génération d'entraînement testée avec un compte authentifié.
 - Changelog mis à jour si le changement est notable.
 
@@ -530,90 +542,76 @@ Exemple de réponse support simulée :
 
 ## 13. Recommandations d'amélioration
 
-| Recommandation                                  | Source                   | Gain attendu                             | Coût / délai                | Priorité |
-| ----------------------------------------------- | ------------------------ | ---------------------------------------- | --------------------------- | -------- |
-| Mettre en place un monitoring externe Web/API   | Écart C4.1.2             | Preuve d'alerte et disponibilité         | Faible, 0,5 j               | Haute    |
-| Remplacer `console.*` par logger structuré Pino | OWASP A09, logs actuels  | Recherche, corrélation, niveaux, export  | Moyen, 1 à 2 j              | Haute    |
-| Centraliser logs et alertes                     | Limite Vercel logs seuls | Diagnostic incident plus rapide          | Moyen, 1 à 2 j              | Haute    |
-| Activer alertes Vercel/Neon                     | Déploiement Vercel/Neon  | Détection 5xx, quotas, DB                | Faible à moyen              | Haute    |
-| Ajouter tests d'intégration DB                  | BUG-001 leçon apprise    | Couvrir repositories et migrations       | Moyen, 2 à 3 j              | Haute    |
-| Créer sauvegarde/branche Neon avant migration   | Risque DB                | Rollback DB crédible                     | Faible, 0,5 j par migration | Haute    |
-| Formaliser SLO/SLA simples                      | Critères supervision     | Pilotage disponibilité                   | Faible, 0,5 j               | Moyenne  |
-| Ajouter observabilité IA                        | Logs IA partiels         | Suivi coût, latence, erreurs fournisseur | Moyen, 1 à 2 j              | Moyenne  |
-| Mettre rate limiting dans Redis/Upstash         | Limite in-memory         | Cohérence multi-instances Vercel         | Moyen, 1 à 2 j              | Moyenne  |
-| Créer documentation utilisateur/support         | Écart support client     | Réduire demandes support                 | Faible, 1 j                 | Moyenne  |
+| Recommandation                                  | Source                     | Gain attendu                             | Coût / délai                | Priorité |
+| ----------------------------------------------- | -------------------------- | ---------------------------------------- | --------------------------- | -------- |
+| Ajouter un monitoring externe Web/API           | Complément au canal GitHub | Alerte indépendante et mesure d'uptime   | Faible, 0,5 j               | Moyenne  |
+| Remplacer `console.*` par logger structuré Pino | OWASP A09, logs actuels    | Recherche, corrélation, niveaux, export  | Moyen, 1 à 2 j              | Haute    |
+| Centraliser logs et alertes                     | Limite Vercel logs seuls   | Diagnostic incident plus rapide          | Moyen, 1 à 2 j              | Haute    |
+| Activer alertes Vercel/Neon                     | Déploiement Vercel/Neon    | Détection 5xx, quotas, DB                | Faible à moyen              | Haute    |
+| Ajouter tests d'intégration DB                  | BUG-001 leçon apprise      | Couvrir repositories et migrations       | Moyen, 2 à 3 j              | Haute    |
+| Créer sauvegarde/branche Neon avant migration   | Risque DB                  | Rollback DB crédible                     | Faible, 0,5 j par migration | Haute    |
+| Formaliser SLO/SLA simples                      | Critères supervision       | Pilotage disponibilité                   | Faible, 0,5 j               | Moyenne  |
+| Ajouter observabilité IA                        | Logs IA partiels           | Suivi coût, latence, erreurs fournisseur | Moyen, 1 à 2 j              | Moyenne  |
+| Mettre rate limiting dans Redis/Upstash         | Limite in-memory           | Cohérence multi-instances Vercel         | Moyen, 1 à 2 j              | Moyenne  |
+| Créer documentation utilisateur/support         | Écart support client       | Réduire demandes support                 | Faible, 1 j                 | Moyenne  |
 
 ---
 
 ## 14. Écarts et preuves à produire
 
-### 14.1 Preuves déjà présentes
+### 14.1 Preuves techniques déjà présentes dans le dépôt
 
-| Preuve                                       | Statut           |
-| -------------------------------------------- | ---------------- |
-| Healthchecks Web/API                         | En place         |
-| Docker healthchecks                          | En place         |
-| CI complète avec tests, build, audit, Docker | En place         |
-| CD Vercel avec smoke tests                   | En place         |
-| Workflow migrations Drizzle manuel           | En place         |
-| Fiches anomalies BUG-001 et BUG-002          | En place         |
-| Changelog versionné                          | En place         |
-| Rollback Vercel documenté                    | En place         |
-| Revue OWASP avec logs et monitoring          | En place partiel |
+| Preuve versionnée               | Référence                                                                                                             | Ce qu'elle démontre                                          | Ce qu'elle ne démontre pas                        |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------- |
+| Healthchecks API/Web `no-store` | [API](../../apps/api/src/routes/health.routes.ts), [Web](../../apps/web/app/api/health/route.ts)                      | Contrats `ok`/`ready`, version et anti-cache                 | Réponse publique effective à une date donnée      |
+| Monitoring GitHub horaire       | [workflow](../../.github/workflows/production-health-monitor.yml)                                                     | Planification, contrôle JSON, artefact et traitement d'échec | Un run, un artefact ou une issue réellement créés |
+| Templates GitHub Issues         | [anomalie](../../.github/ISSUE_TEMPLATE/anomaly_report.yml), [support](../../.github/ISSUE_TEMPLATE/support_case.yml) | Champs de collecte C4.2.1/C4.3.3                             | Une issue ou un retour utilisateur réel           |
+| CI/CD, migrations et rollback   | [CI/CD](../ci-cd.md), [déploiement](../deployment.md)                                                                 | Gates, smoke tests et reprise documentés                     | Une capture finale de chaque opération            |
+| BUG-001, BUG-002 et changelog   | [fiches](../bloc4/bugs/), [CHANGELOG](../../CHANGELOG.md)                                                             | Cas déjà consignés et journal de versions                    | Un ticket GitHub équivalent                       |
 
-### 14.2 Preuves partielles
+### 14.2 Éléments à capter ou à compléter
 
-| Sujet               | Pourquoi partiel                                     | Action                                          |
-| ------------------- | ---------------------------------------------------- | ----------------------------------------------- |
-| Supervision         | Sondes présentes, mais pas d'alerting externe prouvé | Configurer et capturer un outil de monitoring   |
-| Logs                | Logs utiles mais non centralisés                     | Ajouter logger structuré et export              |
-| Processus anomalies | Fiches existantes, procédure généralisée créée ici   | Utiliser la procédure sur les prochains tickets |
-| Support client      | Exemple simulé, pas de vrai retour                   | Créer canal support ou ticket pilote            |
-| Rollback DB         | Stratégie décrite, backup Neon non prouvé            | Capturer procédure backup/branche               |
-| Tests DB            | Repositories non couverts par intégration DB         | Ajouter Testcontainers ou DB de test            |
+| Sujet               | État honnête                                      | Éléments attendus                                                                                              |
+| ------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Supervision GitHub  | Mécanisme configuré, exécution non jointe ici     | Run vert et artefact `production-health-report`                                                                |
+| Signalement GitHub  | Création/commentaire/fermeture d'issue configurés | Conserver une issue seulement si un incident réel la produit ; ne pas en fabriquer une en provoquant une panne |
+| Monitoring externe  | Non configuré dans les preuves fournies           | Optionnel : Better Stack ou équivalent, uniquement s'il est réellement mis en place                            |
+| Processus anomalies | Templates et fiches présents                      | Une issue de mise en situation peut être ajoutée, avec la mention visible « simulation déclarée »              |
+| Support client      | Cas décrit en section 12, sans retour réel        | Ticket support réel ou mise en situation datée, explicitement déclarée                                         |
+| Rollback DB         | Stratégie décrite, backup/branche non joint       | Capture seulement si une migration sensible est effectuée                                                      |
 
-### 14.3 Preuves manquantes prioritaires avant dépôt
+### 14.3 Checklist réaliste avant dépôt
 
-1. Capture d'une supervision externe Web/API avec seuils et destinataire.
-2. Capture d'une alerte ou d'un incident simulé montrant notification et traitement.
-3. Ticket support réel ou simulation datée validée par commanditaire.
-4. Harmonisation de version entre `package.json`, `CHANGELOG.md` et `docs/deployment.md`.
-5. Preuve de CI verte finale et smoke tests production juste avant dépôt.
-6. Preuve backup/branche Neon avant migration sensible, si des migrations sont encore prévues.
+La checklist détaillée et priorisée est dans [bloc4-preuves-mco-a-completer.md](bloc4-preuves-mco-a-completer.md). Le minimum à joindre est :
+
+1. un run vert de `Monitoring - Production health` et l'artefact associé ;
+2. un run CI final vert, ainsi que les smoke tests si un déploiement est invoqué ;
+3. une anomalie structurée (fiche existante ou issue), et un cas support clairement réel ou clairement simulé ;
+4. la cohérence de version `0.13.0-rc.3` entre le dossier, `package.json`, le changelog et le guide de déploiement ;
+5. seulement si applicable, la preuve d'un rollback/migration ou d'un monitor externe réellement configuré.
 
 ---
 
-## 15. Mise en place outillage MCO du 2026-05-07
+## 15. État MCO à présenter au jury — `0.13.0-rc.3`
 
-Cette passe ajoute un niveau de preuve operationnelle immediatement exploitable pour le jury.
+| Élément versionné          | Référence                                                                                        | Formulation exacte pour le jury                                                                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Monitoring horaire         | [production-health-monitor.yml](../../.github/workflows/production-health-monitor.yml)           | « Un workflow GitHub est configuré à l'heure pour contrôler la readiness API et le healthcheck Web. »                                             |
+| Signalement d'un échec     | même workflow                                                                                    | « En cas d'échec, il est configuré pour créer ou alimenter l'issue GitHub `Production healthcheck failed`, puis la fermer après rétablissement. » |
+| Preuve d'exécution         | artefact `production-health-report`                                                              | « Un run et son artefact sont à joindre ; ils ne sont pas confondus avec la configuration. »                                                      |
+| Collecte anomalies/support | [templates GitHub](../../.github/ISSUE_TEMPLATE/) et fiches `BUG-001` / `BUG-002`                | « Les champs de qualification sont imposés par template ; le cas support de ce dossier reste simulé tant qu'aucun retour réel n'est joint. »      |
+| Contrats de santé          | [API](../../apps/api/src/routes/health.routes.ts), [Web](../../apps/web/app/api/health/route.ts) | « Les endpoints ne sont pas mis en cache et leur repli de version source est `0.13.0-rc.3`. »                                                     |
 
-| Element mis en place          | Fichier ou outil                                                                                         | Apport Bloc 4                                                     |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Monitoring production horaire | [.github/workflows/production-health-monitor.yml](../../.github/workflows/production-health-monitor.yml) | Sondes Web/API, rapport artifact et issue automatique si echec    |
-| Templates GitHub Issues       | `.github/ISSUE_TEMPLATE/anomaly_report.yml`, `.github/ISSUE_TEMPLATE/support_case.yml`                   | Collecte structuree des anomalies et cas support                  |
-| Checklist PR MCO              | [.github/PULL_REQUEST_TEMPLATE.md](../../.github/PULL_REQUEST_TEMPLATE.md)                               | Validation non-regression, changelog et preuve Bloc 4 avant merge |
-| Setup MCP local               | [docs/mcp-setup.md](../mcp-setup.md), `.codex/config.toml`                                               | Acces agent aux fichiers, tests navigateur et outillage Vercel    |
-| Checklist preuves restantes   | [bloc4-preuves-mco-a-completer.md](bloc4-preuves-mco-a-completer.md)                                     | Liste concrete des captures a produire avant depot                |
-| Healthchecks renforces        | `apps/api/src/routes/health.routes.ts`, `apps/web/app/api/health/route.ts`                               | Reponses non cacheables et version applicative alignee            |
-
-Le workflow GitHub Actions constitue une premiere modalite de signalement gratuite : en cas d'echec de `/health` API ou Web, le run echoue et ouvre ou commente une issue `Production healthcheck failed`. Pour une preuve plus forte de supervision externe, la recommandation reste de brancher Better Stack Free sur les deux memes endpoints et de capturer les alertes e-mail.
-
-Preuves a joindre avant depot :
-
-1. un run vert du workflow `Monitoring - Production health` ;
-2. l'artifact `production-health-report` ;
-3. une issue anomalie creee depuis le template Bloc 4 ;
-4. une issue support pilote creee depuis le template support ;
-5. si possible, deux monitors Better Stack actifs avec destinataire d'alerte.
+Ne pas déclarer qu'un monitor Better Stack, une alerte e-mail, une capture ou une issue GitHub existent si la pièce correspondante n'est pas jointe. Better Stack reste une recommandation facultative ; le canal opérationnel démontrable dans le dépôt est GitHub Actions/GitHub Issues.
 
 ---
 
 ## 16. Conclusion Bloc 4
 
-Alcide dispose d'une base MCO crédible : application déployable, CI/CD, healthchecks, logs applicatifs, audit, migrations contrôlées, fiches bugs réelles, changelog et rollback Vercel. Les compétences éliminatoires sont adressées de la manière suivante :
+Alcide dispose d'une base MCO versionnée : application déployable, CI/CD, healthchecks `no-store`, readiness API, monitoring GitHub horaire, logs applicatifs, audit, migrations contrôlées, fiches bugs, changelog et rollback Vercel. Les compétences éliminatoires sont adressées de la manière suivante :
 
-- **C4.1.2** : sondes et indicateurs sont définis ; l'alerting externe reste à prouver.
-- **C4.2.1** : les anomalies sont consignées via fiches Markdown et un processus complet est formalisé.
-- **C4.3.2** : le changelog constitue un journal de versions exploitable, aligné sur la version applicative `0.12.0`.
+- **C4.1.2** : sondes, readiness, monitoring horaire et canal GitHub de signalement sont configurés ; un run/artefact est encore à joindre. L'alerting externe n'est pas revendiqué.
+- **C4.2.1** : les anomalies peuvent être consignées via fiches Markdown ou templates GitHub ; une issue de démonstration doit rester explicitement simulée si elle ne provient pas d'un incident réel.
+- **C4.3.2** : le changelog constitue un journal de versions exploitable, aligné sur la candidate documentaire `0.13.0-rc.3`.
 
-Le dossier doit être présenté au jury comme une maintenance opérationnelle progressive : les preuves techniques existantes sont réelles, les limites sont assumées, et les recommandations donnent une trajectoire réaliste vers une exploitation plus mature.
+Le dossier doit être présenté au jury comme une maintenance opérationnelle progressive : les preuves techniques versionnées sont réelles, les preuves d'exécution encore manquantes sont listées sans les inventer, et les recommandations décrivent une trajectoire réaliste vers une exploitation plus mature.
