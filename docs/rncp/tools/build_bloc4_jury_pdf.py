@@ -165,7 +165,12 @@ def bullet(text: str) -> Paragraph:
 
 
 def section(title: str, items: list) -> list:
-    return [p(title, "h1"), HRFlowable(width="100%", thickness=1, color=TEAL, spaceAfter=3 * mm), *items]
+    return [
+        p(title, "h1"),
+        HRFlowable(width="100%", thickness=1, color=TEAL, spaceAfter=3 * mm),
+        *items,
+        PageBreak(),
+    ]
 
 
 def callout(title: str, text: str, color: colors.Color = PALE_TEAL) -> Table:
@@ -593,7 +598,137 @@ def build_story() -> list:
 
     story.extend(
         section(
-            "10. Checklist de remise et conclusion",
+            "10. Grille de conformité du livrable",
+            [
+                p(
+                    "Le règlement attend huit éléments dans le dossier écrit. Cette grille permet au jury de retrouver rapidement "
+                    "chaque réponse Alcide et précise quelle pièce doit encore être ajoutée au moment de la remise."
+                ),
+                table(
+                    ["Attendu officiel", "Emplacement dans ce dossier", "Élément à joindre si disponible"],
+                    [
+                        ["Mises à jour des dépendances", "Section 2", "PR Dependabot ou audit daté traité."],
+                        ["Système de supervision", "Sections 3 et 4", "Run vert et artefact production-health-report."],
+                        ["Collecte des anomalies", "Section 5", "Issue ou fiche renseignée avec reproduction."],
+                        ["Fiche anomalie", "Section 6 et annexe C4.2.1", "Lien ticket, impact et validation."],
+                        ["Traitement d'une anomalie", "Section 6", "Commit/PR et contrôles réellement exécutés."],
+                        ["Recommandations argumentées", "Section 9", "Aucune pièce supplémentaire, sauf si action réalisée."],
+                        ["Journal des versions", "Section 7 et CHANGELOG", "Entrée liée au correctif si une version est livrée."],
+                        ["Problème support résolu", "Section 8 et annexe C4.3.3", "Ticket réel anonymisé ou simulation déclarée."],
+                    ],
+                    [53 * mm, 66 * mm, 62 * mm],
+                ),
+                p("Règle de recevabilité", "h2"),
+                p(
+                    "Une capture doit être datée, lisible et reliée à la version remise. Une configuration versionnée prouve une capacité ; "
+                    "un run, une issue ou un artefact prouve son exécution. Le dossier ne confond jamais les deux."
+                ),
+                callout(
+                    "Contrôle avant export",
+                    "Les annexes sont sélectionnées à partir des faits disponibles. Les captures contenant des secrets, données de santé, adresses e-mail ou URL signées sont anonymisées ou exclues.",
+                    PALE_AMBER,
+                ),
+            ],
+        )
+    )
+
+    story.extend(
+        section(
+            "11. Routine d'exploitation proposée",
+            [
+                p(
+                    "La maintenance doit être pilotée dans le temps. La routine suivante est adaptée à un pilote applicatif tenu par un mainteneur principal, "
+                    "avec l'appui ponctuel d'un commanditaire ou d'un utilisateur pilote."
+                ),
+                table(
+                    ["Cadence", "Activité", "Trace à conserver"],
+                    [
+                        ["À chaque alerte", "Qualifier le rapport, mesurer l'impact, ouvrir/mettre à jour le ticket et décider correctif, contournement ou rollback.", "Issue GitHub, artefact, décision et test de reprise."],
+                        ["Hebdomadaire", "Consulter Dependabot, le résultat d'audit, les erreurs significatives et le backlog d'anomalies.", "PR, résultat audit, revue des tickets ouverts."],
+                        ["Avant déploiement", "Vérifier la CI, le changelog, le plan de rollback et les migrations éventuelles.", "Run CI, PR checklist, plan de retour."],
+                        ["Après déploiement", "Contrôler readiness API, healthcheck Web et parcours métier ciblé lorsque nécessaire.", "Smoke test, run CD ou capture datée."],
+                        ["Mensuel", "Revoir les tendances, les recommandations, les coûts/erreurs IA et la dette de maintenance.", "Compte rendu, priorisation et décisions."],
+                    ],
+                    [31 * mm, 95 * mm, 55 * mm],
+                ),
+                p("Rôles", "h2"),
+                table(
+                    ["Rôle", "Responsabilité", "Limite assumée"],
+                    [
+                        ["Mainteneur Alcide", "Surveillance, qualification, correction, déploiement et documentation.", "Projet individuel : pas d'astreinte multi-équipe démontrée."],
+                        ["Utilisateur pilote / commanditaire", "Remonter un problème, valider un contournement ou un résultat métier.", "Retour réel à joindre seulement lorsqu'il existe."],
+                        ["Fournisseurs", "Vercel, Neon, OAuth et IA : disponibilité des services externes.", "Leur statut est diagnostiqué, non maîtrisé par le code Alcide."],
+                    ],
+                    [43 * mm, 82 * mm, 56 * mm],
+                ),
+            ],
+        )
+    )
+
+    story.extend(
+        section(
+            "12. Indicateurs, seuils et décisions",
+            [
+                p(
+                    "Les seuils suivants servent à interpréter les données de maintenance. Seuls les contrôles explicitement marqués "
+                    "Configurés sont automatisés aujourd'hui ; les autres sont des objectifs de pilotage à mettre en oeuvre progressivement."
+                ),
+                table(
+                    ["Indicateur", "Seuil / objectif", "Statut et décision associée"],
+                    [
+                        ["Readiness API", "HTTP 200 et status ready", "Configuré : issue monitoring en cas d'échec."],
+                        ["Healthcheck Web", "HTTP 2xx et status ok", "Configuré : issue monitoring en cas d'échec."],
+                        ["Délai de sonde", "20 s, 2 retries", "Configuré : limiter les faux positifs liés à une instabilité brève."],
+                        ["Disponibilité", "99 % mensuel pour le pilote", "Objectif : analyser les incidents et la durée de rétablissement."],
+                        ["Erreurs API 5xx", "< 1 % des requêtes", "Objectif : centraliser les logs et alerter si le seuil est dépassé."],
+                        ["Erreurs IA", "< 5 % des générations", "Objectif : suivre fournisseur, validation et timeouts."],
+                        ["Latence IA", "p95 < 55 s", "Objectif : diagnostiquer timeout, coût ou dégradation fournisseur."],
+                    ],
+                    [38 * mm, 49 * mm, 94 * mm],
+                ),
+                p("Interprétation", "h2"),
+                bullet("Une indisponibilité Web/API constatée par le workflow déclenche la qualification d'incident et peut justifier un rollback."),
+                bullet("Une dérive d'erreurs IA ou de latence ne vaut pas incident prouvé tant qu'elle n'est pas mesurée ; elle est donc présentée comme une recommandation de supervision avancée."),
+                bullet("Les seuils métier sont révisés après collecte de données réelles du pilote, sans promettre une disponibilité contractuelle non établie."),
+            ],
+        )
+    )
+
+    story.extend(
+        section(
+            "13. Registre des risques MCO",
+            [
+                p(
+                    "Le registre relie les risques de maintien en condition opérationnelle aux mécanismes de détection et de réponse. "
+                    "Il sert de base pour prioriser les actions de maintenance et expliquer les arbitrages au jury."
+                ),
+                table(
+                    ["Risque", "Détection", "Réponse et preuve"],
+                    [
+                        ["API ou Web indisponible", "Readiness/healthcheck horaire, CI/CD, logs Vercel.", "Issue monitoring, qualification, rollback ou hotfix, test de reprise."],
+                        ["Migration DB incompatible", "Échec migration, erreurs de connexion ou recette ciblée.", "Branche/backup avant migration, correction compatible et validation."],
+                        ["Régression de dépendance", "Dependabot, audit, CI et tests ciblés.", "Branche dédiée, lockfile, CI, rollback package/version si nécessaire."],
+                        ["Fournisseur IA lent/indisponible", "Logs de durée, timeout, validation de réponse et retour support.", "Message utilisateur, retry/backoff, analyse fournisseur et recommandation."],
+                        ["Erreur d'usage ou documentation", "Retour support, test utilisateur, revue documentaire.", "Ticket, clarification, correctif ou mise à jour de documentation."],
+                        ["Exposition de données sensibles", "Revue sécurité, audit, logs et contrôle des captures.", "Ne pas déposer de secret ; traiter et documenter toute anomalie confirmée."],
+                    ],
+                    [47 * mm, 62 * mm, 72 * mm],
+                ),
+                callout(
+                    "Principe d'escalade",
+                    "P0 : indisponibilité ou risque sécurité majeur, correction/rollback immédiat. P1 : impact élevé, traitement dans la journée. P2 : correction planifiée au prochain lot. P3 : amélioration ou dette à prioriser.",
+                    PALE_BLUE,
+                ),
+                p(
+                    "Les niveaux P0 à P3 sont des objectifs internes de priorisation. Ils ne constituent pas un SLA contractuel envers un client."
+                ),
+            ],
+        )
+    )
+
+    story.extend(
+        section(
+            "14. Checklist de remise et conclusion",
             [
                 p("Pièces à joindre avant remise", "h2"),
                 bullet("Run vert Monitoring - Production health, avec les deux contrôles et l'artefact production-health-report."),
@@ -619,6 +754,10 @@ def build_story() -> list:
             ],
         )
     )
+    # Each section ends with a page break for a readable jury dossier. The final
+    # break would add a blank page, so remove it before ReportLab builds the PDF.
+    if isinstance(story[-1], PageBreak):
+        story.pop()
     return story
 
 
