@@ -20,7 +20,9 @@ permissions:
   issues: write
 
 concurrency:
-  group: production-health-monitor
+  # Keep a production run cancellable by a newer production run, but do not let
+  # the hourly schedule interrupt a manual RNCP alert/recovery demonstration.
+  group: production-health-monitor-${{ inputs.check_mode || 'production' }}
   cancel-in-progress: true
 
 env:
