@@ -4,6 +4,16 @@ on:
   schedule:
     - cron: '17 * * * *'
   workflow_dispatch:
+    inputs:
+      check_mode:
+        description: 'Production checks, or a safe alert/recovery simulation without probing production'
+        required: true
+        default: production
+        type: choice
+        options:
+          - production
+          - simulate_alert
+          - simulate_recovery
 
 permissions:
   contents: read
@@ -16,6 +26,7 @@ concurrency:
 env:
   API_HEALTH_URL: ${{ vars.PROD_API_HEALTH_URL || 'https://ai-sport-api.vercel.app/health/ready' }}
   WEB_HEALTH_URL: ${{ vars.PROD_WEB_HEALTH_URL || 'https://ai-sport-web.vercel.app/api/health' }}
+  CHECK_MODE: ${{ inputs.check_mode || 'production' }}
 
 jobs:
   healthcheck:
@@ -35,9 +46,32 @@ jobs:
             echo "- Checked at: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
             echo "- API: ${API_HEALTH_URL}"
             echo "- Web: ${WEB_HEALTH_URL}"
+            echo "- Mode: ${CHECK_MODE}"
             echo "- Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
             echo
           } > "$report"
+
+          if [ "$CHECK_MODE" = "simulate_alert" ]; then
+            {
+              echo "## Alert simulation"
+              echo
+              echo "- Result: intentionally failed for a manual alert demonstration"
+              echo "- Production endpoints: not probed"
+              echo "- Production resources: not modified"
+            } >> "$report"
+            exit 1
+          fi
+
+          if [ "$CHECK_MODE" = "simulate_recovery" ]; then
+            {
+              echo "## Recovery simulation"
+              echo
+              echo "- Result: intentionally successful for a manual recovery demonstration"
+              echo "- Production endpoints: not probed"
+              echo "- Production resources: not modified"
+            } >> "$report"
+            exit 0
+          fi
 
           check_endpoint() {
             local name="$1"
@@ -109,24 +143,37 @@ jobs:
         run: |
           set -euo pipefail
           title="Production healthcheck failed"
+          label="monitoring"
+          label_description="Production health monitoring"
+          if [ "$CHECK_MODE" = "simulate_alert" ]; then
+            title="[TEST] Production healthcheck alert simulation"
+            label="monitoring-test"
+            label_description="Safe production-health alert simulation"
+          fi
           run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
-          gh label create monitoring \
+          gh label create "$label" \
             --repo "$GITHUB_REPOSITORY" \
             --color "0969DA" \
-            --description "Production health monitoring" 2>/dev/null || true
+            --description "$label_description" 2>/dev/null || true
 
           existing_issue="$(gh issue list \
             --repo "$GITHUB_REPOSITORY" \
             --state open \
-            --label monitoring \
+            --label "$label" \
             --json number,title \
             --jq ".[] | select(.title == \"${title}\") | .number" \
             | head -n 1)"
 
           {
-            echo "A production healthcheck failed."
+            if [ "$CHECK_MODE" = "simulate_alert" ]; then
+              echo "This is a safe, intentional alert simulation."
+              echo "No production endpoint was probed or modified."
+            else
+              echo "A production healthcheck failed."
+            fi
             echo
+            echo "- Mode: ${CHECK_MODE}"
             echo "- API: ${API_HEALTH_URL}"
             echo "- Web: ${WEB_HEALTH_URL}"
             echo "- Workflow run: ${run_url}"
@@ -138,7 +185,7 @@ jobs:
             gh issue create \
               --repo "$GITHUB_REPOSITORY" \
               --title "$title" \
-              --label monitoring \
+              --label "$label" \
               --body-file monitoring-report/issue-body.md
           else
             gh issue comment "$existing_issue" \
@@ -154,16 +201,25 @@ jobs:
         run: |
           set -euo pipefail
           title="Production healthcheck failed"
+          label="monitoring"
+          label_description="Production health monitoring"
+          recovered_message="Healthchecks recovered"
+          if [ "$CHECK_MODE" = "simulate_recovery" ]; then
+            title="[TEST] Production healthcheck alert simulation"
+            label="monitoring-test"
+            label_description="Safe production-health alert simulation"
+            recovered_message="Safe alert simulation recovered"
+          fi
 
-          gh label create monitoring \
+          gh label create "$label" \
             --repo "$GITHUB_REPOSITORY" \
             --color "0969DA" \
-            --description "Production health monitoring" 2>/dev/null || true
+            --description "$label_description" 2>/dev/null || true
 
           issue_number="$(gh issue list \
             --repo "$GITHUB_REPOSITORY" \
             --state open \
-            --label monitoring \
+            --label "$label" \
             --json number,title \
             --jq ".[] | select(.title == \"${title}\") | .number" \
             | head -n 1)"
@@ -171,8 +227,8 @@ jobs:
           if [ -n "$issue_number" ]; then
             gh issue comment "$issue_number" \
               --repo "$GITHUB_REPOSITORY" \
-              --body "Healthchecks recovered in ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
+              --body "${recovered_message} in ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
             gh issue close "$issue_number" \
               --repo "$GITHUB_REPOSITORY" \
-              --comment "Closing after successful production healthcheck."
+              --comment "Closing after successful ${CHECK_MODE} run."
           fi
