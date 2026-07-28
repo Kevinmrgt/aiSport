@@ -32,7 +32,7 @@ Compétences éliminatoires à sécuriser :
 | **C4.2.1** - Consigner les anomalies détectées               | Processus de collecte, informations utiles, reproduction, analyse et préconisation | Sections 6, 7 et document [bloc4-processus-incidents.md](bloc4-processus-incidents.md) |
 | **C4.3.2** - Établir un journal des versions déployées       | Versions, corrections et évolutions documentées                                    | Section 9 et [CHANGELOG.md](../../CHANGELOG.md)                                        |
 
-Statut global : **base MCO versionnée, à compléter par des preuves d'exécution avant remise**. Le dépôt contient les healthchecks non cacheables, une CI/CD, un monitoring GitHub horaire, des templates d'anomalie/support, des fiches bugs, un changelog, un audit et un rollback documenté. En revanche, ce dossier ne prétend ni à l'existence d'un monitor Better Stack, ni à celle d'une capture, d'un run de monitoring ou d'une issue GitHub réellement créée : ces éléments restent à joindre ou à constater dans GitHub.
+Statut global : **base MCO versionnée avec circuit GitHub de signalement démontré, à compléter par un run de production avant remise**. Le dépôt contient les healthchecks non cacheables, une CI/CD, un monitoring GitHub horaire, des templates d'anomalie/support, des fiches bugs, un changelog, un audit et un rollback documenté. La simulation déclarée du 2026-07-28 prouve l'artefact, l'issue de test et sa fermeture automatique ; elle ne prouve ni la disponibilité réelle de la production, ni un monitor Better Stack, ni une notification e-mail.
 
 Statuts utilisés dans ce livrable :
 
@@ -292,7 +292,13 @@ En cas d'échec, le workflow crée le label `monitoring` si nécessaire et :
 - sinon, ajoute le nouveau rapport à l'issue ouverte ;
 - après un run réussi, commente puis ferme cette issue ouverte comme rétablie.
 
-Les notifications vers une personne dépendent ensuite des préférences GitHub des destinataires ; aucun e-mail, mobile, issue ou destinataire effectivement notifié n'est affirmé dans ce dossier sans capture. Le workflow est la preuve d'un mécanisme de signalement configuré ; un run et un artefact restent la preuve d'exécution à produire.
+Les notifications vers une personne dépendent ensuite des préférences GitHub des destinataires ; aucun e-mail, mobile ou destinataire effectivement notifié n'est affirmé dans ce dossier sans capture. Le workflow est la preuve d'un mécanisme de signalement configuré. La simulation déclarée B4-P01 apporte désormais une preuve de son cycle GitHub, tandis qu'un run de production reste à produire.
+
+#### Exécution déclarée du circuit de simulation
+
+Le 2026-07-28, le circuit a été exécuté avec `simulate_alert`, puis avec `simulate_recovery`. Le run d'alerte [30348338556](https://github.com/Kevinmrgt/aiSport/actions/runs/30348338556) a téléversé son artefact et mis à jour l'[issue #64](https://github.com/Kevinmrgt/aiSport/issues/64). Le run de rétablissement [30348419565](https://github.com/Kevinmrgt/aiSport/actions/runs/30348419565) a fermé cette issue. Les rapports sont conservés dans [B4-P01](bloc4-annexes/preuves-execution-2026-07-28/README.md).
+
+Cette exécution est une **simulation déclarée** : les endpoints de production n'ont été ni sondés ni modifiés. Elle prouve le circuit GitHub, pas un niveau de disponibilité de production.
 
 | Alerte ou signal                        | Statut                | Canal / preuve                                                                                              |
 | --------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -571,14 +577,14 @@ Exemple de réponse support simulée :
 
 ### 14.2 Éléments à capter ou à compléter
 
-| Sujet               | État honnête                                      | Éléments attendus                                                                                              |
-| ------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Supervision GitHub  | Mécanisme configuré, exécution non jointe ici     | Run vert et artefact `production-health-report`                                                                |
-| Signalement GitHub  | Création/commentaire/fermeture d'issue configurés | Conserver une issue seulement si un incident réel la produit ; ne pas en fabriquer une en provoquant une panne |
-| Monitoring externe  | Non configuré dans les preuves fournies           | Optionnel : Better Stack ou équivalent, uniquement s'il est réellement mis en place                            |
-| Processus anomalies | Templates et fiches présents                      | Une issue de mise en situation peut être ajoutée, avec la mention visible « simulation déclarée »              |
-| Support client      | Cas décrit en section 12, sans retour réel        | Ticket support réel ou mise en situation datée, explicitement déclarée                                         |
-| Rollback DB         | Stratégie décrite, backup/branche non joint       | Capture seulement si une migration sensible est effectuée                                                      |
+| Sujet               | État honnête                                                  | Éléments attendus                                                                                 |
+| ------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Supervision GitHub  | Mécanisme configuré ; simulation déclarée B4-P01 jointe       | Ajouter un run vert en mode `production` et son artefact avant remise                             |
+| Signalement GitHub  | Création/commentaire/fermeture démontrés par l'issue test #64 | Ne pas confondre l'issue de test avec un incident réel                                            |
+| Monitoring externe  | Non configuré dans les preuves fournies                       | Optionnel : Better Stack ou équivalent, uniquement s'il est réellement mis en place               |
+| Processus anomalies | Templates et fiches présents                                  | Une issue de mise en situation peut être ajoutée, avec la mention visible « simulation déclarée » |
+| Support client      | Cas décrit en section 12, sans retour réel                    | Ticket support réel ou mise en situation datée, explicitement déclarée                            |
+| Rollback DB         | Stratégie décrite, backup/branche non joint                   | Capture seulement si une migration sensible est effectuée                                         |
 
 ### 14.3 Checklist réaliste avant dépôt
 
@@ -598,7 +604,7 @@ La checklist détaillée et priorisée est dans [bloc4-preuves-mco-a-completer.m
 | -------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Monitoring horaire         | [production-health-monitor.yml](../../.github/workflows/production-health-monitor.yml)           | « Un workflow GitHub est configuré à l'heure pour contrôler la readiness API et le healthcheck Web. »                                             |
 | Signalement d'un échec     | même workflow                                                                                    | « En cas d'échec, il est configuré pour créer ou alimenter l'issue GitHub `Production healthcheck failed`, puis la fermer après rétablissement. » |
-| Preuve d'exécution         | artefact `production-health-report`                                                              | « Un run et son artefact sont à joindre ; ils ne sont pas confondus avec la configuration. »                                                      |
+| Preuve d'exécution         | [B4-P01](bloc4-annexes/preuves-execution-2026-07-28/README.md)                                   | « Une simulation d'alerte/rétablissement est jointe ; un run production vert reste à ajouter. »                                                   |
 | Collecte anomalies/support | [templates GitHub](../../.github/ISSUE_TEMPLATE/) et fiches `BUG-001` / `BUG-002`                | « Les champs de qualification sont imposés par template ; le cas support de ce dossier reste simulé tant qu'aucun retour réel n'est joint. »      |
 | Contrats de santé          | [API](../../apps/api/src/routes/health.routes.ts), [Web](../../apps/web/app/api/health/route.ts) | « Les endpoints ne sont pas mis en cache et leur repli de version source est `0.13.0-rc.3`. »                                                     |
 

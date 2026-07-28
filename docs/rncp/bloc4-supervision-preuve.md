@@ -35,6 +35,21 @@ Les modes `simulate_alert` et `simulate_recovery` ne lancent aucune requête HTT
 
 La séparation du titre et du label garantit qu'une simulation ne crée pas, ne commente pas et ne ferme pas l'issue réservée aux alertes de production. La simulation ne requiert aucun secret renseigné par une personne ; le seul jeton utilisé est le jeton éphémère fourni par GitHub Actions, limité ici à la permission `issues: write`.
 
+## Exécution vérifiée le 2026-07-28
+
+Le circuit GitHub de simulation a été exécuté sans sonde ni modification de la
+production :
+
+| Étape                 | Preuve                                                                           | Résultat                                                       |
+| --------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Alerte simulée        | [Run 30348338556](https://github.com/Kevinmrgt/aiSport/actions/runs/30348338556) | Échec volontaire, artefact téléversé et étape d'issue réussie. |
+| Issue test            | [Issue #64](https://github.com/Kevinmrgt/aiSport/issues/64)                      | Issue `monitoring-test` créée/commentée, puis clôturée.        |
+| Rétablissement simulé | [Run 30348419565](https://github.com/Kevinmrgt/aiSport/actions/runs/30348419565) | Succès, étape de fermeture de l'issue réussie.                 |
+
+Les deux rapports téléchargés et le détail des liens sont conservés dans
+[B4-P01](bloc4-annexes/preuves-execution-2026-07-28/README.md). Cette preuve
+valide le circuit d'alerte GitHub, pas la disponibilité réelle des endpoints.
+
 ## Protocole de captures à exécuter manuellement avant dépôt
 
 Les captures suivantes sont une action humaine à réaliser dans l'interface GitHub du dépôt. Elles ne sont pas présentes dans ce dépôt au moment de la rédaction de ce document.
@@ -50,6 +65,6 @@ Les captures suivantes sont une action humaine à réaliser dans l'interface Git
 
 **Faits démontrables par le code :** cadence horaire, URLs et contrats JSON attendus, délais/réessais, conservation de l'artefact, règles d'ouverture/mise à jour/clôture d'issues, et cloisonnement des simulations.
 
-**Faits à établir par l'action humaine :** exécution effective dans GitHub Actions, contenu visuel du rapport généré, réception de la notification GitHub par les abonnés du dépôt, et cycle réel d'ouverture puis de fermeture de l'issue de test. Les captures du protocole apportent cette dernière preuve sans provoquer de modification de production.
+**Faits à établir par l'action humaine :** le contenu visuel de captures si le jury les exige, la réception d'une notification GitHub par les abonnés du dépôt, et un run `production` vert avec ses sondes réelles. Le cycle d'ouverture puis de fermeture de l'issue de test est démontré par B4-P01, sans provoquer de modification de production.
 
 **Destinataire et canal :** le canal d'alerte est une issue du dépôt GitHub. Les destinataires sont les collaborateurs qui surveillent le dépôt ou sont abonnés aux notifications GitHub ; le workflow ne configure ni e-mail, ni SMS, ni outil externe de type Better Stack.
