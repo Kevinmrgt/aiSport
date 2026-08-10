@@ -24,10 +24,10 @@
   },
   "dependencies": {
     "@alcide/shared": "workspace:*",
-    "@hono/node-server": "^2.0.12",
+    "@hono/node-server": "^2.1.0",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.45.2",
-    "hono": "^4.12.32",
+    "hono": "^4.13.0",
     "pg": "^8.22.0",
     "zod": "^3.24.1"
   },
