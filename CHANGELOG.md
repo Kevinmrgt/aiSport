@@ -9,6 +9,16 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ---
 
+## [Unreleased]
+
+### Security
+
+- Mise à jour de Hono vers `4.12.34` et des résolutions transitives de
+  `brace-expansion`, `js-yaml`, `nanoid` et `postcss` vers leurs versions
+  corrigées. L'audit pnpm ne signale plus aucune vulnérabilité connue.
+
+---
+
 ## [0.13.0-rc.8] — 2026-07-23
 
 ### Changed
