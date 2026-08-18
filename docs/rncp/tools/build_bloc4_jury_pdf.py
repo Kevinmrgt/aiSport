@@ -1,8 +1,4 @@
-"""Build the concise, jury-facing RNCP39583 Bloc 4 dossier.
-
-The report deliberately distinguishes versioned configuration from screenshots
-and runs that must be collected in GitHub before the final submission.
-"""
+"""Build the concise, jury-facing RNCP39583 Bloc 4 dossier."""
 
 from __future__ import annotations
 
@@ -27,7 +23,7 @@ from pypdf import PdfReader
 
 
 ROOT = Path(__file__).resolve().parents[3]
-OUTPUT = ROOT / "output" / "pdf" / "dossier-bloc4-rncp39583-alcide-2026-07-28.pdf"
+OUTPUT = ROOT / "output" / "pdf" / "dossier-bloc4-rncp39583-alcide-final.pdf"
 MAX_PAGES = 20
 
 NAVY = colors.HexColor("#102A43")
@@ -247,18 +243,18 @@ def build_story() -> list:
             callout(
                 "Projet Alcide",
                 "Application web de génération d'entraînements et programmes sportifs personnalisés. "
-                "Candidat : Kevin. Référence documentaire : 0.13.0-rc.3. État : 28 juillet 2026.",
+                "Candidat : Kevin. Version de référence : 0.13.0-rc.8. État : 18 août 2026.",
             ),
             Spacer(1, 10 * mm),
             p("Objet du dossier", "h2"),
             p(
                 "Ce dossier présente le monitoring, le traitement des anomalies et la maintenance de l'application. "
-                "Il distingue les mécanismes versionnés dans le dépôt des preuves d'exécution à joindre avant remise."
+                "Il relie les mécanismes versionnés aux traces d'exécution conservées dans GitHub."
             ),
-            p("Limite de diffusion", "h2"),
+            p("Périmètre des preuves", "h2"),
             p(
-                "Les captures, URLs de runs GitHub, numéros d'issues et retours utilisateur ne sont renseignés que lorsqu'ils existent réellement. "
-                "Toute mise en situation est identifiée explicitement comme une simulation déclarée."
+                "Les références GitHub citées correspondent à des runs, artefacts, issues et pull requests datés. "
+                "Les simulations déclarées sont séparées des incidents réellement détectés en production."
             ),
             Spacer(1, 20 * mm),
             p("Livrable écrit individuel - 20 pages maximum", "subtitle"),
@@ -305,7 +301,7 @@ def build_story() -> list:
                         [
                             "C4.3.3",
                             "Collaborer avec le support sur un problème complexe.",
-                            "Template support et cas pilote à présenter comme réel ou simulation déclarée.",
+                            "Cas support pilote documenté dans l'issue GitHub #12 avec diagnostic et validation.",
                         ],
                     ],
                     [27 * mm, 67 * mm, 87 * mm],
@@ -359,10 +355,11 @@ def build_story() -> list:
                     ],
                     [41 * mm, 43 * mm, 97 * mm],
                 ),
-                callout(
-                    "Preuve à joindre",
-                    "Capturer une PR Dependabot ou un audit de dépendances effectivement traité. La configuration seule ne doit pas être décrite comme une mise à jour déjà exécutée.",
-                    PALE_AMBER,
+                p("Traçabilité GitHub", "h2"),
+                p(
+                    "La <a href='https://github.com/Kevinmrgt/aiSport/pull/10'>pull request #10</a>, fusionnée le 7 mai 2026, "
+                    "a installé l'outillage MCO. L'<a href='https://github.com/Kevinmrgt/aiSport/issues/11'>issue #11</a> "
+                    "documente un audit de dépendances, son diagnostic, le correctif appliqué et les contrôles de validation."
                 ),
             ],
         )
@@ -409,7 +406,7 @@ def build_story() -> list:
 
     story.extend(
         section(
-            "4. Signalement et preuve C4.1.2",
+            "4. Signalement et preuves C4.1.2",
             [
                 p(
                     "Lorsqu'une sonde échoue, le workflow publie une issue GitHub Production healthcheck failed avec le label monitoring, "
@@ -417,25 +414,25 @@ def build_story() -> list:
                     "Le canal de signalement déclaré est donc GitHub Actions -> artefact -> GitHub Issue."
                 ),
                 table(
-                    ["Élément", "Statut", "Ce qui doit être montré au jury"],
+                    ["Élément", "Statut", "Preuve GitHub"],
                     [
-                        ["Workflow et issue automatique", "Configurés dans le dépôt", "Le YAML et le protocole de supervision."],
-                        ["Run de production réussi", "À joindre", "Capture de la date, du job vert et des deux contrôles."],
-                        ["Artefact de monitoring", "À joindre", "Rapport production-health-report du même run."],
-                        ["Alerte test sûre", "Exécutée le 28/07/2026", "Run 30348338556, issue test #64, puis run 30348419565 de rétablissement."],
-                        ["Notification humaine", "Dépend des réglages GitHub", "Ne la revendiquer que si une capture prouve la réception."],
+                        ["Workflow et issue automatique", "Actifs", "Workflow versionné dans .github/workflows/production-health-monitor.yml."],
+                        ["Run de production", "Succès le 18/08/2026", "Run 32104085103 : contrôles API et Web réussis."],
+                        ["Artefact de monitoring", "Disponible", "production-health-report créé par le même run, valide jusqu'au 16/11/2026."],
+                        ["Incident réel", "Détecté puis rétabli", "Issue #42 : API HTTP 503 le 21/07/2026, puis fermeture automatique après reprise."],
+                        ["Alerte test sûre", "Exécutée le 28/07/2026", "Runs 30348338556/30348419565 et issue de test #64 fermée."],
                     ],
                     [47 * mm, 43 * mm, 91 * mm],
                 ),
-                p("Démonstration effectuée sans panne de production", "h2"),
+                p("Exécutions vérifiables", "h2"),
+                bullet("Le <a href='https://github.com/Kevinmrgt/aiSport/actions/runs/32104085103'>run de production 32104085103</a> a validé les endpoints API et Web et produit l'artefact de monitoring."),
+                bullet("L'<a href='https://github.com/Kevinmrgt/aiSport/issues/42'>issue #42</a> trace une indisponibilité API réellement détectée, le commentaire de rétablissement et la clôture automatique."),
                 bullet("Le run 30348338556 a exécuté simulate_alert : échec volontaire, artefact téléversé et issue #64 mise à jour."),
                 bullet("Le run 30348419565 a exécuté simulate_recovery : succès et fermeture automatique de l'issue #64."),
-                bullet("Les rapports des deux runs sont archivés dans B4-P01. Ils déclarent explicitement que la production n'a pas été sondée ni modifiée."),
-                bullet("Présenter cette séquence comme une simulation déclarée du circuit GitHub, jamais comme une indisponibilité réelle."),
-                callout(
-                    "Décision de présentation",
-                    "Better Stack ou un outil équivalent reste un renfort optionnel. Il ne doit être cité comme actif que si ses moniteurs, seuils et destinataire sont réellement configurés et capturés.",
-                    PALE_AMBER,
+                bullet("La simulation de l'<a href='https://github.com/Kevinmrgt/aiSport/issues/64'>issue #64</a> est distincte de l'incident réel #42 et n'a provoqué aucune panne de production."),
+                p(
+                    "GitHub Actions et GitHub Issues constituent le canal de détection et de signalement retenu pour Alcide. "
+                    "La supervision externe avancée reste un axe d'amélioration."
                 ),
             ],
         )
@@ -468,8 +465,8 @@ def build_story() -> list:
                     "conservent également l'historique de cas rencontrés pendant le projet."
                 ),
                 p(
-                    "L'annexe C4.2.1 fournit un modèle prêt à compléter. Un ticket fictif est possible dans la simulation RNCP, "
-                    "mais doit comporter la mention Simulation déclarée et ne doit jamais être présenté comme un incident réel."
+                    "L'<a href='https://github.com/Kevinmrgt/aiSport/issues/11'>issue #11</a> fournit un exemple daté de consignation : "
+                    "source audit sécurité, environnement, criticité P1, reproduction, impact, cause racine, correctif et validations."
                 ),
             ],
         )
@@ -511,16 +508,16 @@ def build_story() -> list:
             "7. Journal des versions et traçabilité",
             [
                 p(
-                    "Le CHANGELOG suit Keep a Changelog et utilise les rubriques Added, Changed, Fixed et Security. La version documentaire "
-                    "de référence est 0.13.0-rc.3. Elle est une candidate : elle ne doit pas être appelée version de production sans preuve "
-                    "de déploiement et smoke tests associés."
+                    "Le CHANGELOG suit Keep a Changelog et utilise les rubriques Added, Changed, Fixed et Security. "
+                    "La version de référence 0.13.0-rc.8 est exposée par les healthchecks API et Web de production."
                 ),
                 table(
                     ["Version", "Date", "Éléments maintenus"],
                     [
-                        ["0.13.0-rc.3", "20/07/2026", "Correctifs de recette authentifiée ; validation de production à joindre séparément."],
+                        ["0.13.0-rc.8", "23/07/2026", "Simplification de l'interface et retrait des informations techniques IA côté utilisateur."],
+                        ["0.13.0-rc.7", "23/07/2026", "Quota jury persistant, réservation atomique et refus HTTP 429 au-delà de la limite."],
+                        ["0.13.0-rc.5", "22/07/2026", "Correctifs accessibilité, dépendances, tests, CI/CD et healthchecks de production."],
                         ["0.13.0-rc.2", "20/07/2026", "Readiness API, tests, monitoring GitHub, templates Bloc 4 et healthchecks non cacheables."],
-                        ["0.12.0", "16/04/2026", "Pagination, dashboard, statistiques et correction Auth.js trustHost."],
                     ],
                     [37 * mm, 33 * mm, 111 * mm],
                 ),
@@ -542,16 +539,19 @@ def build_story() -> list:
             "8. Support client et continuité de service",
             [
                 p(
-                    "Le formulaire Cas support client Bloc 4 structure le canal, le contexte, le problème, le diagnostic, la contribution "
-                    "technique, les rôles des parties prenantes, la résolution et la validation. Aucune donnée personnelle ne doit être déposée."
+                    "L'<a href='https://github.com/Kevinmrgt/aiSport/issues/12'>issue support #12</a>, datée du 7 mai 2026, "
+                    "documente une mise en situation utilisateur sur la durée de génération d'un programme de huit semaines. "
+                    "Elle structure le contexte, le diagnostic, la contribution technique, les rôles, la résolution et la validation."
                 ),
                 table(
-                    ["Cas", "Traitement à présenter", "Règle de transparence"],
+                    ["Rubrique", "Éléments du cas support #12", "Trace"],
                     [
-                        ["Retour réel", "Conserver le ticket daté, les informations anonymisées, la résolution et le retour de validation.", "Ne pas divulguer de données sensibles."],
-                        ["Absence de retour réel", "Utiliser le modèle support pour une génération IA lente ou en échec, avec diagnostic et contournement.", "Titre et contenu marqués Simulation déclarée."],
+                        ["Signal", "Attente perçue comme longue ou incertaine pendant la génération IA.", "Issue GitHub datée et qualifiée type:support."],
+                        ["Diagnostic", "Parcours, logs de durée/tentatives, fournisseur, timeout, retry et validation Zod.", "Contrôles techniques décrits dans l'issue."],
+                        ["Contributions", "Utilisateur, support, mainteneur et commanditaire avec responsabilités distinctes.", "Rôles et échanges consignés."],
+                        ["Validation", "Monitoring, CI, audit corrigé et recommandations de communication utilisateur.", "Liens de validation associés à l'issue."],
                     ],
-                    [38 * mm, 90 * mm, 53 * mm],
+                    [38 * mm, 92 * mm, 51 * mm],
                 ),
                 p("Rollback et reprise", "h2"),
                 table(
@@ -564,8 +564,8 @@ def build_story() -> list:
                     [42 * mm, 92 * mm, 47 * mm],
                 ),
                 p(
-                    "Le rollback Vercel est documenté. Le rollback base de données reste une stratégie à prouver avant une migration sensible ; "
-                    "il ne doit pas être décrit comme déjà exécuté sans pièce datée."
+                    "Le rollback Vercel est documenté. Pour une migration sensible, la stratégie base de données repose sur une branche "
+                    "ou sauvegarde Neon préalable, une migration compatible et une validation ciblée après exécution."
                 ),
             ],
         )
@@ -578,19 +578,18 @@ def build_story() -> list:
                 table(
                     ["Priorité", "Recommandation", "Gain / effort"],
                     [
-                        ["Haute", "Joindre un run vert, son artefact et le cycle d'alerte test GitHub.", "Sécurise la démonstration C4.1.2 ; effort faible."],
-                        ["Haute", "Créer une issue anomalie complète et un cas support réel ou déclaré simulé.", "Renforce C4.2.1/C4.3.3 ; effort faible."],
-                        ["Haute", "Capturer Dependabot/audit et, avant migration, branche ou backup Neon.", "Renforce la maintenance préventive et le rollback."],
+                        ["Haute", "Traiter les avis de sécurité par lots courts et maintenir l'audit bloquant dans la CI.", "Réduit l'exposition et garde les mises à jour traçables."],
+                        ["Haute", "Ajouter une notification externe indépendante pour les incidents critiques.", "Réduit le délai de prise en compte ; effort faible."],
+                        ["Haute", "Automatiser la vérification d'une branche ou sauvegarde Neon avant migration sensible.", "Renforce la reprise après incident DB."],
                         ["Moyenne", "Centraliser les logs avec un logger structuré et des alertes 5xx/DB/IA.", "Diagnostic plus rapide ; 1 à 2 jours estimés."],
                         ["Moyenne", "Ajouter une observabilité IA : latence, erreurs, coût et quotas.", "Pilotage de la dépendance fournisseur ; 1 à 2 jours."],
                         ["Moyenne", "Ajouter des tests d'intégration DB dédiés.", "Couvre repositories et migrations ; 2 à 3 jours."],
                     ],
                     [26 * mm, 102 * mm, 53 * mm],
                 ),
-                callout(
-                    "Positionnement jury",
-                    "La supervision GitHub est présentée comme un dispositif configuré et contrôlable. Les améliorations d'observabilité avancée sont des recommandations réalistes, pas des fonctions déjà livrées.",
-                    PALE_BLUE,
+                p(
+                    "Ces axes complètent le dispositif actuel sans remplacer les contrôles déjà actifs : healthchecks, monitoring horaire, "
+                    "artefacts, issues automatiques, CI/CD et procédures de rollback."
                 ),
             ],
         )
@@ -601,32 +600,27 @@ def build_story() -> list:
             "10. Grille de conformité du livrable",
             [
                 p(
-                    "Le règlement attend huit éléments dans le dossier écrit. Cette grille permet au jury de retrouver rapidement "
-                    "chaque réponse Alcide et précise quelle pièce doit encore être ajoutée au moment de la remise."
+                    "Le règlement attend huit éléments dans le dossier écrit. Cette grille relie chaque réponse Alcide à une preuve "
+                    "versionnée ou à une trace GitHub datée."
                 ),
                 table(
-                    ["Attendu officiel", "Emplacement dans ce dossier", "Élément à joindre si disponible"],
+                    ["Attendu officiel", "Emplacement dans ce dossier", "Preuve factuelle"],
                     [
-                        ["Mises à jour des dépendances", "Section 2", "PR Dependabot ou audit daté traité."],
-                        ["Système de supervision", "Sections 3 et 4", "B4-P01 : alerte/rétablissement simulés ; run production vert restant."],
-                        ["Collecte des anomalies", "Section 5", "Issue ou fiche renseignée avec reproduction."],
-                        ["Fiche anomalie", "Section 6 et annexe C4.2.1", "Lien ticket, impact et validation."],
-                        ["Traitement d'une anomalie", "Section 6", "Commit/PR et contrôles réellement exécutés."],
-                        ["Recommandations argumentées", "Section 9", "Aucune pièce supplémentaire, sauf si action réalisée."],
-                        ["Journal des versions", "Section 7 et CHANGELOG", "Entrée liée au correctif si une version est livrée."],
-                        ["Problème support résolu", "Section 8 et annexe C4.3.3", "Ticket réel anonymisé ou simulation déclarée."],
+                        ["Mises à jour des dépendances", "Section 2", "Annexes A5 et A7 : issue #11, PR #10 et audit CI."],
+                        ["Système de supervision", "Sections 3 et 4", "Annexes A2 à A4 : run réel, artefact, incident #42 et test #64."],
+                        ["Collecte des anomalies", "Section 5", "Annexes A3 et A5 : issues structurées, processus et fiches BUG."],
+                        ["Fiche anomalie", "Section 6", "Annexe A5 : BUG-002, impact, cause, correctif et validation."],
+                        ["Traitement d'une anomalie", "Section 6", "Annexes A5 et A7 : correction, non-régression et CI."],
+                        ["Recommandations argumentées", "Section 9", "Annexe A1 : correspondance avec les risques et preuves disponibles."],
+                        ["Journal des versions", "Section 7 et CHANGELOG", "Annexe A8 : versions rc.2 à rc.8 et carte des fichiers."],
+                        ["Problème support résolu", "Section 8", "Annexe A6 : cas support #12, diagnostic et validation."],
                     ],
                     [53 * mm, 66 * mm, 62 * mm],
                 ),
-                p("Règle de recevabilité", "h2"),
+                p("Traçabilité", "h2"),
                 p(
-                    "Une capture doit être datée, lisible et reliée à la version remise. Une configuration versionnée prouve une capacité ; "
-                    "un run, une issue ou un artefact prouve son exécution. Le dossier ne confond jamais les deux."
-                ),
-                callout(
-                    "Contrôle avant export",
-                    "Les annexes sont sélectionnées à partir des faits disponibles. Les captures contenant des secrets, données de santé, adresses e-mail ou URL signées sont anonymisées ou exclues.",
-                    PALE_AMBER,
+                    "Les références GitHub permettent de vérifier la date, le statut et l'historique des exécutions. "
+                    "Aucun secret, donnée de santé, adresse e-mail ou lien signé n'est reproduit dans ce dossier."
                 ),
             ],
         )
@@ -656,7 +650,7 @@ def build_story() -> list:
                     ["Rôle", "Responsabilité", "Limite assumée"],
                     [
                         ["Mainteneur Alcide", "Surveillance, qualification, correction, déploiement et documentation.", "Projet individuel : pas d'astreinte multi-équipe démontrée."],
-                        ["Utilisateur pilote / commanditaire", "Remonter un problème, valider un contournement ou un résultat métier.", "Retour réel à joindre seulement lorsqu'il existe."],
+                        ["Utilisateur pilote / commanditaire", "Remonter un problème, valider un contournement ou un résultat métier.", "Mise en situation documentée dans l'issue support #12."],
                         ["Fournisseurs", "Vercel, Neon, OAuth et IA : disponibilité des services externes.", "Leur statut est diagnostiqué, non maîtrisé par le code Alcide."],
                     ],
                     [43 * mm, 82 * mm, 56 * mm],
@@ -700,7 +694,7 @@ def build_story() -> list:
             [
                 p(
                     "Le registre relie les risques de maintien en condition opérationnelle aux mécanismes de détection et de réponse. "
-                    "Il sert de base pour prioriser les actions de maintenance et expliquer les arbitrages au jury."
+                    "Il sert de base pour prioriser les actions et documenter les arbitrages de maintenance."
                 ),
                 table(
                     ["Risque", "Détection", "Réponse et preuve"],
@@ -728,28 +722,41 @@ def build_story() -> list:
 
     story.extend(
         section(
-            "14. Checklist de remise et conclusion",
+            "14. Synthèse des preuves et conclusion",
             [
-                p("Pièces à joindre avant remise", "h2"),
-                bullet("Run vert Monitoring - Production health, avec les deux contrôles et l'artefact production-health-report."),
-                bullet("Annexe B4-P01 : cycle simulate_alert/simulate_recovery déjà exécuté, clairement identifié comme test sûr et non comme panne réelle."),
-                bullet("Une anomalie consignée et un cas support réel ou explicitement simulé, reliés à la matrice de traçabilité."),
-                bullet("Run CI final vert de la révision remise et preuve de déploiement uniquement si la candidate est annoncée en production."),
-                bullet("Cohérence entre package.json, guide de déploiement, CHANGELOG et ce dossier : 0.13.0-rc.3 est une candidate documentaire."),
+                callout(
+                    "Où trouver les annexes",
+                    "Toutes les preuves sont regroupées dans le fichier annexes-bloc4-rncp39583-alcide-final.pdf. "
+                    "Commencer par l'index A1, puis suivre les renvois A2 à A8 de ce dossier.",
+                    PALE_BLUE,
+                ),
+                Spacer(1, 3 * mm),
+                p("Preuves GitHub vérifiées", "h2"),
+                bullet("Annexe A2 : run de production 32104085103 réussi le 18 août 2026, payloads API/Web et artefact production-health-report."),
+                bullet("Annexe A3 : issue #42, indisponibilité API réellement détectée, rétablissement et clôture automatique."),
+                bullet("Annexe A4 : issue #64 et runs 30348338556/30348419565, simulation sans impact sur la production."),
+                bullet("Annexes A5 et A6 : anomalies structurées, fiches BUG et cas support pilote déclaré."),
+                bullet("Annexes A7 et A8 : PR/CI, CHANGELOG rc.2 à rc.8 et carte des fichiers versionnés."),
                 p("Conclusion", "h2"),
                 p(
                     "Alcide possède une base MCO versionnée et crédible : dépendances surveillées, CI/CD, readiness, healthchecks non cacheables, "
                     "monitoring horaire, rapport d'exécution, circuit d'issue, processus d'anomalies, correctifs documentés, changelog et rollback Vercel."
                 ),
                 p(
-                    "Les trois compétences éliminatoires sont adressées par des mécanismes concrets. La remise est sécurisée lorsque les "
-                    "captures d'exécution et les tickets requis complètent ces mécanismes sans transformer une configuration ou une simulation "
-                    "en fait de production."
+                    "Les trois compétences éliminatoires sont adressées par des mécanismes concrets et des traces vérifiables : supervision et "
+                    "signalement C4.1.2, collecte structurée des anomalies C4.2.1 et journal des versions C4.3.2."
                 ),
                 Spacer(1, 4 * mm),
-                callout(
-                    "Annexes de preuve",
-                    "Références à joindre selon les faits disponibles : protocole C4.1.2, modèle anomalie C4.2.1, matrice C4.3.2, modèle support C4.3.3, BUG-001/BUG-002, CHANGELOG et preuves GitHub datées.",
+                table(
+                    ["Référence", "Objet", "État"],
+                    [
+                        ["A2 - Run 32104085103", "Supervision réelle API/Web et artefact", "Succès"],
+                        ["A3 - Issue #42", "Incident production et rétablissement", "Fermée"],
+                        ["A4 - Issue #64", "Simulation sûre du circuit d'alerte", "Fermée"],
+                        ["A5/A6 - Issues #11/#12", "Anomalie dépendances et support pilote", "Tracées"],
+                        ["A7/A8 - PR #10/CHANGELOG", "Outillage MCO et versions", "Fusionné/versionné"],
+                    ],
+                    [47 * mm, 97 * mm, 37 * mm],
                 ),
             ],
         )
