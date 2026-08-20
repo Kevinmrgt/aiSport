@@ -23,7 +23,13 @@ from pypdf import PdfReader
 
 
 ROOT = Path(__file__).resolve().parents[3]
-OUTPUT = ROOT / "output" / "pdf" / "dossier-bloc4-rncp39583-alcide-final.pdf"
+OUTPUT = (
+    ROOT
+    / "output"
+    / "pdf"
+    / "BLOC-4-A-RENDRE"
+    / "01-dossier-principal-bloc-4.pdf"
+)
 MAX_PAGES = 20
 
 NAVY = colors.HexColor("#102A43")
@@ -726,7 +732,7 @@ def build_story() -> list:
             [
                 callout(
                     "Où trouver les annexes",
-                    "Toutes les preuves sont regroupées dans le fichier annexes-bloc4-rncp39583-alcide-final.pdf. "
+                    "Toutes les preuves sont regroupées dans le fichier 02-annexes-preuves-bloc-4.pdf. "
                     "Commencer par l'index A1, puis suivre les renvois A2 à A8 de ce dossier.",
                     PALE_BLUE,
                 ),

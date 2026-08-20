@@ -23,7 +23,13 @@ from pypdf import PdfReader
 
 
 ROOT = Path(__file__).resolve().parents[3]
-OUTPUT = ROOT / "output" / "pdf" / "annexes-bloc4-rncp39583-alcide-final.pdf"
+OUTPUT = (
+    ROOT
+    / "output"
+    / "pdf"
+    / "BLOC-4-A-RENDRE"
+    / "02-annexes-preuves-bloc-4.pdf"
+)
 
 NAVY = colors.HexColor("#102A43")
 BLUE = colors.HexColor("#20639B")
@@ -269,7 +275,7 @@ def build_story() -> list:
             Spacer(1, 3 * mm),
             callout(
                 "Fichier à joindre au dossier principal",
-                "annexes-bloc4-rncp39583-alcide-final.pdf. Toutes les preuves sont regroupées ici et numérotées A1 à A8.",
+                "02-annexes-preuves-bloc-4.pdf. Toutes les preuves sont regroupées ici et numérotées A1 à A8.",
             ),
             Spacer(1, 6 * mm),
             p("Mode de lecture", "h2"),
