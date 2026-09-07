@@ -26,8 +26,9 @@ La décision honnête est **GO sous réserves** pour la démonstration :
 
 - **réserve accès** : aucun secret jury n'était disponible dans la session de
   répétition ; le parcours authentifié courant n'est donc pas revendiqué ;
-- **réserve locale DB** : Docker Desktop ne répondait pas au client ; migration
-  et seed locaux n'ont pas été exécutés ;
+- **état local DB** : après indisponibilité initiale de Docker, `alcide-db` est
+  devenu sain ; les migrations et le seed ont été exécutés sur
+  `localhost:5432/alcide` uniquement ;
 - **réserve de traçabilité** : les gates locales qualité et sécurité sont
   maintenant vertes ; les overrides et le lockfile corrigé sont rattachés au
   commit `7fc5f01`, mais pas encore validés par une CI distante.
@@ -52,8 +53,9 @@ vert décrit donc l'état local le plus récent, sans l'attribuer au SHA de base
 | Local `/generate`, sans session               | redirection vers `/login`                                                     |    Réussi     |
 | Local Web `/api/health`                       | HTTP 200, `0.13.0-rc.8`                                                       |    Réussi     |
 | Local accès jury désactivé                    | formulaire absent avec kill switch `false`                                    |    Réussi     |
-| Local API + PostgreSQL                        | moteur Docker non répondant                                                   |    Bloqué     |
-| Local migrations `0000`–`0006` et seed        | cohérence statique vérifiée ; exécution non faite                             |    Partiel    |
+| Local PostgreSQL                              | `alcide-db` sain, port 5432 ; aucune base distante touchée                    |    Réussi     |
+| Local migrations `0000`–`0006` et seed        | migrations réussies ; contrôle SQL : `users=1`, `workouts=3`                  |    Réussi     |
+| Local API                                     | non démarrée faute de secrets de service dans la session                      |   Non testé   |
 | Production authentifiée                       | absence volontaire d'identifiants dans cette session                          |   Non testé   |
 | Smoke E2E multi-navigateurs                   | historique 53/54 puis 1/1 ; nouveau run `workers=1` 54/54 en 4,4 min          |  Vert local   |
 | Audit complet + production                    | overrides `browserslist@4.28.7` et `postcss-selector-parser@6.1.3`, codes 0/0 |  Vert local   |
@@ -104,10 +106,12 @@ Sept migrations SQL, de `0000` à `0006`, correspondent aux sept entrées du
 journal Drizzle.
 
 La répétition du 2026-09-07 a exclusivement préparé la cible locale
-`localhost:5432/alcide`. Docker CLI et Compose sont installés, mais le moteur
-n'a pas répondu ; aucun conteneur PostgreSQL n'a donc été atteint et les
-commandes `pnpm db:migrate` / `pnpm db:seed` n'ont pas été lancées. **Aucune
-base distante n'a été touchée.**
+`localhost:5432/alcide`. Après une indisponibilité initiale du moteur Docker,
+le conteneur `alcide-db` a été contrôlé (`postgres:16-alpine`, port 5432), puis
+démarré directement pour éviter l'interpolation des secrets API/Web par
+Compose. Le healthcheck est passé à `healthy`, `pnpm db:migrate` et
+`pnpm db:seed` ont réussi, puis une lecture SQL a confirmé `users=1` et
+`workouts=3`. **Aucune base distante n'a été touchée.**
 
 Règle avant toute nouvelle tentative : afficher et valider l'hôte, le port et
 le nom de la base, sans afficher ses secrets ; interrompre si la cible n'est pas
@@ -188,9 +192,9 @@ confirmés. La démonstration principale utilise une séance existante.
 | ------------------------------ | ------------------------------------------------------------------------------- | --------------------------------------------------------------- |
 | Dernière version identifiée    | 4 manifests + production en `0.13.0-rc.8`, SHA courant fixé                     | absence de preuve que Vercel expose directement le SHA          |
 | Démonstration préparée         | conducteur chronométré 6:30, vocabulaire client/jury                            | privé courant conditionné à la gate d'accès                     |
-| Version opérationnelle montrée | accueil, login, garde et 3 healthchecks production ; Web local                  | API/DB local bloqués                                            |
+| Version opérationnelle montrée | accueil, login, garde et 3 healthchecks production ; Web et DB locale           | API locale non démarrée faute de secrets                        |
 | Conditions d'accès             | gate J-2, canal confidentiel, expiration, révocation, quota                     | aucun secret inclus ni validé par cette session                 |
-| Données prêtes                 | seed sans IA et migrations cohérents statiquement                               | exécution locale non réalisée                                   |
+| Données prêtes                 | 7 migrations appliquées ; seed : 1 utilisateur et 3 séances                     | parcours privé encore conditionné à la gate d'accès             |
 | Continuité                     | 9 captures vérifiées, plan B gradué                                             | captures privées courantes indisponibles                        |
 | Qualité et transparence        | historique 53/54 + 1/1 conservé ; nouveau smoke sérialisé 54/54 ; audits à zéro | correctif commité en `7fc5f01`, sans CI distante ni déploiement |
 
@@ -198,8 +202,9 @@ confirmés. La démonstration principale utilise une séance existante.
 
 La démonstration peut être présentée sur la candidate actuelle à condition de
 ne pas annoncer que le parcours authentifié a été revalidé le 2026-09-07. Le
-**GO définitif** exige avant l'épreuve : une connexion jury actuelle réussie,
-un jeu de données prêt, ainsi qu'une CI distante verte sur `7fc5f01` pour les
-overrides et le lockfile. Si l'une de ces conditions échoue, le
+**GO définitif** exige avant l'épreuve : une connexion jury actuelle réussie et
+une CI distante verte sur `7fc5f01` pour les overrides et le lockfile. Le jeu
+de données local est prêt ; il doit seulement être recontrôlé à J-2. Si l'une
+des conditions restantes échoue, le
 conducteur reste exécutable en mode public et captures, avec la limite
 explicitement formulée au jury.

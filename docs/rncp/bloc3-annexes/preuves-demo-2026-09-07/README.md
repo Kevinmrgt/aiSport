@@ -28,7 +28,7 @@
 | Local `/generate` sans session           | URL finale `/login`                                                                                  |               Réussi               |
 | Local Web `/api/health`                  | HTTP 200, version `0.13.0-rc.8`                                                                      |               Réussi               |
 | Local accès jury                         | démarrage volontaire avec `JURY_ACCESS_ENABLED=false` : formulaire absent                            | Conforme à la configuration testée |
-| Migration + seed PostgreSQL local        | Docker CLI/Compose présents, mais moteur Docker non répondant au-delà de 8 s                         |        Bloqué, non exécuté         |
+| Migration + seed PostgreSQL local        | `alcide-db` sain sur `localhost:5432` ; 7 migrations appliquées ; seed : 1 utilisateur, 3 séances    |               Réussi               |
 | Accès authentifié `rc.8` le 2026-09-07   | aucun identifiant confidentiel fourni à cette session                                                |             Non testé              |
 | Smoke E2E complet sérialisé              | `pnpm test:e2e:smoke --workers=1`, code 0, 54/54 en 4,4 min sans relance                             |         Réussi localement          |
 | Audits dépendances complet et production | codes 0/0, aucune vulnérabilité connue après overrides et régénération du lockfile                   |         Réussi localement          |
@@ -123,7 +123,7 @@ La gate sécurité locale est maintenant verte. Au moment de ce journal,
 qui attend encore une CI distante : les résultats ne sont pas attribués au SHA
 de base `d950b6b` ni à la production.
 
-## Migration et seed : vérification sans base distante
+## Migration et seed : exécution locale sans base distante
 
 La lecture statique confirme sept migrations ordonnées `0000` à `0006`, sept
 entrées correspondantes dans `drizzle/meta/_journal.json`, et un seed
@@ -137,24 +137,27 @@ La tentative d'exécution a ciblé exclusivement :
 postgresql://alcide:alcide_dev@localhost:5432/alcide
 ```
 
-`docker compose up -d postgres` exige d'abord que les variables requises des
-autres services soient définies pour l'interpolation globale du fichier. Des
-sentinelles non secrètes, limitées au processus, ont permis de franchir cette
-étape. La tentative suivante n'a pas atteint PostgreSQL : le moteur Docker
-Desktop n'a pas répondu au client dans le délai de 8 secondes. En conséquence,
-**ni migration ni seed n'ont été exécutés**, localement ou à distance. Aucune
-`DATABASE_URL` de production n'a été lue ou utilisée.
+Le premier contrôle a été bloqué parce que Compose interpole aussi les secrets
+obligatoires des services API/Web. Une fois le moteur Docker disponible, le
+conteneur local existant `alcide-db` (`postgres:16-alpine`) a été contrôlé puis
+démarré directement, sans valeur de substitution et sans lancer API/Web. Son
+healthcheck est passé à `healthy` et son port publié est `5432`.
 
-À rejouer lorsque `docker info` répond, avec contrôle explicite de la cible :
+L'exécution finale du 2026-09-07 a utilisé uniquement :
 
 ```powershell
 $env:DATABASE_URL='postgresql://alcide:alcide_dev@localhost:5432/alcide'
-docker compose up -d postgres
+docker start alcide-db
 pnpm db:migrate
 pnpm db:seed
 ```
 
-Avant `db:migrate`, afficher uniquement l'hôte, le port et le nom de base
+Résultat : migrations appliquées avec succès ; seed terminé avec l'utilisateur
+`demo@alcide.app` et trois workouts. La vérification SQL en lecture seule donne
+`users=1` et `workouts=3`. Aucune `DATABASE_URL` de production n'a été lue ou
+utilisée et aucune base distante n'a été touchée.
+
+Avant toute répétition, afficher uniquement l'hôte, le port et le nom de base
 parsés — jamais le mot de passe — et refuser toute cible autre que
 `localhost:5432/alcide`.
 

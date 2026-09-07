@@ -180,23 +180,24 @@ Arrêter ici. Ne pas ouvrir le code sauf question du jury.
 
 ## 5. Local : procédure conditionnelle
 
-Le 2026-09-07, seul le Web local a été validé. Docker Desktop n'a pas répondu ;
-la DB locale n'a pas été migrée/seedée. Ne promettre le mode complet que si la
-procédure suivante a réussi avant l'épreuve.
+Le 2026-09-07, le Web local a été validé et le conteneur `alcide-db` a ensuite
+été contrôlé sain sur `localhost:5432`. Les sept migrations et le seed ont
+réussi ; une lecture SQL confirme un utilisateur et trois séances. L'API locale
+authentifiée n'a pas été démarrée faute de secrets de service.
 
 ```powershell
 docker info
 $env:DATABASE_URL='postgresql://alcide:alcide_dev@localhost:5432/alcide'
-docker compose up -d postgres
+docker start alcide-db
 pnpm db:migrate
 pnpm db:seed
-pnpm dev
+pnpm dev:web
 ```
 
-Le fichier Compose exige aussi des variables pour interpoler les services non
-lancés. N'utiliser que des sentinelles locales de processus pour la préparation,
-jamais des secrets de production, et ne rien écrire dans un fichier suivi par
-Git. Refuser l'exécution si la `DATABASE_URL` n'est pas strictement locale.
+Le démarrage direct du conteneur évite l'interpolation globale des secrets
+obligatoires API/Web par Compose. Ne jamais réutiliser de secret de production
+et ne rien écrire dans un fichier suivi par Git. Refuser l'exécution si la
+`DATABASE_URL` n'est pas strictement locale.
 
 ## 6. Checklist orateur
 
@@ -243,9 +244,9 @@ nouvelle connexion authentifiée avant la gate J-2.
 
 **Le local complet est-il prêt ?**
 
-Le Web public est validé. Les migrations et le seed sont cohérents dans le
-dépôt, mais leur exécution est bloquée tant que le moteur Docker local ne
-répond pas.
+Le Web public est validé. PostgreSQL local est sain ; les sept migrations et le
+seed ont réussi, avec un utilisateur et trois séances confirmés en lecture SQL.
+L'API locale authentifiée reste conditionnée aux secrets de service.
 
 **Tous les tests sont-ils verts ?**
 
