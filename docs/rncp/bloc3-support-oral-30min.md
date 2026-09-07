@@ -1,392 +1,247 @@
-# Plan de support oral Bloc 3 RNCP39583 - Alcide
+# Support oral Bloc 3 RNCP39583 — Alcide
 
-> Épreuve : **Bloc 3 - Coordonner et piloter un projet de développement d'applications logicielles**  
-> Format officiel : **45 minutes**, dont **30 minutes de présentation** et **15 minutes d'échange avec le jury**  
-> Objectif du support : prouver le pilotage du projet et terminer par une démonstration exploitable de la dernière version logicielle.
+> Épreuve : **Coordonner et piloter un projet de développement d'applications logicielles**
+> Format : **45 minutes**, dont **30 minutes de présentation** et **15 minutes d'échange**
+> État présenté : **2026-09-07**
+> Baseline : **`0.13.0-rc.8`**, SHA court **`d950b6b`**
+> Fil conducteur : 22 minutes de pilotage, 7 minutes de démonstration, 1 minute de conclusion
 
----
+## 1. Règle de présentation
 
-## 1. Intention de présentation
+Le support sépare systématiquement les preuves réelles du dépôt et des
+contrôles du 2026-09-07, les reconstructions documentaires, les scénarios
+d'organisation cible liés au contexte solo et les validations client encore à
+recueillir. La version `0.12.0` et les mesures du 2026-05-07 restent des repères
+historiques ; elles ne doivent plus être annoncées comme l'état actuel.
 
-Message central à faire passer :
+## 2. Plan minuté et correspondance avec les annexes
 
-> Alcide n'est pas seulement une application développée : c'est un projet logiciel piloté par incréments, avec méthode, planning, suivi, arbitrages, indicateurs, gestion des risques, validations et version démontrable.
+|       Temps | Slide | Message clé                                                    | Annexe principale           | Preuve à afficher                                       |
+| ----------: | ----: | -------------------------------------------------------------- | --------------------------- | ------------------------------------------------------- |
+|   0:00–1:00 |     1 | Le Bloc 3 évalue le pilotage puis la démonstration             | Matrice et présent livrable | Compétences C.3.1 à C3.4.2                              |
+|   1:00–2:15 |     2 | Alcide est déployé, versionné et traçable                      | **B3-A07**                  | `0.13.0-rc.8`, SHA `d950b6b`, URLs Web/API              |
+|   2:15–4:15 |     3 | La méthode itérative est adaptée au projet solo                | **B3-A01**                  | Cadre méthodologique et sources datées                  |
+|   4:15–7:00 |     4 | Le planning distingue prévu, réalisé et reconstruit            | **B3-A01**                  | WBS, Gantt, dépendances, jalons et écarts               |
+|   7:00–8:30 |     5 | Ressources, capacité et limites sont chiffrées                 | **B3-A01**, **B3-A05**      | Charge reconstruite, ressources réelles et équipe cible |
+|  8:30–10:30 |     6 | Les missions réelles et cibles ne sont pas confondues          | **B3-A04**                  | RASCI réel/cible, charge, inclusion                     |
+| 10:30–13:30 |     7 | Le dépôt et le tableau daté forment l'outil de suivi           | **B3-A01**, **B3-A02**      | Sprints, ADR, CI/CD, KPI, risques et décisions          |
+| 13:30–16:00 |     8 | Les deux gates techniques ont été remédiées localement         | **B3-A02**                  | Audits à 0 ; E2E 54/54 ; commit `7fc5f01`, CI attendue  |
+| 16:00–18:00 |     9 | Un arbitrage est démontré par options, pondération et décision | **B3-A03**                  | Matrice Vercel/Neon, logigramme, résultat               |
+| 18:00–19:45 |    10 | La communication est cadencée et orientée décision             | **B3-A04**, **B3-A06**      | Rituels, comptes rendus et validations                  |
+| 19:45–21:30 |    11 | Les besoins de management et de compétences sont mesurés       | **B3-A04**, **B3-A05**      | Échelle 0–4, écarts, besoins RH, formations             |
+| 21:30–22:30 |    12 | Les limites client et satisfaction sont explicites             | **B3-A06**                  | CR réels/reconstitués, grille SAT non renseignée        |
+| 22:30–23:00 |    13 | Transition : du pilotage à la validation par l'usage           | Script de démo + **B3-A07** | Baseline et plan de secours                             |
+| 23:00–29:00 |    14 | Démonstration du parcours commanditaire                        | Script de démo + **B3-A07** | Production, parcours critique, captures de secours      |
+| 29:00–30:00 |    15 | Décision conditionnelle et prochaines actions                  | **B3-A02**, **B3-A06**      | Gates, limites et validation à obtenir                  |
 
-Angle recommandé :
+Chemins des annexes : `docs/rncp/bloc3-annexes/B3-A01-…` à
+`docs/rncp/bloc3-annexes/B3-A07-demonstration-version-actuelle.md`.
 
-- parler d'abord de **pilotage projet**, pas de code ;
-- utiliser le code seulement comme preuve d'un choix, d'un indicateur ou d'une validation ;
-- assumer le contexte individuel : une seule personne a porté plusieurs rôles projet ;
-- distinguer les preuves réelles des éléments reconstitués pour la soutenance ;
-- insister sur les compétences éliminatoires C.3.1, C3.2.1 et C3.4.2.
+## 3. Contenu à présenter par slide
 
-Nombre conseillé de slides : **15 slides**.
+### Slide 1 — Cadre Bloc 3
 
-Découpage recommandé :
+Message : « Je présente comment le projet a été planifié, piloté, arbitré et
+coordonné, puis je démontre la dernière baseline contrôlée. »
 
-- **22 minutes** de présentation pilotage ;
-- **8 minutes** de démonstration logicielle ;
-- **15 minutes** d'échange avec le jury.
+- rappeler les trois compétences éliminatoires : C.3.1, C3.2.1 et C3.4.2 ;
+- annoncer que chaque affirmation renvoie à une annexe datée ;
+- afficher la matrice de conformité actualisée.
 
----
+### Slide 2 — Projet et baseline
 
-## 2. Plan minuté sur 30 minutes
+Message : « Alcide génère, sauvegarde et permet d'exécuter des entraînements et
+programmes personnalisés. »
 
-| Temps | Slide | Titre | Message clé | Preuves à afficher ou citer |
-|---:|---:|---|---|---|
-| 0:00-1:00 | 1 | Contexte Bloc 3 | L'épreuve évalue le pilotage et la démonstration, pas uniquement le développement | PDF règlement spécial, `docs/rncp/matrice-conformite-rncp39583.md` |
-| 1:00-2:30 | 2 | Projet en une minute | Alcide génère et suit des entraînements personnalisés par IA | `README.md`, `package.json`, URL Vercel |
-| 2:30-4:30 | 3 | Méthode projet | Approche itérative inspirée Scrum, adaptée à un projet individuel | `docs/sprints/`, `CHANGELOG.md` |
-| 4:30-7:00 | 4 | Planning et jalons | Le projet est structuré en phases : fondations, MVP, qualité, déploiement, démo | Tableau planning Bloc 3, `docs/sprints/sprint-01.md` à `sprint-12.md` |
-| 7:00-8:30 | 5 | Ressources | Les ressources humaines, techniques et cloud sont identifiées | `package.json`, `docker-compose.yml`, `.github/workflows/`, `docs/deployment.md` |
-| 8:30-10:30 | 6 | Rôles et RACI | Projet solo : le candidat assume les rôles chef de projet, dev, QA, DevOps | RACI du livrable Bloc 3, `docs/bloc4/compte-rendu-activite.md` |
-| 10:30-13:00 | 7 | Outil de suivi | Le suivi est versionné : sprints, changelog, ADR, bugs, CI/CD | `docs/sprints/`, `CHANGELOG.md`, `docs/adr/`, `docs/bloc4/bugs/` |
-| 13:00-15:00 | 8 | Tableau de bord | Les KPI pilotent qualité, avancement, risques et validation | `pnpm test`, `pnpm test:coverage`, Playwright Chromium, CI |
-| 15:00-18:00 | 9 | Arbitrages | Les décisions structurantes sont argumentées par options, critères et impacts | `ADR-001` à `ADR-007`, `BUG-001` |
-| 18:00-19:30 | 10 | Communication | Revues, ADR, changelog et comptes rendus reconstitués assurent la traçabilité | `docs/sprints/`, `docs/ci-cd.md`, `docs/rncp/bloc3-pilotage-projet-rncp39583.md` |
-| 19:30-21:00 | 11 | Compétences et management | Les besoins en compétences sont identifiés malgré le contexte individuel | Grille compétences Bloc 3, plan de montée en compétences |
-| 21:00-22:30 | 12 | Risques et validations | Les risques IA, auth, CI, déploiement et démo sont suivis avec plans de secours | Registre risques Bloc 3, `seed.ts`, healthchecks |
-| 22:30-23:00 | 13 | Transition démo | La démonstration valide la dernière version logicielle devant le commanditaire | `bloc3-script-demo-logiciel.md` |
-| 23:00-29:00 | 14 | Démonstration | Auth, génération, consultation, timer, session, dashboard, healthchecks | Application web, API healthcheck, données seed si besoin |
-| 29:00-30:00 | 15 | Validation finale | Le projet est livrable sous conditions connues et limites explicites | Liste écarts/preuves à produire |
+- application Next.js/Hono/PostgreSQL, authentification Auth.js ;
+- génération IA actuelle côté serveur avec OpenAI et validation Zod ;
+- baseline `0.13.0-rc.8`, SHA `d950b6b` ;
+- Web, API, DB et configuration IA déclarés prêts lors de la mesure actuelle.
 
----
+Ne pas présenter Mistral comme le fournisseur courant : l'ADR Mistral est une
+décision historique, remplacée par `docs/adr/ADR-008-openai-server-side.md`.
 
-## 3. Détail conseillé par slide
+### Slide 3 — Méthode
 
-### Slide 1 - Contexte Bloc 3
+Message : « Une démarche itérative légère a permis de livrer et contrôler des
+incréments, mais le dépôt ne prouve pas un Scrum d'équipe complet. »
 
-Message clé : "Je présente le pilotage du projet et je termine par une démonstration de la dernière version."
+- sprints, changelog, ADR et gates CI comme traces réelles ;
+- méthode adaptée à une personne assumant plusieurs casquettes ;
+- distinction entre chronologie observée et planification reconstruite.
 
-À dire :
+### Slide 4 — Planning et jalons
 
-- oral individuel de 45 minutes ;
-- 30 minutes de présentation, 15 minutes d'échange ;
-- compétences éliminatoires : C.3.1 planification, C3.2.1 pilotage, C3.4.2 démonstration.
+Afficher B3-A01 : WBS et dépendances, charges prévues et reconstruites, Gantt
+consolidé, jalons, chemin critique, marges et règles de replanification.
 
-À afficher :
+Dire explicitement : « Je ne possède pas de Gantt initial exhaustif. La
+chronologie réalisée est prouvée ; certaines prévisions sont reconstruites et
+étiquetées comme telles. »
 
-- intitulé officiel : **Coordonner et piloter un projet de développement d'applications logicielles** ;
-- format officiel : **30 min présentation + 15 min jury**.
+### Slide 5 — Ressources
 
-### Slide 2 - Projet en une minute
+- réel : Kevin assume pilotage, développement, QA et DevOps ;
+- technique : monorepo pnpm, GitHub Actions, Vercel, Neon, OpenAI ;
+- limites : aucun timesheet exploitable ni facture consolidée ;
+- cible : séparation produit, frontend/UX, backend/data/IA, QA/AppSec et SRE.
 
-Message clé : "Alcide aide un utilisateur à générer, sauvegarder, exécuter et suivre des entraînements personnalisés."
+### Slide 6 — Missions, management et inclusion
 
-À dire :
+Afficher les deux RASCI de B3-A04 :
 
-- application full-stack ;
-- IA Mistral validée par Zod ;
-- données utilisateur en PostgreSQL ;
-- version de référence : `0.12.0`.
+- réel : une personne, responsabilités cumulées ;
+- cible : rôles distribués sans inventer de collaborateur ;
+- handicap : recueillir le besoin fonctionnel, adapter canal, rythme et outils,
+  maintenir les critères de résultat et protéger la confidentialité ;
+- multiculturel : langage clair, écrits de décision, horaires et fuseaux pris
+  en compte dans l'organisation cible.
 
-Preuves :
+### Slide 7 — Outil de suivi
 
-- `README.md` ;
-- `package.json` ;
-- `CHANGELOG.md`.
+Message : « Il n'existe pas de preuve d'un board externe tenu pendant tout le
+projet. Le suivi vérifiable combine sprints, Git, ADR, anomalies, CI/CD et
+tableau de pilotage daté. »
 
-### Slide 3 - Méthode projet
+Afficher B3-A02 et expliquer responsables, fréquence, seuil, tendance, source
+et décision pour chaque KPI.
 
-Message clé : "Le projet a été piloté par incréments courts avec revues et traçabilité."
+### Slide 8 — Tableau de bord actuel
 
-À dire :
+| KPI au 2026-09-07 |                              Résultat | Lecture                                                                       |
+| ----------------- | ------------------------------------: | ----------------------------------------------------------------------------- |
+| Tests             |                           **261/261** | Shared 14, API 179, Web 68                                                    |
+| Shared            |       100 % lignes ; 92,85 % branches | Seuil lignes 70 % atteint                                                     |
+| API               |     89,72 % lignes ; 80,91 % branches | Seuil atteint                                                                 |
+| Web               |     77,32 % lignes ; 79,44 % branches | Seuil atteint, couverture non exhaustive                                      |
+| Production        |          **150/150** réponses valides | p95 maximal 246,42 ms sur cette mesure bornée                                 |
+| Audit dépendances |          **0 complet / 0 production** | Overrides qualifiés, futur SHA/CI encore attendu                              |
+| Smoke E2E courant | **54/54** avec `workers=1` en 4,4 min | Gate locale verte et reproductible en série                                   |
+| Historique E2E    |     **53/54**, puis cas ciblé **1/1** | L'échec intermittent n'est pas effacé ; le parallélisme reste à diagnostiquer |
 
-- méthode itérative inspirée Scrum ;
-- adaptation au contexte solo ;
-- définition de terminé : code + tests + documentation + changelog ;
-- priorités Must/Should/Could.
+Conclusion : les neuf contrôles sont verts localement. Le gel final reste
+conditionné par une CI validant le commit `7fc5f01` et son lockfile ; coûts,
+charge, continuité et validation client restent des réserves distinctes.
 
-Preuves :
+### Slide 9 — Arbitrage
 
-- `docs/sprints/` ;
-- `CHANGELOG.md` ;
-- `docs/bloc4/compte-rendu-activite.md`.
+Présenter le cas B3-A03, pas une simple liste d'ADR :
 
-### Slide 4 - Planning et jalons
+1. écart entre besoin de démonstration et environnement initial ;
+2. options comparées puis critères pondérés ;
+3. Vercel Web/API + Neon retenus, Docker conservé pour la portabilité ;
+4. risques, responsabilités, plan d'action et résultat constaté.
 
-Message clé : "Les travaux ont été ordonnancés en phases et dépendances."
+### Slide 10 — Communication
 
-À afficher :
+- preuves réelles : Git, sprints, ADR, CI/CD et documentation ;
+- organisation cible : daily court, revue hebdomadaire, gate de livraison,
+  rétrospective et décisions écrites ;
+- comptes rendus B3-A06 : statut réel, reconstitué ou à compléter visible.
 
-- diagramme Mermaid ou tableau planning du livrable Bloc 3 ;
-- 6 phases : fondations, MVP, qualité, déploiement, documentation, version démontrable.
+### Slide 11 — Compétences
 
-À dire :
+- grille B3-A05 : 17 compétences sur une échelle commune 0–4 ;
+- 5 au niveau 3, 9 au niveau 2, 3 au niveau 1 ; aucun niveau 4 revendiqué ;
+- anciens écarts P0 AppSec/E2E remédiés localement ; CI du correctif encore attendue ;
+- cinq besoins de renfort prêts pour un rôle RH cible, non transmis réellement ;
+- dix actions de développement planifiées, aucune formation déclarée suivie.
 
-- les dates exactes doivent être lues avec prudence ;
-- la preuve forte est la progression des livrables, versions et fichiers sprint ;
-- le planning prévisionnel a été consolidé pour la soutenance à partir des preuves.
+### Slide 12 — Validation et satisfaction
 
-### Slide 5 - Ressources
+- les évolutions sont traçables et la validation technique actuelle est mesurée ;
+- aucun avis client réel ni score SAT n'est revendiqué au 2026-09-07 ;
+- la grille SAT-01 à SAT-07 de B3-A06 doit être renseignée avec version, SHA,
+  identité/rôle du validateur, réserves et décision.
 
-Message clé : "Les ressources nécessaires sont identifiées : humaines, techniques, cloud et outillage."
+### Slide 13 — Transition vers la démo
 
-À afficher :
+Phrase : « Les annexes montrent comment la baseline a été pilotée. Je vais
+maintenant vérifier sa valeur d'usage sur un parcours court, puis demander une
+validation explicite sans masquer les deux gates encore ouvertes. »
 
-- tableau ressources humaines et techniques ;
-- architecture courte : Web Vercel, API Vercel, DB Neon, IA Mistral.
+### Slide 14 — Démonstration
 
-Preuves :
+Suivre strictement le script de démonstration détenu séparément :
 
-- `docs/ci-cd.md` ;
-- `docs/deployment.md` ;
-- `docker-compose.yml` ;
-- `.env.example`.
+1. contrôler version et health/readiness ;
+2. ouvrir l'accueil, l'authentification et une route protégée ;
+3. parcourir génération, liste, détail/timer et dashboard selon le script ;
+4. utiliser des données préparées si l'IA ou le réseau est indisponible ;
+5. présenter les captures B3-A07 comme secours, pas comme exécution live.
 
-### Slide 6 - Rôles et RACI
+### Slide 15 — Décision et conclusion
 
-Message clé : "Le projet est individuel, mais les responsabilités projet sont clarifiées."
+Conclusion exacte : « La baseline `0.13.0-rc.8` au SHA `d950b6b` est accessible
+et les contrôles unitaires/production sont probants. Je ne prononce pas seul
+une validation commanditaire. Je demande cette validation après démonstration,
+avec une réserve de traçabilité : le lockfile corrigé est commité en `7fc5f01`
+mais attend une CI verte. L'échec E2E parallèle historique reste documenté. »
 
-À dire :
+## 4. Questions probables du jury
 
-- le candidat a assumé plusieurs rôles : chef de projet, dev, QA, DevOps ;
-- le RACI explique comment ces rôles seraient distribués en équipe ;
-- prise en compte handicap : documentation asynchrone, tâches découpées, outils accessibles.
+### Où est le vrai outil de suivi ?
 
-Preuves :
+Le suivi réel est distribué dans des artefacts versionnés. B3-A02 le consolide
+avec KPI, seuils, responsables, fréquence, tendance, décisions et sources. Il
+n'existe pas de preuve d'un board externe tenu sur toute la période.
 
-- RACI Bloc 3 ;
-- `docs/bloc4/compte-rendu-activite.md`.
+### Le planning était-il réellement prévisionnel ?
 
-### Slide 7 - Outil de suivi
+Partiellement. B3-A01 sépare les éléments datés et observés des hypothèses
+reconstruites. Cette limite est conservée au lieu de transformer la chronologie
+Git en faux planning initial.
 
-Message clé : "Le suivi est versionné dans le dépôt."
+### Comment piloter une équipe sur un projet solo ?
 
-À afficher :
+Aucune équipe réelle n'est inventée. B3-A04 prouve les casquettes assumées et
+modélise une organisation cible. B3-A05 distingue l'auto-évaluation du candidat,
+les preuves réelles et les besoins futurs de recrutement ou de formation.
 
-- sprints pour l'avancement ;
-- changelog pour les versions ;
-- ADR pour les décisions ;
-- bugs pour les incidents ;
-- CI/CD pour les gates qualité.
+### Pourquoi conserver l'ancien échec alors que le smoke est vert ?
 
-Phrase utile :
+Le premier run complet a produit 53/54 avec un timeout Auth.js Chromium, puis le
+cas a réussi seul 1/1. Le run complet sérialisé suivant réussit 54/54 en
+4,4 minutes. La gate `workers=1` est verte ; le document conserve néanmoins
+l'historique et ne prétend pas avoir corrigé le parallélisme lui-même.
 
-> Je n'ai pas de capture Kanban externe à présenter. J'ai donc consolidé le suivi à partir d'artefacts versionnés. Pour une équipe réelle, je compléterais par GitHub Projects ou Jira.
+### La production est-elle garantie disponible ?
 
-### Slide 8 - Tableau de bord
+Non. La mesure bornée du 2026-09-07 produit 150/150 réponses valides et un p95
+maximal de 246,42 ms. Ce n'est ni un SLA, ni un test de charge, ni une garantie
+future.
 
-Message clé : "Les décisions de pilotage s'appuient sur des indicateurs mesurables."
+### La satisfaction client est-elle prouvée ?
 
-À afficher :
-
-| KPI | Valeur |
-|---|---:|
-| Tests unitaires | 70 passants |
-| Coverage API statements | 81.57% |
-| Smoke E2E Chromium | 24 passants |
-| Sprints | 12 |
-| ADR | 7 |
-| Bugs documentés | 2 |
-
-À préciser :
-
-- `pnpm test` et `pnpm test:coverage` ont été relancés le 2026-05-07 ;
-- Firefox Playwright n'était pas installé localement, donc le smoke complet cross-browser doit être relancé avant soutenance.
-
-### Slide 9 - Arbitrages
-
-Message clé : "Les arbitrages ont été documentés, justifiés et reliés à leurs impacts projet."
-
-Arbitrages à présenter :
-
-- monorepo pnpm ;
-- Next.js + Hono + PostgreSQL/Drizzle ;
-- Mistral AI ;
-- Vercel/Neon + Docker ;
-- auth service-to-service ;
-- stratégie tests.
-
-Focus oral recommandé : choisir **2 arbitrages longs** et citer les autres rapidement.
-
-Arbitrage long 1 : Mistral AI  
-Pourquoi : illustre coût, risque fournisseur, validation Zod, plan B.
-
-Arbitrage long 2 : Vercel/Neon + Docker  
-Pourquoi : illustre démonstration live, CD, migrations et plan de secours local.
-
-### Slide 10 - Communication
-
-Message clé : "La communication projet est tracée par des documents courts et orientés décision."
-
-À dire :
-
-- les revues de sprint servent de comptes rendus d'activité ;
-- les ADR justifient les choix ;
-- le changelog communique les évolutions ;
-- les comptes rendus client sont reconstitués pour la soutenance et ne sont pas des échanges réels.
-
-Preuves :
-
-- `docs/sprints/` ;
-- `docs/adr/` ;
-- `CHANGELOG.md`.
-
-### Slide 11 - Compétences et management
-
-Message clé : "Le projet a nécessité une grille de compétences même en contexte solo."
-
-À afficher :
-
-- compétences mobilisées : full-stack, IA, DB, tests, DevOps, sécurité, accessibilité ;
-- compétences à renforcer : Kanban, budget, tests DB, monitoring, management d'équipe.
-
-À dire :
-
-- en équipe réelle, les missions seraient affectées selon RACI ;
-- le style managérial varierait selon la situation : directif sur sécurité, participatif sur UX, factuel sur bugs.
-
-### Slide 12 - Risques et validations
-
-Message clé : "Les risques majeurs sont suivis et associés à des plans de secours."
-
-Risques à citer :
-
-- IA indisponible ;
-- OAuth ou réseau bloqué pendant la démo ;
-- données utilisateur mal isolées ;
-- régression CI ;
-- incohérence documentaire.
-
-Preuves :
-
-- `apps/api/src/db/seed.ts` pour plan B ;
-- healthchecks ;
-- tests ownership ;
-- fiches BUG.
-
-### Slide 13 - Transition vers la démo
-
-Message clé : "Je passe de la preuve de pilotage à la validation par l'usage."
-
-Phrase de transition :
-
-> Après avoir présenté comment le projet a été planifié, suivi, arbitré et validé, je vais montrer la dernière version logicielle sur un parcours utilisateur court. L'objectif est de parler comme face à un commanditaire : ce que l'utilisateur fait, ce qui est validé, et quels risques restent maîtrisés.
-
-### Slide 14 - Démonstration
-
-Scénario cible :
-
-1. Ouvrir l'application ou la version locale.
-2. Montrer l'authentification ou l'état protégé.
-3. Générer une séance.
-4. Consulter la séance et lancer le timer.
-5. Enregistrer une session terminée.
-6. Montrer le dashboard.
-7. Montrer paramètres IA.
-8. Montrer healthchecks API/Web.
-
-À éviter :
-
-- expliquer longuement le code ;
-- passer plus de 8 minutes ;
-- attendre une génération IA longue sans plan B.
-
-### Slide 15 - Validation finale
-
-Message clé : "Le projet est démontrable et validable, avec des limites connues."
-
-À dire :
-
-- version de référence : `0.12.0` ;
-- tests unitaires et coverage passants ;
-- smoke Chromium validé ;
-- plans de secours prêts ;
-- preuves à finaliser : board de suivi, harmonisation version/sprints, Firefox Playwright, monitoring externe.
-
----
-
-## 4. Questions probables du jury et réponses préparées
-
-### Question 1 - Où est votre vrai outil de suivi projet ?
-
-Réponse :
-
-> Le dépôt ne contient pas de capture d'un outil externe type Jira. Le suivi réel est versionné par les revues de sprint, le changelog, les ADR, les fiches bugs et la CI/CD. Pour une équipe réelle, je compléterais ce système par GitHub Projects afin d'avoir un board visuel avec statuts, responsables, échéances et priorités.
-
-### Question 2 - Comment démontrez-vous la compétence C.3.1 si le planning est surtout rétrospectif ?
-
-Réponse :
-
-> Les preuves initiales sont effectivement plus rétrospectives que prévisionnelles. Pour sécuriser le Bloc 3, j'ai consolidé un planning par phases, jalons et dépendances à partir des sprints existants. Je présente cela comme une reconstruction de pilotage, et je signale l'écart plutôt que de prétendre disposer d'un Gantt initial complet.
-
-### Question 3 - Comment avez-vous piloté une équipe alors que le projet est individuel ?
-
-Réponse :
-
-> Le projet est individuel ; je ne prétends pas avoir piloté une équipe réelle. J'explique les rôles assumés par le candidat et je fournis un RACI cible pour montrer comment les missions seraient affectées dans une équipe. J'aborde aussi le style managérial, la prise en compte du handicap et les compétences à renforcer.
-
-### Question 4 - Quel arbitrage a eu le plus d'impact ?
-
-Réponse :
-
-> L'arbitrage le plus impactant est le couple Mistral AI + validation Zod. Il répond au coeur métier, mais crée un risque de sortie invalide ou de dépendance fournisseur. La décision a été prise car Mistral offrait un JSON mode et un coût adapté au prototype. L'impact est maîtrisé par un service dédié, un retry, des schémas Zod partagés et un plan B avec données seedées.
-
-### Question 5 - Comment suivez-vous la qualité ?
-
-Réponse :
-
-> Par des indicateurs mesurables : tests unitaires, coverage, smoke E2E, build, lint/typecheck, bugs documentés, healthchecks et changelog. Le 2026-05-07, `pnpm test` passe avec 70 tests unitaires et `pnpm test:coverage` donne 81.57% de statements API, au-dessus du seuil CI de 70%.
-
-### Question 6 - Que faites-vous si l'IA ne répond pas pendant la démo ?
-
-Réponse :
-
-> Je bascule sur les données de démonstration seedées. Le script `apps/api/src/db/seed.ts` crée trois entraînements variés sans dépendre de Mistral. Je peux ainsi montrer liste, détail, timer, suivi de session et dashboard. J'explique ensuite comment la génération IA est sécurisée côté backend.
-
-### Question 7 - Pourquoi Vercel/Neon ?
-
-Réponse :
-
-> Pour disposer d'une version live démontrable, avec une base PostgreSQL managée et une CD traçable. Les migrations sont séparées du build via un workflow manuel, ce qui évite qu'un build applicatif modifie la base sans validation explicite. Docker reste disponible comme plan de portabilité et de démo locale.
-
-### Question 8 - Quels sont les principaux écarts restants ?
-
-Réponse :
-
-> Les principaux écarts sont documentaires et de pilotage : absence de board Kanban externe, comptes rendus client reconstitués, indicateurs de satisfaction non issus d'une enquête réelle, incohérence `0.12.0`/`0.13.0`, et navigateur Playwright Firefox à installer pour relancer le smoke cross-browser.
-
-### Question 9 - Comment obtenez-vous la validation du commanditaire ?
-
-Réponse :
-
-> Je propose une validation en fin de démo sur critères : parcours utilisateur compréhensible, génération ou consultation d'une séance, timer utilisable, dashboard cohérent, healthchecks disponibles, sécurité ownership expliquée. Les limites restantes sont listées avec des actions de correction.
-
-### Question 10 - Quelle suite donneriez-vous au projet ?
-
-Réponse :
-
-> Priorité 1 : harmoniser la documentation et finaliser le board de suivi. Priorité 2 : installer le monitoring externe et relancer tous les E2E cross-browser. Priorité 3 : ajouter des tests d'intégration DB et un rate limit partagé Redis/Upstash pour un usage production multi-instance.
-
----
+Non. B3-A06 fournit le dispositif et les critères ; ils restent à faire
+renseigner par un validateur réel après démonstration.
 
 ## 5. Checklist avant l'oral
 
-À préparer la veille :
-
-- vérifier que `package.json` et `CHANGELOG.md` indiquent bien la version à présenter ;
-- ouvrir les trois fichiers Bloc 3 ;
-- préparer les URLs Web/API et les healthchecks ;
-- préparer un compte de démonstration ;
-- préparer la démo locale avec `.env`, migrations et seed ;
-- lancer `pnpm test` ;
-- lancer `pnpm test:coverage` ;
-- installer Firefox Playwright et relancer le smoke complet si possible ;
-- préparer 3 captures alternatives : page d'accueil, détail séance/timer, dashboard ;
-- avoir `docs/adr/ADR-003-mistral-ai.md`, `ADR-004`, `ADR-007`, `docs/ci-cd.md` ouverts ou faciles à retrouver.
-
-Commande de validation minimale :
+- [ ] annoncer `0.13.0-rc.8` et vérifier le SHA `d950b6b` ;
+- [ ] ouvrir les annexes B3-A01 à B3-A06 et vérifier B3-A07 ;
+- [ ] ouvrir le script de démonstration sans le modifier depuis ce support ;
+- [ ] vérifier URLs, `/health`, `/ready` et `/api/health` ;
+- [ ] préparer le compte de démonstration sans exposer de secret ;
+- [ ] rejouer tests, couverture, typecheck, lint et build ;
+- [ ] rejouer l'audit et annoncer son résultat exact ;
+- [ ] rejouer le smoke complet, sans le remplacer par une relance ciblée ;
+- [ ] préparer le plan B local/données et les captures B3-A07 ;
+- [ ] chronométrer la démonstration à 6–7 minutes ;
+- [ ] ouvrir la grille de validation B3-A06 ;
+- [ ] conserver les limites : coûts réels N/D, planning partiellement
+      reconstruit, équipe solo, aucune satisfaction client réelle.
 
 ```bash
 pnpm test
 pnpm test:coverage
-pnpm --filter web exec playwright test tests/e2e/home.spec.ts tests/e2e/auth.spec.ts tests/e2e/accessibility.spec.ts tests/e2e/axe.spec.ts --project=chromium
-```
-
-Commande E2E complète après installation navigateurs :
-
-```bash
-pnpm --filter web exec playwright install chromium firefox
+pnpm typecheck
+pnpm lint
+pnpm build
+pnpm audit --audit-level=low
 pnpm test:e2e:smoke
+pnpm measure:production-health -- 50
 ```
+
+Les résultats de référence sont consignés dans B3-A02. Toute nouvelle
+exécution doit être présentée avec sa date, son SHA et son résultat propre.
