@@ -813,7 +813,9 @@ Preuves :
 - [ADR](../adr/)
 - [BUG-001](../bloc4/bugs/BUG-001-coverage-threshold.md)
 
-Écart / preuve à produire : sélectionner un cas d'arbitrage pour l'oral Bloc 3 et le formaliser avec options, critères, matrice de décision, risques, décision et résultat. Le cas BUG-001 ou le choix Vercel/Neon sont les plus exploitables.
+Clôture Bloc 3 : l'arbitrage Vercel/Neon est formalisé avec options, critères
+pondérés, logigramme, décision, risques et résultat dans
+[B3-A03](bloc3-annexes/B3-A03-cas-arbitrage-vercel-neon.md).
 
 ## Communication projet
 
@@ -826,7 +828,12 @@ Preuves existantes :
 - fiches anomalies
 - README
 
-Écart / preuve à produire : absence de comptes rendus adressés à un client, d'outil de communication équipe, de modalités de validation client ou d'indicateurs de satisfaction.
+Clôture Bloc 3 : [B3-A06](bloc3-annexes/B3-A06-comptes-rendus-validation-satisfaction.md)
+regroupe trois jalons, les modalités de validation et les indicateurs. Le
+commanditaire de l'exercice étant fictif, `PV-SIM-01` et `SAT-SIM-01` à `07`
+constituent une simulation pédagogique explicitement distincte d'un retour
+humain réel. L'absence d'un outil d'équipe historique reste une limite du projet
+solo.
 
 ## Comptes rendus d'activité
 

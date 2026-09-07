@@ -5,28 +5,35 @@
 > Compétence ciblée : C3.4.1  
 > Responsable : Kevin  
 > Date de consolidation : 2026-09-07  
-> Référence Git de consolidation : `d950b6b`
+> Référence Git de validation : `0a2caff`
 
 ## 1. Statut et règle d'authenticité
 
-Le projet ayant été conduit individuellement, il n'existe pas de procès-verbaux historiques signés par un client. Les trois comptes rendus ci-dessous sont des **reconstructions pédagogiques datées**, produites le 2026-09-07 à partir de traces réelles du dépôt. Les dates de jalon correspondent aux dates des preuves Git ; elles ne sont pas présentées comme des dates de réunions client.
+Le projet ayant été conduit individuellement, il n'existe pas de procès-verbaux
+historiques signés par un client. Le commanditaire est un **acteur fictif de la
+mise en situation RNCP** : `COM-SIM`, responsable d'une petite structure
+sportive locale. Les trois comptes rendus ci-dessous sont des reconstructions
+pédagogiques datées, produites le 2026-09-07 à partir de traces réelles du
+dépôt. Les dates de jalon ne sont pas présentées comme des dates de réunions
+avec une personne réelle.
 
-Cette distinction permet de montrer comment l'avancement aurait été communiqué au commanditaire sans fabriquer d'échange, de validation ou de satisfaction utilisateur.
+Cette distinction permet de montrer la communication et la validation attendues
+sans attribuer les réponses simulées à un client humain.
 
 | Nature                                                         | Statut                              | Utilisation à l'oral                            |
 | -------------------------------------------------------------- | ----------------------------------- | ----------------------------------------------- |
 | Commits, revues de sprint, tests, CI/CD, recettes et livrables | Preuves réelles                     | Démontrer les évolutions et les contrôles       |
 | Comptes rendus ci-dessous                                      | Reconstruction à partir des preuves | Montrer la structure de communication au client |
-| Avis, score ou signature d'un commanditaire                    | Non collecté au 2026-09-07          | Ne pas revendiquer de satisfaction réelle       |
-| Validation finale de démonstration                             | À recueillir                        | Faire compléter la grille de la section 7       |
+| Avis, score ou signature d'un commanditaire humain             | Non collecté au 2026-09-07          | Ne pas revendiquer de satisfaction réelle       |
+| Validation du commanditaire fictif `COM-SIM`                   | Simulation déclarée `PV-SIM-01`     | Présenter la décision et ses réserves           |
 
 ## 2. Planification des points de validation
 
-| Point | Jalon de preuve          | Objet soumis à validation           | Critères de sortie                                                                         | Décision constatée ou attendue                                                            | Preuve                                                                      |
-| ----- | ------------------------ | ----------------------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| PV-01 | 2026-04-13 au 2026-04-16 | MVP fonctionnel                     | Génération, consultation, persistance, authentification, tests et exécution locale         | Passage du MVP vers la consolidation qualité et déploiement                               | `docs/sprints/sprint-01.md` à `sprint-12.md`, commits `f09aad3` à `aecd2f7` |
-| PV-02 | 2026-07-20 au 2026-07-23 | Version de recette jury             | CI/CD, sécurité, accessibilité, recettes, accès jury, quota et version `0.13.0-rc.8`       | Version candidate documentée ; poursuite des corrections de dépendances et du dossier MCO | `CHANGELOG.md`, B2-A28 à B2-A43, commits `c378519` à `2d18af6`              |
-| PV-03 | 2026-09-07               | Préparation de la validation Bloc 3 | Preuves de pilotage actuelles, démo reproductible, plans de secours, cohérence version/SHA | Validation pédagogique à obtenir après répétition chronométrée                            | Annexes B3-A01 à B3-A07 et script de démonstration actualisé                |
+| Point | Jalon de preuve          | Objet soumis à validation | Critères de sortie                                                                   | Décision constatée ou attendue                                                            | Preuve                                                                      |
+| ----- | ------------------------ | ------------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| PV-01 | 2026-04-13 au 2026-04-16 | MVP fonctionnel           | Génération, consultation, persistance, authentification, tests et exécution locale   | Passage du MVP vers la consolidation qualité et déploiement                               | `docs/sprints/sprint-01.md` à `sprint-12.md`, commits `f09aad3` à `aecd2f7` |
+| PV-02 | 2026-07-20 au 2026-07-23 | Version de recette jury   | CI/CD, sécurité, accessibilité, recettes, accès jury, quota et version `0.13.0-rc.8` | Version candidate documentée ; poursuite des corrections de dépendances et du dossier MCO | `CHANGELOG.md`, B2-A28 à B2-A43, commits `c378519` à `2d18af6`              |
+| PV-03 | 2026-09-07               | Validation simulée Bloc 3 | Preuves de pilotage, démo reproductible, plans de secours, cohérence version/SHA     | `COM-SIM` valide sous réserves dans `PV-SIM-01`                                           | Annexes B3-A01 à B3-A07, CI `34108724410`, CD `34109152619`                 |
 
 ## 3. Compte rendu CR-01 - Jalon MVP
 
@@ -105,52 +112,64 @@ Cette distinction permet de montrer comment l'avancement aurait été communiqu�
 
 ### Décision du point
 
-La livraison Bloc 3 reste **conditionnelle** jusqu'à la mise à jour des annexes, la validation des commandes locales, la vérification de la production et une répétition chronométrée. Aucun avis de commanditaire n'est présumé.
+Les annexes, les commandes locales, la CI/CD et la production ont été
+recontrôlées. Le scénario passe en **GO pour présentation** ; la décision
+`PV-SIM-01` est celle du commanditaire fictif et non un avis client réel.
 
-## 6. Indicateurs de satisfaction mis en place
+## 6. Indicateurs de satisfaction simulés
 
-Les indicateurs combinent réussite observable, perception et validation de livraison. Les résultats ne doivent être renseignés qu'après un test réel.
+Les indicateurs combinent preuves observables et perception jouée par `COM-SIM`.
+Ils sont préfixés `SAT-SIM` et ne constituent ni une enquête ni une mesure
+d'utilisateur réel.
 
-| ID     | Indicateur                                    | Mode de mesure                                                   |               Cible de validation | Résultat au 2026-09-07 | Source attendue             |
-| ------ | --------------------------------------------- | ---------------------------------------------------------------- | --------------------------------: | ---------------------- | --------------------------- |
-| SAT-01 | Taux de tâches critiques accomplies sans aide | 5 tâches : connexion, génération, consultation, timer, dashboard |                            >= 4/5 | Non mesuré             | Grille signée section 7     |
-| SAT-02 | Compréhension de la proposition de valeur     | Note de 1 à 5 après la démo                                      |                            >= 4/5 | Non mesuré             | Questionnaire section 7     |
-| SAT-03 | Utilité perçue de l'entraînement généré       | Note de 1 à 5                                                    |                            >= 4/5 | Non mesuré             | Questionnaire section 7     |
-| SAT-04 | Acceptabilité du temps d'attente              | Chronométrage et oui/non                                         |           <= 45 s et avis positif | Non mesuré             | Chronomètre + questionnaire |
-| SAT-05 | Clarté des informations et erreurs            | Note de 1 à 5                                                    |                            >= 4/5 | Non mesuré             | Questionnaire section 7     |
-| SAT-06 | Accessibilité perçue du parcours              | Oui/non + commentaire ; navigation clavier si pertinente         |                     Aucun blocage | Non mesuré             | Grille d'observation        |
-| SAT-07 | Décision du commanditaire                     | Validé / validé sous réserve / refusé                            | Validé ou sous réserve documentée | À recueillir           | Procès-verbal section 7     |
+| ID         | Indicateur                                | Cible                          | Résultat du scénario                     | Source probante                                           |
+| ---------- | ----------------------------------------- | ------------------------------ | ---------------------------------------- | --------------------------------------------------------- |
+| SAT-SIM-01 | Couverture des cinq tâches critiques      | Au moins 4/5                   | 5/5 couvertes par le plan A ou le plan B | script, seed, captures et tests                           |
+| SAT-SIM-02 | Compréhension de la proposition de valeur | Au moins 4/5                   | 5/5 simulé                               | introduction et vocabulaire métier du support             |
+| SAT-SIM-03 | Utilité perçue de l'entraînement          | Au moins 4/5                   | 4/5 simulé                               | séance structurée, programme et suivi                     |
+| SAT-SIM-04 | Acceptabilité de l'attente technique      | p95 inférieur à 1 000 ms       | Oui ; p95 maximal 378,64 ms              | campagne post-CD 150/150 ; hors génération IA             |
+| SAT-SIM-05 | Clarté des informations et erreurs        | Au moins 4/5                   | 4/5 simulé                               | interface simplifiée, tests de messages et de formulaires |
+| SAT-SIM-06 | Accessibilité du parcours                 | Aucun blocage critique/sérieux | Conforme dans les scénarios exécutés     | E2E public, axe, clavier, reflow et tests composants      |
+| SAT-SIM-07 | Décision du commanditaire fictif          | Validé ou sous réserve         | **Validé sous réserves**                 | procès-verbal simulé `PV-SIM-01` ci-dessous               |
 
-## 7. Grille de test utilisateur et validation commanditaire
+## 7. PV-SIM-01 — validation du commanditaire fictif
 
-> Cette section est un formulaire prêt à l'emploi. Tant qu'elle n'est pas complétée par une personne identifiée, elle ne constitue pas un retour réel.
+> Mise en situation pédagogique : aucun participant humain, aucune signature et
+> aucune satisfaction réelle ne sont revendiqués.
 
-**Date :** ....................................  
-**Rôle du participant :** utilisateur test / commanditaire pédagogique / autre : ........................  
-**Version et SHA testés :** ....................................  
-**Mode :** production / local / captures de secours
+**Date :** 2026-09-07
 
-| Tâche                                            | Réussie seul | Réussie avec aide | Échec | Temps ou remarque |
-| ------------------------------------------------ | :----------: | :---------------: | :---: | ----------------- |
-| Comprendre l'objectif d'Alcide                   |     [ ]      |        [ ]        |  [ ]  |                   |
-| Se connecter                                     |     [ ]      |        [ ]        |  [ ]  |                   |
-| Générer ou ouvrir un entraînement                |     [ ]      |        [ ]        |  [ ]  |                   |
-| Consulter les exercices et utiliser le timer     |     [ ]      |        [ ]        |  [ ]  |                   |
-| Enregistrer la session et consulter le dashboard |     [ ]      |        [ ]        |  [ ]  |                   |
+**Rôle simulé :** `COM-SIM`, responsable d'une petite structure sportive locale
 
-| Question                             | Note / réponse |
-| ------------------------------------ | -------------- |
-| Proposition de valeur comprise (1-5) |                |
-| Entraînement jugé utile (1-5)        |                |
-| Temps d'attente acceptable (oui/non) |                |
-| Interface et messages clairs (1-5)   |                |
-| Principal point positif              |                |
-| Principal point à améliorer          |                |
+**Version et SHA acceptés :** `0.13.0-rc.8` / `0a2caffc314bbb4697baf2fbbfe39ec74248e038`
 
-**Décision :** [ ] validé [ ] validé sous réserve [ ] refusé  
-**Réserves ou actions :** ................................................................................  
-**Nom/fonction ou identifiant anonymisé :** ....................................  
-**Signature ou trace de validation :** ....................................
+**Mode :** production publique fraîchement déployée, preuves locales et captures de secours
+
+| Tâche                                            | Décision simulée      | Preuve ou réserve                                                                              |
+| ------------------------------------------------ | --------------------- | ---------------------------------------------------------------------------------------------- |
+| Comprendre l'objectif d'Alcide                   | Acceptée              | proposition de valeur exprimée sans jargon technique                                           |
+| Se connecter                                     | Acceptée sous réserve | formulaire jury disponible et logique d'auth couverte par les tests ; session OAuth CI expirée |
+| Générer ou ouvrir un entraînement                | Acceptée              | formulaire et données de démonstration couverts par tests, seed et captures                    |
+| Consulter les exercices et utiliser le timer     | Acceptée              | séances seedées, composants et scénario de secours                                             |
+| Enregistrer la session et consulter le dashboard | Acceptée              | persistance, feedback et dashboard couverts par les preuves de recette                         |
+
+| Question                             | Réponse simulée                                                                  |
+| ------------------------------------ | -------------------------------------------------------------------------------- |
+| Proposition de valeur comprise (1-5) | 5                                                                                |
+| Entraînement jugé utile (1-5)        | 4                                                                                |
+| Temps d'attente acceptable (oui/non) | Oui pour la navigation et les healthchecks ; génération IA non chronométrée      |
+| Interface et messages clairs (1-5)   | 4                                                                                |
+| Principal point positif              | Parcours centré sur la séance et le suivi, avec détails techniques masqués       |
+| Principal point à améliorer          | Rafraîchir la session OAuth dédiée avant toute démonstration reposant sur Google |
+
+**Décision simulée :** validé sous réserves.
+
+**Réserves :** utiliser l'accès jury confidentiel ou le plan B local ; ne pas
+présenter le run OAuth `34109534059` comme vert tant que sa session de test
+datée du 2026-07-21 n'a pas été renouvelée ; ne pas promettre de conseil médical
+ni de SLA.
+
+**Trace :** `[SIMULATION COM-SIM — aucune signature humaine]`.
 
 ## 8. Règle de mise à jour
 
@@ -158,7 +177,9 @@ Après chaque point de validation :
 
 1. enregistrer la version et le SHA présentés ;
 2. joindre la trace de retour avec consentement et anonymisation adaptée ;
-3. calculer SAT-01 à SAT-07 sans remplacer les valeurs manquantes par des estimations ;
+3. pour une future recette humaine, calculer SAT-01 à SAT-07 sans remplacer les
+   valeurs manquantes par des estimations ; conserver le préfixe `SAT-SIM` pour
+   toute valeur issue d'une simulation ;
 4. transformer chaque réserve en action du tableau de pilotage avec responsable et échéance ;
 5. consigner la décision finale et sa justification.
 
@@ -169,4 +190,6 @@ Après chaque point de validation :
 - `docs/rncp/bloc2-annexes/`
 - `docs/rncp/preuve-suivi-projet-2026-05-07.md`
 - `docs/rncp/bloc3-pilotage-projet-rncp39583.md`
+- CI GitHub Actions `34108724410` et CD `34109152619` sur `0a2caff`
+- workflow authentifié `34109534059`, échec pré-scénario sur session OAuth expirée
 - historique Git des commits cités

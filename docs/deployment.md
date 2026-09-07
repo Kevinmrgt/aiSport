@@ -1,15 +1,16 @@
 # Guide de deploiement - Alcide
 
 > Version applicative déployée contrôlée: 0.13.0-rc.8
-> Baseline applicative déployée contrôlée: d950b6b790a8b11153995bf817b7cb0d583d36da
+> Baseline applicative déployée contrôlée: 0a2caffc314bbb4697baf2fbbfe39ec74248e038
 > Date de verification documentaire initiale: 2026-05-07
 > Derniere vérification de production et du Bloc 3: 2026-09-07
 
 La version `0.13.0-rc.8` conserve les correctifs de restitution NVDA, l'accès
 jury temporaire sécurisé et le quota global de 30 générations, puis simplifie
 l'interface en retirant les informations techniques IA. La baseline contrôlée
-a passé la CI `32393765258`, la CD `32394435200` et les smoke tests ; les trois
-healthchecks de production ont répondu HTTP 200 le 7 septembre 2026.
+a passé la CI `34108724410`, la CD `34109152619` et les smoke tests ; après ce
+déploiement, les trois healthchecks ont totalisé 150/150 réponses valides le 7
+septembre 2026.
 
 ## Production canonique
 
@@ -103,8 +104,8 @@ DATABASE_URL
 ```
 
 Le token doit autoriser `vercel pull/build/deploy` sur les deux projets. Le run
-CD courant `32394435200`, déclenché automatiquement après la CI `32393765258`,
-a réussi sur le SHA `d950b6b790a8b11153995bf817b7cb0d583d36da` : migrations,
+CD courant `34109152619`, déclenché automatiquement après la CI `34108724410`,
+a réussi sur le SHA `0a2caffc314bbb4697baf2fbbfe39ec74248e038` : migrations,
 API, Web et smoke tests de production. Les productions automatiques de
 l'intégration Git sont annulées par `ignoreCommand`, puis une seule production
 GitHub Actions aboutit par projet. Les runs `29747228594` et `29747592571`
@@ -197,8 +198,8 @@ Checklist:
 - [x] Quota jury persistant affiché à 29/30 après une génération de validation
 - [x] 31 réservations concurrentes testées sur PostgreSQL : 30 acceptées, 1 refusée
 - [x] 261 tests unitaires/composants verts (Shared 14, API 179, Web 68), intégration PostgreSQL dédiée et E2E verts
-- [x] run CI automatique vert sur la baseline applicative livrée (`32393765258`)
-- [x] run CD automatique vert sur la baseline applicative livrée (`32394435200`)
+- [x] run CI automatique vert sur la baseline applicative livrée (`34108724410`)
+- [x] run CD automatique vert sur la baseline applicative livrée (`34109152619`)
 - [x] zoom natif 200/400 % contre-recetté en production, 16/16, puis suite
       d'accessibilité rejouée, 33/33
 

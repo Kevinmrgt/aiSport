@@ -86,12 +86,18 @@ n'avait ni règle de protection ni approbateur : il ne faut pas présenter ce
 rattachement comme une validation humaine bloquante.
 
 Le chemin positif de la baseline applicative courante est prouvé sur
-`d950b6b790a8b11153995bf817b7cb0d583d36da` par la CI `32393765258`, puis la
-CD `32394435200` : migrations, API, Web et smoke tests sont réussis. Les trois
-healthchecks ont été recontrôlés en HTTP 200 le 2026-09-07. La recette
-navigateur authentifiée et l'affichage de 29 générations restantes demeurent
-des preuves historiques de `rc.7` ; l'accès jury courant doit être revalidé à
-J-2 avec les identifiants confidentiels.
+`0a2caffc314bbb4697baf2fbbfe39ec74248e038` par la CI `34108724410`, puis la
+CD `34109152619` : audits, tests avec couverture et PostgreSQL, E2E, builds,
+images Docker, migrations, API, Web et smoke tests sont réussis. Après
+déploiement, 150/150 sondes Web/liveness/readiness ont réussi et les trois
+objectifs p95 sont restés sous 1 000 ms. La présence du formulaire jury en
+production confirme que sa configuration est disponible sans exposer les
+identifiants. La recette navigateur authentifiée et l'affichage de 29
+générations restantes demeurent des preuves historiques de `rc.7`. Le workflow
+authentifié `34109534059` a révélé une session OAuth sauvegardée expirée avant
+les assertions métier ; elle doit être renouvelée seulement si le parcours
+Google est retenu. L'accès choisi reste à contrôler à H-15 avec les identifiants
+confidentiels.
 Le repère documentaire `b3ca385c0014c6acfd5c29ebbe14fa38ca766c02`,
 descendant sans changement
 applicatif de `b002adb`, a ensuite passé la CI `29847808450` et la CD

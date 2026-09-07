@@ -4,11 +4,12 @@
 >
 > Baseline : `0.13.0-rc.8`
 >
-> SHA de base local et `origin/main` :
+> SHA des captures et de la répétition locale initiale :
 > `d950b6b790a8b11153995bf817b7cb0d583d36da`
 >
-> État qualité le plus récent : overrides et lockfile inclus dans le commit
-> local `7fc5f01`, non encore validé par une CI distante
+> Baseline technique de clôture :
+> `0a2caffc314bbb4697baf2fbbfe39ec74248e038`, incluant le correctif
+> `7fc5f01`, validée par CI/CD le 2026-09-07
 >
 > Fenêtre d'exécution : 10:23–10:32 CEST (Europe/Paris)
 >
@@ -118,10 +119,26 @@ pnpm audit --audit-level=low
 pnpm audit --prod --audit-level=low
 ```
 
-La gate sécurité locale est maintenant verte. Au moment de ce journal,
-`pnpm-workspace.yaml` et `pnpm-lock.yaml` sont rattachés au commit `7fc5f01`,
-qui attend encore une CI distante : les résultats ne sont pas attribués au SHA
-de base `d950b6b` ni à la production.
+La gate sécurité locale est maintenant verte. `pnpm-workspace.yaml` et
+`pnpm-lock.yaml` sont rattachés au commit `7fc5f01`, inclus dans la baseline
+`0a2caff`. La CI distante `34108724410` a ensuite validé audits, tests,
+couverture, E2E public, builds et images Docker. La CD `34109152619` a appliqué
+les migrations, déployé API et Web puis validé leurs smoke tests.
+
+## Contrôle post-déploiement de la baseline de clôture
+
+Après la CD, `pnpm measure:production-health -- 50` a produit **150/150**
+réponses valides : Web 50/50 (p95 378,64 ms), API liveness 50/50 (p95
+374,71 ms) et API readiness 50/50 (p95 182,83 ms). `/health/ready` a confirmé
+la base et la configuration IA à `ok`.
+
+Le workflow authentifié manuel `34109534059` a vérifié ses secrets et restauré
+son artefact, puis s'est arrêté avant les assertions métier : la session OAuth
+Google sauvegardée le 2026-07-21 avait expiré et `/api/auth/session` retournait
+`null`. Ce résultat n'est pas présenté comme une régression produit. Il impose
+de renouveler le stockage OAuth si le parcours Google est retenu ; l'accès jury
+préparé, la base locale seedée et les captures restent les plans de
+démonstration sans dépendre de cette session.
 
 ## Migration et seed : exécution locale sans base distante
 

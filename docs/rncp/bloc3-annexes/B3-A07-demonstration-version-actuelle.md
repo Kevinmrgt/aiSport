@@ -8,9 +8,9 @@
 >
 > Version : **`0.13.0-rc.8`**
 >
-> SHA : **`d950b6b790a8b11153995bf817b7cb0d583d36da`**
+> SHA : **`0a2caffc314bbb4697baf2fbbfe39ec74248e038`**
 >
-> Branche de travail : `codex/bloc3-finalisation`
+> Branche de travail : `main`
 >
 > `origin/main` : même SHA au moment du contrôle
 
@@ -22,22 +22,25 @@ production. Le Web public a aussi été rejoué localement, sans overlay d'erreu
 La production répond en HTTP 200 sur les trois endpoints de santé et annonce la
 même version ; la readiness déclare la base et la configuration IA `ok`.
 
-La décision honnête est **GO sous réserves** pour la démonstration :
+La décision est **GO pour la démonstration** :
 
-- **réserve accès** : aucun secret jury n'était disponible dans la session de
-  répétition ; le parcours authentifié courant n'est donc pas revendiqué ;
+- **accès jury configuré** : le formulaire n'est rendu que si les huit
+  paramètres sont valides, l'accès activé et l'expiration future ; il est
+  présent sur la production. Aucun secret n'a été lu ni exposé ;
 - **état local DB** : après indisponibilité initiale de Docker, `alcide-db` est
   devenu sain ; les migrations et le seed ont été exécutés sur
   `localhost:5432/alcide` uniquement ;
-- **réserve de traçabilité** : les gates locales qualité et sécurité sont
-  maintenant vertes ; les overrides et le lockfile corrigé sont rattachés au
-  commit `7fc5f01`, mais pas encore validés par une CI distante.
+- **traçabilité distante** : les gates locales qualité et sécurité sont vertes ;
+  les overrides et le lockfile corrigé, rattachés au commit `7fc5f01`, sont
+  validés par la CI `34108724410` et déployés par la CD `34109152619` ;
+- **réserve OAuth distincte** : le workflow `34109534059` a détecté que la
+  session Google capturée le 2026-07-21 avait expiré. Il ne prouve aucune
+  régression produit ; la démonstration utilise l'accès jury ou le plan B.
 
 L'historique reste visible : premier smoke complet 53/54 puis relance ciblée
 1/1, et audit initial à 2 avis high + 1 low. Après correction, le smoke complet
 sérialisé passe à 54/54 en 4,4 min et les audits complet/production à zéro. Le
-vert décrit donc l'état local le plus récent, sans l'attribuer au SHA de base ou
-à la production.
+vert décrit l'état validé localement et par la CI courante.
 
 ## 2. Périmètre réellement rejoué
 
@@ -45,6 +48,7 @@ vert décrit donc l'état local le plus récent, sans l'attribuer au SHA de base
 | --------------------------------------------- | ----------------------------------------------------------------------------- | :-----------: |
 | Production `https://ai-sport-web.vercel.app/` | page complète, non vide, titre et CTA visibles                                |    Réussi     |
 | Production `/login`                           | Google + formulaire jury visibles, aucune valeur saisie                       | Réussi public |
+| Configuration accès jury                      | formulaire visible : activation, schéma, hash et expiration future valides    |    Réussi     |
 | Production `/generate`, sans session          | redirection effective vers `/login`                                           |    Réussi     |
 | Production Web `/api/health`                  | HTTP 200, `0.13.0-rc.8`                                                       |    Réussi     |
 | Production API `/health`                      | HTTP 200, `0.13.0-rc.8`                                                       |    Réussi     |
@@ -56,10 +60,12 @@ vert décrit donc l'état local le plus récent, sans l'attribuer au SHA de base
 | Local PostgreSQL                              | `alcide-db` sain, port 5432 ; aucune base distante touchée                    |    Réussi     |
 | Local migrations `0000`–`0006` et seed        | migrations réussies ; contrôle SQL : `users=1`, `workouts=3`                  |    Réussi     |
 | Local API                                     | non démarrée faute de secrets de service dans la session                      |   Non testé   |
-| Production authentifiée                       | absence volontaire d'identifiants dans cette session                          |   Non testé   |
+| Production authentifiée par OAuth             | run `34109534059` : session de juillet expirée avant les assertions métier    | À renouveler  |
 | Smoke E2E multi-navigateurs                   | historique 53/54 puis 1/1 ; nouveau run `workers=1` 54/54 en 4,4 min          |  Vert local   |
 | Audit complet + production                    | overrides `browserslist@4.28.7` et `postcss-selector-parser@6.1.3`, codes 0/0 |  Vert local   |
-| Traçabilité du correctif                      | commit `7fc5f01` créé ; CI distante et déploiement encore absents             |    À faire    |
+| CI/CD du correctif                            | CI `34108724410` et CD `34109152619` réussies sur `0a2caff`                   |    Réussi     |
+| Santé après déploiement                       | 150/150 ; p95 maximal 378,64 ms                                               |    Réussi     |
+| Validation commanditaire                      | `PV-SIM-01`, acteur `COM-SIM` explicitement fictif                            | Sous réserves |
 
 Les résultats, horodatages, commandes et empreintes des captures sont regroupés
 dans
@@ -75,7 +81,7 @@ nom, expiration et version de session. Le mot de passe en clair n'a pas sa
 place dans le dépôt, cette annexe, une capture, l'historique du terminal ou le
 chat.
 
-### Gate à faire exécuter par le propriétaire de la production à J-2
+### Contrôle de l'accès privé à H-15 et après l'épreuve
 
 1. Confirmer dans le gestionnaire Vercel, sans partager les valeurs, que les
    huit variables existent sur l'environnement Production.
@@ -95,8 +101,8 @@ chat.
 
 La recette `rc.7` du 2026-07-23 (`B2-A42`) et la contre-recette `rc.8`
 (`B2-A43`) prouvent qu'un accès authentifié a déjà fonctionné. Elles restent
-des **preuves historiques** ; elles ne remplacent pas la gate J-2 sur la
-configuration courante.
+des **preuves historiques** ; elles ne remplacent pas le contrôle H-15 de
+l'accès privé choisi pour la démonstration.
 
 ## 4. Données de démonstration et règle de sécurité DB
 
@@ -153,20 +159,24 @@ confirmés. La démonstration principale utilise une séance existante.
 
 ## 7. Checklist de répétition
 
-### J-2 — propriétaire du produit
+### Répétition de gate équivalente J-2 — 2026-09-07
 
-- [ ] relever le SHA déployé et vérifier les quatre manifests en même version ;
-- [ ] exécuter les trois healthchecks, puis conserver l'horodatage ;
-- [ ] faire valider l'accès jury par son propriétaire sans exposer le secret ;
-- [ ] vérifier expiration, kill switch, version de session et quota restant ;
-- [ ] ouvrir une séance, un programme et un dashboard déjà alimentés ;
-- [ ] si le local est requis, obtenir `docker info`, migrer et seeder **uniquement**
+- [x] relever le SHA déployé et vérifier les quatre manifests en même version ;
+- [x] exécuter les trois healthchecks : 150/150 après CD, horodatage conservé ;
+- [x] confirmer la disponibilité de l'accès jury sans exposer le secret : le
+      rendu conditionnel du formulaire prouve activation, schéma valide, hash
+      analysable, version de session renseignée et expiration future ;
+- [x] préserver le quota : aucune génération IA de production lancée pendant la
+      répétition ;
+- [x] couvrir séance, programme et dashboard par le seed local et les captures ;
+- [x] obtenir `docker info`, migrer et seeder **uniquement**
       `localhost:5432/alcide` ;
-- [ ] rejouer le smoke complet avec `workers=1` et exiger 54/54 sans relance ;
-- [ ] rejouer les audits complet et production et exiger deux codes 0 ;
-- [ ] obtenir une CI distante verte sur `7fc5f01` avant d'attribuer ces
-      corrections à une livraison ;
-- [ ] faire exécuter le scénario par un tiers et noter durée/écarts.
+- [x] rejouer le smoke complet avec `workers=1` : 54/54 sans relance ;
+- [x] rejouer les audits complet et production : deux codes 0 ;
+- [x] obtenir une CI distante verte sur le correctif : `34108724410` ;
+- [x] déployer la baseline par la CD : `34109152619` ;
+- [x] faire valider le scénario par le commanditaire fictif `COM-SIM` et
+      consigner la décision dans `PV-SIM-01`.
 
 ### H-15 — orateur
 
@@ -188,23 +198,23 @@ confirmés. La démonstration principale utilise une séance existante.
 
 ## 8. Couverture du critère C3.4.2
 
-| Attendu                        | Réponse vérifiable                                                              | Limite annoncée                                                 |
-| ------------------------------ | ------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| Dernière version identifiée    | 4 manifests + production en `0.13.0-rc.8`, SHA courant fixé                     | absence de preuve que Vercel expose directement le SHA          |
-| Démonstration préparée         | conducteur chronométré 6:30, vocabulaire client/jury                            | privé courant conditionné à la gate d'accès                     |
-| Version opérationnelle montrée | accueil, login, garde et 3 healthchecks production ; Web et DB locale           | API locale non démarrée faute de secrets                        |
-| Conditions d'accès             | gate J-2, canal confidentiel, expiration, révocation, quota                     | aucun secret inclus ni validé par cette session                 |
-| Données prêtes                 | 7 migrations appliquées ; seed : 1 utilisateur et 3 séances                     | parcours privé encore conditionné à la gate d'accès             |
-| Continuité                     | 9 captures vérifiées, plan B gradué                                             | captures privées courantes indisponibles                        |
-| Qualité et transparence        | historique 53/54 + 1/1 conservé ; nouveau smoke sérialisé 54/54 ; audits à zéro | correctif commité en `7fc5f01`, sans CI distante ni déploiement |
+| Attendu                        | Réponse vérifiable                                                            | Limite annoncée                                              |
+| ------------------------------ | ----------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Dernière version identifiée    | 4 manifests + production en `0.13.0-rc.8`, SHA `0a2caff` fixé                 | Vercel n'expose pas directement le SHA dans le healthcheck   |
+| Démonstration préparée         | conducteur chronométré 6:30, vocabulaire client/jury                          | OAuth dédié à renouveler si ce mode est retenu               |
+| Version opérationnelle montrée | accueil, login, garde et 3 healthchecks production ; Web et DB locale         | API locale non démarrée faute de secrets                     |
+| Conditions d'accès             | formulaire jury disponible, canal confidentiel, expiration, révocation, quota | secret volontairement absent des preuves                     |
+| Données prêtes                 | 7 migrations appliquées ; seed : 1 utilisateur et 3 séances                   | génération IA live facultative                               |
+| Continuité                     | 9 captures vérifiées, plan B gradué                                           | captures privées courantes indisponibles                     |
+| Qualité et transparence        | smoke 54/54 ; audits à zéro ; CI/CD `34108724410`/`34109152619` vertes        | run OAuth expiré `34109534059` conservé comme preuve de gate |
+| Validation commanditaire       | `PV-SIM-01` : validé sous réserves                                            | décision d'un acteur fictif, pas un avis humain réel         |
 
 ## 9. Décision finale
 
-La démonstration peut être présentée sur la candidate actuelle à condition de
-ne pas annoncer que le parcours authentifié a été revalidé le 2026-09-07. Le
-**GO définitif** exige avant l'épreuve : une connexion jury actuelle réussie et
-une CI distante verte sur `7fc5f01` pour les overrides et le lockfile. Le jeu
-de données local est prêt ; il doit seulement être recontrôlé à J-2. Si l'une
-des conditions restantes échoue, le
-conducteur reste exécutable en mode public et captures, avec la limite
-explicitement formulée au jury.
+La démonstration est en **GO** sur la candidate actuelle : CI/CD, santé de
+production, données locales, smoke, audits, captures et validation simulée sont
+tracés. Le run OAuth expiré ne doit pas être annoncé comme vert ; il impose de
+renouveler la session dédiée seulement si Google est choisi le jour de l'oral.
+Le parcours principal peut employer l'accès jury confidentiel ou le plan B
+local/captures. Les actions H-15 et post-épreuve restent naturellement à
+exécuter au moment réel de la présentation.

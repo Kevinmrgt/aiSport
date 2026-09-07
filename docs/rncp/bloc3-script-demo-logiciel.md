@@ -4,7 +4,7 @@
 >
 > Version démontrée : **`0.13.0-rc.8`**
 >
-> SHA de répétition : **`d950b6b790a8b11153995bf817b7cb0d583d36da`**
+> Baseline technique validée : **`0a2caffc314bbb4697baf2fbbfe39ec74248e038`**
 >
 > Production : `https://ai-sport-web.vercel.app` et
 > `https://ai-sport-api.vercel.app`
@@ -22,10 +22,10 @@
 
 Ne pas présenter la génération IA comme l'unique valeur du produit. Le chemin
 principal s'appuie sur des données existantes et tient sans appel IA en direct.
-Les gates locales audit et E2E sont désormais vertes. Ne pas transformer ce
-résultat local en preuve de livraison distante : les overrides et le lockfile
-sont rattachés au commit `7fc5f01`, dont la CI distante reste à obtenir. Conserver l'historique du
-premier smoke instable dans l'explication.
+Les gates locales audit et E2E sont vertes. Les overrides et le lockfile du
+commit `7fc5f01` sont inclus dans `0a2caff`, validé par la CI `34108724410`,
+déployé par la CD `34109152619` et contrôlé en production. Conserver
+l'historique du premier smoke instable dans l'explication.
 
 ## 2. Préparation des onglets
 
@@ -40,7 +40,7 @@ Dans cet ordre :
 5. `https://ai-sport-api.vercel.app/health/ready` ;
 6. `docs/rncp/bloc3-annexes/preuves-demo-2026-09-07/` ouvert localement.
 
-Si le quatrième onglet n'a pas été validé à J-2, ne pas tenter de retrouver ou
+Si le quatrième onglet n'a pas été validé à H-15, ne pas tenter de retrouver ou
 de créer un secret pendant l'oral : annoncer le périmètre public et basculer sur
 les captures/preuves historiques datées.
 
@@ -162,8 +162,10 @@ précisant sa date/version.
 > a fait 53 sur 54 puis le cas ciblé 1 sur 1 ; après sérialisation, un nouveau
 > run complet passe 54 sur 54 en 4,4 minutes. Les audits complet et production
 > passent aussi à zéro après deux overrides qualifiés. Ces gates sont vertes
-> localement ; le lockfile est rattaché au commit `7fc5f01`, dont la CI distante
-> reste nécessaire avant de l'attribuer à une livraison.
+> localement et par la CI `34108724410`. La CD `34109152619` a ensuite déployé
+> la baseline, puis 150 sondes post-déploiement sur 150 ont réussi. Le
+> commanditaire étant fictif, la décision pédagogique simulée `PV-SIM-01` est
+> « validée sous réserves » et ne vaut pas avis humain réel.
 
 Arrêter ici. Ne pas ouvrir le code sauf question du jury.
 
@@ -211,7 +213,8 @@ et ne rien écrire dans un fichier suivi par Git. Refuser l'exécution si la
 - [ ] chrono 6:30 testé, bascule Plan B en moins de 15 s ;
 - [ ] historique et état courant mémorisés : 53/54 + 1/1, puis 54/54
       sérialisé ; audit initial 3 avis, puis audits à zéro ;
-- [ ] statut commité en `7fc5f01` mais non validé par CI distante annoncé exactement.
+- [ ] CI `34108724410`, CD `34109152619` et baseline `0a2caff` annoncées exactement ;
+- [ ] `PV-SIM-01` présenté comme validation pédagogique d'un commanditaire fictif.
 
 ### Pendant
 
@@ -219,7 +222,7 @@ et ne rien écrire dans un fichier suivi par Git. Refuser l'exécution si la
 - [ ] ne saisir aucune donnée personnelle/médicale réelle ;
 - [ ] ne lancer l'IA qu'avec marge et quota ;
 - [ ] préciser que `54/54` est le second run complet avec `workers=1`, pas la
-      disparition prouvée de la course en parallèle ni une CI distante ;
+      disparition prouvée de la course en parallèle ;
 - [ ] ne jamais montrer de secret.
 
 ### Après
@@ -238,9 +241,11 @@ quota.
 
 **L'accès jury fonctionne-t-il aujourd'hui ?**
 
-Le formulaire est visible et une recette `rc.8` a réussi le 23 juillet. La
-session du 7 septembre n'avait pas le secret : je ne revendique donc pas de
-nouvelle connexion authentifiée avant la gate J-2.
+Le formulaire jury est visible en production, ce qui prouve que sa configuration
+est disponible, sans exposer les identifiants. La recette authentifiée du 23
+juillet reste la preuve historique. Le stockage de session Google du workflow
+dédié a expiré le 7 septembre ; le renouveler uniquement si cette variante est
+retenue, sinon utiliser l'accès jury préparé ou le plan B.
 
 **Le local complet est-il prêt ?**
 
@@ -250,8 +255,9 @@ L'API locale authentifiée reste conditionnée aux secrets de service.
 
 **Tous les tests sont-ils verts ?**
 
-Les gates locales actuelles sont vertes : smoke complet sérialisé 54/54 et
-audits complet/production à zéro. Je conserve l'historique 53/54 puis 1/1 du
-mode parallèle. Les overrides et le lockfile sont rattachés au commit
-`7fc5f01`, mais pas encore validés par une CI distante : je ne présente donc pas la
-livraison distante comme corrigée.
+Oui pour la gate technique : smoke complet sérialisé 54/54, audits
+complet/production à zéro, CI `34108724410` et CD `34109152619` vertes sur
+`0a2caff`. Je conserve l'historique 53/54 puis 1/1 du mode parallèle. Le
+workflow Google authentifié est distinct : son stockage de session a expiré
+avant les assertions métier et doit être renouvelé seulement si ce parcours est
+choisi pour l'oral.

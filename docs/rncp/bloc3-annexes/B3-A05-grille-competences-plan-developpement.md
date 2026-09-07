@@ -7,7 +7,7 @@
 > montée en compétences et orienter vers des formations adaptées**  
 > Date de consolidation : **2026-09-07**  
 > Baseline documentaire et technique : `0.13.0-rc.8`, SHA
-> `d950b6b790a8b11153995bf817b7cb0d583d36da`  
+> `0a2caffc314bbb4697baf2fbbfe39ec74248e038`
 > Responsable de l'évaluation dans le projet réel : Kevin
 
 ## 1. Statut, périmètre et règle d'authenticité

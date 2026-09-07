@@ -6,9 +6,9 @@
 > `29845956008`, CD `29846343559`. Ce correctif ne modifie pas les contrôles de
 > sécurité décrits ci-dessous.
 > Baseline de production courante contrôlée : `0.13.0-rc.8`,
-> `d950b6b790a8b11153995bf817b7cb0d583d36da`, CI `32393765258`, CD
-> `32394435200`. Le correctif de dépendances `7fc5f01` passe les audits complet
-> et production localement ; sa CI distante reste à obtenir.
+> `0a2caffc314bbb4697baf2fbbfe39ec74248e038`, CI `34108724410`, CD
+> `34109152619`. Le correctif de dépendances `7fc5f01`, inclus dans cette
+> baseline, passe les audits complet et production localement et dans la CI.
 
 ## Méthode et échelle
 
@@ -211,10 +211,10 @@ enchaînement est confirmé sur la baseline canonique `b002adb...` par la CI
 `29845956008` et le CD `29846343559`.
 
 La chaîne courante est confirmée sur
-`d950b6b790a8b11153995bf817b7cb0d583d36da` par la CI `32393765258`, puis la
-CD `32394435200`, qui applique les migrations avant les déploiements API et
-Web. Le correctif local `7fc5f01` ajoute deux overrides qualifiés ; les audits
-complet et production sont à zéro, avec validation CI distante encore attendue.
+`0a2caffc314bbb4697baf2fbbfe39ec74248e038` par la CI `34108724410`, puis la
+CD `34109152619`, qui applique les migrations avant les déploiements API et
+Web. Le correctif `7fc5f01` ajoute deux overrides qualifiés ; les audits complet
+et production sont à zéro et la CI distante les a validés.
 
 ## A09 — Security Logging and Monitoring Failures — contrôlé avec limites
 

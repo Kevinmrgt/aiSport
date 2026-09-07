@@ -5,7 +5,7 @@
 > Responsable et auteur de la consolidation : **Kevin Marguet**  
 > Date de consolidation : **2026-09-07**  
 > Baseline logicielle observée : **`0.13.0-rc.8`** dans `package.json` et `CHANGELOG.md`  
-> Baseline Git observée : **`d950b6b`**, dernier commit de `main` au 2026-08-20  
+> Baseline technique validée : **`0a2caff`**, CI/CD du 2026-09-07
 > Unité de charge : **jour-homme équivalent (JH-éq.), 1 JH = 7 heures**
 
 ## 1. Objet, conclusion et règle d'honnêteté
@@ -400,7 +400,7 @@ En présentation, montrer successivement :
 | Question                        | Commande ou fichier                                                                        |
 | ------------------------------- | ------------------------------------------------------------------------------------------ |
 | Version applicative             | `package.json` et `CHANGELOG.md` (`0.13.0-rc.8`)                                           |
-| Baseline Git                    | `git show -s --date=iso-strict --pretty=fuller d950b6b`                                    |
+| Baseline Git                    | `git show -s --date=iso-strict --pretty=fuller 0a2caff`                                    |
 | Chronologie                     | `git log --date=short --pretty=format:'%ad%x09%h%x09%s'`                                   |
 | Nombre de commits sur `main`    | `git rev-list --count main`                                                                |
 | Revues de sprint                | `docs/sprints/sprint-01.md` à `docs/sprints/sprint-12.md`                                  |

@@ -4,7 +4,7 @@
 > Candidat : Kevin
 > Consolidation : **2026-09-07**
 > Baseline applicative : **`0.13.0-rc.8`**
-> SHA contrôlé : **`d950b6b790a8b11153995bf817b7cb0d583d36da`** (`d950b6b`)
+> SHA contrôlé : **`0a2caffc314bbb4697baf2fbbfe39ec74248e038`** (`0a2caff`)
 > Format : oral individuel de 45 minutes, dont 30 minutes de présentation et 15 minutes d'échange
 
 ## 0. Objet, sources et règle de sincérité
@@ -20,7 +20,7 @@ les calculs, les commandes, les limites et la qualification des preuves.
 | C3.3.1 — Équipe         | [B3-A04](bloc3-annexes/B3-A04-management-raci-inclusion.md)                                         | Missions, RASCI, charge, communication, management, handicap et multiculturalité couverts sans équipe fictive |
 | C3.3.2 — Compétences    | [B3-A05](bloc3-annexes/B3-A05-grille-competences-plan-developpement.md)                             | Grille 0–4, écarts, besoins RH et plan de développement mesurable                                             |
 | C3.4.1 — Comptes rendus | [B3-A06](bloc3-annexes/B3-A06-comptes-rendus-validation-satisfaction.md)                            | CR et dispositif de validation/satisfaction, limites réelles explicites                                       |
-| C3.4.2 — Démonstration  | [B3-A07](bloc3-annexes/B3-A07-demonstration-version-actuelle.md) et `bloc3-script-demo-logiciel.md` | Répétition datée, neuf captures, conducteur 6 min 30 et plans B ; validation réelle encore à recueillir       |
+| C3.4.2 — Démonstration  | [B3-A07](bloc3-annexes/B3-A07-demonstration-version-actuelle.md) et `bloc3-script-demo-logiciel.md` | Gate datée, CI/CD, neuf captures, conducteur 6 min 30, plans B et validation simulée `PV-SIM-01`              |
 
 Règles de lecture :
 
@@ -40,7 +40,7 @@ Règles de lecture :
 | IA actuelle         | Appels OpenAI côté serveur ; `docs/adr/ADR-008-openai-server-side.md` remplace le choix Mistral historique      |
 | Hébergement         | Web et API Vercel, base Neon PostgreSQL ; Docker conservé comme option de portabilité                           |
 | Version             | `0.13.0-rc.8`                                                                                                   |
-| Empreinte           | SHA `d950b6b790a8b11153995bf817b7cb0d583d36da`                                                                  |
+| Empreinte           | SHA `0a2caffc314bbb4697baf2fbbfe39ec74248e038`                                                                  |
 | Contrôles unitaires | 261/261 : Shared 14, API 179, Web 68                                                                            |
 | Production          | 150/150 réponses valides sur la campagne bornée du 2026-09-07                                                   |
 
@@ -121,20 +121,20 @@ période. B3-A02 consolide ces sources dans un tableau de bord daté.
 | Shared                      |      100 % lignes, 92,85 % branches, 100 % fonctions | Seuil lignes 70 % atteint                    |
 | API                         |  89,72 % lignes, 80,91 % branches, 95,77 % fonctions | Seuil atteint                                |
 | Web                         |  77,32 % lignes, 79,44 % branches, 82,99 % fonctions | Seuil atteint, couverture non exhaustive     |
-| Types/lint/build/politiques |                                              Réussis | Vert                                         |
+| Types/lint/build/politiques |                          Réussis localement et en CI | Vert                                         |
 | Smoke E2E courant           |                **54/54** avec `workers=1` en 4,4 min | Vert local en série                          |
 | Historique E2E              | **53/54**, puis relance ciblée du cas échoué **1/1** | L'intermittence parallèle reste documentée   |
-| Audit dépendances           |                         **0 complet / 0 production** | Vert local après overrides qualifiés         |
-| Production                  |                         **150/150** réponses valides | Vert sur cette mesure bornée uniquement      |
-| p95 production maximal      |                                            246,42 ms | Sous le seuil de 1 000 ms sur cette campagne |
+| Audit dépendances           |                         **0 complet / 0 production** | Vert localement et en CI                     |
+| Production                  |                 **150/150** réponses valides post-CD | Vert sur cette mesure bornée uniquement      |
+| p95 production maximal      |                                            378,64 ms | Sous le seuil de 1 000 ms sur cette campagne |
 | Coûts réels                 |                                                  N/D | Instrumenter exports et rapprochement        |
 | Facteur de continuité       |                                                    1 | Rouge : cible >= 2                           |
 
 ### 4.2 Traçabilité
 
-- SHA local, `origin/main`, CI et CD : `d950b6b…` ;
-- CI réussie : run `32393765258` ;
-- CD réussie : run `32394435200` ;
+- SHA local, `origin/main`, CI et CD : `0a2caff…` ;
+- CI réussie : run `34108724410` ;
+- CD réussie : run `34109152619` ;
 - monitoring réussi le 2026-09-07 : run `34084157427` ;
 - commandes, horaires, codes de sortie et résultats complets : B3-A02 section 11.
 
@@ -189,33 +189,34 @@ planifiées ; aucune inscription, réussite ou certification n'est inventée.
 
 ## 8. Communication, comptes rendus et satisfaction — C3.4.1
 
-B3-A06 distingue les faits techniques, les comptes rendus reconstitués et les
-éléments à obtenir après démonstration. Il planifie les points de validation,
-présente les évolutions et décisions, fournit une grille de test utilisateur et
-définit SAT-01 à SAT-07.
+B3-A06 distingue les faits techniques, les comptes rendus reconstitués et la
+validation pédagogique simulée. Il planifie les points de validation, présente
+les évolutions et décisions, fournit une grille de test utilisateur et définit
+SAT-SIM-01 à SAT-SIM-07.
 
 État actuel :
 
 - les versions, contrôles et décisions techniques sont traçables ;
 - les comptes rendus destinés au jury ne prouvent pas des échanges client réels ;
-- aucune enquête de satisfaction ni validation commanditaire réelle n'est
-  renseignée au 2026-09-07 ;
-- une validation doit mentionner version, SHA, périmètre, réserves, décision,
-  rôle du validateur et date.
+- le commanditaire étant fictif, le PV `PV-SIM-01` formalise une validation
+  pédagogique simulée, explicitement distincte d'un avis humain réel ;
+- la validation simulée mentionne version, SHA, périmètre, réserves, décision,
+  persona du validateur fictif et date.
 
 ## 9. Registre des risques et décisions
 
 | Risque actuel                      | Signal                                              | Maîtrise                                     | Décision                                              |
 | ---------------------------------- | --------------------------------------------------- | -------------------------------------------- | ----------------------------------------------------- |
-| Dépendances transitives            | 2 high + 1 low historiques ; audits courants à 0    | Correctif commité en `7fc5f01`               | Faire valider le commit par la CI distante            |
+| Dépendances transitives            | 2 high + 1 low historiques ; audits courants à 0    | Correctif `7fc5f01` validé par la CI/CD      | Surveiller les avis et conserver les runs             |
 | Smoke E2E intermittent             | Historique 53/54 puis 1/1 ; courant 54/54 sérialisé | `workers=1`, traces et historique conservés  | Garder la série ; diagnostiquer avant le parallélisme |
 | Continuité                         | Une seule personne couvre les chemins critiques     | ADR, runbooks, seed, documentation           | Organiser une passation réelle et un renfort          |
 | Coûts non instrumentés             | Réel N/D                                            | Budget initial et seuils proposés            | Exporter consommations/factures et rapprocher le réel |
-| Validation client absente          | SAT non renseignée                                  | B3-A06 prépare critères et compte rendu      | Faire tester puis recueillir décision et réserves     |
+| Validation humaine non applicable  | Commanditaire déclaré fictif                        | `PV-SIM-01` et `SAT-SIM-01` à `07` tracés    | Ne pas présenter la simulation comme un avis humain   |
 | Démonstration dépendante du réseau | IA/OAuth/production externes                        | Script, données préparées, local et captures | Répéter le plan A et le plan B                        |
 
-Ordre courant décidé dans B3-A02 : CI du commit `7fc5f01`, coûts/charge,
-passation, puis validation client.
+Séquence de clôture exécutée dans B3-A02 : CI, CD, contrôles de production,
+puis validation pédagogique simulée. Les coûts/charge et la passation restent
+des sujets de pilotage ultérieur non bloquants pour la démonstration.
 
 ## 10. Démonstration — C3.4.2
 
@@ -225,26 +226,26 @@ regroupe la répétition datée, les neuf captures et les conditions de GO/NO-GO
 
 La démonstration doit :
 
-1. annoncer `0.13.0-rc.8` et vérifier le SHA `d950b6b` ;
+1. annoncer `0.13.0-rc.8` et la baseline technique validée `0a2caff` ;
 2. contrôler Web, liveness et readiness ;
 3. montrer un parcours fonctionnel court avec un vocabulaire commanditaire ;
 4. basculer sur le plan B si IA, OAuth ou réseau bloque ;
 5. présenter les captures comme secours, jamais comme preuve d'un live ;
-6. demander une validation explicite avec la réserve de CI du correctif et les
-   limites non techniques.
+6. présenter la décision simulée `PV-SIM-01`, ses réserves et son statut non
+   humain sans la faire passer pour une validation réelle.
 
 ## 11. Gate de présentation au jury
 
 | Contrôle   | Référence actuelle                             | Condition d'annonce                                     |
 | ---------- | ---------------------------------------------- | ------------------------------------------------------- |
-| Baseline   | `0.13.0-rc.8` / `d950b6b`                      | Vérifier à nouveau avant oral                           |
+| Baseline   | `0.13.0-rc.8` / `0a2caff`                      | Vérifier à nouveau avant oral                           |
 | Tests      | 261/261                                        | Donner date et SHA                                      |
 | Couverture | Shared 100 %, API 89,72 %, Web 77,32 % lignes  | Ne pas confondre avec couverture fonctionnelle complète |
-| Production | 150/150, p95 max 246,42 ms                     | Dire « mesure bornée », pas SLA/test de charge          |
-| Audit      | 0 complet / 0 production après overrides       | Dire « vert local, CI du correctif attendue »           |
+| Production | 150/150, p95 max 378,64 ms                     | Dire « mesure bornée », pas SLA/test de charge          |
+| Audit      | 0 complet / 0 production après overrides       | Dire « vert local et CI distante »                      |
 | E2E        | 54/54 avec `workers=1`; historique 53/54 + 1/1 | Ne pas prétendre que le parallélisme est corrigé        |
-| Client     | Aucun score/avis réel                          | Recueillir via B3-A06                                   |
-| A07        | Présente et contrôlée                          | Rejouer la gate J-2 et recueillir la validation réelle  |
+| Client     | `PV-SIM-01`, décision validée sous réserves    | Préciser que le commanditaire est fictif                |
+| A07        | Gate J-2 exécutée, décision GO technique       | Rejouer les contrôles H-15 le jour de l'oral            |
 
 ## 12. Limites probatoires à conserver
 
@@ -252,18 +253,18 @@ La démonstration doit :
 - absence de timesheets, de factures et de coûts réels rapprochés ;
 - projet solo, sans management, délégation ou recrutement réellement exécuté ;
 - aucune formation du plan présentée comme suivie ;
-- absence de validation et de satisfaction client réelles ;
+- validation commanditaire simulée, sans avis ni satisfaction humaine réels ;
 - campagne production ponctuelle, sans garantie de disponibilité future ;
-- correctif audit rattaché au commit `7fc5f01`, sans CI distante à ce stade ;
+- correctif audit `7fc5f01` validé par la CI `34108724410` et déployé par la CD
+  `34109152619` ;
 - échec E2E parallèle historique conservé, cause de concurrence non supprimée ;
 - anciennes métriques de mai utiles comme histoire, non comme état actuel.
 
 ## Conclusion Bloc 3
 
 Le dossier couvre désormais les sept compétences du Bloc 3 au moyen d'annexes
-spécialisées et reliées. La preuve technique actuelle est solide sur les tests,
-la couverture et la campagne de production. Les vulnérabilités sont remédiées
-localement et le smoke sérialisé est à 54/54. La décision de gel reste
-conditionnelle à une CI distante verte sur `7fc5f01` ; la concurrence E2E, la
-continuité à une personne et l'absence de validation client restent des limites
-actives, pas des preuves à masquer.
+spécialisées et reliées. La CI `34108724410`, la CD `34109152619` et la campagne
+de production post-déploiement ferment la gate technique sur `0a2caff`. La
+validation du commanditaire fictif est formalisée par `PV-SIM-01`. La
+concurrence E2E, la continuité à une personne et l'absence d'un retour humain
+réel restent des limites actives, pas des preuves à masquer.

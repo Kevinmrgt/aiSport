@@ -4,7 +4,7 @@
 > Projet : **Alcide**  
 > Candidat : **Kevin Marguet**  
 > Date de consolidation : **2026-09-07**  
-> Baseline observée : **`0.13.0-rc.8`**, branche `main`, commit `d950b6b`  
+> Baseline technique validée : **`0.13.0-rc.8`**, branche `main`, commit `0a2caff`
 > Nature du projet : **projet individuel ; aucune équipe humaine de développement n'est revendiquée**
 
 ## 1. Verdict et règle d'honnêteté
