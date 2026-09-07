@@ -5,9 +5,10 @@
 > Baseline historique déployée après le correctif de reflow : `b002adb...`, CI
 > `29845956008`, CD `29846343559`. Ce correctif ne modifie pas les contrôles de
 > sécurité décrits ci-dessous.
-> Baseline de production courante : `0.13.0-rc.7`,
-> `d42e7f2c8fc86f26c46f850d32eb748870c6140d`, CI `29994929981`, CD
-> `29995297354`.
+> Baseline de production courante contrôlée : `0.13.0-rc.8`,
+> `d950b6b790a8b11153995bf817b7cb0d583d36da`, CI `32393765258`, CD
+> `32394435200`. Le correctif de dépendances `7fc5f01` passe les audits complet
+> et production localement ; sa CI distante reste à obtenir.
 
 ## Méthode et échelle
 
@@ -152,7 +153,7 @@ les types, 256 tests et les builds dans la CI `29990178784`. La CD
 confirment le déploiement de l'accès jury sans régression des contrôles
 précédents.
 
-La baseline de production `0.13.0-rc.7` conserve ces correctifs. L'audit
+La baseline historique `0.13.0-rc.7` conserve ces correctifs. L'audit
 `low`, le lint, les types, 267 tests unitaires/composants — shared 14, API 179,
 Web 74 —, l'intégration PostgreSQL dédiée et les E2E sont verts dans la CI
 `29994929981`. La CD `29995297354`, les healthchecks et la recette navigateur,
@@ -210,9 +211,10 @@ enchaînement est confirmé sur la baseline canonique `b002adb...` par la CI
 `29845956008` et le CD `29846343559`.
 
 La chaîne courante est confirmée sur
-`d42e7f2c8fc86f26c46f850d32eb748870c6140d` par la CI `29994929981`, puis la
-CD `29995297354`, qui applique la migration du quota avant les déploiements API
-et Web.
+`d950b6b790a8b11153995bf817b7cb0d583d36da` par la CI `32393765258`, puis la
+CD `32394435200`, qui applique les migrations avant les déploiements API et
+Web. Le correctif local `7fc5f01` ajoute deux overrides qualifiés ; les audits
+complet et production sont à zéro, avec validation CI distante encore attendue.
 
 ## A09 — Security Logging and Monitoring Failures — contrôlé avec limites
 

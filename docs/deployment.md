@@ -1,14 +1,15 @@
 # Guide de deploiement - Alcide
 
-> Version applicative déployée: 0.13.0-rc.7
-> Baseline applicative déployée: d42e7f2c8fc86f26c46f850d32eb748870c6140d
+> Version applicative déployée contrôlée: 0.13.0-rc.8
+> Baseline applicative déployée contrôlée: d950b6b790a8b11153995bf817b7cb0d583d36da
 > Date de verification documentaire initiale: 2026-05-07
-> Derniere verification Bloc 2 et contre-recette de production: 2026-07-23
+> Derniere vérification de production et du Bloc 3: 2026-09-07
 
-La version `0.13.0-rc.7` conserve les correctifs de restitution NVDA et l'accès
-jury temporaire sécurisé, puis lui ajoute un quota global de 30 générations
-réussies. Elle a passé la CI `29994929981`, la CD `29995297354`, les smoke tests
-et la recette navigateur de production du 23 juillet 2026.
+La version `0.13.0-rc.8` conserve les correctifs de restitution NVDA, l'accès
+jury temporaire sécurisé et le quota global de 30 générations, puis simplifie
+l'interface en retirant les informations techniques IA. La baseline contrôlée
+a passé la CI `32393765258`, la CD `32394435200` et les smoke tests ; les trois
+healthchecks de production ont répondu HTTP 200 le 7 septembre 2026.
 
 ## Production canonique
 
@@ -102,8 +103,8 @@ DATABASE_URL
 ```
 
 Le token doit autoriser `vercel pull/build/deploy` sur les deux projets. Le run
-CD canonique `29995297354`, déclenché automatiquement après la CI `29994929981`,
-a réussi sur le SHA `d42e7f2c8fc86f26c46f850d32eb748870c6140d` : migration,
+CD courant `32394435200`, déclenché automatiquement après la CI `32393765258`,
+a réussi sur le SHA `d950b6b790a8b11153995bf817b7cb0d583d36da` : migrations,
 API, Web et smoke tests de production. Les productions automatiques de
 l'intégration Git sont annulées par `ignoreCommand`, puis une seule production
 GitHub Actions aboutit par projet. Les runs `29747228594` et `29747592571`
@@ -195,9 +196,9 @@ Checklist:
 - [x] Génération d'un programme testée avec un compte authentifié, puis donnée de recette supprimée (B2-A25)
 - [x] Quota jury persistant affiché à 29/30 après une génération de validation
 - [x] 31 réservations concurrentes testées sur PostgreSQL : 30 acceptées, 1 refusée
-- [x] 267 tests unitaires/composants verts (shared 14, API 179, Web 74), intégration PostgreSQL dédiée et E2E verts
-- [x] run CI automatique vert sur la baseline applicative livrée (`29994929981`)
-- [x] run CD automatique vert sur la baseline applicative livrée (`29995297354`)
+- [x] 261 tests unitaires/composants verts (Shared 14, API 179, Web 68), intégration PostgreSQL dédiée et E2E verts
+- [x] run CI automatique vert sur la baseline applicative livrée (`32393765258`)
+- [x] run CD automatique vert sur la baseline applicative livrée (`32394435200`)
 - [x] zoom natif 200/400 % contre-recetté en production, 16/16, puis suite
       d'accessibilité rejouée, 33/33
 

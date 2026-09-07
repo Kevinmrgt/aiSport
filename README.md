@@ -7,8 +7,8 @@ puis enregistrée dans un journal pour alimenter le tableau de bord.
 - Application : <https://ai-sport-web.vercel.app>
 - Dépôt : <https://github.com/Kevinmrgt/aiSport>
 - API : <https://ai-sport-api.vercel.app/health>
-- Version présentée : `0.13.0-rc.7`
-- Révision déployée : `d42e7f2c8fc86f26c46f850d32eb748870c6140d`
+- Version présentée : `0.13.0-rc.8`
+- Révision déployée contrôlée : `d950b6b790a8b11153995bf817b7cb0d583d36da`
 
 Le projet utilise Next.js 15, Hono, PostgreSQL 16, Drizzle ORM, Auth.js,
 OpenAI, Vitest et Playwright. Le monorepo fonctionne avec Node.js 24 et pnpm
@@ -151,11 +151,11 @@ pnpm build
 pnpm audit --prod --audit-level=low
 ```
 
-La baseline comprend 267 tests unitaires et de composants : 14 dans le package
-partagé, 179 côté API et 74 côté Web. La CI exécute en plus PostgreSQL 16, dont
+La baseline comprend 261 tests unitaires et de composants : 14 dans le package
+partagé, 179 côté API et 68 côté Web. La CI exécute en plus PostgreSQL 16, dont
 le test dédié des 31 réservations concurrentes du quota jury, les tests
 Playwright E2E, l'audit de dépendances et la construction des images Docker. La
-CI `29994929981` et la CD `29995297354` ont réussi sur la révision indiquée en
+CI `32393765258` et la CD `32394435200` ont réussi sur la révision indiquée en
 tête de ce README.
 
 ## Structure

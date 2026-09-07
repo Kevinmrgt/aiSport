@@ -2,12 +2,15 @@
 
 > Certification visée : RNCP39583 — Expert en développement logiciel
 > Projet support : Alcide / alcide
-> Date de consolidation : 2026-05-07
-> Version applicative de référence constatée : `package.json` indique `0.12.0`
+> Consolidation initiale : 2026-05-07
+> Mise à jour de la baseline et du Bloc 3 : 2026-09-07
+> Version applicative actuelle : `package.json` indique `0.13.0-rc.8`
 
-> **Avertissement de version :** ce dossier transversal a été consolidé le
-> 2026-05-07. Ses métriques et conclusions Bloc 2 sont historiques. Le dossier
-> Bloc 2 daté après le 2026-07-20 est la source de vérité pour ce bloc.
+> **Avertissement de version :** les métriques datées du 2026-05-07 restent des
+> instantanés historiques. Pour l'état courant, le dossier Bloc 2 daté après le
+> 2026-07-20 et le [livrable Bloc 3](./bloc3-pilotage-projet-rncp39583.md), avec
+> son [tableau de pilotage](./bloc3-annexes/B3-A02-tableau-pilotage-2026-09-07.md),
+> sont les sources de vérité.
 
 ## Sources utilisées
 
@@ -578,9 +581,16 @@ Preuves :
 - scripts : [package.json](../../package.json)
 - cahier de recettes : [tests automatisés](../bloc2/cahier-recettes.md)
 
-Référence vérifiée le 2026-06-30 : `pnpm test` passe avec 71 tests Vitest (70 API + 1 Web). `pnpm test:coverage` couvre l'API avec 82.33% statements, 78.6% branches, 89.23% functions et 82.33% lines.
+Référence historique vérifiée le 2026-06-30 : `pnpm test` passait avec 71 tests
+Vitest (70 API + 1 Web). À la mise à jour du 2026-09-07, la référence courante
+est de 261/261 tests : Shared 14, API 179 et Web 68. La couverture API du
+2026-06-30 — 82.33% statements, 78.6% branches, 89.23% functions et 82.33%
+lines — reste une mesure historique et ne doit pas être présentée comme une
+mesure de la candidate actuelle.
 
-Les tests E2E smoke ont été exécutés le 2026-06-30 : `pnpm test:e2e:smoke` passe avec 48 exécutions Playwright sur Chromium et Firefox. Le fichier `generate.spec.ts` représente 8 exécutions supplémentaires à relancer si le dossier annonce le total E2E complet de 56.
+Les tests E2E smoke du 2026-06-30 comptaient 48 exécutions Playwright sur
+Chromium et Firefox. La contre-recette locale du 2026-09-07 remplace ce repère
+pour la candidate actuelle : `pnpm test:e2e:smoke -- --workers=1` passe 54/54.
 
 ## Tests E2E
 
@@ -738,7 +748,7 @@ Points forts :
 - les versions applicatives sont consignées dans le changelog
 - les incidents importants ont donné lieu à des fiches anomalies
 
-Incohérence à signaler : certains documents historiques mentionnent 10 sprints alors que le projet contient maintenant 12 revues de sprint et un changelog jusqu'à `0.12.0`.
+Incohérence à signaler : certains documents historiques mentionnent 10 sprints alors que le projet contient maintenant 12 revues de sprint et un changelog jusqu'à la candidate `0.13.0-rc.8`.
 
 ## Ressources nécessaires
 
@@ -1016,9 +1026,9 @@ Preuves :
 
 Preuve principale : [CHANGELOG](../../CHANGELOG.md)
 
-Le changelog suit une structure proche de Keep a Changelog et trace les versions de `0.1.0` à `0.12.0`, avec ajouts, changements, corrections et sécurité.
+Le changelog suit une structure proche de Keep a Changelog et trace les versions de `0.1.0` à la candidate `0.13.0-rc.8`, avec ajouts, changements, corrections et sécurité.
 
-Incohérence résolue le 2026-05-07 : [deployment.md](../deployment.md) indique désormais `0.12.0` comme version applicative de référence, alignée avec [package.json](../../package.json) et [CHANGELOG](../../CHANGELOG.md).
+État courant au 2026-09-07 : [deployment.md](../deployment.md), [package.json](../../package.json) et [CHANGELOG](../../CHANGELOG.md) sont alignés sur `0.13.0-rc.8`. L'alignement sur `0.12.0` du 2026-05-07 reste une étape historique.
 
 ## Rollback
 
@@ -1082,20 +1092,24 @@ Le Bloc 4 dispose de preuves solides sur les bugs, les correctifs, la CI/CD, le 
 | Chiffres et versions incohérents                            | Tous            | Moyen         | Harmoniser README, dossier, CRA, changelog, deployment             |
 | Tests DB non automatisés                                    | Bloc 2 / Bloc 4 | Moyen         | Documenter limite ou ajouter tests d'intégration                   |
 
-## Incohérences à corriger avant dépôt
+## Repères à distinguer avant dépôt
 
-- Version projet : `package.json`, [deployment.md](../deployment.md) et `CHANGELOG` sont alignés sur `0.12.0`.
+- Version projet : `package.json`, [deployment.md](../deployment.md) et `CHANGELOG` sont alignés sur `0.13.0-rc.8`.
 - Nombre de sprints : certains documents mentionnent 10 sprints ; les preuves actuelles vont jusqu'au sprint 12.
-- Nombre de tests : la référence vérifiée est `pnpm test` = 71 tests Vitest passés ; les chiffres 28, 32, 41 ou 70 sont historiques.
+- Nombre de tests : la référence actuelle vérifiée est `pnpm test` = 261/261
+  (Shared 14, API 179, Web 68) ; les chiffres 28, 32, 41, 70, 71 et 267 sont
+  historiques.
 - Nombre de scénarios de recette : 33 scénarios CR documentés ; la numérotation va jusqu'à CR-044 mais reste discontinue.
 - Déploiement cible : [ADR-006](../adr/ADR-006-deployment-architecture.md) est désormais marquée historique ; [ADR-007](../adr/ADR-007-ci-cd-vercel-neon.md), [ci-cd.md](../ci-cd.md) et [deployment.md](../deployment.md) définissent Vercel Web/API + Neon comme production canonique.
 
 ## Actions prioritaires avant dépôt ou soutenance
 
 1. Produire le support Bloc 1 officiel : parties prenantes, demande, SWOT, audit, faisabilité, risques, veille, comparaison, charge, budget, architecture, préconisation.
-2. Produire le support Bloc 3 officiel : planning prévu/réel, tableau de pilotage, RACI, arbitrage, communication, compétences, comptes rendus client, indicateurs de satisfaction, script de démo.
+2. Exécuter la gate J-2 du Bloc 3, répéter le support et le script finalisés,
+   puis recueillir les validations externes sans les anticiper dans le dossier.
 3. Compléter le dossier Bloc 4 : processus dépendances, supervision/alerting, procédure anomalies, cas support client, rollback détaillé, recommandations priorisées.
-4. Harmoniser versions, sprints, métriques et tests dans README, dossier, CRA, cahier de recettes, deployment et changelog.
+4. Maintenir l'alignement des versions, sprints, métriques et tests dans README,
+   dossier, CRA, cahier de recettes, deployment et changelog.
 5. Exécuter les commandes de validation finales et figer les chiffres :
 
 ```bash
