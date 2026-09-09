@@ -146,7 +146,8 @@ describe('parcours préservés par la refonte', () => {
     await expect(
       GeneratePage({ searchParams: Promise.resolve({ goal: 'Gagner en force', duration: '45' }) }),
     ).rejects.toThrow('redirect:');
-    const login = new URL(redirectMock.mock.calls[0][0], 'https://example.test');
+    expect(redirectMock).toHaveBeenCalledOnce();
+    const login = new URL(redirectMock.mock.calls[0]![0], 'https://example.test');
     const destination = new URL(login.searchParams.get('callbackUrl')!, 'https://example.test');
     expect(login.pathname).toBe('/login');
     expect(destination.pathname).toBe('/generate');
