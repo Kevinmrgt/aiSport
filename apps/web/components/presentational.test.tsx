@@ -109,7 +109,7 @@ describe('composants de presentation', () => {
     expect(screen.getByRole('link', { name: /voir l'entrainement/i }).getAttribute('href')).toBe(
       '/workouts/workout-1',
     );
-    expect(screen.getByRole('link', { name: /voir le programme/i }).getAttribute('href')).toBe(
+    expect(screen.getByRole('link', { name: /voir le programme :/i }).getAttribute('href')).toBe(
       '/programs/program-1',
     );
     for (const title of ['Fractionne', 'Cycle endurance']) {
@@ -161,11 +161,13 @@ describe('composants de presentation', () => {
       expect(document.getElementById(panelId ?? '')).toBeTruthy();
     }
 
-    const firstTab = screen.getByRole('tab', { name: 'Sem. 1' });
+    const firstTab = screen.getByRole('tab', { name: 'Semaine 1' });
     fireEvent.keyDown(firstTab, { key: 'ArrowRight' });
     expect(screen.getByRole('heading', { name: 'Intensite' })).toBeTruthy();
-    expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'Sem. 2' }));
-    expect(document.getElementById(firstTab.getAttribute('aria-controls') ?? '')?.hidden).toBe(true);
+    expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'Semaine 2' }));
+    expect(document.getElementById(firstTab.getAttribute('aria-controls') ?? '')?.hidden).toBe(
+      true,
+    );
     fireEvent.keyDown(document.activeElement ?? document, { key: 'Home' });
     expect(screen.getByRole('heading', { name: 'Base' })).toBeTruthy();
     fireEvent.keyDown(document.activeElement ?? document, { key: 'End' });

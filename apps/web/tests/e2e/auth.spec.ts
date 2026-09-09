@@ -25,22 +25,22 @@ test.describe('Page de connexion', () => {
   test('affiche un accès jury avec des champs explicitement étiquetés', async ({ page }) => {
     await expect(page.getByRole('group', { name: /accès jury/i })).toBeVisible();
     await expect(page.getByLabel(/identifiant jury/i)).toHaveAttribute('autocomplete', 'username');
-    await expect(page.getByLabel(/mot de passe/i)).toHaveAttribute(
+    await expect(page.getByLabel('Mot de passe', { exact: true })).toHaveAttribute(
       'autocomplete',
       'current-password',
     );
   });
 
   test('crée une vraie session Auth.js jury puis permet la déconnexion', async ({ page }) => {
+    await page.goto('/login?callbackUrl=%2F');
     const identifier = process.env['E2E_JURY_IDENTIFIER'] ?? 'jury-playwright';
     const password = process.env['E2E_JURY_PASSWORD'] ?? 'jury-playwright-password-2026';
 
     await page.getByLabel(/identifiant jury/i).fill(identifier);
-    await page.getByLabel(/mot de passe/i).fill(password);
-    await page.locator('input[name="redirectTo"]').evaluate((input) => {
-      (input as HTMLInputElement).value = '/';
-    });
-    await page.getByRole('button', { name: /ouvrir l’espace de démonstration/i }).click();
+    await page.getByLabel('Mot de passe', { exact: true }).fill(password);
+    await page
+      .getByRole('button', { name: 'Se connecter avec les accès jury', exact: true })
+      .click();
 
     await expect(page).toHaveURL(/\/$/);
     const session = await page.request.get('/api/auth/session');
@@ -65,8 +65,10 @@ test.describe('Page de connexion', () => {
 
   test('refuse un mauvais secret avec un message générique et sans session', async ({ page }) => {
     await page.getByLabel(/identifiant jury/i).fill('jury-playwright');
-    await page.getByLabel(/mot de passe/i).fill('mot-de-passe-invalide');
-    await page.getByRole('button', { name: /ouvrir l’espace de démonstration/i }).click();
+    await page.getByLabel('Mot de passe', { exact: true }).fill('mot-de-passe-invalide');
+    await page
+      .getByRole('button', { name: 'Se connecter avec les accès jury', exact: true })
+      .click();
 
     await expect(page).toHaveURL(/\/login\?error=CredentialsSignin/);
     await expect(

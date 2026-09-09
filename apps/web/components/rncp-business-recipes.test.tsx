@@ -45,7 +45,7 @@ describe('recettes UI metier RNCP Bloc 2', () => {
     fireEvent.change(screen.getByLabelText(/objectifs/i), {
       target: { value: 'Travailler le rythme' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /generer la seance/i }));
+    fireEvent.click(screen.getByRole('button', { name: /générer la séance/i }));
 
     expect((await screen.findByRole('alert')).textContent).toContain(
       'OpenAI est temporairement indisponible. Reessayez plus tard.',
@@ -55,7 +55,7 @@ describe('recettes UI metier RNCP Bloc 2', () => {
       'Travailler le rythme',
     );
     expect(
-      screen.getByRole<HTMLButtonElement>('button', { name: /generer la seance/i }).disabled,
+      screen.getByRole<HTMLButtonElement>('button', { name: /générer la séance/i }).disabled,
     ).toBe(false);
   });
 
@@ -85,7 +85,7 @@ describe('recettes UI metier RNCP Bloc 2', () => {
     expect(screen.getByRole('list', { name: '1 programme sur 10' })).toBeTruthy();
     expect(screen.getByRole('link', { name: /voir le programme : cycle prive/i })).toBeTruthy();
     expect(screen.getByText('2 / 2').getAttribute('aria-current')).toBe('page');
-    expect(screen.getByRole('link', { name: 'Precedent' }).getAttribute('href')).toBe(
+    expect(screen.getByRole('link', { name: 'Précédent' }).getAttribute('href')).toBe(
       '/programs?page=1',
     );
     expect(screen.queryByRole('link', { name: 'Suivant' })).toBeNull();
@@ -138,8 +138,8 @@ describe('recettes UI metier RNCP Bloc 2', () => {
     );
 
     fireEvent.click(screen.getByLabelText('7'));
-    fireEvent.click(screen.getByLabelText('Bien dose'));
-    fireEvent.change(screen.getByLabelText(/douleur eventuelle/i), {
+    fireEvent.click(screen.getByLabelText('Bien dosé'));
+    fireEvent.change(screen.getByLabelText(/douleur éventuelle/i), {
       target: { value: '  Gene legere au genou gauche  ' },
     });
     fireEvent.click(screen.getByRole('button', { name: /enregistrer le retour/i }));
@@ -154,7 +154,7 @@ describe('recettes UI metier RNCP Bloc 2', () => {
         }),
       ),
     );
-    expect(await screen.findByText('Retour enregistre.')).toBeTruthy();
+    expect(await screen.findByText('Retour enregistré.')).toBeTruthy();
   });
 
   it('CR-034 informe que la note de douleur est sensible, facultative et hors flux OpenAI', () => {
@@ -173,8 +173,8 @@ describe('recettes UI metier RNCP Bloc 2', () => {
   it('CR-037 garde les choix techniques hors de l interface utilisateur', async () => {
     render(await SettingsPage());
 
-    expect(screen.getByRole('heading', { name: 'Mon coach Alcide' })).toBeTruthy();
-    expect(screen.getByText(/adapte automatiquement chaque proposition/i)).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Mon coach' })).toBeTruthy();
+    expect(screen.getByText(/Alcide construit automatiquement une séance/i)).toBeTruthy();
 
     const pageText = document.body.textContent
       ?.normalize('NFKD')
@@ -203,9 +203,11 @@ describe('recettes UI metier RNCP Bloc 2', () => {
 
     render(await DashboardPage());
 
-    expect(screen.getByRole('heading', { name: 'Aucune activite encore' })).toBeTruthy();
-    expect(screen.getByText(/creez une premiere seance pour activer le dashboard/i)).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Commencer' }).getAttribute('href')).toBe('/generate');
+    expect(screen.getByRole('heading', { name: 'Aucune activité' })).toBeTruthy();
+    expect(screen.getByText(/Créez une première séance pour commencer votre suivi/i)).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Créer une séance' }).getAttribute('href')).toBe(
+      '/generate',
+    );
   });
 
   it('CR-041 affiche les totaux, la duree, l effort et les feedbacks exacts', async () => {
@@ -226,12 +228,15 @@ describe('recettes UI metier RNCP Bloc 2', () => {
     render(await DashboardPage());
 
     const values = screen.getAllByRole('definition').map((node) => node.textContent);
-    expect(values).toEqual(expect.arrayContaining(['4', '3', '1 h 30', '6.5 / 10']));
+    expect(values).toEqual(expect.arrayContaining(['4', '3', '1 h 30', '6,5 / 10']));
     expect(screen.getByText('course a pied').nextElementSibling?.textContent).toContain('3');
     const intermediateRow = screen
-      .getAllByText('Intermediaire')
+      .getAllByText('Intermédiaire')
       .find((node) => node.tagName === 'DT');
     expect(intermediateRow?.nextElementSibling?.textContent).toContain('3');
-    expect(screen.getByRole('img', { name: 'effort: 65%' })).toBeTruthy();
+    const feedback = document.getElementById('feedback-title')?.closest('section');
+    expect(feedback?.textContent).toContain('Trop facile1');
+    expect(feedback?.textContent).toContain('Bien dosé2');
+    expect(feedback?.textContent).toContain('Trop difficile0');
   });
 });

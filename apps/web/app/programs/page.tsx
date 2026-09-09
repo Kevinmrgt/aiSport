@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { serverApi } from '@/lib/server-api';
 import { ProgramCard } from '@/components/ProgramCard';
-import { EmptyState, GlassPanel, MetricPill } from '@/components/PremiumPrimitives';
+import { EmptyState } from '@/components/PremiumPrimitives';
 
 export default async function ProgramsPage({
   searchParams,
@@ -40,73 +40,55 @@ export default async function ProgramsPage({
   }
 
   return (
-    <section aria-labelledby="programs-title" className="space-y-6">
-      <GlassPanel className="abstract-surface mobile-compact-header p-5 sm:p-6">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="section-kicker mb-3">Cycles guides</p>
-            <h1 id="programs-title" className="page-title">
-              Mes programmes
-            </h1>
-            <p className="muted-copy mt-3 max-w-2xl">
-              Des progressions multi-semaines pour structurer vos objectifs sans repartir de zero.
-            </p>
-          </div>
-          <Link
-            href="/programs/generate"
-            className="action-primary mobile-header-action w-full sm:w-auto"
-          >
-            Nouveau programme
-          </Link>
+    <section aria-labelledby="programs-title" className="space-y-7">
+      <header className="page-heading">
+        <div>
+          <h1 id="programs-title" className="page-title">
+            Mes programmes
+          </h1>
+          <p className="muted-copy mt-3">
+            {total} programme{total !== 1 ? 's' : ''}
+          </p>
         </div>
-        <div className="mobile-header-metrics mt-6 grid gap-2 sm:grid-cols-3">
-          <MetricPill icon="layers" label="Programmes" value={`${total}`} tone="lime" />
-          <MetricPill icon="calendar" label="Format" value="2-4 sem." />
-          <MetricPill icon="target" label="Objectif" value="Progression" tone="orange" />
-        </div>
-      </GlassPanel>
-
+        <Link href="/programs/generate" className="action-primary">
+          Nouveau programme
+        </Link>
+      </header>
       {programs.length === 0 ? (
         <EmptyState
-          title="Aucun programme pour l instant"
-          description="Planifiez un premier cycle progressif pour organiser vos prochaines semaines."
+          title="Aucun programme pour le moment"
+          description="Créez un programme pour organiser vos prochaines semaines."
           href="/programs/generate"
-          cta="Planifier un cycle"
+          cta="Créer un programme"
         />
       ) : (
         <>
           <ul
-            className="grid gap-4 lg:grid-cols-2"
+            className="program-list"
             aria-label={`${programs.length} programme${programs.length > 1 ? 's' : ''} sur ${total}`}
           >
             {programs.map((program) => (
               <ProgramCard key={program.id} program={program} onDelete={handleDelete} />
             ))}
           </ul>
-
           {totalPages > 1 && (
-            <nav
-              aria-label="Pagination des programmes"
-              className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm sm:gap-6"
-            >
+            <nav aria-label="Pagination des programmes" className="pagination">
               {page > 1 ? (
-                <Link href={pageUrl(page - 1)} className="action-secondary min-h-10 px-4 py-2">
-                  Precedent
+                <Link href={pageUrl(page - 1)} className="action-secondary">
+                  Précédent
                 </Link>
               ) : (
-                <span className="select-none text-zinc-700">Precedent</span>
+                <span aria-disabled="true">Précédent</span>
               )}
-
-              <span className="premium-chip" aria-current="page">
+              <span aria-current="page">
                 {page} / {totalPages}
               </span>
-
               {hasMore ? (
-                <Link href={pageUrl(page + 1)} className="action-secondary min-h-10 px-4 py-2">
+                <Link href={pageUrl(page + 1)} className="action-secondary">
                   Suivant
                 </Link>
               ) : (
-                <span className="select-none text-zinc-700">Suivant</span>
+                <span aria-disabled="true">Suivant</span>
               )}
             </nav>
           )}

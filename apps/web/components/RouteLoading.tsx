@@ -3,7 +3,13 @@ interface MetricSkeletonProps {
 }
 
 function PulseBlock({ className }: { readonly className: string }) {
-  return <div className={`animate-pulse rounded bg-white/10 ${className}`} aria-hidden="true" />;
+  return (
+    <div
+      className={`min-w-0 animate-pulse rounded bg-white/10 ${className}`}
+      style={{ maxWidth: '100%' }}
+      aria-hidden="true"
+    />
+  );
 }
 
 export function HeaderLoading({
@@ -14,7 +20,10 @@ export function HeaderLoading({
   readonly metrics?: number;
 }) {
   return (
-    <div className="glass-panel abstract-surface mobile-compact-header p-5 sm:p-6" aria-hidden="true">
+    <div
+      className="glass-panel abstract-surface mobile-compact-header p-5 sm:p-6"
+      aria-hidden="true"
+    >
       <PulseBlock className="mb-4 h-7 w-28 rounded-full bg-primary-300/25" />
       <PulseBlock className={`h-12 ${titleWidth} max-w-xl rounded-2xl`} />
       <PulseBlock className="mt-4 h-4 w-full max-w-2xl" />
@@ -41,7 +50,7 @@ export function CardGridLoading({ count = 4 }: { readonly count?: number }) {
         <div key={index} className="glass-soft p-4">
           <div className="flex items-center gap-4">
             <PulseBlock className="h-14 w-14 shrink-0 rounded-full bg-primary-300/20" />
-            <div className="flex-1 space-y-2">
+            <div className="min-w-0 flex-1 space-y-2">
               <PulseBlock className="h-4 w-2/3" />
               <PulseBlock className="h-3 w-1/3" />
             </div>

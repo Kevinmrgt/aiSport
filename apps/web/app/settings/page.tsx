@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { Icon } from '@/components/ui/Icon';
-import { GlassPanel, MetricPill } from '@/components/PremiumPrimitives';
+import { GlassPanel } from '@/components/PremiumPrimitives';
 
 const COACH_STEPS = [
   {
@@ -26,45 +27,38 @@ export default async function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[0.85fr_1.15fr]">
-      <GlassPanel className="abstract-surface mobile-compact-header p-5 sm:p-6">
-        <p className="section-kicker mb-3">Accompagnement</p>
+    <section className="coach-page" aria-labelledby="settings-title">
+      <header className="page-heading">
         <h1 id="settings-title" className="page-title">
-          Mon coach Alcide
+          Mon coach
         </h1>
-        <p className="muted-copy mt-4">
-          Alcide adapte automatiquement chaque proposition à votre niveau, votre objectif et votre
-          temps disponible.
-        </p>
-        <div className="mobile-header-metrics mt-6 grid gap-2">
-          <MetricPill icon="spark" label="Seances" value="Sur mesure" tone="lime" />
-          <MetricPill icon="layers" label="Programmes" value="Progressifs" />
-        </div>
-      </GlassPanel>
-
-      <GlassPanel className="flex flex-col gap-6 p-5 sm:p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="section-kicker mb-3">Votre parcours</p>
-            <h2 className="text-3xl font-black text-white">Un accompagnement simple</h2>
-          </div>
-          <span className="icon-bubble bg-primary-300 text-zinc-950">
-            <Icon name="target" className="h-4 w-4" />
-          </span>
-        </div>
-
-        <div className="grid gap-3">
-          {COACH_STEPS.map((item) => (
-            <div
-              key={item.title}
-              className="rounded-[1.25rem] border border-white/10 bg-zinc-950/[0.45] p-4"
-            >
-              <p className="font-bold text-primary-100">{item.title}</p>
-              <p className="muted-copy mt-1">{item.description}</p>
-            </div>
+      </header>
+      <GlassPanel className="panel-padding">
+        <h2 className="panel-title">Comment ça marche</h2>
+        <ol>
+          {COACH_STEPS.map((item, index) => (
+            <li key={item.title} className="coach-step">
+              <span className="week-session-number">{index + 1}</span>
+              <div className="flex-1">
+                <h3>{item.title}</h3>
+                <p className="muted-copy">{item.description}</p>
+              </div>
+              <Icon
+                name={index === 0 ? 'sliders' : index === 1 ? 'list' : 'chart'}
+                className="h-9 w-9 text-primary-200"
+              />
+            </li>
           ))}
+        </ol>
+        <div className="mt-8 flex flex-wrap gap-4">
+          <Link href="/generate" className="action-primary">
+            Créer une séance <Icon name="arrow-right" className="h-4 w-4" />
+          </Link>
+          <Link href="/programs/generate" className="action-secondary">
+            Créer un programme
+          </Link>
         </div>
       </GlassPanel>
-    </div>
+    </section>
   );
 }

@@ -4,12 +4,12 @@ import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { serverApi } from '@/lib/server-api';
 import { WorkoutCard } from '@/components/WorkoutCard';
-import { EmptyState, GlassPanel, MetricPill } from '@/components/PremiumPrimitives';
+import { EmptyState, GlassPanel } from '@/components/PremiumPrimitives';
 
 const LEVELS = [
-  { value: 'beginner', label: 'Debutant' },
-  { value: 'intermediate', label: 'Intermediaire' },
-  { value: 'advanced', label: 'Avance' },
+  { value: 'beginner', label: 'Débutant' },
+  { value: 'intermediate', label: 'Intermédiaire' },
+  { value: 'advanced', label: 'Avancé' },
 ];
 
 export default async function WorkoutsPage({
@@ -52,128 +52,110 @@ export default async function WorkoutsPage({
   }
 
   return (
-    <section aria-labelledby="workouts-title" className="space-y-6">
-      <GlassPanel className="abstract-surface mobile-compact-header p-5 sm:p-6">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="section-kicker mb-3">Historique</p>
-            <h1 id="workouts-title" className="page-title">
-              Mes seances
-            </h1>
-            <p className="muted-copy mt-3 max-w-2xl">
-              Retrouvez vos routines, filtrez par contexte et relancez le timer quand vous etes
-              pret.
-            </p>
-          </div>
-          <Link href="/generate" className="action-primary mobile-header-action w-full sm:w-auto">
-            Nouvelle seance
-          </Link>
+    <section aria-labelledby="workouts-title" className="space-y-7">
+      <header className="page-heading">
+        <div>
+          <h1 id="workouts-title" className="page-title">
+            Mes séances
+          </h1>
+          <p className="muted-copy mt-3">
+            {total} séance{total !== 1 ? 's' : ''}
+          </p>
         </div>
-        <div className="mobile-header-metrics mt-6 grid gap-2 sm:grid-cols-3">
-          <MetricPill icon="activity" label="Resultats" value={`${total}`} tone="lime" />
-          <MetricPill icon="target" label="Sport" value={sport ?? 'Tous'} />
-          <MetricPill icon="chart" label="Niveau" value={level ?? 'Tous'} tone="orange" />
-        </div>
-      </GlassPanel>
-
+        <Link href="/generate" className="action-primary">
+          Nouvelle séance
+        </Link>
+      </header>
       <form
         method="GET"
         action="/workouts"
-        className="glass-soft flex flex-wrap items-center gap-2 p-3"
+        className="glass-soft library-filter"
         aria-label="Filtrer les entrainements"
       >
-        <label htmlFor="filter-sport" className="sr-only">
-          Sport
-        </label>
-        <input
-          type="search"
-          id="filter-sport"
-          name="sport"
-          defaultValue={sport ?? ''}
-          placeholder="Tous les sports"
-          autoComplete="off"
-          className="field-control py-2 sm:w-auto"
-        />
-
-        <label htmlFor="filter-level" className="sr-only">
-          Niveau
-        </label>
-        <select
-          id="filter-level"
-          name="level"
-          defaultValue={level ?? ''}
-          className="field-control py-2 sm:w-auto"
-        >
-          <option value="">Tous les niveaux</option>
-          {LEVELS.map((l) => (
-            <option key={l.value} value={l.value}>
-              {l.label}
-            </option>
-          ))}
-        </select>
-
-        <button
-          type="submit"
-          className="action-primary min-h-11 w-full px-5 py-2 text-sm sm:w-auto"
-        >
+        <div className="filter-field">
+          <label htmlFor="filter-sport">Sport</label>
+          <input
+            type="search"
+            id="filter-sport"
+            name="sport"
+            defaultValue={sport ?? ''}
+            placeholder="Tous les sports"
+            autoComplete="off"
+            className="field-control"
+          />
+        </div>
+        <div className="filter-field">
+          <label htmlFor="filter-level">Niveau</label>
+          <select
+            id="filter-level"
+            name="level"
+            defaultValue={level ?? ''}
+            className="field-control"
+          >
+            <option value="">Tous les niveaux</option>
+            {LEVELS.map((l) => (
+              <option key={l.value} value={l.value}>
+                {l.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button type="submit" className="action-primary">
           Filtrer
         </button>
-
         {(sport || level) && (
-          <Link
-            href="/workouts"
-            className="action-secondary min-h-11 w-full px-5 py-2 text-sm sm:w-auto"
-          >
+          <Link href="/workouts" className="text-link">
             Effacer
           </Link>
         )}
       </form>
-
       {workouts.length === 0 ? (
         <EmptyState
-          title={sport || level ? 'Aucun resultat' : 'Aucune seance pour l instant'}
+          title={sport || level ? 'Aucun résultat' : 'Aucune séance pour le moment'}
           description={
             sport || level
-              ? 'Essayez d autres filtres ou creez une nouvelle routine.'
-              : 'Creez votre premiere seance pour remplir cet espace training.'
+              ? 'Essayez d’autres filtres ou créez une séance.'
+              : 'Vos séances apparaîtront ici une fois créées.'
           }
           href="/generate"
-          cta="Creer une seance"
+          cta="Créer une séance"
         />
       ) : (
         <>
-          <ul
-            className="grid gap-4 lg:grid-cols-2"
-            aria-label={`${workouts.length} entrainement${workouts.length > 1 ? 's' : ''} sur ${total}`}
-          >
-            {workouts.map((workout) => (
-              <WorkoutCard key={workout.id} workout={workout} onDelete={handleDelete} />
-            ))}
-          </ul>
-
-          {totalPages > 1 && (
-            <nav
-              aria-label="Pagination des entrainements"
-              className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm sm:gap-6"
+          <GlassPanel className="workout-table">
+            <div className="workout-row workout-row-heading" aria-hidden="true">
+              <span>Séance</span>
+              <span>Niveau</span>
+              <span>Durée</span>
+              <span>Créée le</span>
+              <span />
+            </div>
+            <ul
+              aria-label={`${workouts.length} entrainement${workouts.length > 1 ? 's' : ''} sur ${total}`}
             >
+              {workouts.map((workout) => (
+                <WorkoutCard key={workout.id} workout={workout} onDelete={handleDelete} />
+              ))}
+            </ul>
+          </GlassPanel>
+          {totalPages > 1 && (
+            <nav aria-label="Pagination des entrainements" className="pagination">
               {page > 1 ? (
-                <Link href={pageUrl(page - 1)} className="action-secondary min-h-10 px-4 py-2">
-                  Precedent
+                <Link href={pageUrl(page - 1)} className="action-secondary">
+                  Précédent
                 </Link>
               ) : (
-                <span className="select-none text-zinc-700">Precedent</span>
+                <span aria-disabled="true">Précédent</span>
               )}
-
-              <span className="premium-chip" aria-current="page">
+              <span aria-current="page">
                 {page} / {totalPages}
               </span>
-
               {hasMore ? (
-                <Link href={pageUrl(page + 1)} className="action-secondary min-h-10 px-4 py-2">
+                <Link href={pageUrl(page + 1)} className="action-secondary">
                   Suivant
                 </Link>
               ) : (
-                <span className="select-none text-zinc-700">Suivant</span>
+                <span aria-disabled="true">Suivant</span>
               )}
             </nav>
           )}

@@ -4,10 +4,9 @@ import { useState } from 'react';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { Button } from './ui/Button';
+import { useFormReady } from './useFormReady';
 import { Icon } from './ui/Icon';
-import { AlcideMascotPrompt } from './AlcideMascotPrompt';
 import { GenerationQuotaNotice } from './GenerationQuotaNotice';
-import { GlassPanel } from './PremiumPrimitives';
 import { GenerateWorkoutInputSchema } from '@alcide/shared';
 import type { GenerateWorkoutInput } from '@alcide/shared';
 import type { GenerationQuota } from '@alcide/shared';
@@ -16,15 +15,17 @@ import { isNextRedirectError } from '@/lib/next-navigation';
 interface WorkoutFormProps {
   onSubmit: (data: GenerateWorkoutInput) => Promise<{ error?: string } | void>;
   generationQuota: GenerationQuota;
+  initialValues?: { goals?: string; duration_minutes?: number };
 }
 
 const LEVEL_OPTIONS = [
-  { value: 'beginner', label: 'Debutant' },
-  { value: 'intermediate', label: 'Intermediaire' },
-  { value: 'advanced', label: 'Avance' },
+  { value: 'beginner', label: 'Débutant' },
+  { value: 'intermediate', label: 'Intermédiaire' },
+  { value: 'advanced', label: 'Avancé' },
 ];
 
-export function WorkoutForm({ onSubmit, generationQuota }: WorkoutFormProps) {
+export function WorkoutForm({ onSubmit, generationQuota, initialValues }: WorkoutFormProps) {
+  const formReady = useFormReady();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof GenerateWorkoutInput, string>>>({});
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -32,14 +33,15 @@ export function WorkoutForm({ onSubmit, generationQuota }: WorkoutFormProps) {
   const [formData, setFormData] = useState({
     sport: '',
     level: 'beginner' as GenerateWorkoutInput['level'],
-    duration_minutes: 30,
-    goals: '',
+    duration_minutes: initialValues?.duration_minutes ?? 30,
+    goals: initialValues?.goals ?? '',
     constraints: '',
   });
   const quotaExhausted = generationQuota.limited && generationQuota.remaining === 0;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!formReady) return;
     setErrors({});
     setGlobalError(null);
 
@@ -81,143 +83,133 @@ export function WorkoutForm({ onSubmit, generationQuota }: WorkoutFormProps) {
 
   return (
     <form
+      method="post"
       onSubmit={(e) => {
         void handleSubmit(e);
       }}
       noValidate
       aria-labelledby="form-title"
-      className="glass-panel flex w-full flex-col gap-5 p-5 sm:p-6"
+      className="glass-panel form-panel"
     >
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="section-kicker mb-3">Brief seance</p>
-          <h2 id="form-title" className="break-words text-3xl font-black text-white">
-            Construire le training
-          </h2>
-        </div>
-        <span className="icon-bubble bg-primary-300 text-zinc-950">
-          <Icon name="zap" className="h-4 w-4" />
-        </span>
-      </div>
-
-      <AlcideMascotPrompt
-        title="Je te prepare une seance calibree."
-        description="Donne-moi le sport, la duree et ton objectif. Je transforme le brief en training clair."
-        icon="zap"
-      />
-
-      <GenerationQuotaNotice quota={generationQuota} />
-
-      {globalError && (
-        <div
-          role="alert"
-          aria-live="assertive"
-          className="rounded-[1.25rem] border border-sport-orange/30 bg-sport-orange/10 p-4 text-sm text-sport-orange"
-        >
-          <strong>Erreur :</strong> {globalError}
-        </div>
-      )}
-
-      <GlassPanel variant="soft" className="grid gap-4 p-4 md:grid-cols-3">
-        <Input
-          label="Sport"
-          name="sport"
-          value={formData.sport}
-          onChange={(e) => setFormData((prev) => ({ ...prev, sport: e.target.value }))}
-          error={errors.sport}
-          placeholder="ex: course a pied, yoga, musculation..."
-          required
-          hint="Discipline principale"
-        />
-
-        <Select
-          label="Niveau"
-          name="level"
-          value={formData.level}
-          onChange={(e) =>
-            setFormData((prev) => ({
-              ...prev,
-              level: e.target.value as GenerateWorkoutInput['level'],
-            }))
-          }
-          options={LEVEL_OPTIONS}
-          error={errors.level}
-          required
-          hint="Experience actuelle"
-        />
-
-        <Input
-          label="Duree (minutes)"
-          name="duration_minutes"
-          type="number"
-          min={15}
-          max={180}
-          value={formData.duration_minutes}
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, duration_minutes: Number(e.target.value) }))
-          }
-          error={errors.duration_minutes}
-          required
-          hint="Entre 15 et 180 minutes"
-        />
-      </GlassPanel>
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor="goals" className="field-label">
-          Objectifs{' '}
-          <span aria-hidden="true" className="text-primary-300">
-            *
-          </span>
-          <span className="sr-only">(requis)</span>
-        </label>
-        <textarea
-          id="goals"
-          name="goals"
-          value={formData.goals}
-          onChange={(e) => setFormData((prev) => ({ ...prev, goals: e.target.value }))}
-          required
-          rows={3}
-          placeholder="ex: ameliorer mon endurance, perdre du poids, gagner en force..."
-          aria-describedby={errors.goals ? 'goals-error' : undefined}
-          aria-invalid={errors.goals ? true : undefined}
-          className="field-control resize-y"
-        />
-        {errors.goals && (
-          <p id="goals-error" role="alert" className="text-xs text-sport-orange">
-            {errors.goals}
-          </p>
+      <fieldset disabled={!formReady} className="contents">
+        <h2 id="form-title" className="sr-only">
+          Personnaliser la séance
+        </h2>
+        <GenerationQuotaNotice quota={generationQuota} />
+        {globalError && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="rounded-xl border border-sport-orange/30 bg-sport-orange/10 p-4 text-sm text-sport-orange"
+          >
+            <strong>Erreur :</strong> {globalError}
+          </div>
         )}
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor="constraints" className="field-label">
-          Contraintes physiques{' '}
-          <span className="text-xs font-normal text-zinc-400">(optionnel)</span>
-        </label>
-        <textarea
-          id="constraints"
-          name="constraints"
-          value={formData.constraints}
-          onChange={(e) => setFormData((prev) => ({ ...prev, constraints: e.target.value }))}
-          rows={2}
-          placeholder="ex: douleur au genou gauche, pas de sauts..."
-          className="field-control resize-y"
-        />
-      </div>
-
-      <Button
-        type="submit"
-        isLoading={isLoading}
-        size="lg"
-        className="mt-2 w-full"
-        disabled={isLoading || quotaExhausted}
-      >
-        {quotaExhausted
-          ? 'Quota jury atteint'
-          : isLoading
-            ? 'Preparation en cours...'
-            : 'Generer la seance'}
-      </Button>
+        <div className="form-section md:grid-cols-3">
+          <Input
+            label="Sport"
+            name="sport"
+            value={formData.sport}
+            onChange={(e) => setFormData((prev) => ({ ...prev, sport: e.target.value }))}
+            error={errors.sport}
+            placeholder="Ex. renforcement, course à pied…"
+            required
+            maxLength={100}
+          />
+          <Select
+            label="Niveau"
+            name="level"
+            value={formData.level}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                level: e.target.value as GenerateWorkoutInput['level'],
+              }))
+            }
+            options={LEVEL_OPTIONS}
+            error={errors.level}
+            required
+          />
+          <Input
+            label="Durée (minutes)"
+            name="duration_minutes"
+            type="number"
+            min={15}
+            max={180}
+            value={formData.duration_minutes}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, duration_minutes: Number(e.target.value) }))
+            }
+            error={errors.duration_minutes}
+            required
+            hint="Entre 15 et 180 minutes"
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <label htmlFor="goals" className="field-label">
+            Objectifs <span aria-hidden="true">*</span>
+            <span className="sr-only"> (requis)</span>
+          </label>
+          <textarea
+            id="goals"
+            name="goals"
+            value={formData.goals}
+            onChange={(e) => setFormData((prev) => ({ ...prev, goals: e.target.value }))}
+            required
+            rows={3}
+            maxLength={500}
+            placeholder="Ce que vous souhaitez travailler ou améliorer."
+            aria-describedby={errors.goals ? 'goals-error' : undefined}
+            aria-invalid={errors.goals ? true : undefined}
+            className="field-control resize-y"
+          />
+          {errors.goals && (
+            <p id="goals-error" role="alert" className="text-sm text-sport-orange">
+              {errors.goals}
+            </p>
+          )}
+        </div>
+        <div className="flex flex-col gap-2">
+          <label htmlFor="constraints" className="field-label">
+            Contraintes et matériel{' '}
+            <span className="ml-2 text-sm font-normal text-zinc-300">Facultatif</span>
+          </label>
+          <textarea
+            id="constraints"
+            name="constraints"
+            value={formData.constraints}
+            onChange={(e) => setFormData((prev) => ({ ...prev, constraints: e.target.value }))}
+            rows={3}
+            maxLength={500}
+            placeholder="Ex. sans matériel, à la maison, pas de sauts…"
+            className="field-control resize-y"
+            aria-invalid={errors.constraints ? true : undefined}
+            aria-describedby={errors.constraints ? 'constraints-error' : undefined}
+          />
+          {errors.constraints && (
+            <p id="constraints-error" role="alert" className="text-sm text-sport-orange">
+              {errors.constraints}
+            </p>
+          )}
+        </div>
+        <div className="form-footer">
+          <p className="muted-copy text-sm">Sport, niveau, durée et objectifs sont requis.</p>
+          <Button
+            type="submit"
+            isLoading={isLoading}
+            size="lg"
+            className="w-full sm:w-auto sm:min-w-64"
+            disabled={!formReady || isLoading || quotaExhausted}
+          >
+            {quotaExhausted
+              ? 'Quota jury atteint'
+              : isLoading
+                ? 'Préparation en cours…'
+                : 'Générer la séance'}
+            {!isLoading && <Icon name="arrow-right" className="ml-4 h-6 w-6" />}
+          </Button>
+        </div>
+      </fieldset>
     </form>
   );
 }

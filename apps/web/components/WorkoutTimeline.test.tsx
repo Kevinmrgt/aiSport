@@ -34,12 +34,11 @@ describe('WorkoutTimeline', () => {
       { name: 'Respiration', description: 'Retour au calme', duration_seconds: 20 },
     ];
 
-    render(
-      <WorkoutTimeline exercises={exercises} warmup={warmup} cooldown={cooldown} />,
-    );
+    render(<WorkoutTimeline exercises={exercises} warmup={warmup} cooldown={cooldown} />);
 
     expect(screen.getByRole('img').getAttribute('aria-label')).toBe('Timeline de 4min');
-    expect(screen.getAllByText('2m5s')).toHaveLength(3);
+    expect(screen.getByTitle('Course - 2m5s')).toBeTruthy();
+    expect(screen.getAllByText('2m5s').some((node) => node.closest('summary'))).toBe(true);
     expect(screen.getByText('3x10')).toBeTruthy();
     expect(screen.getByText('Libre')).toBeTruthy();
     expect(screen.getByRole('list', { name: 'Detail des exercices' }).children).toHaveLength(4);

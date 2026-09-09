@@ -78,7 +78,7 @@ export function DeleteConfirmationButton({
         role="group"
         aria-labelledby={`${accessibleId}-title`}
         aria-describedby={`${accessibleId}-description${error ? ` ${accessibleId}-error` : ''}`}
-        className="flex w-full max-w-full flex-col items-stretch gap-2 rounded-[1.2rem] border border-sport-orange/30 bg-sport-orange/10 p-3 sm:max-w-sm"
+        className="flex w-full min-w-0 max-w-full flex-col items-stretch gap-2 rounded-[1.2rem] border border-sport-orange/30 bg-sport-orange/10 p-3 [overflow-wrap:anywhere] sm:max-w-sm"
       >
         <p
           id={`${accessibleId}-title`}
@@ -107,7 +107,7 @@ export function DeleteConfirmationButton({
             }}
             disabled={isPending}
             aria-busy={isPending}
-            className="rounded-full bg-sport-orange px-3 py-1.5 text-xs font-black text-zinc-950 hover:bg-primary-300 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-sport-orange"
+            className="min-h-11 min-w-11 rounded-full bg-sport-orange px-3 py-1.5 text-xs font-black text-zinc-950 hover:bg-primary-300 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-sport-orange"
           >
             {isPending ? 'Suppression...' : 'Confirmer'}
           </button>
@@ -115,7 +115,7 @@ export function DeleteConfirmationButton({
             type="button"
             onClick={() => setShowConfirm(false)}
             disabled={isPending}
-            className="rounded-full px-3 py-1.5 text-xs font-bold text-zinc-300 hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-300"
+            className="min-h-11 min-w-11 rounded-full px-3 py-1.5 text-xs font-bold text-zinc-300 hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-300"
           >
             Annuler
           </button>
@@ -133,7 +133,7 @@ export function DeleteConfirmationButton({
         setShowConfirm(true);
       }}
       aria-label={`Supprimer ${itemType} : ${itemLabel}`}
-      className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold text-zinc-300 transition-colors hover:bg-sport-orange/15 hover:text-sport-orange focus:outline-none focus:ring-2 focus:ring-sport-orange"
+      className="inline-flex min-h-11 min-w-11 items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold text-zinc-300 transition-colors hover:bg-sport-orange/15 hover:text-sport-orange focus:outline-none focus:ring-2 focus:ring-sport-orange"
     >
       <Icon name="trash" className="h-3.5 w-3.5" />
       Supprimer

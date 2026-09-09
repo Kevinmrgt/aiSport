@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "framework": "next-app-router",
+  "capturedAt": "2026-09-09T11:15:36.747606+00:00",
+  "appDirectory": "C:/Users/Kevin/Documents/AISport/apps/web/app",
+  "entries": [
+    {
+      "kind": "page",
+      "route": "/login",
+      "source": "(auth)/login/page.tsx"
+    },
+    {
+      "kind": "handler",
+      "route": "/api/auth/[...nextauth]",
+      "source": "api/auth/[...nextauth]/route.ts"
+    },
+    {
+      "kind": "handler",
+      "route": "/api/health",
+      "source": "api/health/route.ts"
+    },
+    {
+      "kind": "page",
+      "route": "/confidentialite",
+      "source": "confidentialite/page.tsx"
+    },
+    {
+      "kind": "page",
+      "route": "/dashboard",
+      "source": "dashboard/page.tsx"
+    },
+    {
+      "kind": "page",
+      "route": "/generate",
+      "source": "generate/page.tsx"
+    },
+    {
+      "kind": "page",
+      "route": "/",
+      "source": "page.tsx"
+    },
+    {
+      "kind": "page",
+      "route": "/programs/[id]",
+      "source": "programs/[id]/page.tsx"
+    },
+    {
+      "kind": "page",
+      "route": "/programs/[id]/sessions/[sessionId]",
+      "source": "programs/[id]/sessions/[sessionId]/page.tsx"
+    },
+    {
+      "kind": "page",
+      "route": "/programs/generate",
+      "source": "programs/generate/page.tsx"
+    },
+    {
+      "kind": "page",
+      "route": "/programs",
+      "source": "programs/page.tsx"
+    },
+    {
+      "kind": "page",
+      "route": "/settings",
+      "source": "settings/page.tsx"
+    },
+    {
+      "kind": "page",
+      "route": "/workouts/[id]",
+      "source": "workouts/[id]/page.tsx"
+    },
+    {
+      "kind": "page",
+      "route": "/workouts",
+      "source": "workouts/page.tsx"
+    }
+  ],
+  "supportFiles": [
+    "dashboard/loading.tsx",
+    "error.tsx",
+    "generate/loading.tsx",
+    "layout.tsx",
+    "not-found.tsx",
+    "programs/[id]/loading.tsx",
+    "programs/loading.tsx",
+    "settings/loading.tsx",
+    "workouts/[id]/loading.tsx",
+    "workouts/loading.tsx"
+  ],
+  "warnings": [],
+  "limits": "Static routes and support files only; not behavior, HTTP methods, rewrites, middleware, custom extensions or external API servers."
+}

@@ -9,9 +9,9 @@ interface WorkoutCardProps {
 }
 
 const DIFFICULTY_LABELS: Record<WorkoutListItem['difficulty'], string> = {
-  beginner: 'Debutant',
-  intermediate: 'Intermediaire',
-  advanced: 'Avance',
+  beginner: 'Débutant',
+  intermediate: 'Intermédiaire',
+  advanced: 'Avancé',
 };
 
 export function WorkoutCard({ workout, onDelete }: WorkoutCardProps) {
@@ -22,55 +22,36 @@ export function WorkoutCard({ workout, onDelete }: WorkoutCardProps) {
   });
 
   return (
-    <li
-      role="article"
-      className="glass-soft group relative min-w-0 overflow-hidden p-4 transition hover:border-primary-300/[0.45] hover:bg-zinc-950/[0.72]"
-    >
+    <li role="article" className="workout-row">
       <Link
         href={`/workouts/${workout.id}`}
         aria-label={`Voir l'entrainement : ${workout.title}`}
-        className="block min-w-0"
+        className="workout-row-title"
       >
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="mb-3 flex flex-wrap gap-2">
-              <span className="premium-chip bg-primary-300 text-zinc-950">
-                {DIFFICULTY_LABELS[workout.difficulty]}
-              </span>
-              <span className="premium-chip capitalize">{workout.sport}</span>
-            </div>
-            <h2 className="break-words text-xl font-black leading-snug text-white transition-colors group-hover:text-primary-200">
-              {workout.title}
-            </h2>
-          </div>
-          <span aria-hidden="true" className="icon-bubble h-11 w-11 text-primary-300">
-            <Icon name="arrow-right" className="h-4 w-4" />
-          </span>
-        </div>
-
-        <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <div className="rounded-full bg-zinc-950/[0.46] px-3 py-2">
-            <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-zinc-300">
-              Duree
-            </p>
-            <p className="text-sm font-black text-white">{workout.durationMinutes} min</p>
-          </div>
-          <div className="rounded-full bg-zinc-950/[0.46] px-3 py-2">
-            <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-zinc-300">
-              Cree
-            </p>
-            <p className="text-sm font-black text-white">{createdAt}</p>
-          </div>
-          <div className="hidden rounded-full border border-primary-300/[0.18] bg-zinc-950/[0.46] px-3 py-2 sm:block">
-            <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-zinc-300">
-              Statut
-            </p>
-            <p className="text-sm font-black text-primary-200">Pret</p>
-          </div>
-        </div>
+        <span className="icon-bubble">
+          <Icon
+            name={/course|run|endurance/i.test(workout.sport) ? 'run' : 'barbell'}
+            className="h-6 w-6"
+          />
+        </span>
+        <span>
+          <h2 className="break-words">{workout.title}</h2>
+          <span className="muted-copy capitalize">{workout.sport}</span>
+        </span>
       </Link>
-
-      <div className="mt-4 flex justify-end border-t border-white/10 pt-3">
+      <span className="row-level">{DIFFICULTY_LABELS[workout.difficulty]}</span>
+      <span className="row-duration">{workout.durationMinutes} min</span>
+      <time className="row-date" dateTime={workout.createdAt}>
+        {createdAt}
+      </time>
+      <div className="row-actions">
+        <Link
+          href={`/workouts/${workout.id}`}
+          className="icon-button"
+          aria-label={`Ouvrir ${workout.title}`}
+        >
+          <Icon name="arrow-right" className="h-5 w-5" />
+        </Link>
         <DeleteWorkoutButton
           workoutId={workout.id}
           workoutTitle={workout.title}

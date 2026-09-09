@@ -47,7 +47,7 @@ export function ProgramWeekTabs({ weeks, programId }: ProgramWeekTabsProps) {
         role="tablist"
         aria-orientation="horizontal"
         aria-label="Semaines du programme"
-        className="mb-6 flex gap-2 overflow-x-auto rounded-full border border-white/10 bg-zinc-950/[0.55] p-1"
+        className="week-tabs"
       >
         {weeks.map((week, index) => (
           <button
@@ -62,86 +62,52 @@ export function ProgramWeekTabs({ weeks, programId }: ProgramWeekTabsProps) {
             id={`${tabsetId}-tab-${week.week_number}`}
             tabIndex={activeWeek === week.week_number ? 0 : -1}
             onKeyDown={(event) => handleTabKeyDown(event, index)}
-            onClick={() => {
-              setActiveWeek(week.week_number);
-            }}
-            className={`whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-black transition-colors focus:outline-none focus:ring-2 focus:ring-primary-300 ${
-              activeWeek === week.week_number
-                ? 'bg-primary-300 text-zinc-950 shadow-lg shadow-primary-400/20'
-                : 'text-zinc-300 hover:bg-zinc-950/[0.52] hover:text-white'
-            }`}
+            onClick={() => setActiveWeek(week.week_number)}
           >
-            Sem. {week.week_number}
+            Semaine {week.week_number}
           </button>
         ))}
       </nav>
-
-      {weeks.map((week) => {
-        const isActive = activeWeek === week.week_number;
-
-        return (
-          <div
-            key={week.week_number}
-            role="tabpanel"
-            id={`${tabsetId}-panel-${week.week_number}`}
-            aria-labelledby={`${tabsetId}-tab-${week.week_number}`}
-            tabIndex={isActive ? 0 : -1}
-            hidden={!isActive}
-          >
-            <div className="mb-5 rounded-[1.8rem] border border-white/10 bg-zinc-950/[0.58] p-4">
-              <h2 className="text-2xl font-black text-white">{week.theme}</h2>
-              <p className="mt-1 text-sm leading-6 text-zinc-300">{week.objective}</p>
-            </div>
-
-            <ul className="space-y-3" aria-label={`Seances de la semaine ${week.week_number}`}>
-              {week.sessions.map((session) => {
-                const sessionId = `${week.week_number}-${session.session_number}`;
-
-                return (
-                  <li
-                    key={session.session_number}
-                    role="article"
-                    className="rounded-[1.6rem] border border-white/10 bg-zinc-950/[0.45] p-4 shadow-lg shadow-black/20"
-                  >
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                      <div className="flex min-w-0 flex-1 gap-3">
-                        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-primary-300 text-sm font-black text-zinc-950">
-                          {session.session_number}
-                        </span>
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="premium-chip">{session.focus}</span>
-                            <span className="premium-chip">{session.duration_minutes} min</span>
-                          </div>
-                          <p className="mt-2 break-words text-base font-black text-white">
-                            {session.title}
-                          </p>
-                          <p className="mt-1 break-words text-xs leading-5 text-zinc-300">
-                            {session.exercises.length} exercice
-                            {session.exercises.length > 1 ? 's' : ''}
-                            {session.warmup && session.warmup.length > 0
-                              ? ' - echauffement inclus'
-                              : ''}
-                          </p>
-                        </div>
-                      </div>
-
-                      <Link
-                        href={`/programs/${programId}/sessions/${sessionId}`}
-                        aria-label={`Demarrer la seance ${session.session_number} : ${session.title}`}
-                        className="action-primary w-full min-h-11 px-4 py-2 text-xs sm:w-auto"
-                      >
-                        <Icon name="timer" className="h-4 w-4" />
-                        Demarrer
-                      </Link>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+      {weeks.map((week) => (
+        <div
+          key={week.week_number}
+          role="tabpanel"
+          id={`${tabsetId}-panel-${week.week_number}`}
+          aria-labelledby={`${tabsetId}-tab-${week.week_number}`}
+          tabIndex={activeWeek === week.week_number ? 0 : -1}
+          hidden={activeWeek !== week.week_number}
+        >
+          <div className="mb-7">
+            <h3 className="text-2xl font-bold">{week.theme}</h3>
+            <p className="muted-copy mt-2">{week.objective}</p>
           </div>
-        );
-      })}
+          <ul aria-label={`Seances de la semaine ${week.week_number}`}>
+            {week.sessions.map((session) => (
+              <li key={session.session_number} role="article" className="week-session">
+                <div className="flex min-w-0 flex-1 gap-5">
+                  <span className="week-session-number">{session.session_number}</span>
+                  <div className="min-w-0">
+                    <h3 className="break-words text-xl font-bold">{session.title}</h3>
+                    <p className="muted-copy mt-1">{session.focus}</p>
+                    <p className="muted-copy mt-2 text-sm">
+                      {session.duration_minutes} min · {session.exercises.length} exercice
+                      {session.exercises.length > 1 ? 's' : ''}
+                      {session.warmup?.length ? ' · échauffement inclus' : ''}
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href={`/programs/${programId}/sessions/${week.week_number}-${session.session_number}`}
+                  aria-label={`Demarrer la seance ${session.session_number} : ${session.title}`}
+                  className="action-secondary"
+                >
+                  Voir la séance <Icon name="arrow-right" className="h-4 w-4" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth';
 import { isServerApiNotFound, serverApi } from '@/lib/server-api';
 import { Timer } from '@/components/Timer';
 import { WorkoutTimeline } from '@/components/WorkoutTimeline';
-import { GlassPanel, MetricPill } from '@/components/PremiumPrimitives';
+import { GlassPanel } from '@/components/PremiumPrimitives';
 import { Icon } from '@/components/ui/Icon';
 import type { CreateSessionLogInput } from '@alcide/shared';
 
@@ -80,64 +80,54 @@ export default async function ProgramSessionPage({ params }: SessionPageProps) {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="detail-page space-y-7">
       <nav aria-label="Retour">
-        <Link href={`/programs/${id}`} className="premium-chip">
+        <Link href={`/programs/${id}`} className="back-link">
           <Icon name="arrow-left" className="h-4 w-4" />
           {program.title}
         </Link>
       </nav>
-
-      <header className="abstract-surface mobile-compact-header rounded-[2.4rem] border border-white/[0.15] bg-zinc-950/50 p-5 shadow-2xl shadow-black/30 backdrop-blur-2xl sm:p-6">
-        <p className="section-kicker mb-4">
-          Semaine {weekNumber} - {week.theme}
-        </p>
-        <h1 className="page-title max-w-3xl">
-          Seance {sessionNumber} - {trainingSession.title}
+      <header className="page-heading block">
+        <h1 className="page-title">
+          Séance {sessionNumber} · {trainingSession.title}
         </h1>
-        <div className="mobile-header-metrics mt-6 grid gap-2 sm:grid-cols-3">
-          <MetricPill icon="target" label="Focus" value={trainingSession.focus} tone="lime" />
-          <MetricPill
-            icon="timer"
-            label="Duree"
-            value={`${trainingSession.duration_minutes} min`}
-          />
-          <MetricPill
-            icon="activity"
-            label="Exercices"
-            value={`${trainingSession.exercises.length}`}
-            tone="orange"
-          />
+        <div className="detail-meta">
+          <span>
+            Semaine {weekNumber} · {week.theme}
+          </span>
+          <span>{trainingSession.duration_minutes} min</span>
+          <span>{trainingSession.exercises.length} exercices</span>
         </div>
+        <p className="muted-copy mt-4">{trainingSession.focus}</p>
       </header>
-
-      <section aria-labelledby="timeline-title">
-        <GlassPanel className="p-5 sm:p-6">
-          <h2 id="timeline-title" className="section-kicker mb-6">
-            Programme
-          </h2>
-          <WorkoutTimeline
-            exercises={trainingSession.exercises}
-            warmup={trainingSession.warmup}
-            cooldown={trainingSession.cooldown}
-          />
-        </GlassPanel>
-      </section>
-
-      <section aria-labelledby="timer-title">
-        <GlassPanel className="p-5 sm:p-6">
-          <h2 id="timer-title" className="section-kicker mb-6">
-            Timer
-          </h2>
-          <Timer
-            completeAction={completeProgramSession}
-            exercises={trainingSession.exercises}
-            warmup={trainingSession.warmup}
-            cooldown={trainingSession.cooldown}
-            sessionMeta={sessionMeta}
-          />
-        </GlassPanel>
-      </section>
+      <div className="detail-grid">
+        <section aria-labelledby="timeline-title" className="timeline-panel">
+          <GlassPanel className="panel-padding">
+            <h2 id="timeline-title" className="panel-title">
+              Programme de la séance
+            </h2>
+            <WorkoutTimeline
+              exercises={trainingSession.exercises}
+              warmup={trainingSession.warmup}
+              cooldown={trainingSession.cooldown}
+            />
+          </GlassPanel>
+        </section>
+        <section aria-labelledby="timer-title" className="timer-panel">
+          <GlassPanel className="panel-padding">
+            <h2 id="timer-title" className="panel-title">
+              Minuteur
+            </h2>
+            <Timer
+              completeAction={completeProgramSession}
+              exercises={trainingSession.exercises}
+              warmup={trainingSession.warmup}
+              cooldown={trainingSession.cooldown}
+              sessionMeta={sessionMeta}
+            />
+          </GlassPanel>
+        </section>
+      </div>
     </div>
   );
 }

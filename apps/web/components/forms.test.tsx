@@ -15,7 +15,7 @@ describe('formulaires metier', () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(<WorkoutForm onSubmit={onSubmit} generationQuota={unlimitedQuota} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /generer la seance/i }));
+    fireEvent.click(screen.getByRole('button', { name: /générer la séance/i }));
     expect(await screen.findAllByRole('alert')).not.toHaveLength(0);
     expect(onSubmit).not.toHaveBeenCalled();
     expect(document.activeElement).toBe(screen.getByLabelText(/sport/i));
@@ -24,7 +24,7 @@ describe('formulaires metier', () => {
     fireEvent.change(screen.getByLabelText(/objectifs/i), {
       target: { value: 'Ameliorer mon endurance' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /generer la seance/i }));
+    fireEvent.click(screen.getByRole('button', { name: /générer la séance/i }));
 
     await waitFor(() =>
       expect(onSubmit).toHaveBeenCalledWith(
@@ -42,7 +42,7 @@ describe('formulaires metier', () => {
     render(<WorkoutForm onSubmit={vi.fn()} generationQuota={unlimitedQuota} />);
 
     const formText = screen
-      .getByRole('form', { name: /construire le training/i })
+      .getByRole('form', { name: /personnaliser la séance/i })
       .textContent?.normalize('NFKD')
       .replace(/\p{Diacritic}/gu, '')
       .toLocaleLowerCase('fr-FR');
@@ -63,7 +63,7 @@ describe('formulaires metier', () => {
     fireEvent.change(screen.getByLabelText(/objectifs/i), {
       target: { value: 'Ameliorer mon endurance' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /generer la seance/i }));
+    fireEvent.click(screen.getByRole('button', { name: /générer la séance/i }));
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
     expect(screen.queryByRole('alert')).toBeNull();
@@ -82,7 +82,7 @@ describe('formulaires metier', () => {
     fireEvent.change(screen.getByLabelText(/objectifs/i), {
       target: { value: 'Preparer une course' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /generer le programme/i }));
+    fireEvent.click(screen.getByRole('button', { name: /générer le programme/i }));
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
     expect(screen.queryByRole('alert')).toBeNull();
@@ -92,7 +92,7 @@ describe('formulaires metier', () => {
     const onSubmit = vi.fn().mockResolvedValue({ error: 'Service IA indisponible' });
     render(<ProgramForm onSubmit={onSubmit} generationQuota={unlimitedQuota} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /generer le programme/i }));
+    fireEvent.click(screen.getByRole('button', { name: /générer le programme/i }));
     expect(await screen.findAllByRole('alert')).not.toHaveLength(0);
     expect(document.activeElement).toBe(screen.getByLabelText(/^sport/i));
     expect(onSubmit).not.toHaveBeenCalled();
@@ -101,7 +101,7 @@ describe('formulaires metier', () => {
     fireEvent.change(screen.getByLabelText(/objectifs/i), {
       target: { value: 'Preparer une competition' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /generer le programme/i }));
+    fireEvent.click(screen.getByRole('button', { name: /générer le programme/i }));
 
     expect((await screen.findByRole('alert')).textContent).toContain('Service IA indisponible');
     expect(onSubmit).toHaveBeenCalledWith(
@@ -115,7 +115,7 @@ describe('formulaires metier', () => {
 
     expect(screen.getByRole('status').textContent).toContain('18 generations restantes sur 30');
     expect(
-      screen.getByRole<HTMLButtonElement>('button', { name: /generer le programme/i }).disabled,
+      screen.getByRole<HTMLButtonElement>('button', { name: /générer le programme/i }).disabled,
     ).toBe(false);
 
     rerender(
@@ -151,9 +151,9 @@ describe('formulaires metier', () => {
     );
 
     fireEvent.click(screen.getByLabelText('8'));
-    fireEvent.click(screen.getByLabelText('Trop dur'));
+    fireEvent.click(screen.getByLabelText('Trop difficile'));
     fireEvent.change(screen.getByLabelText(/douleur/i), { target: { value: '  Genou  ' } });
-    fireEvent.change(screen.getByLabelText(/^notes$/i), { target: { value: '  Ralentir  ' } });
+    fireEvent.change(screen.getByLabelText(/^notes/i), { target: { value: '  Ralentir  ' } });
     fireEvent.click(screen.getByRole('button', { name: /enregistrer le retour/i }));
 
     await waitFor(() =>
@@ -170,6 +170,6 @@ describe('formulaires metier', () => {
     const submitted = completeAction.mock.calls[0]?.[0];
     expect(submitted?.completedAt).toBeTruthy();
     expect(Number.isNaN(Date.parse(submitted?.completedAt ?? ''))).toBe(false);
-    expect((await screen.findByRole('status')).textContent).toContain('Retour enregistre');
+    expect((await screen.findByRole('status')).textContent).toContain('Retour enregistré');
   });
 });

@@ -40,13 +40,15 @@ interface MetricPillProps {
 export function MetricPill({ icon, label, value, tone = 'neutral' }: MetricPillProps) {
   const toneClass =
     tone === 'lime'
-      ? 'border-primary-300/[0.45] bg-zinc-950/[0.58] text-primary-100'
+      ? 'border-primary-300/[0.45] bg-white/[0.04] text-primary-100'
       : tone === 'orange'
-        ? 'border-sport-orange/[0.42] bg-zinc-950/[0.58] text-sport-orange'
-        : 'border-white/[0.14] bg-zinc-950/[0.58] text-zinc-100';
+        ? 'border-sport-orange/[0.42] bg-white/[0.04] text-sport-orange'
+        : 'border-white/[0.14] bg-white/[0.04] text-zinc-100';
 
   return (
-    <div className={`rounded-full border px-3 py-2 shadow-lg shadow-black/20 backdrop-blur-xl ${toneClass}`}>
+    <div
+      className={`rounded-full border px-3 py-2 shadow-lg shadow-black/20 backdrop-blur-xl ${toneClass}`}
+    >
       <div className="flex items-center gap-2">
         {icon && <Icon name={icon} className="h-4 w-4 shrink-0" />}
         <div className="min-w-0">
@@ -74,7 +76,7 @@ export function ProgressRing({ value, label, size = 'md' }: ProgressRingProps) {
     <div
       className={`relative grid ${sizeClass} shrink-0 place-items-center rounded-full`}
       style={{
-        background: `conic-gradient(#d9ff3f ${clamped * 3.6}deg, rgba(255,255,255,0.12) 0deg)`,
+        background: `conic-gradient(#c3e7cd ${clamped * 3.6}deg, rgba(255,255,255,0.12) 0deg)`,
       }}
       role="img"
       aria-label={`${label}: ${clamped}%`}
@@ -82,7 +84,9 @@ export function ProgressRing({ value, label, size = 'md' }: ProgressRingProps) {
       <div className="absolute inset-2 rounded-full bg-zinc-950/80 shadow-inner shadow-black/40" />
       <div className="relative text-center">
         <p className="text-2xl font-black tabular-nums text-white">{clamped}%</p>
-        <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-zinc-400">{label}</p>
+        <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-zinc-400">
+          {label}
+        </p>
       </div>
     </div>
   );
@@ -120,7 +124,9 @@ export function PhoneFrame({
       ) : (
         <div className="abstract-frame-bg" aria-hidden="true" />
       )}
-      <div className="relative z-10 flex min-h-[34rem] flex-col justify-end p-5 pt-16">{children}</div>
+      <div className="relative z-10 flex min-h-[34rem] flex-col justify-end p-5 pt-16">
+        {children}
+      </div>
     </div>
   );
 }
@@ -210,13 +216,6 @@ interface EmptyStateProps {
 export function EmptyState({ title, description, href, cta }: EmptyStateProps) {
   return (
     <GlassPanel className="relative mx-auto max-w-2xl overflow-hidden p-8 text-center">
-      <Image
-        src="/visuals/empty-state-glow.webp"
-        alt=""
-        fill
-        sizes="(max-width: 768px) 90vw, 640px"
-        className="-z-10 object-cover opacity-40"
-      />
       <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-full bg-primary-300 text-zinc-950 shadow-2xl shadow-primary-400/30">
         <Icon name="spark" className="h-6 w-6" />
       </div>

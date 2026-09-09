@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth';
 import { isServerApiNotFound, serverApi } from '@/lib/server-api';
 import { ProgramWeekTabs } from '@/components/ProgramWeekTabs';
 import { DeleteProgramButton } from '@/components/DeleteProgramButton';
-import { GlassPanel, MetricPill } from '@/components/PremiumPrimitives';
+import { GlassPanel } from '@/components/PremiumPrimitives';
 import { Icon } from '@/components/ui/Icon';
 
 interface ProgramDetailPageProps {
@@ -13,9 +13,9 @@ interface ProgramDetailPageProps {
 }
 
 const DIFFICULTY_LABELS = {
-  beginner: 'Debutant',
-  intermediate: 'Intermediaire',
-  advanced: 'Avance',
+  beginner: 'Débutant',
+  intermediate: 'Intermédiaire',
+  advanced: 'Avancé',
 };
 
 export default async function ProgramDetailPage({ params }: ProgramDetailPageProps) {
@@ -52,47 +52,36 @@ export default async function ProgramDetailPage({ params }: ProgramDetailPagePro
   const totalSessions = program.data.weeks.reduce((sum, week) => sum + week.sessions.length, 0);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="detail-page space-y-7">
       <nav aria-label="Retour">
-        <Link href="/programs" className="premium-chip">
+        <Link href="/programs" className="back-link">
           <Icon name="arrow-left" className="h-4 w-4" />
           Mes programmes
         </Link>
       </nav>
-
-      <header className="abstract-surface mobile-compact-header rounded-[2.4rem] border border-white/[0.15] bg-zinc-950/50 p-5 shadow-2xl shadow-black/30 backdrop-blur-2xl sm:p-6">
-        <p className="section-kicker mb-4">Programme</p>
-        <h1 className="page-title max-w-3xl">{program.title}</h1>
-        <div className="mobile-header-metrics mt-6 grid gap-2 sm:grid-cols-4">
-          <MetricPill icon="activity" label="Sport" value={program.sport} tone="lime" />
-          <MetricPill icon="target" label="Niveau" value={DIFFICULTY_LABELS[program.difficulty]} />
-          <MetricPill
-            icon="calendar"
-            label="Cycle"
-            value={`${program.weeksCount} sem.`}
-            tone="orange"
-          />
-          <MetricPill icon="timer" label="Seance" value={`${program.sessionDurationMinutes} min`} />
+      <header className="page-heading block">
+        <h1 className="page-title">{program.title}</h1>
+        <div className="detail-meta">
+          <span className="capitalize">{program.sport}</span>
+          <span>{DIFFICULTY_LABELS[program.difficulty]}</span>
+          <span>{program.weeksCount} semaines</span>
+          <span>{program.sessionsPerWeek} séances / sem.</span>
+          <span>{program.sessionDurationMinutes} min / séance</span>
         </div>
+        {program.data.progression_summary && (
+          <p className="muted-copy mt-5 max-w-4xl">{program.data.progression_summary}</p>
+        )}
       </header>
-
-      {program.data.progression_summary && (
-        <GlassPanel variant="soft" className="p-5">
-          <p className="text-sm leading-6 text-zinc-200">{program.data.progression_summary}</p>
-        </GlassPanel>
-      )}
-
       <section aria-labelledby="program-weeks-title">
-        <GlassPanel className="p-5 sm:p-6">
-          <h2 id="program-weeks-title" className="section-kicker mb-6">
-            {totalSessions} seance{totalSessions > 1 ? 's' : ''} planifiee
+        <GlassPanel className="panel-padding">
+          <h2 id="program-weeks-title" className="panel-title">
+            {totalSessions} séance{totalSessions > 1 ? 's' : ''} planifiée
             {totalSessions > 1 ? 's' : ''}
           </h2>
           <ProgramWeekTabs weeks={program.data.weeks} programId={program.id} />
         </GlassPanel>
       </section>
-
-      <div className="border-t border-white/10 pt-6">
+      <div className="flex justify-end">
         <DeleteProgramButton
           programId={program.id}
           programTitle={program.title}

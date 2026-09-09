@@ -4,13 +4,18 @@ import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import { juryAwareJwt } from '@/lib/auth-callbacks';
 import { verifyJuryCredentials } from '@/lib/jury-auth';
+import { isLocalPreview } from '@/lib/local-preview';
 
 export const authConfig = {
   providers: [
-    Google({
-      clientId: process.env['AUTH_GOOGLE_ID'],
-      clientSecret: process.env['AUTH_GOOGLE_SECRET'],
-    }),
+    ...(isLocalPreview()
+      ? []
+      : [
+          Google({
+            clientId: process.env['AUTH_GOOGLE_ID'],
+            clientSecret: process.env['AUTH_GOOGLE_SECRET'],
+          }),
+        ]),
     Credentials({
       id: 'jury',
       name: 'Accès jury',

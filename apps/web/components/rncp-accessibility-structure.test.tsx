@@ -16,9 +16,9 @@ describe('RNCP accessibilite - hierarchie des formulaires de generation', () => 
       />,
     );
 
-    expect(screen.getByRole('heading', { level: 2, name: 'Construire le training' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Personnaliser la séance' })).toBeTruthy();
     expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
-    expect(screen.getByRole('form', { name: 'Construire le training' })).toBeTruthy();
+    expect(screen.getByRole('form', { name: 'Personnaliser la séance' })).toBeTruthy();
   });
 
   it('expose le titre du formulaire de programme au niveau 2', () => {
@@ -30,9 +30,9 @@ describe('RNCP accessibilite - hierarchie des formulaires de generation', () => 
     );
 
     expect(
-      screen.getByRole('heading', { level: 2, name: 'Construire la progression' }),
+      screen.getByRole('heading', { level: 2, name: 'Personnaliser le programme' }),
     ).toBeTruthy();
     expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
-    expect(screen.getByRole('form', { name: 'Construire la progression' })).toBeTruthy();
+    expect(screen.getByRole('form', { name: 'Personnaliser le programme' })).toBeTruthy();
   });
 });
