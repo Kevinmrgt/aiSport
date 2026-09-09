@@ -42,9 +42,19 @@ describe('parcours préservés par la refonte', () => {
     apiMock.getWorkouts.mockResolvedValue({ workouts: [], total: 0, hasMore: false });
     apiMock.getGenerationQuota.mockResolvedValue({ limited: false, remaining: null });
     apiMock.deleteWorkout.mockResolvedValue(undefined);
+    vi.stubGlobal('matchMedia', () => ({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
   });
 
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
 
   it('protège l’historique avant toute lecture de données', async () => {
     authMock.mockResolvedValue(null);
@@ -195,7 +205,7 @@ describe('parcours préservés par la refonte', () => {
   });
 
   it.each([
-    ['/', 'textile'],
+    ['/', 'halo'],
     ['/login', 'textile'],
     ['/generate', 'textile'],
     ['/programs/generate', 'textile'],
@@ -210,6 +220,11 @@ describe('parcours préservés par la refonte', () => {
     const { container } = render(<RouteBackdrop />);
     const backdrop = container.firstElementChild!;
     expect(backdrop.getAttribute('aria-hidden')).toBe('true');
-    expect(backdrop.getAttribute('style')).toContain(`/visuals/refonte-${background}.webp`);
+    expect(backdrop.getAttribute('data-background')).toBe(background);
+    if (background === 'halo') {
+      expect(backdrop.querySelector('canvas')).not.toBeNull();
+    } else {
+      expect(backdrop.getAttribute('style')).toContain(`/visuals/refonte-${background}.webp`);
+    }
   });
 });

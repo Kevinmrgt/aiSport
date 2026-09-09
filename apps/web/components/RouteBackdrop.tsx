@@ -1,9 +1,11 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { HomeHaloBackground } from '@/components/HomeHaloBackground';
 
 export function RouteBackdrop() {
   const pathname = usePathname();
+  if (pathname === '/') return <HomeHaloBackground />;
   const variant =
     pathname === '/dashboard'
       ? 'performance'
