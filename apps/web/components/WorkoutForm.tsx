@@ -7,6 +7,7 @@ import { Button } from './ui/Button';
 import { useFormReady } from './useFormReady';
 import { Icon } from './ui/Icon';
 import { GenerationQuotaNotice } from './GenerationQuotaNotice';
+import { WorkoutGenerationProgress } from './WorkoutGenerationProgress';
 import { GenerateWorkoutInputSchema } from '@alcide/shared';
 import type { GenerateWorkoutInput } from '@alcide/shared';
 import type { GenerationQuota } from '@alcide/shared';
@@ -41,7 +42,7 @@ export function WorkoutForm({ onSubmit, generationQuota, initialValues }: Workou
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!formReady) return;
+    if (!formReady || isLoading || quotaExhausted) return;
     setErrors({});
     setGlobalError(null);
 
@@ -91,10 +92,20 @@ export function WorkoutForm({ onSubmit, generationQuota, initialValues }: Workou
       aria-labelledby="form-title"
       className="glass-panel form-panel"
     >
-      <fieldset disabled={!formReady} className="contents">
-        <h2 id="form-title" className="sr-only">
-          Personnaliser la séance
-        </h2>
+      <h2 id="form-title" className="sr-only">
+        Personnaliser la séance
+      </h2>
+      {isLoading && (
+        <WorkoutGenerationProgress
+          sport={formData.sport}
+          durationMinutes={formData.duration_minutes}
+        />
+      )}
+      <fieldset
+        disabled={!formReady || isLoading}
+        className={isLoading ? 'hidden' : 'contents'}
+        hidden={isLoading}
+      >
         <GenerationQuotaNotice quota={generationQuota} />
         {globalError && (
           <div

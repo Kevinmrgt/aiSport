@@ -1,7 +1,7 @@
 /**
  * Preview local isolé de la refonte. Vraie UI, Auth.js jury et server actions ;
  * API simulée en mémoire, aucun appel IA ni accès à une base réelle.
- * node scripts/refonte-preview.mjs [--production]
+ * node scripts/refonte-preview.mjs [--production] [--generation-delay=25000]
  */
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
@@ -20,6 +20,11 @@ import {
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const production = process.argv.includes('--production');
+const delayArg = process.argv.find((arg) => arg.startsWith('--generation-delay='));
+const generationDelay = delayArg ? Number(delayArg.split('=')[1]) : 900;
+if (!Number.isFinite(generationDelay) || generationDelay < 0 || generationDelay > 120_000) {
+  throw new Error('--generation-delay doit être compris entre 0 et 120000 ms.');
+}
 const requireWeb = createRequire(resolve(root, 'apps/web/package.json'));
 const out = resolve(root, 'output/design/refonte-verification');
 mkdirSync(out, { recursive: true });
@@ -339,7 +344,7 @@ const server = createServer(async (req, res) => {
       return send(logs.slice(0, Number(url.searchParams.get('limit') ?? 6)));
     if (path.endsWith('/generate') && method === 'POST') {
       if (used >= 30) return send({ message: 'Quota de génération atteint', statusCode: 429 }, 429);
-      await new Promise((r) => setTimeout(r, 900));
+      await new Promise((r) => setTimeout(r, generationDelay));
       if (path === '/workouts/generate') {
         const p = GenerateWorkoutInputSchema.parse(input);
         const w = workoutRecord(
