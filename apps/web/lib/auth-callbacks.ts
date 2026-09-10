@@ -16,6 +16,17 @@ export function juryAwareJwt({ token, user, account }: JwtCallbackParameters) {
     token.juryAccessFingerprint = juryUser.juryAccessFingerprint;
   }
 
+  if (account?.provider === 'beta' && user?.id) {
+    const betaUser = user as typeof user & {
+      betaSessionVersion?: string;
+      betaMustChangePassword?: boolean;
+    };
+    token.authMethod = 'beta';
+    token.userId = user.id;
+    token.betaSessionVersion = betaUser.betaSessionVersion;
+    token.betaMustChangePassword = betaUser.betaMustChangePassword === true;
+  }
+
   if (
     token.authMethod === 'jury' &&
     !isJurySessionActive(token.juryAccessExpiresAt, token.juryAccessFingerprint)

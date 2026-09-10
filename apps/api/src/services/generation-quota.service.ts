@@ -6,14 +6,18 @@ import {
 } from '../repositories/generation-quota.repository.js';
 import { AppError } from '../types/app-error.js';
 
-export type GenerationAccessMode = 'standard' | 'jury';
+export type GenerationAccessMode = 'standard' | 'jury' | 'beta';
 export const JURY_GENERATION_LIMIT = 30;
 
 export async function getGenerationQuota(
   userId: string,
   accessMode: GenerationAccessMode,
+  betaBalance: number | null = null,
 ): Promise<GenerationQuota> {
   if (accessMode !== 'jury') {
+    if (accessMode === 'beta') {
+      return { mode: 'beta', limited: true, limit: null, used: 0, remaining: betaBalance ?? 0 };
+    }
     return { limited: false, limit: null, used: 0, remaining: null };
   }
 
@@ -31,7 +35,28 @@ export async function runWithGenerationQuota<T>(
   accessMode: GenerationAccessMode,
   operation: () => Promise<T>,
 ): Promise<T> {
-  if (accessMode !== 'jury') return operation();
+  if (accessMode === 'standard') return operation();
+
+  if (accessMode === 'beta') {
+    // Import tardif : les parcours standard/jury restent testables sans
+    // initialiser la connexion PostgreSQL des profils bêta.
+    const { releaseBetaSlot, reserveBetaSlot } = await import('./beta-tester.service.js');
+    const reservation = await reserveBetaSlot(userId);
+    if (!reservation) {
+      throw new AppError(
+        429,
+        'GENERATION_QUOTA_EXCEEDED',
+        'Le solde de générations bêta est épuisé.',
+        { remaining: 0 },
+      );
+    }
+    try {
+      return await operation();
+    } catch (error) {
+      await releaseBetaSlot(userId);
+      throw error;
+    }
+  }
 
   const reservation = await reserveGenerationSlot(userId, JURY_GENERATION_LIMIT);
   if (!reservation) {

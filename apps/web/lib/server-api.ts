@@ -25,6 +25,16 @@ export interface SaveAiSettingsInput {
   model?: string;
 }
 
+export interface BetaTesterSummary {
+  userId: string;
+  name: string | null;
+  email: string;
+  active: boolean;
+  generationBalance: number;
+  mustChangePassword: boolean;
+  createdAt: string;
+}
+
 // API_URL utilise le réseau interne en Docker. Le fallback public conserve la
 // compatibilité avec les environnements Vercel déjà configurés.
 const API_URL =
@@ -59,8 +69,14 @@ async function serverFetch<T>(
     throw new Error('Non authentifie');
   }
 
+  const sessionUser = session.user as typeof session.user & {
+    authMethod?: 'standard' | 'jury' | 'beta';
+    betaSessionVersion?: string;
+  };
   const juryEmail = process.env['JURY_ACCESS_EMAIL']?.trim().toLowerCase();
-  const authMethod =
+  const authMethod = sessionUser.authMethod === 'beta'
+    ? 'beta'
+    : sessionUser.authMethod === 'jury' ||
     juryEmail && session.user.email?.trim().toLowerCase() === juryEmail ? 'jury' : 'standard';
 
   // OWASP A09: trace structuree de chaque appel API cote Next.js server
@@ -91,6 +107,9 @@ async function serverFetch<T>(
         'x-user-name': session.user.name ?? '',
         // Ce contexte est fiable car il voyage avec le secret service-to-service.
         'x-auth-method': authMethod,
+        ...(authMethod === 'beta' && sessionUser.betaSessionVersion
+          ? { 'x-beta-session-version': sessionUser.betaSessionVersion }
+          : {}),
         ...(options?.headers as Record<string, string>),
       },
     });
@@ -212,4 +231,22 @@ export const serverApi = {
       method: 'PUT',
       body: JSON.stringify(input),
     }),
+
+  changeBetaPassword: (input: { currentPassword: string; newPassword: string }): Promise<{ ok: boolean }> =>
+    serverFetch<{ ok: boolean }>('/auth/beta/password', { method: 'PUT', body: JSON.stringify(input) }),
+
+  listBetaTesters: (): Promise<{ betaTesters: BetaTesterSummary[] }> =>
+    serverFetch<{ betaTesters: BetaTesterSummary[] }>('/admin/beta-testers'),
+
+  createBetaTester: (input: { name: string; email: string; generationBalance: number }): Promise<BetaTesterSummary & { temporaryPassword: string }> =>
+    serverFetch<BetaTesterSummary & { temporaryPassword: string }>('/admin/beta-testers', { method: 'POST', body: JSON.stringify(input) }),
+
+  adjustBetaCredits: (userId: string, amount: number): Promise<{ generationBalance: number }> =>
+    serverFetch<{ generationBalance: number }>(`/admin/beta-testers/${userId}/credits`, { method: 'POST', body: JSON.stringify({ amount }) }),
+
+  setBetaStatus: (userId: string, active: boolean): Promise<{ ok: boolean }> =>
+    serverFetch<{ ok: boolean }>(`/admin/beta-testers/${userId}/status`, { method: 'PATCH', body: JSON.stringify({ active }) }),
+
+  resetBetaPassword: (userId: string): Promise<{ temporaryPassword: string }> =>
+    serverFetch<{ temporaryPassword: string }>(`/admin/beta-testers/${userId}/password-reset`, { method: 'POST' }),
 };

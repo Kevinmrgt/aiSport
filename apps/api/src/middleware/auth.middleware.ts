@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { users } from '../db/schema.js';
 import { AppError } from '../types/app-error.js';
+import { assertActiveBetaSession } from '../services/beta-tester.service.js';
 
 // OWASP A01: middleware d'authentification sur toutes les routes protégées
 // Pattern service-to-service : Next.js appelle l'API avec un secret partagé
@@ -12,7 +13,9 @@ import { AppError } from '../types/app-error.js';
 export interface AuthContext {
   userId: string;
   email: string;
-  accessMode: 'standard' | 'jury';
+  accessMode: 'standard' | 'jury' | 'beta';
+  mustChangePassword: boolean;
+  generationBalance: number | null;
 }
 
 declare module 'hono' {
@@ -38,7 +41,8 @@ export async function authMiddleware(ctx: Context, next: Next): Promise<void> {
   const oauthId = ctx.req.header('x-user-id');
   const email = ctx.req.header('x-user-email') ?? '';
   const name = ctx.req.header('x-user-name') ?? null;
-  const accessMode = ctx.req.header('x-auth-method') === 'jury' ? 'jury' : 'standard';
+  const methodHeader = ctx.req.header('x-auth-method');
+  const accessMode = methodHeader === 'jury' || methodHeader === 'beta' ? methodHeader : 'standard';
 
   if (!oauthId || !email) {
     throw AppError.unauthorized('Identifiant utilisateur manquant');
@@ -61,6 +65,16 @@ export async function authMiddleware(ctx: Context, next: Next): Promise<void> {
     throw AppError.internal("Impossible de résoudre l'utilisateur en base");
   }
 
-  ctx.set('auth', { userId: user.id, email, accessMode });
+  let mustChangePassword = false;
+  let generationBalance: number | null = null;
+  if (accessMode === 'beta') {
+    const sessionVersion = ctx.req.header('x-beta-session-version');
+    if (!sessionVersion) throw AppError.unauthorized('Session bêta invalide');
+    const beta = await assertActiveBetaSession(user.id, sessionVersion);
+    mustChangePassword = beta.mustChangePassword === 1;
+    generationBalance = beta.generationBalance;
+  }
+
+  ctx.set('auth', { userId: user.id, email, accessMode, mustChangePassword, generationBalance });
   await next();
 }

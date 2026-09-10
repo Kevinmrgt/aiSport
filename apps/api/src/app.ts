@@ -33,6 +33,7 @@ app.use(
       'x-user-email',
       'x-user-name',
       'x-auth-method',
+      'x-beta-session-version',
     ],
     credentials: true,
     maxAge: 86_400,

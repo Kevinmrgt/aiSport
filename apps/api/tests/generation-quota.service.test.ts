@@ -5,12 +5,17 @@ vi.mock('../src/repositories/generation-quota.repository.js', () => ({
   reserveGenerationSlot: vi.fn(),
   releaseGenerationSlot: vi.fn(),
 }));
+vi.mock('../src/services/beta-tester.service.js', () => ({
+  reserveBetaSlot: vi.fn(),
+  releaseBetaSlot: vi.fn(),
+}));
 
 import {
   getGenerationQuotaUsage,
   releaseGenerationSlot,
   reserveGenerationSlot,
 } from '../src/repositories/generation-quota.repository.js';
+import { releaseBetaSlot, reserveBetaSlot } from '../src/services/beta-tester.service.js';
 import {
   getGenerationQuota,
   JURY_GENERATION_LIMIT,
@@ -73,5 +78,27 @@ describe('GenerationQuotaService', () => {
     ).rejects.toBe(failure);
 
     expect(releaseGenerationSlot).toHaveBeenCalledWith('user-jury');
+  });
+
+  it('débite atomiquement un crédit bêta et le rend si la génération échoue', async () => {
+    vi.mocked(reserveBetaSlot).mockResolvedValue({ remaining: 2 } as never);
+    vi.mocked(releaseBetaSlot).mockResolvedValue(undefined);
+    await expect(runWithGenerationQuota('user-beta', 'beta', () => Promise.resolve('ok'))).resolves.toBe('ok');
+    expect(reserveBetaSlot).toHaveBeenCalledWith('user-beta');
+
+    await expect(
+      runWithGenerationQuota('user-beta', 'beta', async () => Promise.reject(new Error('IA indisponible'))),
+    ).rejects.toThrow('IA indisponible');
+    expect(releaseBetaSlot).toHaveBeenCalledWith('user-beta');
+  });
+
+  it('refuse une génération bêta sans crédit avant l appel IA', async () => {
+    vi.mocked(reserveBetaSlot).mockResolvedValue(null);
+    const operation = vi.fn();
+    await expect(runWithGenerationQuota('user-beta', 'beta', operation)).rejects.toMatchObject({
+      code: 'GENERATION_QUOTA_EXCEEDED',
+      details: { remaining: 0 },
+    });
+    expect(operation).not.toHaveBeenCalled();
   });
 });

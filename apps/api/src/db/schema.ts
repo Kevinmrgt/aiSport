@@ -58,6 +58,46 @@ export const generationQuotas = pgTable(
   (table) => [check('generation_quotas_used_count_nonnegative', sql`${table.usedCount} >= 0`)],
 );
 
+// Accès bêta gérés depuis le panel administrateur. Les mots de passe sont
+// toujours stockés sous forme de hash scrypt, jamais en clair.
+export const betaTesters = pgTable(
+  'beta_testers',
+  {
+    userId: uuid('user_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    passwordHash: text('password_hash').notNull(),
+    generationBalance: integer('generation_balance').notNull().default(0),
+    active: integer('active').notNull().default(1),
+    mustChangePassword: integer('must_change_password').notNull().default(1),
+    sessionVersion: text('session_version').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('beta_testers_generation_balance_nonnegative', sql`${table.generationBalance} >= 0`),
+    check('beta_testers_active_boolean', sql`${table.active} IN (0, 1)`),
+    check('beta_testers_must_change_password_boolean', sql`${table.mustChangePassword} IN (0, 1)`),
+  ],
+);
+
+// Journal minimal des crédits : l'interface peut expliquer chaque variation
+// sans stocker ni exposer de donnée de mot de passe.
+export const betaCreditAdjustments = pgTable(
+  'beta_credit_adjustments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    betaUserId: uuid('beta_user_id')
+      .notNull()
+      .references(() => betaTesters.userId, { onDelete: 'cascade' }),
+    adminEmail: text('admin_email').notNull(),
+    amount: integer('amount').notNull(),
+    balanceAfter: integer('balance_after').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('beta_credit_adjustments_beta_created_idx').on(table.betaUserId, table.createdAt)],
+);
+
 export const workouts = pgTable(
   'workouts',
   {
@@ -169,6 +209,8 @@ export type NewUserSettings = typeof userSettings.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type GenerationQuotaRow = typeof generationQuotas.$inferSelect;
+export type BetaTesterRow = typeof betaTesters.$inferSelect;
+export type BetaCreditAdjustmentRow = typeof betaCreditAdjustments.$inferSelect;
 export type WorkoutRow = typeof workouts.$inferSelect;
 export type NewWorkoutRow = typeof workouts.$inferInsert;
 export type TrainingProgramRow = typeof trainingPrograms.$inferSelect;

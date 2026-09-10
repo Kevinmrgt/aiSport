@@ -7,6 +7,8 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { ActiveNavLink } from '@/components/ActiveNavLink';
 import { RouteBackdrop } from '@/components/RouteBackdrop';
 import { isLocalPreview } from '@/lib/local-preview';
+import { isAdminEmail } from '@/lib/admin';
+import { BetaPasswordGuard } from '@/components/BetaPasswordGuard';
 
 const bodyFont = Urbanist({
   subsets: ['latin'],
@@ -38,10 +40,20 @@ const NAV_ITEMS: Array<{ href: string; label: string; icon: IconName }> = [
 
 export default async function RootLayout({ children }: { readonly children: React.ReactNode }) {
   const session = await auth();
+  const navItems = isAdminEmail(session?.user?.email)
+    ? [...NAV_ITEMS, { href: '/admin', label: 'Admin', icon: 'user' as const }]
+    : NAV_ITEMS;
+  const sessionUser = session?.user as {
+    authMethod?: 'standard' | 'jury' | 'beta';
+    betaMustChangePassword?: boolean;
+  } | undefined;
+  const mustChangeBetaPassword =
+    sessionUser?.authMethod === 'beta' && sessionUser.betaMustChangePassword === true;
   return (
     <html lang="fr">
       <body className={`${bodyFont.variable} ${displayFont.variable} font-sans antialiased`}>
         <RouteBackdrop />
+        <BetaPasswordGuard mustChangePassword={mustChangeBetaPassword} />
         <a href="#main-content" className="skip-link">
           Aller au contenu principal
         </a>
@@ -52,7 +64,7 @@ export default async function RootLayout({ children }: { readonly children: Reac
             </Link>
             <div className="desktop-nav">
               {session?.user ? (
-                NAV_ITEMS.map((item) => <ActiveNavLink key={item.href} {...item} />)
+                navItems.map((item) => <ActiveNavLink key={item.href} {...item} />)
               ) : (
                 <>
                   <Link href="/#approche" className="nav-link">
@@ -92,7 +104,7 @@ export default async function RootLayout({ children }: { readonly children: Reac
         </footer>
         {session?.user && (
           <nav className="bottom-dock" aria-label="Navigation mobile">
-            {NAV_ITEMS.map((item) => (
+            {navItems.map((item) => (
               <ActiveNavLink key={item.href} {...item} compact />
             ))}
           </nav>

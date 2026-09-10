@@ -4,6 +4,7 @@ import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import { juryAwareJwt } from '@/lib/auth-callbacks';
 import { verifyJuryCredentials } from '@/lib/jury-auth';
+import { verifyBetaCredentials } from '@/lib/beta-auth';
 import { isLocalPreview } from '@/lib/local-preview';
 
 export const authConfig = {
@@ -27,6 +28,17 @@ export const authConfig = {
         return verifyJuryCredentials(credentials);
       },
     }),
+    Credentials({
+      id: 'beta',
+      name: 'Accès bêta',
+      credentials: {
+        email: { label: 'Adresse e-mail', type: 'email' },
+        password: { label: 'Mot de passe', type: 'password' },
+      },
+      authorize(credentials) {
+        return verifyBetaCredentials(credentials);
+      },
+    }),
   ],
   // Requis sur Vercel — le host est derrière un proxy
   trustHost: true,
@@ -43,6 +55,16 @@ export const authConfig = {
       if (token.userId && typeof token.userId === 'string') {
         session.user.id = token.userId;
       }
+      const user = session.user as typeof session.user & {
+        authMethod?: 'standard' | 'jury' | 'beta';
+        betaSessionVersion?: string;
+        betaMustChangePassword?: boolean;
+      };
+      if (token.authMethod === 'beta' || token.authMethod === 'jury') {
+        user.authMethod = token.authMethod;
+      }
+      if (typeof token.betaSessionVersion === 'string') user.betaSessionVersion = token.betaSessionVersion;
+      if (token.betaMustChangePassword === true) user.betaMustChangePassword = true;
       return session;
     },
   },

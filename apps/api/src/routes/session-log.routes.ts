@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.middleware.js';
+import { betaPasswordChangedMiddleware } from '../middleware/beta-password.middleware.js';
 import {
   handleCreateSessionLog,
   handleGetRecentSessionLogs,
@@ -10,6 +11,7 @@ const sessionLogRouter = new Hono();
 
 // OWASP A01: toutes les routes session-log necessitent une session valide
 sessionLogRouter.use('*', authMiddleware);
+sessionLogRouter.use('*', betaPasswordChangedMiddleware);
 
 // POST /session-logs - journaliser une seance terminee
 sessionLogRouter.post('/', handleCreateSessionLog);

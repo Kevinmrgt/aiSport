@@ -20,9 +20,18 @@ export function GenerationQuotaNotice({ quota }: GenerationQuotaNoticeProps) {
           : 'border-primary-300/25 bg-primary-300/10 text-primary-100'
       }`}
     >
-      <strong>Acces jury :</strong> {remaining} generation{remaining === 1 ? '' : 's'} restante
-      {remaining === 1 ? '' : 's'} sur {quota.limit}. Le quota est partage entre les seances et les
-      programmes.
+      {quota.mode === 'beta' ? (
+        <>
+          <strong>Accès bêta :</strong> {remaining} génération{remaining === 1 ? '' : 's'} disponible
+          {remaining === 1 ? '' : 's'}.
+        </>
+      ) : (
+        <>
+          <strong>Acces jury :</strong> {remaining} generation{remaining === 1 ? '' : 's'} restante
+          {remaining === 1 ? '' : 's'} sur {quota.limit}.
+        </>
+      )}{' '}
+      Le quota est partagé entre les séances et les programmes.
     </div>
   );
 }

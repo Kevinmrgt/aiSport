@@ -146,6 +146,51 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </form>
           </>
         )}
+        {!localPreview && (
+          <>
+            <div className="my-8 flex items-center gap-6 text-sm text-zinc-300" aria-hidden="true">
+              <span className="h-px flex-1 bg-white/20" />
+              Ou
+              <span className="h-px flex-1 bg-white/20" />
+            </div>
+            <form
+              action={async (formData) => {
+                'use server';
+                formData.set('redirectTo', returnTo);
+                try {
+                  await signIn('beta', formData);
+                } catch (error) {
+                  if (
+                    typeof error === 'object' &&
+                    error !== null &&
+                    'type' in error &&
+                    error.type === 'CredentialsSignin'
+                  ) {
+                    redirect('/login?' + new URLSearchParams({ error: 'CredentialsSignin', callbackUrl: returnTo }).toString());
+                  }
+                  throw error;
+                }
+              }}
+            >
+              <fieldset className="space-y-5">
+                <legend className="text-2xl font-bold">Accès bêta</legend>
+                <p className="muted-copy">Utilisez l’adresse e-mail et le mot de passe temporaire communiqués par l’équipe Alcide.</p>
+                <div>
+                  <label htmlFor="beta-email" className="field-label">Adresse e-mail</label>
+                  <input id="beta-email" name="email" type="email" autoComplete="username" autoCapitalize="none" spellCheck={false} required maxLength={254} className="field-control mt-2" />
+                </div>
+                <div>
+                  <label htmlFor="beta-password" className="field-label">Mot de passe bêta</label>
+                  <input id="beta-password" name="password" type="password" autoComplete="current-password" required maxLength={256} className="field-control mt-2" />
+                </div>
+                <input type="hidden" name="redirectTo" value={returnTo} />
+                <button type="submit" className="action-secondary w-full justify-between">
+                  Se connecter à la bêta <Icon name="arrow-right" className="h-6 w-6 shrink-0" />
+                </button>
+              </fieldset>
+            </form>
+          </>
+        )}
       </GlassPanel>
       <div className="mt-8 text-center">
         <Link href="/" className="text-sm underline underline-offset-4">
