@@ -44,8 +44,9 @@ describe('Timer - interactions', () => {
     expect(screen.getByText(/Série 1\/2/)).toBeTruthy();
     expect(screen.getByRole('timer', { name: 'Temps estimé restant : 02:30' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Démarrer' }));
+    expect(screen.getByRole('button', { name: 'Départ dans 3' })).toBeTruthy();
     act(() => {
-      vi.advanceTimersByTime(40000);
+      vi.advanceTimersByTime(43_000);
     });
     expect(screen.getByText(/Série 1\/2/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
@@ -160,7 +161,7 @@ describe('Timer - interactions', () => {
     expect(screen.getByText('Séance terminée')).toBeTruthy();
   });
 
-  it('demarre un chrono en plein ecran puis le quitte avec Echap', () => {
+  it('compte trois secondes avant de démarrer un chrono en plein écran', () => {
     const exercises: Exercise[] = [
       {
         name: 'Sprint',
@@ -169,12 +170,17 @@ describe('Timer - interactions', () => {
         rest_seconds: 0,
       },
     ];
+    vi.useFakeTimers();
     render(<Timer exercises={exercises} />);
 
     const startButton = screen.getByRole('button', { name: 'Démarrer' });
     startButton.focus();
     fireEvent.click(startButton);
     expect(screen.getByRole('dialog').getAttribute('aria-modal')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Départ dans 3' })).toBeTruthy();
+    act(() => {
+      vi.advanceTimersByTime(3_000);
+    });
     expect(screen.getByRole('button', { name: 'Pause' })).toBeTruthy();
 
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -215,13 +221,14 @@ describe('Timer - interactions', () => {
     });
 
     try {
+      vi.useFakeTimers();
       render(<Timer exercises={exercises} />);
       const startButton = screen.getByRole('button', { name: 'Démarrer' });
       startButton.focus();
 
       await act(async () => {
         fireEvent.click(startButton);
-        await Promise.resolve();
+        await vi.advanceTimersByTimeAsync(3_000);
       });
       expect(screen.getByRole('dialog')).toBeTruthy();
 

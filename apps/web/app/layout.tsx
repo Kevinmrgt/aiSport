@@ -35,7 +35,6 @@ const NAV_ITEMS: Array<{ href: string; label: string; icon: IconName }> = [
   { href: '/generate', label: 'Séance', icon: 'zap' },
   { href: '/programs', label: 'Programmes', icon: 'layers' },
   { href: '/workouts', label: 'Historique', icon: 'activity' },
-  { href: '/settings', label: 'Coach', icon: 'settings' },
 ];
 
 export default async function RootLayout({ children }: { readonly children: React.ReactNode }) {

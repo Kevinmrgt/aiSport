@@ -129,6 +129,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
   const [currentIndex, setCurrentIndex] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(steps[0]?.durationSeconds ?? null);
   const [isRunning, setIsRunning] = useState(false);
+  const [startCountdownSeconds, setStartCountdownSeconds] = useState<number | null>(null);
   const [done, setDone] = useState(steps.length === 0);
   const [completedDurationSeconds, setCompletedDurationSeconds] = useState<number | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -137,6 +138,8 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
   const stepDeadlineRef = useRef<number | null>(null);
   const activeStartedAtRef = useRef<number | null>(null);
   const accumulatedActiveMsRef = useRef(0);
+  const sessionStartedRef = useRef(false);
+  const startCountdownTimeoutsRef = useRef<number[]>([]);
   const fullscreenTriggerRef = useRef<HTMLElement | null>(null);
 
   const { playCountdown, playPhaseChange, playComplete } = useAudio();
@@ -245,12 +248,16 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
     setCurrentIndex(0);
     setSecondsLeft(steps[0]?.durationSeconds ?? null);
     setIsRunning(false);
+    setStartCountdownSeconds(null);
     setDone(steps.length === 0);
     setCompletedDurationSeconds(null);
     void exitFullscreen();
+    startCountdownTimeoutsRef.current.forEach((timeout) => window.clearTimeout(timeout));
+    startCountdownTimeoutsRef.current = [];
     stepDeadlineRef.current = null;
     activeStartedAtRef.current = null;
     accumulatedActiveMsRef.current = 0;
+    sessionStartedRef.current = false;
   }, [exitFullscreen, sessionVersion, steps]);
 
   useEffect(() => {
@@ -352,7 +359,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
     )
       return;
 
-    if (secondsLeft > 0 && secondsLeft <= 3) {
+    if (currentStep.type === 'exercise' && secondsLeft > 0 && secondsLeft <= 3) {
       playCountdown();
     }
 
@@ -378,6 +385,43 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
     steps.length,
   ]);
 
+  const startTimer = useCallback(() => {
+    stepDeadlineRef.current =
+      secondsLeft === null ? null : Date.now() + Math.max(0, secondsLeft) * 1000;
+    startActiveClock();
+    sessionStartedRef.current = true;
+    setIsRunning(true);
+  }, [secondsLeft, startActiveClock]);
+
+  const startInitialCountdown = useCallback(() => {
+    startCountdownTimeoutsRef.current.forEach((timeout) => window.clearTimeout(timeout));
+    setStartCountdownSeconds(3);
+    playCountdown();
+
+    startCountdownTimeoutsRef.current = [
+      window.setTimeout(() => {
+        setStartCountdownSeconds(2);
+        playCountdown();
+      }, 1000),
+      window.setTimeout(() => {
+        setStartCountdownSeconds(1);
+        playCountdown();
+      }, 2000),
+      window.setTimeout(() => {
+        startCountdownTimeoutsRef.current = [];
+        setStartCountdownSeconds(null);
+        startTimer();
+      }, 3000),
+    ];
+  }, [playCountdown, startTimer]);
+
+  useEffect(
+    () => () => {
+      startCountdownTimeoutsRef.current.forEach((timeout) => window.clearTimeout(timeout));
+    },
+    [],
+  );
+
   const toggleTimer = useCallback(() => {
     if (isRunning) {
       if (stepDeadlineRef.current !== null) {
@@ -389,12 +433,15 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
       return;
     }
 
-    stepDeadlineRef.current =
-      secondsLeft === null ? null : Date.now() + Math.max(0, secondsLeft) * 1000;
-    startActiveClock();
-    setIsRunning(true);
+    if (!sessionStartedRef.current) {
+      startInitialCountdown();
+      void enterFullscreen();
+      return;
+    }
+
+    startTimer();
     void enterFullscreen();
-  }, [enterFullscreen, isRunning, pauseActiveClock, secondsLeft, startActiveClock]);
+  }, [enterFullscreen, isRunning, pauseActiveClock, startInitialCountdown, startTimer]);
 
   if (done || !currentStep) {
     if (completeAction && sessionMeta) {
@@ -452,16 +499,18 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
   const sessionDisplay = formatTime(sessionSecondsLeft);
   const progressLabel = getProgressLabel(currentStep, exercises.length);
   const primaryButtonLabel =
-    hasStepTimer || isPrescribedManual
-      ? isRunning
-        ? 'Pause'
-        : secondsLeft === currentStep.durationSeconds &&
-            !(isPrescribedManual && accumulatedActiveMsRef.current > 0)
-          ? 'Démarrer'
-          : 'Reprendre'
-      : currentStep.type === 'exercise'
-        ? "Terminer l'exercice"
-        : 'Continuer';
+    startCountdownSeconds !== null
+      ? `Départ dans ${startCountdownSeconds}`
+      : hasStepTimer || isPrescribedManual
+        ? isRunning
+          ? 'Pause'
+          : secondsLeft === currentStep.durationSeconds &&
+              !(isPrescribedManual && accumulatedActiveMsRef.current > 0)
+            ? 'Démarrer'
+            : 'Reprendre'
+        : currentStep.type === 'exercise'
+          ? "Terminer l'exercice"
+          : 'Continuer';
   const secondaryButtonLabel = isLastStep
     ? 'Terminer'
     : currentStep.type === 'rest'
@@ -574,6 +623,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
             if (hasStepTimer || isPrescribedManual) toggleTimer();
             else goToStep(currentIndex + 1);
           }}
+          disabled={startCountdownSeconds !== null}
           aria-pressed={hasStepTimer || isPrescribedManual ? isRunning : undefined}
         >
           <Icon
@@ -586,6 +636,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
           <Button
             variant="secondary"
             size="lg"
+            disabled={startCountdownSeconds !== null}
             onClick={() => goToStep(currentIndex + 1, isRunning)}
           >
             <Icon name="check" className="h-5 w-5" />
@@ -596,6 +647,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
           <Button
             variant="secondary"
             size="lg"
+            disabled={startCountdownSeconds !== null}
             onClick={() => {
               goToStep(currentIndex + 1);
             }}
