@@ -164,6 +164,18 @@ describe('prescriptions contrôlées', () => {
       'Mobilité des hanches',
     );
     expect(getPrescriptionIssues(mobility, 'beginner')).toEqual([]);
+    const bike = exercise(
+      {
+        category: 'cardio',
+        mode: 'continuous',
+        reps: undefined,
+        sets: 1,
+        work_seconds: 600,
+        rest_seconds: 0,
+      },
+      'Vélo statique',
+    );
+    expect(getPrescriptionIssues(bike, 'beginner')).toEqual([]);
     const sprint = exercise(
       { category: 'cardio', mode: 'interval', reps: undefined, work_seconds: 180 },
       'Sprint',

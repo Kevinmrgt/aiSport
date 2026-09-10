@@ -85,9 +85,7 @@ export function getPrescriptionIssues(exercise: Exercise, level: TrainingLevel):
   const issues: string[] = [];
   const limits = getPrescriptionLimits(p, level);
   const name = normalized(exercise.name);
-  const recognized = /\b(gainages?|planches?|plank|chaise|wall sit|isometrique|statique)\b/.test(
-    name,
-  )
+  const recognized = /\b(gainages?|planches?|plank|chaise|wall sit|isometrique)\b/.test(name)
     ? 'isometric'
     : /\b(pompes?|push.?ups?|squats?|tractions?|pull.?ups?|fentes?|lunges?|developpe|deadlift|souleve de terre|dips|burpees?|crunch|tirage|curl|hip thrust)\b|rowing.*(halteres?|barre)/.test(
           name,

@@ -143,6 +143,9 @@ export function WorkoutTimeline({ exercises, warmup, cooldown }: WorkoutTimeline
                       {block.type === 'exercise' ? ` ${(block.exerciseIndex ?? 0) + 1}` : ''}
                     </span>
                     <span className="mt-1 block break-words font-bold">{block.label}</span>
+                    {block.sublabel && (
+                      <span className="mt-1 block text-xs text-primary-200">{block.sublabel}</span>
+                    )}
                   </span>
                   <span className="shrink-0 text-sm">
                     {block.isTimed ? formatDuration(block.seconds) : 'Libre'}
@@ -150,9 +153,6 @@ export function WorkoutTimeline({ exercises, warmup, cooldown }: WorkoutTimeline
                   <Icon name="plus" className="timeline-toggle h-5 w-5 shrink-0" />
                 </summary>
                 <div className="mt-4 space-y-3 border-t border-white/15 pt-4">
-                  {block.sublabel && (
-                    <p className="font-semibold text-primary-200">{block.sublabel}</p>
-                  )}
                   {block.description && <p className="muted-copy">{block.description}</p>}
                   {block.tips && (
                     <p className="muted-copy text-sm">

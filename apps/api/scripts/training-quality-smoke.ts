@@ -10,7 +10,23 @@ if (!process.argv.includes('--live'))
   throw new Error('Explicit --live flag required (uses paid API calls).');
 config({ path: resolve(process.cwd(), process.env.TRAINING_QA_ENV_FILE ?? '.env.local') });
 const apiKey = process.env.OPENAI_API_KEY;
-if (!apiKey) throw new Error('OPENAI_API_KEY missing');
+const directory = resolve(process.cwd(), '../../output/design/timing-validation');
+await mkdir(directory, { recursive: true });
+if (!apiKey) {
+  await writeFile(
+    resolve(directory, 'live-results.json'),
+    JSON.stringify(
+      {
+        at: new Date().toISOString(),
+        configurationError: 'OPENAI_API_KEY missing',
+        results: [],
+      },
+      null,
+      2,
+    ),
+  );
+  throw new Error('OPENAI_API_KEY missing');
+}
 const ai = {
   provider: 'openai' as const,
   apiKey,
@@ -89,8 +105,6 @@ try {
   });
   console.info('FAIL program');
 }
-const directory = resolve(process.cwd(), '../../output/design/timing-validation');
-await mkdir(directory, { recursive: true });
 await writeFile(
   resolve(directory, 'live-results.json'),
   JSON.stringify({ at: new Date().toISOString(), results }, null, 2),
