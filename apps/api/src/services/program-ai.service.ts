@@ -3,13 +3,13 @@ import type { ProgramWeek, TrainingProgram, GenerateProgramInput } from '@alcide
 import { AppError } from '../types/app-error.js';
 import { AiTimeoutError, callAiProvider } from './ai.service.js';
 import type { AiConfig } from './ai.service.js';
-import { normalizeTrainingProgramDurations } from './program-duration.service.js';
+import { DraftWeekSchema, planSession, PRESCRIPTION_PROMPT } from './session-planner.service.js';
 
 function getProgressionPhase(weekNumber: number, totalWeeks: number): string {
   if (weekNumber === 1) return 'Adaptation - charges legeres, apprentissage des mouvements';
-  if (weekNumber === totalWeeks) return "Pic de forme - maintien de l'intensite, objectif final";
-  if (weekNumber === totalWeeks - 1) return 'Intensification - charges maximales, volume eleve';
-  return 'Construction - progression des charges et du volume';
+  if (weekNumber === totalWeeks)
+    return 'Consolidation - conserver une technique maîtrisée et un volume soutenable';
+  return 'Progression modérée - une seule variable à la fois, récupération et technique prioritaires';
 }
 
 const SYSTEM_MESSAGE =
@@ -21,7 +21,7 @@ const SYSTEM_MESSAGE =
 // quand une tentative lente revient invalide puis declenche un retry.
 const PROGRAM_WEEK_AI_TIMEOUT_MS = 45_000;
 const PROGRAM_REQUEST_DEADLINE_MS = 55_000;
-const PROGRAM_RETRY_MIN_BUDGET_MS = 30_000;
+const PROGRAM_RETRY_MIN_BUDGET_MS = 8_000;
 const PROGRAM_PROVIDER_MARGIN_MS = 5_000;
 const PROGRAM_WEEK_MIN_TIMEOUT_MS = 5_000;
 
@@ -45,12 +45,11 @@ ${constraints}
 
 Contraintes de sortie :
 - exactement ${input.sessions_per_week} seances
-- 2 exercices par seance, pas plus
-- chaque exercice a duration_seconds
-- total warmup + duration_seconds + rest_seconds + cooldown = ${input.session_duration_minutes * 60} secondes par seance
 - descriptions et conseils en moins de 90 caracteres
-- warmup et cooldown optionnels, maximum 1 element chacun
 - JSON compact, sans markdown
+- Organise une alternance cohérente des mouvements et de la récupération sur ${input.sessions_per_week} séances. Ne répète pas une séance intense ciblant les mêmes muscles à chaque fois.
+- Toutes les semaines suivent le même cadre : adaptation, progression modérée éventuelle, consolidation ; jamais de charges maximales automatiques. Ne prétends pas connaître les charges ou les résultats des autres semaines.
+${PRESCRIPTION_PROMPT}
 
 Reponds UNIQUEMENT avec ce JSON (et rien d'autre) :
 {
@@ -63,7 +62,7 @@ Reponds UNIQUEMENT avec ce JSON (et rien d'autre) :
       "title": "string",
       "focus": "string",
       "duration_minutes": ${input.session_duration_minutes},
-      "exercises": [{ "name": "string", "description": "string", "duration_seconds": number, "sets": number, "reps": "string ou number", "rest_seconds": number, "tips": "string optionnel" }],
+      "exercises": [{ "name": "string", "description": "string", "prescription": { "version": 2, "category": "strength", "mode": "repetitions", "sets": 3, "reps": 10, "work_seconds": 30, "rest_seconds": 90, "transition_seconds": 30 }, "tips": "string optionnel" }],
       "warmup": [{ "name": "string", "duration_seconds": number, "description": "string" }],
       "cooldown": [{ "name": "string", "duration_seconds": number, "description": "string" }]
     }
@@ -89,40 +88,45 @@ async function callAiForWeek(
   weekNumber: number,
   aiConfig: AiConfig,
   timeoutMs: number,
+  feedback: string,
 ): Promise<ProgramWeek> {
   const phaseLabel = getProgressionPhase(weekNumber, input.weeks_count);
-  const prompt = `${SYSTEM_MESSAGE}\n\n${buildWeekPrompt(input, weekNumber, phaseLabel)}`;
+  const prompt = `${SYSTEM_MESSAGE}\n\n${buildWeekPrompt(input, weekNumber, phaseLabel)}${feedback}`;
 
   const content = await callAiProvider(aiConfig, prompt, {
     timeoutMs,
     temperature: 0.2,
+    maxTokens: Math.min(11000, 1500 + input.sessions_per_week * 1800),
   });
 
   const jsonMatch = content.match(/\{[\s\S]*\}/);
   if (!jsonMatch?.[0]) throw new Error('Aucun JSON trouve dans la reponse IA');
 
   const parsed = JSON.parse(jsonMatch[0]) as unknown;
-  const validated = ProgramWeekSchema.safeParse(parsed);
+  const validated = DraftWeekSchema.safeParse(parsed);
   if (!validated.success) {
     throw new Error(`Schema semaine invalide: ${validated.error.message}`);
   }
 
   const sessionNumbers = validated.data.sessions.map((session) => session.session_number);
   if (
-    validated.data.week_number !== weekNumber
-    || validated.data.sessions.length !== input.sessions_per_week
-    || validated.data.sessions.some(
+    validated.data.week_number !== weekNumber ||
+    validated.data.sessions.length !== input.sessions_per_week ||
+    validated.data.sessions.some(
       (session) => session.duration_minutes !== input.session_duration_minutes,
-    )
-    || sessionNumbers.some((number, index) => number !== index + 1)
+    ) ||
+    sessionNumbers.some((number, index) => number !== index + 1)
   ) {
     throw new Error(
-      `La semaine ${weekNumber} ne correspond pas aux parametres demandes `
-      + `(${input.sessions_per_week} seances de ${input.session_duration_minutes} minutes)`,
+      `La semaine ${weekNumber} ne correspond pas aux parametres demandes ` +
+        `(${input.sessions_per_week} seances de ${input.session_duration_minutes} minutes)`,
     );
   }
 
-  return validated.data;
+  return ProgramWeekSchema.parse({
+    ...validated.data,
+    sessions: validated.data.sessions.map((session) => planSession(session, input.level)),
+  });
 }
 
 async function generateWeekWithRetry(
@@ -132,6 +136,7 @@ async function generateWeekWithRetry(
   requestDeadline: number,
 ): Promise<ProgramWeek> {
   const start = Date.now();
+  let feedback = '';
 
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
@@ -142,7 +147,7 @@ async function generateWeekWithRetry(
         );
       }
 
-      const week = await callAiForWeek(input, weekNumber, aiConfig, timeoutMs);
+      const week = await callAiForWeek(input, weekNumber, aiConfig, timeoutMs, feedback);
       logAiProgramCall({
         success: true,
         weekNumber,
@@ -152,6 +157,7 @@ async function generateWeekWithRetry(
       return week;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      feedback = `\nCorrige la semaine et renvoie son JSON complet. Problèmes précis : ${message.slice(0, 1800)}`;
       logAiProgramCall({
         success: false,
         weekNumber,
@@ -183,7 +189,7 @@ function getWeekTimeoutMs(requestDeadline: number): number {
 }
 
 function hasRetryBudget(requestDeadline: number): boolean {
-  return Date.now() + PROGRAM_RETRY_MIN_BUDGET_MS < requestDeadline;
+  return Date.now() + PROGRAM_RETRY_MIN_BUDGET_MS + PROGRAM_PROVIDER_MARGIN_MS < requestDeadline;
 }
 
 export async function generateProgram(
@@ -201,9 +207,14 @@ export async function generateProgram(
   weeks.sort((a, b) => a.week_number - b.week_number);
 
   const levelLabel =
-    input.level === 'beginner' ? 'Debutant' : input.level === 'intermediate' ? 'Intermediaire' : 'Avance';
+    input.level === 'beginner'
+      ? 'Debutant'
+      : input.level === 'intermediate'
+        ? 'Intermediaire'
+        : 'Avance';
 
-  const program: TrainingProgram = normalizeTrainingProgramDurations({
+  const program: TrainingProgram = {
+    planning_version: 2,
     title: `Programme Alcide ${input.sport} - ${input.weeks_count} semaines (${levelLabel})`,
     sport: input.sport,
     difficulty: input.level,
@@ -215,7 +226,7 @@ export async function generateProgram(
       `${input.sessions_per_week} seances de ${input.session_duration_minutes} minutes par semaine. ` +
       `Objectifs : ${input.goals}`,
     weeks,
-  });
+  };
 
   const validated = TrainingProgramSchema.safeParse(program);
   if (!validated.success) {

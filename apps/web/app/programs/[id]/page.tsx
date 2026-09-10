@@ -7,6 +7,7 @@ import { ProgramWeekTabs } from '@/components/ProgramWeekTabs';
 import { DeleteProgramButton } from '@/components/DeleteProgramButton';
 import { GlassPanel } from '@/components/PremiumPrimitives';
 import { Icon } from '@/components/ui/Icon';
+import { LegacyTimingNotice } from '@/components/LegacyTimingNotice';
 
 interface ProgramDetailPageProps {
   params: Promise<{ id: string }>;
@@ -72,6 +73,13 @@ export default async function ProgramDetailPage({ params }: ProgramDetailPagePro
           <p className="muted-copy mt-5 max-w-4xl">{program.data.progression_summary}</p>
         )}
       </header>
+      {program.data.planning_version !== 2 && (
+        <LegacyTimingNotice
+          kind="program"
+          duration={program.sessionDurationMinutes}
+          sport={program.sport}
+        />
+      )}
       <section aria-labelledby="program-weeks-title">
         <GlassPanel className="panel-padding">
           <h2 id="program-weeks-title" className="panel-title">

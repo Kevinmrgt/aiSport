@@ -4,7 +4,89 @@ import type { Exercise } from '@alcide/shared';
 import { Timer } from './Timer';
 
 describe('Timer - interactions', () => {
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+  });
+
+  const prescribed: Exercise = {
+    name: 'Pompes',
+    description: 'Contrôle du mouvement',
+    rest_seconds: 0,
+    prescription: {
+      version: 2,
+      category: 'strength',
+      mode: 'repetitions',
+      sets: 2,
+      reps: 10,
+      work_seconds: 30,
+      rest_seconds: 90,
+      transition_seconds: 0,
+    },
+  };
+
+  it('attend la validation de chaque série et mesure le temps réel en excluant la pause', () => {
+    vi.useFakeTimers();
+    render(
+      <Timer
+        exercises={[prescribed]}
+        sessionMeta={{
+          sourceType: 'workout',
+          workoutId: '10000000-0000-4000-8000-000000000001',
+          title: 'Force',
+          sport: 'musculation',
+          difficulty: 'beginner',
+          plannedDurationMinutes: 20,
+        }}
+        completeAction={vi.fn()}
+      />,
+    );
+    expect(screen.getByText(/Série 1\/2/)).toBeTruthy();
+    expect(screen.getByRole('timer', { name: 'Temps estimé restant : 02:30' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Démarrer' }));
+    act(() => {
+      vi.advanceTimersByTime(40000);
+    });
+    expect(screen.getByText(/Série 1\/2/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+    act(() => {
+      vi.advanceTimersByTime(20000);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Reprendre' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Série terminée' }));
+    expect(screen.getByRole('timer', { name: 'Temps restant : 01:30' })).toBeTruthy();
+    act(() => {
+      vi.advanceTimersByTime(90000);
+    });
+    expect(screen.getByText(/Série 2\/2/)).toBeTruthy();
+    act(() => {
+      vi.advanceTimersByTime(25000);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Série terminée' }));
+    expect(screen.getByRole('heading', { name: 'Bilan de séance' })).toBeTruthy();
+    expect(screen.getByText(/Force · 02:35/)).toBeTruthy();
+  });
+
+  it('alterne les mouvements des circuits et termine sans ajouter un repos final', () => {
+    const circuit = [prescribed, { ...prescribed, name: 'Squats' }].map((ex) => ({
+      ...ex,
+      prescription: { ...ex.prescription!, circuit_id: 1, rest_seconds: 30 },
+    }));
+    render(<Timer exercises={circuit} />);
+    for (const [name, tour] of [
+      ['Pompes', 1],
+      ['Squats', 1],
+      ['Pompes', 2],
+      ['Squats', 2],
+    ] as const) {
+      expect(screen.getByRole('heading', { name })).toBeTruthy();
+      expect(screen.getByText(new RegExp(`Tour ${tour}/2`))).toBeTruthy();
+      fireEvent.click(screen.getByRole('button', { name: 'Série terminée' }));
+      if (name !== 'Squats' || tour !== 2)
+        fireEvent.click(screen.getByRole('button', { name: 'Passer le repos' }));
+    }
+    expect(screen.getByText('Séance terminée')).toBeTruthy();
+  });
 
   it('conserve le bilan après un rafraîchissement serveur de props identiques', () => {
     const exercises = [

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ExerciseSchema, PhaseSchema } from './workout.schema.js';
+import { getSessionPrescriptionIssues, getTimingContractIssues } from '../training/rules.js';
 
 // Contrat JSON IA pour les programmes multi-semaines
 // Chaque semaine est générée par un appel IA indépendant (budget token)
@@ -10,6 +11,7 @@ export const ProgramSessionSchema = z.object({
   title: z.string().min(1),
   focus: z.string().min(1),
   duration_minutes: z.number().int().positive(),
+  planning_version: z.literal(2).optional(),
   exercises: z.array(ExerciseSchema).min(1),
   warmup: z.array(PhaseSchema).optional(),
   cooldown: z.array(PhaseSchema).optional(),
@@ -48,6 +50,7 @@ export const TrainingProgramSchema = z
     sessions_per_week: z.number().int().min(2).max(5),
     session_duration_minutes: z.number().int().min(20).max(60),
     progression_summary: z.string().min(1),
+    planning_version: z.literal(2).optional(),
     weeks: z.array(ProgramWeekSchema).min(1),
   })
   .superRefine((program, ctx) => {
@@ -81,6 +84,13 @@ export const TrainingProgramSchema = z
       }
 
       week.sessions.forEach((session, sessionIndex) => {
+        for (const message of getTimingContractIssues(session)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['weeks', weekIndex, 'sessions', sessionIndex],
+            message,
+          });
+        }
         if (session.duration_minutes !== program.session_duration_minutes) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -89,6 +99,20 @@ export const TrainingProgramSchema = z
           });
         }
 
+        if (program.planning_version === 2 || session.planning_version === 2) {
+          for (const message of getSessionPrescriptionIssues(
+            session,
+            program.difficulty,
+            program.session_duration_minutes,
+          )) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['weeks', weekIndex, 'sessions', sessionIndex],
+              message,
+            });
+          }
+          return;
+        }
         const phaseSeconds = [...(session.warmup ?? []), ...(session.cooldown ?? [])].reduce(
           (total, phase) => total + phase.duration_seconds,
           0,

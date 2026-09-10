@@ -192,7 +192,12 @@ describe('ProgramService', () => {
 
       expect(findProgramById).toHaveBeenCalledWith('program-abc', 'user-123');
       expect(result.id).toBe('program-abc');
-      expect(getProgramSessionTimedSeconds(result.data.weeks[0]!.sessions[0]!)).toBe(30 * 60);
+      expect(result).toEqual(mockProgramRecord);
+      expect(getProgramSessionTimedSeconds(result.data.weeks[0]!.sessions[0]!)).toBe(
+        getProgramSessionTimedSeconds(mockProgramRecord.data.weeks[0]!.sessions[0]!),
+      );
+      const again = await getProgramDetail('program-abc', 'user-123');
+      expect(again).toEqual(result);
     });
 
     it("propage l'erreur 403 si ownership invalide", async () => {

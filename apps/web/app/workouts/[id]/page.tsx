@@ -5,6 +5,7 @@ import { auth } from '@/lib/auth';
 import { isServerApiNotFound, serverApi } from '@/lib/server-api';
 import { Timer } from '@/components/Timer';
 import { WorkoutTimeline } from '@/components/WorkoutTimeline';
+import { LegacyTimingNotice } from '@/components/LegacyTimingNotice';
 import { GlassPanel } from '@/components/PremiumPrimitives';
 import { Icon } from '@/components/ui/Icon';
 import type { CreateSessionLogInput } from '@alcide/shared';
@@ -84,6 +85,13 @@ export default async function WorkoutDetailPage({ params }: WorkoutPageProps) {
           <span>{workout.durationMinutes} min</span>
         </div>
       </header>
+      {!workout.exercises.some((exercise) => exercise.prescription) && (
+        <LegacyTimingNotice
+          kind="workout"
+          duration={workout.durationMinutes}
+          sport={workout.sport}
+        />
+      )}
       <div className="detail-grid">
         <section aria-labelledby="timeline-title" className="timeline-panel">
           <GlassPanel className="panel-padding">

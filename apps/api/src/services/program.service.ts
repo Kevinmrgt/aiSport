@@ -1,5 +1,4 @@
 import { generateProgram } from './program-ai.service.js';
-import { normalizeTrainingProgramDurations } from './program-duration.service.js';
 import { resolveAiConfig } from '../controllers/settings.controller.js';
 import {
   createProgram,
@@ -38,11 +37,7 @@ export async function getProgramDetail(
   programId: string,
   userId: string,
 ): Promise<TrainingProgramRecord> {
-  const program = await findProgramById(programId, userId);
-  return {
-    ...program,
-    data: normalizeTrainingProgramDurations(program.data),
-  };
+  return findProgramById(programId, userId);
 }
 
 export async function removeProgram(programId: string, userId: string): Promise<void> {

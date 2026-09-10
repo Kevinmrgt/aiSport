@@ -22,8 +22,15 @@ const validWorkoutResponse = {
     {
       name: 'Footing léger',
       description: 'Course à allure confortable',
-      duration_seconds: 1_440,
-      rest_seconds: 60,
+      prescription: {
+        version: 2,
+        category: 'cardio',
+        mode: 'continuous',
+        sets: 1,
+        work_seconds: 1380,
+        rest_seconds: 0,
+        transition_seconds: 0,
+      },
       tips: 'Respiration nasale',
     },
   ],
@@ -33,6 +40,9 @@ const validWorkoutResponse = {
       duration_seconds: 300,
       description: 'Rotation des articulations',
     },
+  ],
+  cooldown: [
+    { name: 'Marche lente', description: 'Ralentir progressivement', duration_seconds: 120 },
   ],
 };
 
@@ -76,9 +86,10 @@ describe('WorkoutAiService', () => {
       const wrappedJson = `Voici votre programme:\n${JSON.stringify(validWorkoutResponse)}\nBonne séance!`;
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({
-          choices: [{ message: { content: wrappedJson } }],
-        }),
+        json: () =>
+          Promise.resolve({
+            choices: [{ message: { content: wrappedJson } }],
+          }),
       });
 
       const result = await generateWorkout(defaultInput, mockAiConfig);
@@ -91,9 +102,10 @@ describe('WorkoutAiService', () => {
       mockFetch
         .mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve({
-            choices: [{ message: { content: JSON.stringify(invalidWorkout) } }],
-          }),
+          json: () =>
+            Promise.resolve({
+              choices: [{ message: { content: JSON.stringify(invalidWorkout) } }],
+            }),
         })
         // Deuxième essai: réponse valide
         .mockResolvedValueOnce({
@@ -106,17 +118,23 @@ describe('WorkoutAiService', () => {
       expect(result.exercises).toHaveLength(1);
     });
 
-    it('retente si la duree detaillee ne correspond pas a la duree demandee', async () => {
+    it('retente avec un diagnostic précis si les repos sont incohérents', async () => {
       const inconsistentWorkout = {
         ...validWorkoutResponse,
-        exercises: [{ ...validWorkoutResponse.exercises[0], duration_seconds: 600 }],
+        exercises: [
+          {
+            ...validWorkoutResponse.exercises[0],
+            prescription: { ...validWorkoutResponse.exercises[0]!.prescription, rest_seconds: 101 },
+          },
+        ],
       };
       mockFetch
         .mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve({
-            choices: [{ message: { content: JSON.stringify(inconsistentWorkout) } }],
-          }),
+          json: () =>
+            Promise.resolve({
+              choices: [{ message: { content: JSON.stringify(inconsistentWorkout) } }],
+            }),
         })
         .mockResolvedValueOnce({
           ok: true,
@@ -126,15 +144,19 @@ describe('WorkoutAiService', () => {
       const result = await generateWorkout(defaultInput, mockAiConfig);
 
       expect(mockFetch).toHaveBeenCalledTimes(2);
-      expect(result.exercises[0]?.duration_seconds).toBe(1_440);
+      expect(result.exercises[0]?.duration_seconds).toBe(1380);
+      expect(String((mockFetch.mock.calls[1]?.[1] as { body: string }).body)).toContain(
+        'repos hors des paliers',
+      );
     });
 
     it('lance AppError.serviceUnavailable après 2 échecs de parsing', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          choices: [{ message: { content: 'pas du JSON valide' } }],
-        }),
+        json: () =>
+          Promise.resolve({
+            choices: [{ message: { content: 'pas du JSON valide' } }],
+          }),
       });
 
       await expect(generateWorkout(defaultInput, mockAiConfig)).rejects.toThrow(AppError);

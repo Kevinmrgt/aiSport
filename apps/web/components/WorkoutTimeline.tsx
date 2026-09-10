@@ -1,4 +1,4 @@
-import type { Exercise, Phase } from '@alcide/shared';
+import { buildSessionSchedule, type Exercise, type Phase } from '@alcide/shared';
 import { Icon } from './ui/Icon';
 
 interface WorkoutTimelineProps {
@@ -12,71 +12,45 @@ interface TimelineBlock {
   label: string;
   sublabel?: string;
   seconds: number;
-  type: 'warmup' | 'exercise' | 'rest' | 'cooldown';
+  type: 'warmup' | 'exercise' | 'rest' | 'transition' | 'cooldown';
   isTimed: boolean;
   description?: string;
   tips?: string;
   restSeconds?: number;
+  exerciseIndex?: number;
 }
 
 function buildBlocks(exercises: Exercise[], warmup?: Phase[], cooldown?: Phase[]): TimelineBlock[] {
-  const blocks: TimelineBlock[] = [];
-
-  (warmup ?? []).forEach((p, i) => {
-    blocks.push({
-      id: `warmup-${i}`,
-      label: p.name,
-      description: p.description,
-      seconds: p.duration_seconds,
-      type: 'warmup',
-      isTimed: true,
-    });
+  const schedule = buildSessionSchedule(exercises, warmup, cooldown);
+  return schedule.map((step, index) => {
+    const exercise = step.exerciseIndex !== undefined ? exercises[step.exerciseIndex] : undefined;
+    const sublabel =
+      step.setNumber !== undefined
+        ? `${step.circuitId ? 'Tour' : 'Série'} ${step.setNumber}/${step.sets}${step.reps ? ` · ${step.reps} répétitions` : ''}`
+        : exercise?.sets && exercise.reps
+          ? `${exercise.sets}x${exercise.reps}`
+          : undefined;
+    return {
+      id: step.id,
+      label: step.title,
+      type: step.type,
+      seconds: step.plannedSeconds,
+      isTimed: step.durationSeconds !== null,
+      ...(sublabel ? { sublabel } : {}),
+      ...(step.description ? { description: step.description } : {}),
+      ...(step.tips ? { tips: step.tips } : {}),
+      ...(step.type === 'exercise' && schedule[index + 1]?.type === 'rest'
+        ? { restSeconds: schedule[index + 1]!.plannedSeconds }
+        : {}),
+      ...(step.exerciseIndex !== undefined ? { exerciseIndex: step.exerciseIndex } : {}),
+    };
   });
-
-  exercises.forEach((ex, i) => {
-    const isTimed = ex.duration_seconds != null;
-    const duration = ex.duration_seconds ?? 0;
-    blocks.push({
-      id: `ex-${i}`,
-      label: ex.name,
-      description: ex.description,
-      tips: ex.tips,
-      restSeconds: ex.rest_seconds,
-      sublabel:
-        ex.sets && ex.reps ? `${ex.sets}x${ex.reps}` : isTimed ? formatDuration(duration) : 'Libre',
-      seconds: duration,
-      type: 'exercise',
-      isTimed,
-    });
-    if (ex.rest_seconds > 0) {
-      blocks.push({
-        id: `rest-${i}`,
-        label: 'Repos',
-        seconds: ex.rest_seconds,
-        type: 'rest',
-        isTimed: true,
-      });
-    }
-  });
-
-  (cooldown ?? []).forEach((p, i) => {
-    blocks.push({
-      id: `cooldown-${i}`,
-      label: p.name,
-      description: p.description,
-      seconds: p.duration_seconds,
-      type: 'cooldown',
-      isTimed: true,
-    });
-  });
-
-  return blocks;
 }
-
 const TYPE_STYLES: Record<TimelineBlock['type'], string> = {
   warmup: 'bg-primary-500',
   exercise: 'bg-primary-300',
   rest: 'bg-white/25',
+  transition: 'bg-white/40',
   cooldown: 'bg-primary-100',
 };
 
@@ -84,6 +58,7 @@ const TYPE_LABELS: Record<TimelineBlock['type'], string> = {
   warmup: 'Échauffement',
   exercise: 'Exercice',
   rest: 'Repos',
+  transition: 'Installation',
   cooldown: 'Retour calme',
 };
 
@@ -97,13 +72,14 @@ function formatDuration(seconds: number): string {
 }
 
 function getBlockWidth(block: TimelineBlock, totalTimedSeconds: number): string {
-  if (!block.isTimed || totalTimedSeconds === 0) return '2%';
+  if (block.seconds === 0 || totalTimedSeconds === 0) return '2%';
   return `${Math.max(2, (block.seconds / totalTimedSeconds) * 100)}%`;
 }
 
 export function WorkoutTimeline({ exercises, warmup, cooldown }: WorkoutTimelineProps) {
   const blocks = buildBlocks(exercises, warmup, cooldown);
   const totalTimedSeconds = blocks.reduce((acc, b) => acc + b.seconds, 0);
+  const estimated = blocks.some((block) => !block.isTimed && block.seconds > 0);
   const totalLabel = totalTimedSeconds > 0 ? formatDuration(totalTimedSeconds) : 'aucun chrono';
   const exerciseBlocks = blocks.filter((b) => b.type === 'exercise');
 
@@ -115,7 +91,7 @@ export function WorkoutTimeline({ exercises, warmup, cooldown }: WorkoutTimeline
         className="flex flex-wrap items-center gap-3 text-xs"
         aria-label="Legende de la timeline"
       >
-        {(['warmup', 'exercise', 'rest', 'cooldown'] as const)
+        {(['warmup', 'exercise', 'rest', 'transition', 'cooldown'] as const)
           .filter((t) => blocks.some((b) => b.type === t))
           .map((t) => (
             <span key={t} className="inline-flex items-center gap-2">
@@ -123,8 +99,16 @@ export function WorkoutTimeline({ exercises, warmup, cooldown }: WorkoutTimeline
               {TYPE_LABELS[t]}
             </span>
           ))}
-        <span className="ml-auto text-primary-200">Total chrono : {totalLabel}</span>
+        <span className="ml-auto text-primary-200">
+          {estimated ? 'Durée estimée' : 'Total chrono'} : {totalLabel}
+        </span>
       </div>
+      {estimated && (
+        <p className="muted-copy text-sm">
+          Les séries en répétitions se font à votre rythme. La durée inclut une estimation de ces
+          séries, les repos et les transitions.
+        </p>
+      )}
       <div
         className="flex h-3 gap-0.5 overflow-hidden rounded-full"
         role="img"
@@ -141,7 +125,7 @@ export function WorkoutTimeline({ exercises, warmup, cooldown }: WorkoutTimeline
       </div>
       <ol className="space-y-3" aria-label="Detail des exercices">
         {blocks
-          .filter((b) => b.type !== 'rest')
+          .filter((b) => b.type !== 'rest' && b.type !== 'transition')
           .map((block) => (
             <li key={block.id}>
               <details
@@ -156,7 +140,7 @@ export function WorkoutTimeline({ exercises, warmup, cooldown }: WorkoutTimeline
                   <span className="min-w-0 flex-1">
                     <span className="text-xs text-primary-200">
                       {TYPE_LABELS[block.type]}
-                      {block.type === 'exercise' ? ` ${exerciseBlocks.indexOf(block) + 1}` : ''}
+                      {block.type === 'exercise' ? ` ${(block.exerciseIndex ?? 0) + 1}` : ''}
                     </span>
                     <span className="mt-1 block break-words font-bold">{block.label}</span>
                   </span>

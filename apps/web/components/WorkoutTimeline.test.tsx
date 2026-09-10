@@ -6,6 +6,34 @@ import { WorkoutTimeline } from './WorkoutTimeline';
 describe('WorkoutTimeline', () => {
   afterEach(cleanup);
 
+  it('affiche les séries et uniquement les repos réellement prévus', () => {
+    render(
+      <WorkoutTimeline
+        exercises={[
+          {
+            name: 'Pompes',
+            description: 'Contrôle',
+            rest_seconds: 30,
+            prescription: {
+              version: 2,
+              category: 'strength',
+              mode: 'repetitions',
+              sets: 3,
+              reps: 10,
+              work_seconds: 30,
+              rest_seconds: 90,
+              transition_seconds: 30,
+            },
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByText('Durée estimée : 5min')).toBeTruthy();
+    expect(screen.getByText('Série 3/3 · 10 répétitions')).toBeTruthy();
+    expect(screen.getAllByText('Repos : 1m30s')).toHaveLength(2);
+    expect(screen.getByText('Installation')).toBeTruthy();
+  });
+
   it('ne rend rien quand la seance est vide', () => {
     const { container } = render(<WorkoutTimeline exercises={[]} />);
     expect(container.innerHTML).toBe('');

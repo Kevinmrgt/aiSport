@@ -112,6 +112,59 @@ let workouts = titles.map((title, n) =>
     date(n),
   ),
 );
+if (process.argv.includes('--timing')) {
+  for (const circuit of [false, true]) {
+    const names = circuit ? ['Pompes', 'Squats', 'Fentes'] : ['Pompes', 'Squats'];
+    const sets = circuit ? 4 : 3;
+    const rest = circuit ? 30 : 90;
+    const data = WorkoutSchema.parse({
+      planning_version: 2,
+      title: circuit ? 'Circuit en quatre tours' : 'Séries à votre rythme',
+      sport: 'Musculation',
+      difficulty: 'beginner',
+      duration_minutes: circuit ? 17 : 15,
+      warmup: [
+        {
+          name: 'Échauffement',
+          description: 'Mobilisez progressivement les articulations.',
+          duration_seconds: 180,
+        },
+      ],
+      cooldown: [
+        {
+          name: 'Retour au calme',
+          description: 'Ralentissez et relâchez les muscles.',
+          duration_seconds: 120,
+        },
+      ],
+      exercises: names.map((name, index) => {
+        const transition = !circuit || index === names.length - 1 ? 30 : 0;
+        return {
+          name,
+          description: 'Gardez le corps aligné et contrôlez le mouvement.',
+          tips: 'Expirez pendant la poussée.',
+          sets,
+          reps: 10,
+          rest_seconds: transition,
+          duration_seconds:
+            sets * 30 + (circuit && index < names.length - 1 ? sets : sets - 1) * rest,
+          prescription: {
+            version: 2,
+            category: 'strength',
+            mode: 'repetitions',
+            sets,
+            reps: 10,
+            work_seconds: 30,
+            rest_seconds: rest,
+            transition_seconds: transition,
+            ...(circuit ? { circuit_id: 1 } : {}),
+          },
+        };
+      }),
+    });
+    workouts.unshift(workoutRecord(data, fixtureId(circuit ? 99 : 98)));
+  }
+}
 function programRecord(
   title,
   sport = 'Musculation',
