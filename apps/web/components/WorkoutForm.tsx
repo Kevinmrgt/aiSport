@@ -142,7 +142,7 @@ export function WorkoutForm({ onSubmit, generationQuota, initialValues }: Workou
             }
             error={errors.duration_minutes}
             required
-            hint="Entre 15 et 180 minutes"
+            hint="Entre 15 et 180 minutes. Durée indicative : marge de 10 %, jusqu’à 5 minutes."
           />
         </div>
         <div className="flex flex-col gap-2">

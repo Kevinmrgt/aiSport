@@ -207,6 +207,9 @@ export function ProgramForm({ onSubmit, generationQuota }: ProgramFormProps) {
             {formData.weeks_count * formData.sessions_per_week} séances sur {formData.weeks_count}{' '}
             semaines · {formData.session_duration_minutes} min par séance
           </p>
+          <p className="muted-copy text-sm">
+            Durée indicative par séance : marge de 10 %, jusqu’à 5 minutes.
+          </p>
         </section>
         <div className="form-section md:grid-cols-2">
           <div className="flex flex-col gap-2">

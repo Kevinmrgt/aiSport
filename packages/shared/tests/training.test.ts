@@ -114,6 +114,28 @@ describe('planning commun', () => {
 });
 
 describe('prescriptions contrôlées', () => {
+  it.each([54, 55, 60, 65, 66])('contrôle la marge autour de 60min (%imin)', (actualMinutes) => {
+    const session = {
+      warmup,
+      cooldown,
+      exercises: [
+        exercise(
+          {
+            category: 'cardio',
+            mode: 'continuous',
+            sets: 1,
+            reps: undefined,
+            work_seconds: (actualMinutes - 5) * 60,
+            rest_seconds: 0,
+            transition_seconds: 0,
+          },
+          'Footing',
+        ),
+      ],
+    };
+    const issues = getSessionPrescriptionIssues(session, 'advanced', 60);
+    expect(issues.length === 0).toBe(actualMinutes >= 55 && actualMinutes <= 65);
+  });
   it.each([
     { version: 1 },
     { category: 'unknown' },
@@ -164,6 +186,15 @@ describe('prescriptions contrôlées', () => {
       'Mobilité des hanches',
     );
     expect(getPrescriptionIssues(mobility, 'beginner')).toEqual([]);
+    expect(
+      getPrescriptionIssues(
+        { ...mobility, name: 'Ouverture de hanche en fente basse' },
+        'beginner',
+      ),
+    ).toEqual([]);
+    expect(getPrescriptionIssues({ ...mobility, name: 'Fentes arrière' }, 'beginner')).toContain(
+      'Fentes arrière : catégorie incompatible avec le mouvement',
+    );
     const bike = exercise(
       {
         category: 'cardio',
@@ -237,7 +268,8 @@ describe('contrats versionnés', () => {
       WorkoutSchema.safeParse({ ...workout, exercises: [exercise({ work_seconds: 300 })] }).success,
     ).toBe(false);
     expect(WorkoutSchema.safeParse({ ...workout, duration_minutes: 30 }).success).toBe(false);
-    expect(WorkoutSchema.safeParse({ ...workout, duration_minutes: 19 }).success).toBe(false);
+    expect(WorkoutSchema.safeParse({ ...workout, duration_minutes: 19 }).success).toBe(true);
+    expect(WorkoutSchema.safeParse({ ...workout, duration_minutes: 17 }).success).toBe(false);
     expect(WorkoutSchema.safeParse({ ...workout, duration_minutes: 21 }).success).toBe(true);
     expect(WorkoutSchema.safeParse({ ...workout, planning_version: undefined }).success).toBe(
       false,

@@ -34,6 +34,13 @@ const ai = {
 };
 const cases: GenerateWorkoutInput[] = [
   {
+    sport: 'boxe anglaise',
+    level: 'intermediate',
+    duration_minutes: 60,
+    goals: 'entrainement explosivité',
+    constraints: 'sac de frappe',
+  },
+  {
     sport: 'Musculation',
     level: 'intermediate',
     duration_minutes: 55,
@@ -63,13 +70,55 @@ const cases: GenerateWorkoutInput[] = [
 ];
 const results: unknown[] = [];
 let failures = 0;
-for (const input of cases) {
+// Capture only synthetic provider outputs for failed QA cases, never request headers or secrets.
+let drafts: string[] = [];
+const providerFetch = globalThis.fetch;
+globalThis.fetch = async (...args) => {
+  const response = await providerFetch(...args);
+  if (response.ok) {
+    const data = (await response.clone().json()) as {
+      choices?: { message?: { content?: string } }[];
+    };
+    const content = data.choices?.[0]?.message?.content;
+    if (content) drafts.push(content);
+  }
+  return response;
+};
+function showDrafts() {
+  for (const [index, raw] of drafts.entries()) {
+    try {
+      const draft = JSON.parse(raw) as {
+        exercises?: unknown[];
+        sessions?: { exercises?: unknown[] }[];
+        warmup?: unknown;
+        cooldown?: unknown;
+      };
+      console.info(
+        'QA_DRAFT_PHASES',
+        index,
+        JSON.stringify({ warmup: draft.warmup, cooldown: draft.cooldown }),
+      );
+      for (const exercise of draft.exercises ??
+        draft.sessions?.flatMap((session) => session.exercises ?? []) ??
+        [])
+        console.info('QA_DRAFT_EXERCISE', index, JSON.stringify(exercise));
+    } catch {
+      console.info('QA_DRAFT_INVALID_JSON', index);
+    }
+  }
+}
+const selectedCases = process.argv.includes('--boxing')
+  ? Array.from({ length: 3 }, () => cases[0]!)
+  : cases;
+for (const input of selectedCases) {
+  drafts = [];
   const start = Date.now();
   try {
     const workout = await generateWorkout(input, ai);
     const timing = getSessionTiming(workout.exercises, workout.warmup, workout.cooldown);
     results.push({ input, success: true, elapsedMs: Date.now() - start, timing, workout });
     console.info('PASS', input.sport, input.duration_minutes, timing);
+    console.info('QA_RESULT', JSON.stringify({ input, timing, workout }));
   } catch (error) {
     failures++;
     results.push({
@@ -79,32 +128,36 @@ for (const input of cases) {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
     console.info('FAIL', input.sport, input.duration_minutes);
+    showDrafts();
   }
 }
-try {
-  const program = await generateProgram(
-    {
-      sport: 'Musculation',
-      level: 'beginner',
-      weeks_count: 2,
-      sessions_per_week: 2,
-      session_duration_minutes: 30,
-      goals: 'Apprentissage progressif des mouvements',
-      constraints: 'Poids du corps et haltères légers',
-    },
-    ai,
-  );
-  results.push({ success: true, program });
-  console.info('PASS program', program.weeks.length, 'weeks');
-} catch (error) {
-  failures++;
-  results.push({
-    success: false,
-    program: true,
-    error: error instanceof Error ? error.message : 'Unknown error',
-  });
-  console.info('FAIL program');
-}
+if (!process.argv.includes('--boxing'))
+  try {
+    drafts = [];
+    const program = await generateProgram(
+      {
+        sport: 'Musculation',
+        level: 'beginner',
+        weeks_count: 2,
+        sessions_per_week: 2,
+        session_duration_minutes: 30,
+        goals: 'Apprentissage progressif des mouvements',
+        constraints: 'Poids du corps et haltères légers',
+      },
+      ai,
+    );
+    results.push({ success: true, program });
+    console.info('PASS program', program.weeks.length, 'weeks');
+  } catch (error) {
+    failures++;
+    results.push({
+      success: false,
+      program: true,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    console.info('FAIL program');
+    showDrafts();
+  }
 await writeFile(
   resolve(directory, 'live-results.json'),
   JSON.stringify({ at: new Date().toISOString(), results }, null, 2),

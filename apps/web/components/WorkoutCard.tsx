@@ -40,7 +40,7 @@ export function WorkoutCard({ workout, onDelete }: WorkoutCardProps) {
         </span>
       </Link>
       <span className="row-level">{DIFFICULTY_LABELS[workout.difficulty]}</span>
-      <span className="row-duration">{workout.durationMinutes} min</span>
+      <span className="row-duration">~{workout.durationMinutes} min</span>
       <time className="row-date" dateTime={workout.createdAt}>
         {createdAt}
       </time>

@@ -82,7 +82,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutPageProps) {
         <div className="detail-meta">
           <span className="capitalize">{workout.sport}</span>
           <span>{DIFFICULTY_LABELS[workout.difficulty]}</span>
-          <span>{workout.durationMinutes} min</span>
+          <span>Cible : {workout.durationMinutes} min</span>
         </div>
       </header>
       {!workout.exercises.some((exercise) => exercise.prescription) && (

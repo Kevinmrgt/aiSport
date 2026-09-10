@@ -95,7 +95,7 @@ export default async function ProgramSessionPage({ params }: SessionPageProps) {
           <span>
             Semaine {weekNumber} · {week.theme}
           </span>
-          <span>{trainingSession.duration_minutes} min</span>
+          <span>Cible : {trainingSession.duration_minutes} min</span>
           <span>{trainingSession.exercises.length} exercices</span>
         </div>
         <p className="muted-copy mt-4">{trainingSession.focus}</p>

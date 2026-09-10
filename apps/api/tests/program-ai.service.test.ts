@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { generateProgram } from '../src/services/program-ai.service.js';
 import { getProgramSessionTimedSeconds } from '../src/services/program-duration.service.js';
 import { AppError } from '../src/types/app-error.js';
-import type { GenerateProgramInput } from '@alcide/shared';
+import { getSessionDurationBounds, type GenerateProgramInput } from '@alcide/shared';
 import type { AiConfig } from '../src/services/ai.service.js';
 
 // Mock fetch global (OWASP A10: pas d'appels réels à l'IA en test)
@@ -108,13 +108,13 @@ function expectProgramSessionsToMatchDuration(
   result: Awaited<ReturnType<typeof generateProgram>>,
   expectedMinutes: number,
 ): void {
-  const expectedSeconds = expectedMinutes * 60;
+  const bounds = getSessionDurationBounds(expectedMinutes);
 
   result.weeks.forEach((week) => {
     week.sessions.forEach((session) => {
       expect(session.duration_minutes).toBe(expectedMinutes);
-      expect(getProgramSessionTimedSeconds(session)).toBeLessThanOrEqual(expectedSeconds);
-      expect(getProgramSessionTimedSeconds(session)).toBeGreaterThanOrEqual(expectedSeconds - 60);
+      expect(getProgramSessionTimedSeconds(session)).toBeLessThanOrEqual(bounds.maxSeconds);
+      expect(getProgramSessionTimedSeconds(session)).toBeGreaterThanOrEqual(bounds.minSeconds);
       expect(session.planning_version).toBe(2);
       session.exercises.forEach((exercise) => {
         expect(exercise.duration_seconds).toBeGreaterThan(0);
@@ -203,6 +203,33 @@ describe('ProgramAiService', () => {
 
       expect(mockFetch).toHaveBeenCalledTimes(3);
       expect(result.weeks).toHaveLength(2);
+      const prompts = mockFetch.mock.calls.map(
+        (call) =>
+          (JSON.parse((call[1] as { body: string }).body) as { messages: { content: string }[] })
+            .messages[0]!.content,
+      );
+      expect(prompts.some((prompt) => prompt.includes(JSON.stringify(invalidWeek)))).toBe(true);
+    });
+
+    it('accepte les champs facultatifs null aussi dans un programme', async () => {
+      mockFetch.mockImplementation((_url: unknown, init: unknown) => {
+        const week = validWeekResponse(getWeekNumberFromFetchInit(init));
+        for (const session of week.sessions) {
+          Object.assign(session.exercises[0]!.prescription, { reps: null, circuit_id: null });
+          Object.assign(session.exercises[0]!, { tips: null });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              choices: [{ message: { content: JSON.stringify(week) } }],
+            }),
+        });
+      });
+      const result = await generateProgram(defaultInput, mockAiConfig);
+      expect(result.weeks).toHaveLength(2);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(result.weeks[0]!.sessions[0]!.exercises[0]!.prescription!.circuit_id).toBeUndefined();
     });
 
     it('lance AppError.serviceUnavailable si une semaine échoue après 2 tentatives', async () => {

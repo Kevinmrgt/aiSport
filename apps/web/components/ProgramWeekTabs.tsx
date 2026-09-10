@@ -90,7 +90,7 @@ export function ProgramWeekTabs({ weeks, programId }: ProgramWeekTabsProps) {
                     <h3 className="break-words text-xl font-bold">{session.title}</h3>
                     <p className="muted-copy mt-1">{session.focus}</p>
                     <p className="muted-copy mt-2 text-sm">
-                      {session.duration_minutes} min · {session.exercises.length} exercice
+                      ~{session.duration_minutes} min · {session.exercises.length} exercice
                       {session.exercises.length > 1 ? 's' : ''}
                       {session.warmup?.length ? ' · échauffement inclus' : ''}
                     </p>

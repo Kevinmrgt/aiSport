@@ -8,6 +8,7 @@ export {
   getPrescriptionLimits,
   getStrengthSetLimit,
   getSessionPrescriptionIssues,
+  getSessionDurationBounds,
   REST_STEPS,
   TRANSITION_STEPS,
 } from './training/rules.js';

@@ -3,7 +3,15 @@ import type { ProgramWeek, TrainingProgram, GenerateProgramInput } from '@alcide
 import { AppError } from '../types/app-error.js';
 import { AiTimeoutError, callAiProvider } from './ai.service.js';
 import type { AiConfig } from './ai.service.js';
-import { DraftWeekSchema, planSession, PRESCRIPTION_PROMPT } from './session-planner.service.js';
+import { weekOutputSchema } from './training-output-schema.js';
+import {
+  correctionFeedback,
+  generationDiagnostics,
+  DraftWeekSchema,
+  planSession,
+  PRESCRIPTION_PROMPT,
+  SessionPlanningError,
+} from './session-planner.service.js';
 
 function getProgressionPhase(weekNumber: number, totalWeeks: number): string {
   if (weekNumber === 1) return 'Adaptation - charges legeres, apprentissage des mouvements';
@@ -49,6 +57,7 @@ Contraintes de sortie :
 - JSON compact, sans markdown
 - Organise une alternance cohérente des mouvements et de la récupération sur ${input.sessions_per_week} séances. Ne répète pas une séance intense ciblant les mêmes muscles à chaque fois.
 - Toutes les semaines suivent le même cadre : adaptation, progression modérée éventuelle, consolidation ; jamais de charges maximales automatiques. Ne prétends pas connaître les charges ou les résultats des autres semaines.
+- La durée demandée s'applique à CHAQUE séance, pas à la semaine. Calcule et vérifie chaque séance séparément ; prévois assez de mouvements et de séries dans chacune pour couvrir son créneau.
 ${PRESCRIPTION_PROMPT}
 
 Reponds UNIQUEMENT avec ce JSON (et rien d'autre) :
@@ -75,7 +84,7 @@ function logAiProgramCall(data: {
   weekNumber: number;
   attempt: number;
   durationMs: number;
-  error?: string;
+  diagnostic?: ReturnType<typeof generationDiagnostics>;
 }): void {
   console.info('[AiProgramService]', {
     ...data,
@@ -83,36 +92,13 @@ function logAiProgramCall(data: {
   });
 }
 
-async function callAiForWeek(
-  input: GenerateProgramInput,
-  weekNumber: number,
-  aiConfig: AiConfig,
-  timeoutMs: number,
-  feedback: string,
-): Promise<ProgramWeek> {
-  const phaseLabel = getProgressionPhase(weekNumber, input.weeks_count);
-  const prompt = `${SYSTEM_MESSAGE}\n\n${buildWeekPrompt(input, weekNumber, phaseLabel)}${feedback}`;
-
-  const content = await callAiProvider(aiConfig, prompt, {
-    timeoutMs,
-    temperature: 0.2,
-    maxTokens: Math.min(11000, 1500 + input.sessions_per_week * 1800),
-  });
-
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch?.[0]) throw new Error('Aucun JSON trouve dans la reponse IA');
-
-  const parsed = JSON.parse(jsonMatch[0]) as unknown;
-  const validated = DraftWeekSchema.safeParse(parsed);
-  if (!validated.success) {
-    throw new Error(`Schema semaine invalide: ${validated.error.message}`);
-  }
-
-  const sessionNumbers = validated.data.sessions.map((session) => session.session_number);
+function validateWeek(input: GenerateProgramInput, weekNumber: number, json: string): ProgramWeek {
+  const validated = DraftWeekSchema.parse(JSON.parse(json));
+  const sessionNumbers = validated.sessions.map((session) => session.session_number);
   if (
-    validated.data.week_number !== weekNumber ||
-    validated.data.sessions.length !== input.sessions_per_week ||
-    validated.data.sessions.some(
+    validated.week_number !== weekNumber ||
+    validated.sessions.length !== input.sessions_per_week ||
+    validated.sessions.some(
       (session) => session.duration_minutes !== input.session_duration_minutes,
     ) ||
     sessionNumbers.some((number, index) => number !== index + 1)
@@ -123,10 +109,22 @@ async function callAiForWeek(
     );
   }
 
-  return ProgramWeekSchema.parse({
-    ...validated.data,
-    sessions: validated.data.sessions.map((session) => planSession(session, input.level)),
+  const planningIssues: string[] = [];
+  const sessions = validated.sessions.flatMap((session) => {
+    try {
+      return [planSession(session, input.level)];
+    } catch (error) {
+      if (error instanceof SessionPlanningError) {
+        planningIssues.push(
+          ...error.issues.map((issue) => `Séance ${session.session_number} : ${issue}`),
+        );
+        return [];
+      }
+      throw error;
+    }
   });
+  if (planningIssues.length) throw new SessionPlanningError(planningIssues);
+  return ProgramWeekSchema.parse({ ...validated, sessions });
 }
 
 async function generateWeekWithRetry(
@@ -137,8 +135,10 @@ async function generateWeekWithRetry(
 ): Promise<ProgramWeek> {
   const start = Date.now();
   let feedback = '';
+  const prompt = `${SYSTEM_MESSAGE}\n\n${buildWeekPrompt(input, weekNumber, getProgressionPhase(weekNumber, input.weeks_count))}`;
 
   for (let attempt = 1; attempt <= 2; attempt++) {
+    let previousJson = '';
     try {
       const timeoutMs = getWeekTimeoutMs(requestDeadline);
       if (timeoutMs < PROGRAM_WEEK_MIN_TIMEOUT_MS) {
@@ -147,7 +147,15 @@ async function generateWeekWithRetry(
         );
       }
 
-      const week = await callAiForWeek(input, weekNumber, aiConfig, timeoutMs, feedback);
+      const content = await callAiProvider(aiConfig, prompt + feedback, {
+        timeoutMs,
+        temperature: 0.2,
+        maxTokens: Math.min(11000, 1500 + input.sessions_per_week * 1800),
+        jsonSchema: weekOutputSchema(input, weekNumber),
+      });
+      previousJson = content.match(/\{[\s\S]*\}/)?.[0] ?? '';
+      if (!previousJson) throw new Error('Aucun JSON trouve dans la reponse IA');
+      const week = validateWeek(input, weekNumber, previousJson);
       logAiProgramCall({
         success: true,
         weekNumber,
@@ -156,14 +164,13 @@ async function generateWeekWithRetry(
       });
       return week;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Erreur inconnue';
-      feedback = `\nCorrige la semaine et renvoie son JSON complet. Problèmes précis : ${message.slice(0, 1800)}`;
+      feedback = correctionFeedback(error, previousJson);
       logAiProgramCall({
         success: false,
         weekNumber,
         attempt,
         durationMs: Date.now() - start,
-        error: message,
+        diagnostic: generationDiagnostics(error),
       });
 
       if (error instanceof AiTimeoutError) {

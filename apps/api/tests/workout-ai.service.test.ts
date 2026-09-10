@@ -80,6 +80,11 @@ describe('WorkoutAiService', () => {
       expect(result.difficulty).toBe('beginner');
       expect(result.duration_minutes).toBe(30);
       expect(result.exercises).toHaveLength(1);
+      const request = JSON.parse((mockFetch.mock.calls[0]![1] as { body: string }).body) as {
+        response_format: { type: string; json_schema: { strict: boolean } };
+      };
+      expect(request.response_format.type).toBe('json_schema');
+      expect(request.response_format.json_schema.strict).toBe(true);
     });
 
     it('extrait le JSON quand le provider ajoute du texte autour', async () => {
@@ -94,6 +99,22 @@ describe('WorkoutAiService', () => {
 
       const result = await generateWorkout(defaultInput, mockAiConfig);
       expect(result.title).toBe('Séance Course à Pied Débutant');
+    });
+
+    it('normalise les champs optionnels null sans consommer la tentative de correction', async () => {
+      const response = structuredClone(validWorkoutResponse);
+      Object.assign(response.exercises[0]!.prescription, { reps: null, circuit_id: null });
+      Object.assign(response.exercises[0]!, { tips: null });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            choices: [{ message: { content: JSON.stringify(response) } }],
+          }),
+      });
+      const result = await generateWorkout(defaultInput, mockAiConfig);
+      expect(result.exercises[0]!.prescription!.reps).toBeUndefined();
+      expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
     it('retente une fois si la validation Zod échoue', async () => {
@@ -148,6 +169,10 @@ describe('WorkoutAiService', () => {
       expect(String((mockFetch.mock.calls[1]?.[1] as { body: string }).body)).toContain(
         'repos hors des paliers',
       );
+      const retry = JSON.parse((mockFetch.mock.calls[1]![1] as { body: string }).body) as {
+        messages: { content: string }[];
+      };
+      expect(retry.messages[0]!.content).toContain(JSON.stringify(inconsistentWorkout));
     });
 
     it('lance AppError.serviceUnavailable après 2 échecs de parsing', async () => {

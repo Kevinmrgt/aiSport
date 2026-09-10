@@ -34,8 +34,23 @@ const levelIndex = { beginner: 0, intermediate: 1, advanced: 2 } as const;
 export const getStrengthSetLimit = (level: TrainingLevel): number =>
   [24, 32, 40][levelIndex[level]]!;
 
+/** Requested duration is a target: ±10%, capped at five minutes. */
+export function getSessionDurationBounds(minutes: number) {
+  const targetSeconds = minutes * 60;
+  const toleranceSeconds = Math.min(300, targetSeconds * 0.1);
+  return {
+    targetSeconds,
+    toleranceSeconds,
+    minSeconds: targetSeconds - toleranceSeconds,
+    maxSeconds: targetSeconds + toleranceSeconds,
+  };
+}
+
 // Product planning limits, not a claim that one prescription fits every athlete.
-export function getPrescriptionLimits(p: Prescription, level: TrainingLevel) {
+export function getPrescriptionLimits(
+  p: Pick<Prescription, 'category' | 'mode'>,
+  level: TrainingLevel,
+) {
   const index = levelIndex[level];
   if (p.category === 'strength')
     return {
@@ -79,19 +94,29 @@ function normalized(text: string) {
     .toLowerCase();
 }
 
-export function getPrescriptionIssues(exercise: Exercise, level: TrainingLevel): string[] {
+export function getPrescriptionIssues(
+  exercise: Exercise,
+  level: TrainingLevel,
+  checkSetLimits = true,
+): string[] {
   const p = exercise.prescription;
   if (!p) return [`${exercise.name} : prescription version 2 manquante`];
   const issues: string[] = [];
   const limits = getPrescriptionLimits(p, level);
   const name = normalized(exercise.name);
-  const recognized = /\b(gainages?|planches?|plank|chaise|wall sit|isometrique)\b/.test(name)
-    ? 'isometric'
-    : /\b(pompes?|push.?ups?|squats?|tractions?|pull.?ups?|fentes?|lunges?|developpe|deadlift|souleve de terre|dips|burpees?|crunch|tirage|curl|hip thrust)\b|rowing.*(halteres?|barre)/.test(
-          name,
-        )
-      ? 'strength'
-      : undefined;
+  const mobilityContext = /\b(mobilite|etirements?|assouplissement|ouverture de hanches?)\b/.test(
+    name,
+  );
+  const recognized =
+    mobilityContext && p.category === 'mobility'
+      ? 'mobility'
+      : /\b(gainages?|planches?|plank|chaise|wall sit|isometrique)\b/.test(name)
+        ? 'isometric'
+        : /\b(pompes?|push.?ups?|squats?|tractions?|pull.?ups?|fentes?|lunges?|developpe|deadlift|souleve de terre|dips|burpees?|crunch|tirage|curl|hip thrust)\b|rowing.*(halteres?|barre)/.test(
+              name,
+            )
+          ? 'strength'
+          : undefined;
   if (recognized && p.category !== recognized)
     issues.push('catégorie incompatible avec le mouvement');
   if (p.mode === 'continuous' && p.category !== 'cardio')
@@ -125,7 +150,7 @@ export function getPrescriptionIssues(exercise: Exercise, level: TrainingLevel):
     issues.push(
       `effort par série attendu entre ${limits.minWork} et ${limits.maxWork}s, par paliers de 5s`,
     );
-  if (p.sets > limits.maxSets)
+  if (checkSetLimits && p.sets > limits.maxSets)
     issues.push(`maximum ${limits.maxSets} séries pour ce mouvement et ce niveau`);
   if (p.mode === 'continuous' && (p.work_seconds % 60 !== 0 || p.circuit_id !== undefined))
     issues.push('cardio continu : minutes entières, hors circuit');
@@ -149,8 +174,11 @@ export function getSessionPrescriptionIssues(
   level: TrainingLevel,
   targetMinutes: number,
   checkTotal = true,
+  checkSetLimits = true,
 ): string[] {
-  const issues = session.exercises.flatMap((exercise) => getPrescriptionIssues(exercise, level));
+  const issues = session.exercises.flatMap((exercise) =>
+    getPrescriptionIssues(exercise, level, checkSetLimits),
+  );
   if (session.exercises.length > 16) issues.push('maximum 16 mouvements distincts par séance');
   const seenCircuits = new Set<number>();
   for (const group of getExerciseGroups(session.exercises)) {
@@ -172,7 +200,7 @@ export function getSessionPrescriptionIssues(
       total + (exercise.prescription?.category === 'strength' ? exercise.prescription.sets : 0),
     0,
   );
-  if (strengthSets > getStrengthSetLimit(level))
+  if (checkSetLimits && strengthSets > getStrengthSetLimit(level))
     issues.push('volume total de musculation excessif pour le niveau');
   const phaseTotal = (phases: Phase[] | undefined) =>
     (phases ?? []).reduce((n, phase) => n + phase.duration_seconds, 0);
@@ -194,9 +222,10 @@ export function getSessionPrescriptionIssues(
       session.warmup,
       session.cooldown,
     );
-    if (plannedSeconds > targetMinutes * 60 || plannedSeconds < targetMinutes * 60 - 60)
+    const bounds = getSessionDurationBounds(targetMinutes);
+    if (plannedSeconds > bounds.maxSeconds || plannedSeconds < bounds.minSeconds)
       issues.push(
-        `planning attendu entre ${targetMinutes * 60 - 60} et ${targetMinutes * 60}s, reçu ${plannedSeconds}s`,
+        `planning attendu entre ${bounds.minSeconds} et ${bounds.maxSeconds}s, reçu ${plannedSeconds}s`,
       );
   }
   return issues;

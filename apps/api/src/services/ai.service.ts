@@ -10,6 +10,7 @@ interface AiCallOptions {
   timeoutMs?: number;
   maxTokens?: number;
   temperature?: number;
+  jsonSchema?: { name: string; schema: Record<string, unknown> };
 }
 
 const DEFAULT_OPENAI_MODEL = 'gpt-5.4-mini';
@@ -73,7 +74,9 @@ async function callOpenAi(
       messages: [{ role: 'user', content: prompt }],
       temperature: options.temperature ?? 0.7,
       max_completion_tokens: options.maxTokens ?? 2048,
-      response_format: { type: 'json_object' },
+      response_format: options.jsonSchema
+        ? { type: 'json_schema', json_schema: { ...options.jsonSchema, strict: true } }
+        : { type: 'json_object' },
     }),
     signal,
   });
