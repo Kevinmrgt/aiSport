@@ -32,11 +32,12 @@ describe('BetaAdminPanel', () => {
 
   it('demande confirmation avant de supprimer l’accès bêta', () => {
     const deleteBetaTester = renderPanel();
-    vi.stubGlobal('confirm', vi.fn(() => false));
+    const confirmMock = vi.fn(() => false);
+    vi.stubGlobal('confirm', confirmMock);
 
     fireEvent.click(screen.getByRole('button', { name: 'Supprimer' }));
 
-    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('beta@example.com'));
+    expect(confirmMock).toHaveBeenCalledWith(expect.stringContaining('beta@example.com'));
     expect(deleteBetaTester).not.toHaveBeenCalled();
     expect(screen.getByText('beta@example.com')).toBeTruthy();
   });
