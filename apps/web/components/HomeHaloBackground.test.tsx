@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HomeHaloBackground } from './HomeHaloBackground';
 import { AnimatedBackground } from './AnimatedBackground';
@@ -39,14 +39,11 @@ describe.each(['halo', 'cells'] as const)('animation décorative %s', (variant) 
     vi.unstubAllGlobals();
   });
 
-  it('permet de mettre en pause et relancer le fond sans le recréer', () => {
+  it('affiche le fond sans contrôle visible', () => {
     const { container, unmount } = render(<Background />);
     expect(container.querySelector('canvas')?.closest('[aria-hidden="true"]')).not.toBeNull();
     expect(setPaused).toHaveBeenLastCalledWith(false);
-    fireEvent.click(screen.getByRole('button', { name: 'Mettre l’animation du fond en pause' }));
-    expect(setPaused).toHaveBeenLastCalledWith(true);
-    fireEvent.click(screen.getByRole('button', { name: 'Relancer l’animation du fond' }));
-    expect(setPaused).toHaveBeenLastCalledWith(false);
+    expect(screen.queryByRole('button')).toBeNull();
     expect(factory).toHaveBeenCalledTimes(1);
     unmount();
     expect(destroy).toHaveBeenCalledTimes(1);
@@ -62,7 +59,7 @@ describe.each(['halo', 'cells'] as const)('animation décorative %s', (variant) 
       preferenceChanged();
     });
     expect(setPaused).toHaveBeenLastCalledWith(false);
-    expect(screen.getByRole('button')).toBeTruthy();
+    expect(screen.queryByRole('button')).toBeNull();
     act(() => {
       reduce = true;
       preferenceChanged();
@@ -77,12 +74,6 @@ describe.each(['halo', 'cells'] as const)('animation décorative %s', (variant) 
     expect(screen.queryByRole('button')).toBeNull();
   });
 
-  it('retire le contrôle après une perte du contexte graphique', () => {
-    const { container } = render(<Background />);
-    fireEvent(container.querySelector('canvas')!, new Event('webglcontextlost'));
-    expect(screen.queryByRole('button')).toBeNull();
-  });
-
   it('nettoie l’ancien moteur en quittant l’accueil et garde Cells entre les pages', () => {
     pathname.mockReturnValue('/');
     const { container, rerender } = render(<RouteBackdrop />);
@@ -91,11 +82,10 @@ describe.each(['halo', 'cells'] as const)('animation décorative %s', (variant) 
     rerender(<RouteBackdrop />);
     expect(destroy).toHaveBeenCalledTimes(1);
     expect(createCells).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole('button', { name: 'Mettre l’animation du fond en pause' }));
     pathname.mockReturnValue('/settings');
     rerender(<RouteBackdrop />);
     expect(createCells).toHaveBeenCalledTimes(1);
-    expect(setPaused).toHaveBeenLastCalledWith(true);
+    expect(setPaused).toHaveBeenLastCalledWith(false);
     expect(container.querySelectorAll('canvas')).toHaveLength(1);
     pathname.mockReturnValue('/');
     rerender(<RouteBackdrop />);

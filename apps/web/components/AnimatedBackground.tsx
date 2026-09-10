@@ -1,10 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { createHaloBackground, type HaloBackground } from '@/lib/halo-background';
 import { createCellsBackground } from '@/lib/cells-background';
-import { Icon } from '@/components/ui/Icon';
 
 const MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 function subscribeMotion(callback: () => void) {
@@ -18,8 +16,6 @@ const getServerMotion = () => true;
 export function AnimatedBackground({ variant }: { variant: 'halo' | 'cells' }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<HaloBackground | null>(null);
-  const [ready, setReady] = useState(false);
-  const [paused, setPaused] = useState(false);
   const reducedMotion = useSyncExternalStore(subscribeMotion, getReducedMotion, getServerMotion);
 
   useEffect(() => {
@@ -28,19 +24,15 @@ export function AnimatedBackground({ variant }: { variant: 'halo' | 'cells' }) {
     const renderer =
       variant === 'halo' ? createHaloBackground(canvas) : createCellsBackground(canvas);
     rendererRef.current = renderer;
-    setReady(Boolean(renderer));
-    const onContextLost = () => setReady(false);
-    canvas.addEventListener('webglcontextlost', onContextLost);
     return () => {
-      canvas.removeEventListener('webglcontextlost', onContextLost);
       renderer?.destroy();
       rendererRef.current = null;
     };
   }, [variant]);
 
   useEffect(() => {
-    rendererRef.current?.setPaused(paused || reducedMotion);
-  }, [paused, reducedMotion, variant]);
+    rendererRef.current?.setPaused(reducedMotion);
+  }, [reducedMotion, variant]);
 
   return (
     <>
@@ -51,23 +43,6 @@ export function AnimatedBackground({ variant }: { variant: 'halo' | 'cells' }) {
       >
         <canvas ref={canvasRef} className="animated-background-canvas" />
       </div>
-      {ready &&
-        !reducedMotion &&
-        createPortal(
-          <button
-            type="button"
-            className="background-motion-control"
-            data-effect={variant}
-            aria-label={
-              paused ? 'Relancer l’animation du fond' : 'Mettre l’animation du fond en pause'
-            }
-            onClick={() => setPaused((value) => !value)}
-          >
-            <Icon name={paused ? 'play' : 'pause'} className="h-4 w-4" />
-            <span>Animation</span>
-          </button>,
-          document.body,
-        )}
     </>
   );
 }

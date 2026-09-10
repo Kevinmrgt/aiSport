@@ -46,10 +46,6 @@ fieldset,
     radial-gradient(ellipse at 80% 25%, rgb(160 196 170 / 0.18), transparent 55%),
     radial-gradient(ellipse at 25% 80%, #316453, #0b2b27 75%);
 }
-/* Reserve the animation toolbar above page titles, including narrow screens. */
-.route-cells ~ .app-container {
-  padding-top: 80px;
-}
 .home-halo {
   background-image:
     radial-gradient(
@@ -77,38 +73,6 @@ fieldset,
   background:
     radial-gradient(ellipse at 50% 42%, rgb(5 31 32 / 0.18), transparent 75%),
     linear-gradient(180deg, rgb(5 31 32 / 0.08), transparent 40%, rgb(5 31 32 / 0.2));
-}
-.background-motion-control {
-  position: absolute;
-  top: 106px;
-  right: max(20px, calc((100vw - 1264px) / 2));
-  z-index: 5;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 10px 16px;
-  border: 1px solid rgb(218 241 222 / 0.35);
-  border-radius: 999px;
-  background: rgb(5 31 32 / 0.55);
-  backdrop-filter: blur(14px);
-  color: #daf1de;
-  font-size: 12px;
-}
-.background-motion-control:hover {
-  background: rgb(35 83 71 / 0.75);
-}
-@media (max-width: 767px) {
-  .background-motion-control {
-    top: 98px;
-    right: 20px;
-    padding: 10px 12px;
-  }
-}
-@media (max-width: 640px) {
-  .background-motion-control {
-    top: 86px;
-  }
 }
 .site-header,
 .app-container,
