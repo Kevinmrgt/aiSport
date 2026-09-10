@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { users } from '../src/db/schema.js';
+import { betaCreditAdjustments, betaTesters, users } from '../src/db/schema.js';
 import type { TrainingProgram, Workout } from '@alcide/shared';
 
 const testDatabaseUrl = process.env['TEST_DATABASE_URL'];
@@ -12,6 +12,7 @@ const quotaOwnerId = randomUUID();
 const ownerEmail = `integration-${ownerId}@alcide.test`;
 const otherEmail = `integration-${otherUserId}@alcide.test`;
 const quotaOwnerEmail = `integration-quota-${quotaOwnerId}@alcide.test`;
+const betaEmail = `integration-beta-${randomUUID()}@alcide.test`;
 
 function workoutFixture(overrides: Partial<Workout> = {}): Workout {
   return {
@@ -77,6 +78,7 @@ describeWithDatabase('repositories PostgreSQL', () => {
     await db.delete(users).where(eq(users.id, ownerId));
     await db.delete(users).where(eq(users.id, otherUserId));
     await db.delete(users).where(eq(users.id, quotaOwnerId));
+    await db.delete(users).where(eq(users.email, betaEmail));
     await pool.end();
   });
 
@@ -101,6 +103,82 @@ describeWithDatabase('repositories PostgreSQL', () => {
       used: 30,
       remaining: 0,
     });
+  });
+
+  it('gère atomiquement le solde beta, son audit et les sessions révoquées', async () => {
+    const {
+      adjustBetaBalance,
+      changeBetaPassword,
+      createBetaTester,
+      findActiveBetaSession,
+      findBetaByUserId,
+      findBetaForAuthentication,
+      listBetaTesters,
+      releaseBetaGeneration,
+      reserveBetaGeneration,
+      resetBetaPassword,
+      setBetaStatus,
+    } = await import('../src/repositories/beta-tester.repository.js');
+    const { db } = await import('../src/db/index.js');
+    const initialSessionVersion = randomUUID();
+
+    const created = await createBetaTester({
+      name: 'Integration beta tester',
+      email: betaEmail,
+      passwordHash: 'initial-hash',
+      generationBalance: 3,
+      sessionVersion: initialSessionVersion,
+      adminEmail: 'admin@alcide.test',
+    });
+    expect(created).toMatchObject({
+      email: betaEmail,
+      active: true,
+      generationBalance: 3,
+      mustChangePassword: true,
+    });
+    const betaUserId = created.userId;
+
+    await expect(findBetaForAuthentication(betaEmail)).resolves.toMatchObject({
+      userId: betaUserId,
+      passwordHash: 'initial-hash',
+      active: 1,
+      mustChangePassword: 1,
+      sessionVersion: initialSessionVersion,
+    });
+    await expect(findActiveBetaSession(betaUserId, initialSessionVersion)).resolves.toMatchObject({
+      active: 1,
+      generationBalance: 3,
+    });
+    await expect(listBetaTesters()).resolves.toEqual(expect.arrayContaining([
+      expect.objectContaining({ userId: betaUserId, active: true, mustChangePassword: true }),
+    ]));
+
+    await expect(adjustBetaBalance(betaUserId, 5, 'admin@alcide.test')).resolves.toBe(8);
+    await expect(adjustBetaBalance(betaUserId, -9, 'admin@alcide.test')).resolves.toBeNull();
+    const adjustments = await db.select().from(betaCreditAdjustments).where(eq(betaCreditAdjustments.betaUserId, betaUserId));
+    expect(adjustments.map((adjustment) => [adjustment.amount, adjustment.balanceAfter])).toEqual([[3, 3], [5, 8]]);
+
+    const reservations = await Promise.all(Array.from({ length: 9 }, () => reserveBetaGeneration(betaUserId)));
+    expect(reservations.filter(Boolean)).toHaveLength(8);
+    expect(reservations.filter((reservation) => reservation === null)).toHaveLength(1);
+    await releaseBetaGeneration(betaUserId);
+    await expect(reserveBetaGeneration(betaUserId)).resolves.toMatchObject({ remaining: 0 });
+
+    const revokedSessionVersion = randomUUID();
+    await expect(setBetaStatus(betaUserId, false, revokedSessionVersion)).resolves.toBe(true);
+    await expect(findActiveBetaSession(betaUserId, initialSessionVersion)).resolves.toBeUndefined();
+    await expect(reserveBetaGeneration(betaUserId)).resolves.toBeNull();
+    await expect(setBetaStatus(betaUserId, true, randomUUID())).resolves.toBe(true);
+    await expect(setBetaStatus(randomUUID(), true, randomUUID())).resolves.toBe(false);
+
+    await expect(resetBetaPassword(betaUserId, 'reset-hash', randomUUID())).resolves.toBe(true);
+    await expect(resetBetaPassword(randomUUID(), 'reset-hash', randomUUID())).resolves.toBe(false);
+    await expect(findBetaByUserId(betaUserId)).resolves.toEqual({ passwordHash: 'reset-hash', active: 1 });
+    await changeBetaPassword(betaUserId, 'changed-hash');
+    await expect(findBetaByUserId(betaUserId)).resolves.toEqual({ passwordHash: 'changed-hash', active: 1 });
+    await expect(db.select().from(betaTesters).where(eq(betaTesters.userId, betaUserId))).resolves.toEqual([
+      expect.objectContaining({ mustChangePassword: 0 }),
+    ]);
   });
 
   it('persiste, relit et protege une seance par son proprietaire', async () => {
