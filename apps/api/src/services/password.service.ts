@@ -1,4 +1,4 @@
-import { randomBytes, scrypt, scryptSync, timingSafeEqual } from 'node:crypto';
+import { randomBytes, randomInt, scrypt, scryptSync, timingSafeEqual } from 'node:crypto';
 
 const COST = 16_384;
 const BLOCK_SIZE = 8;
@@ -21,10 +21,8 @@ export function hashPassword(password: string): string {
 }
 
 export function createTemporaryPassword(): string {
-  // 24 caractères cryptographiquement aléatoires, sans ambiguïtés visuelles.
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
-  const bytes = randomBytes(24);
-  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join('');
+  // Code à transmettre facilement, généré avec l'aléa cryptographique de Node.
+  return randomInt(0, 1_000_000).toString().padStart(6, '0');
 }
 
 export async function verifyPassword(password: string, encoded: string): Promise<boolean> {

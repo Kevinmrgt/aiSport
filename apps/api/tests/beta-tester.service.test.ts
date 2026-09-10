@@ -4,6 +4,7 @@ const repository = vi.hoisted(() => ({
   adjustBetaBalance: vi.fn(),
   changeBetaPassword: vi.fn(),
   createBetaTester: vi.fn(),
+  deleteBetaTester: vi.fn(),
   findActiveBetaSession: vi.fn(),
   findBetaByUserId: vi.fn(),
   findBetaForAuthentication: vi.fn(),
@@ -27,6 +28,7 @@ import {
   assertActiveBetaSession,
   authorizeBeta,
   createManagedBetaTester,
+  deleteManagedBetaTester,
   listManagedBetaTesters,
   releaseBetaSlot,
   reserveBetaSlot,
@@ -99,6 +101,13 @@ describe('beta tester service', () => {
     repository.resetBetaPassword.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
     await expect(resetManagedBetaPassword(USER_ID)).resolves.toBe('Temporary-password-123!');
     await expect(resetManagedBetaPassword(USER_ID)).rejects.toMatchObject({ statusCode: 404 });
+  });
+
+  it('supprime uniquement l’accès bêta demandé', async () => {
+    repository.deleteBetaTester.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    await expect(deleteManagedBetaTester(USER_ID)).resolves.toBeUndefined();
+    expect(repository.deleteBetaTester).toHaveBeenCalledWith(USER_ID);
+    await expect(deleteManagedBetaTester(USER_ID)).rejects.toMatchObject({ statusCode: 404 });
   });
 
   it('réserve et libère une génération via le dépôt atomique', async () => {

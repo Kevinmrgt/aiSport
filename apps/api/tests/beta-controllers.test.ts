@@ -3,12 +3,12 @@ import { Hono } from 'hono';
 import { handleError } from '../src/middleware/error.middleware.js';
 
 const service = vi.hoisted(() => ({
-  adjustManagedBetaBalance: vi.fn(), createManagedBetaTester: vi.fn(), listManagedBetaTesters: vi.fn(),
+  adjustManagedBetaBalance: vi.fn(), createManagedBetaTester: vi.fn(), deleteManagedBetaTester: vi.fn(), listManagedBetaTesters: vi.fn(),
   resetManagedBetaPassword: vi.fn(), setManagedBetaStatus: vi.fn(), authorizeBeta: vi.fn(), updateOwnBetaPassword: vi.fn(),
 }));
 vi.mock('../src/services/beta-tester.service.js', () => service);
 
-import { handleAdjustBetaBalance, handleCreateBetaTester, handleListBetaTesters, handleResetBetaPassword, handleSetBetaStatus } from '../src/controllers/admin-beta.controller.js';
+import { handleAdjustBetaBalance, handleCreateBetaTester, handleDeleteBetaTester, handleListBetaTesters, handleResetBetaPassword, handleSetBetaStatus } from '../src/controllers/admin-beta.controller.js';
 import { handleAuthorizeBeta, handleChangeOwnBetaPassword } from '../src/controllers/beta-auth.controller.js';
 
 const USER_ID = '11111111-1111-4111-8111-111111111111';
@@ -21,6 +21,7 @@ function app(auth = { userId: USER_ID, email: 'admin@example.com', accessMode: '
   instance.post('/admin/beta-testers/:userId/credits', handleAdjustBetaBalance);
   instance.patch('/admin/beta-testers/:userId/status', handleSetBetaStatus);
   instance.post('/admin/beta-testers/:userId/password-reset', handleResetBetaPassword);
+  instance.delete('/admin/beta-testers/:userId', handleDeleteBetaTester);
   instance.post('/beta/authorize', async (ctx, next) => { ctx.set('betaCredentials', await ctx.req.json()); await next(); }, handleAuthorizeBeta);
   instance.put('/beta/password', handleChangeOwnBetaPassword);
   return instance;
@@ -57,6 +58,11 @@ describe('beta controllers', () => {
 
     service.resetManagedBetaPassword.mockResolvedValue('Temporary-password-123!');
     expect(await (await app().request(`/admin/beta-testers/${USER_ID}/password-reset`, { method: 'POST' })).json()).toEqual({ temporaryPassword: 'Temporary-password-123!' });
+
+    service.deleteManagedBetaTester.mockResolvedValue(undefined);
+    expect(await (await app().request(`/admin/beta-testers/${USER_ID}`, { method: 'DELETE' })).json()).toEqual({ ok: true });
+    expect(service.deleteManagedBetaTester).toHaveBeenCalledWith(USER_ID);
+    expect((await app().request('/admin/beta-testers/not-a-uuid', { method: 'DELETE' })).status).toBe(400);
   });
 
   it('retourne une réponse générique pour les identifiants beta et accepte un changement valide', async () => {

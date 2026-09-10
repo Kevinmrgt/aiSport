@@ -258,4 +258,7 @@ export const serverApi = {
 
   resetBetaPassword: (userId: string): Promise<{ temporaryPassword: string }> =>
     serverFetch<{ temporaryPassword: string }>(`/admin/beta-testers/${userId}/password-reset`, { method: 'POST' }),
+
+  deleteBetaTester: (userId: string): Promise<{ ok: boolean }> =>
+    serverFetch<{ ok: boolean }>(`/admin/beta-testers/${userId}`, { method: 'DELETE' }),
 };

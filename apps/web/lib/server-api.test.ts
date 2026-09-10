@@ -105,6 +105,7 @@ describe('serverApi', () => {
     await serverApi.getRecentSessionLogs(12);
     await serverApi.getAiSettings();
     await serverApi.saveAiSettings({ model: 'gpt-5.4-mini' });
+    await serverApi.deleteBetaTester('beta-user-1');
 
     const calls = fetchMock.mock.calls.map(([url, init]) => ({
       url,
@@ -122,6 +123,7 @@ describe('serverApi', () => {
         expect.objectContaining({ url: 'http://localhost:3001/programs?page=3&limit=4' }),
         expect.objectContaining({ url: 'http://localhost:3001/session-logs/recent?limit=5' }),
         expect.objectContaining({ url: 'http://localhost:3001/session-logs/recent?limit=12' }),
+        expect.objectContaining({ url: 'http://localhost:3001/admin/beta-testers/beta-user-1', method: 'DELETE' }),
         expect.objectContaining({
           url: 'http://localhost:3001/settings',
           method: 'PUT',

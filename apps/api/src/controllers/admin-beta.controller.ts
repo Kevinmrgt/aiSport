@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   adjustManagedBetaBalance,
   createManagedBetaTester,
+  deleteManagedBetaTester,
   listManagedBetaTesters,
   resetManagedBetaPassword,
   setManagedBetaStatus,
@@ -56,4 +57,9 @@ export async function handleSetBetaStatus(ctx: Context): Promise<Response> {
 export async function handleResetBetaPassword(ctx: Context): Promise<Response> {
   const temporaryPassword = await resetManagedBetaPassword(userId(ctx));
   return ctx.json({ temporaryPassword });
+}
+
+export async function handleDeleteBetaTester(ctx: Context): Promise<Response> {
+  await deleteManagedBetaTester(userId(ctx));
+  return ctx.json({ ok: true });
 }

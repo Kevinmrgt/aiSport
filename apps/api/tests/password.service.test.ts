@@ -10,11 +10,10 @@ describe('mots de passe bêta', () => {
     await expect(verifyPassword('mauvais-mot-de-passe', hash)).resolves.toBe(false);
   });
 
-  it('génère un mot de passe temporaire robuste à usage unique', () => {
+  it('génère un code temporaire à six chiffres', () => {
     const first = createTemporaryPassword();
     const second = createTemporaryPassword();
-    expect(first).toHaveLength(24);
-    expect(second).toHaveLength(24);
-    expect(first).not.toBe(second);
+    expect(first).toMatch(/^\d{6}$/);
+    expect(second).toMatch(/^\d{6}$/);
   });
 });

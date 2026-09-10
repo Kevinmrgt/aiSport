@@ -156,6 +156,15 @@ export async function resetBetaPassword(userId: string, passwordHash: string, se
   return result.length === 1;
 }
 
+/** Retire uniquement l'accès bêta : les données utilisateur et Google éventuelles sont conservées. */
+export async function deleteBetaTester(userId: string): Promise<boolean> {
+  const result = await db
+    .delete(betaTesters)
+    .where(eq(betaTesters.userId, userId))
+    .returning({ userId: betaTesters.userId });
+  return result.length === 1;
+}
+
 export async function changeBetaPassword(userId: string, passwordHash: string): Promise<void> {
   await db
     .update(betaTesters)

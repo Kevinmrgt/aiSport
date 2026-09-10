@@ -3,6 +3,7 @@ import {
   adjustBetaBalance,
   changeBetaPassword,
   createBetaTester,
+  deleteBetaTester,
   findActiveBetaSession,
   findBetaForAuthentication,
   findBetaByUserId,
@@ -103,6 +104,10 @@ export async function resetManagedBetaPassword(userId: string) {
     throw AppError.notFound('Bêta-testeur');
   }
   return temporaryPassword;
+}
+
+export async function deleteManagedBetaTester(userId: string) {
+  if (!(await deleteBetaTester(userId))) throw AppError.notFound('Bêta-testeur');
 }
 
 export async function updateOwnBetaPassword(userId: string, currentPassword: string, newPassword: string) {

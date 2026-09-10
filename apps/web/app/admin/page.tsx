@@ -25,6 +25,10 @@ export default async function AdminPage() {
     'use server';
     try { return { data: await serverApi.resetBetaPassword(userId) }; } catch (error) { return { error: error instanceof Error ? error.message : 'Réinitialisation impossible.' }; }
   }
+  async function deleteBetaTester(userId: string) {
+    'use server';
+    try { return { data: await serverApi.deleteBetaTester(userId) }; } catch (error) { return { error: error instanceof Error ? error.message : 'Suppression impossible.' }; }
+  }
 
-  return <section aria-labelledby="admin-title" className="space-y-7"><header className="page-heading"><h1 id="admin-title" className="page-title">Administration bêta</h1><p>Gérez les accès et les générations disponibles.</p></header><BetaAdminPanel initialBetaTesters={betaTesters} createBetaTester={createBetaTester} adjustCredits={adjustCredits} setStatus={setStatus} resetPassword={resetPassword} /></section>;
+  return <section aria-labelledby="admin-title" className="space-y-7"><header className="page-heading"><h1 id="admin-title" className="page-title">Administration bêta</h1><p>Gérez les accès et les générations disponibles.</p></header><BetaAdminPanel initialBetaTesters={betaTesters} createBetaTester={createBetaTester} adjustCredits={adjustCredits} setStatus={setStatus} resetPassword={resetPassword} deleteBetaTester={deleteBetaTester} /></section>;
 }

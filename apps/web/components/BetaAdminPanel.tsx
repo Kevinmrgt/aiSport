@@ -17,9 +17,10 @@ interface BetaAdminPanelProps {
   adjustCredits: (userId: string, amount: number) => Promise<Result<{ generationBalance: number }>>;
   setStatus: (userId: string, active: boolean) => Promise<Result<{ ok: boolean }>>;
   resetPassword: (userId: string) => Promise<Result<{ temporaryPassword: string }>>;
+  deleteBetaTester: (userId: string) => Promise<Result<{ ok: boolean }>>;
 }
 
-export function BetaAdminPanel({ initialBetaTesters, createBetaTester, adjustCredits, setStatus, resetPassword }: BetaAdminPanelProps) {
+export function BetaAdminPanel({ initialBetaTesters, createBetaTester, adjustCredits, setStatus, resetPassword, deleteBetaTester }: BetaAdminPanelProps) {
   const [testers, setTesters] = useState(initialBetaTesters);
   const [notice, setNotice] = useState<string | null>(null);
   const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
@@ -57,7 +58,7 @@ export function BetaAdminPanel({ initialBetaTesters, createBetaTester, adjustCre
 
       {temporaryPassword && (
         <section className="rounded-[1.25rem] border border-primary-300/40 bg-primary-300/10 p-5" role="status">
-          <h2 className="font-bold">Mot de passe temporaire</h2>
+          <h2 className="font-bold">Code temporaire à 6 chiffres</h2>
           <p className="mt-2 text-sm">Copiez-le maintenant et transmettez-le au testeur. Il devra se reconnecter avec ce mot de passe avant de le modifier. Il ne sera plus affiché.</p>
           <code className="mt-3 block break-all rounded-lg bg-black/30 p-3 text-base text-white">{temporaryPassword}</code>
           <Button variant="secondary" size="sm" className="mt-4" onClick={() => setTemporaryPassword(null)}>J’ai bien copié</Button>
@@ -105,6 +106,15 @@ export function BetaAdminPanel({ initialBetaTesters, createBetaTester, adjustCre
                   if (result.error) return setNotice(result.error);
                   setTesters((current) => current.map((item) => item.userId === tester.userId ? { ...item, active: !item.active } : item));
                 })}>{tester.active ? 'Désactiver' : 'Réactiver'}</Button>
+                <Button size="sm" variant="danger" disabled={isPending} onClick={() => {
+                  if (!window.confirm(`Supprimer l’accès bêta de ${tester.email} ? Les données d’entraînement sont conservées.`)) return;
+                  run(async () => {
+                    const result = await deleteBetaTester(tester.userId);
+                    if (result.error || !result.data) return setNotice(result.error ?? 'Suppression impossible.');
+                    setTesters((current) => current.filter((item) => item.userId !== tester.userId));
+                    setNotice(`L’accès bêta de ${tester.email} a été supprimé.`);
+                  });
+                }}>Supprimer</Button>
               </div>
             </article>
           ))}

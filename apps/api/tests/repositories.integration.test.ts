@@ -110,6 +110,7 @@ describeWithDatabase('repositories PostgreSQL', () => {
       adjustBetaBalance,
       changeBetaPassword,
       createBetaTester,
+      deleteBetaTester,
       findActiveBetaSession,
       findBetaByUserId,
       findBetaForAuthentication,
@@ -152,6 +153,9 @@ describeWithDatabase('repositories PostgreSQL', () => {
       name: 'Integration owner',
       generationBalance: 2,
     });
+    await expect(deleteBetaTester(ownerId)).resolves.toBe(true);
+    await expect(deleteBetaTester(ownerId)).resolves.toBe(false);
+    await expect(db.select().from(users).where(eq(users.id, ownerId))).resolves.toHaveLength(1);
 
     await expect(findBetaForAuthentication(betaEmail)).resolves.toMatchObject({
       userId: betaUserId,
