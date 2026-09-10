@@ -61,7 +61,11 @@ function useAudio() {
     [getCtx],
   );
 
-  const playCountdown = useCallback(() => beep(880, 0.08, 0.2), [beep]);
+  const playCountdown = useCallback(
+    (isLastSecond = false) =>
+      isLastSecond ? beep(1100, 0.32, 0.38) : beep(880, 0.08, 0.2),
+    [beep],
+  );
 
   const playPhaseChange = useCallback(() => {
     beep(660, 0.12, 0.3);
@@ -360,7 +364,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
       return;
 
     if (currentStep.type === 'exercise' && secondsLeft > 0 && secondsLeft <= 3) {
-      playCountdown();
+      playCountdown(secondsLeft === 1);
     }
 
     if (secondsLeft <= 0) {
@@ -405,7 +409,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
       }, 1000),
       window.setTimeout(() => {
         setStartCountdownSeconds(1);
-        playCountdown();
+        playCountdown(true);
       }, 2000),
       window.setTimeout(() => {
         startCountdownTimeoutsRef.current = [];
