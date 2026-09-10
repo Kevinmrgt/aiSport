@@ -1,4 +1,5 @@
 import 'server-only';
+import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import type {
   WorkoutDetail,
@@ -72,12 +73,20 @@ async function serverFetch<T>(
   const sessionUser = session.user as typeof session.user & {
     authMethod?: 'standard' | 'jury' | 'beta';
     betaSessionVersion?: string;
+    betaMustChangePassword?: boolean;
   };
   const juryEmail = process.env['JURY_ACCESS_EMAIL']?.trim().toLowerCase();
   const authMethod = sessionUser.authMethod === 'beta'
     ? 'beta'
     : sessionUser.authMethod === 'jury' ||
     juryEmail && session.user.email?.trim().toLowerCase() === juryEmail ? 'jury' : 'standard';
+
+  // Le guard client ne peut intervenir qu'après le rendu serveur. Sans cette
+  // redirection, les pages privées appellent l'API trop tôt et affichent une
+  // erreur générique à un bêta-testeur qui doit encore changer son mot de passe.
+  if (authMethod === 'beta' && sessionUser.betaMustChangePassword && path !== '/auth/beta/password') {
+    redirect('/change-password');
+  }
 
   // OWASP A09: trace structuree de chaque appel API cote Next.js server
   console.info('[ServerAPI] Appel:', {
