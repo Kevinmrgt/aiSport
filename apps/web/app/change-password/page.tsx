@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { auth, signIn } from '@/lib/auth';
+import { auth, signIn, signOut } from '@/lib/auth';
 import { serverApi } from '@/lib/server-api';
 import { GlassPanel } from '@/components/PremiumPrimitives';
 import { BetaPasswordChangeForm } from '@/components/BetaPasswordChangeForm';
@@ -15,7 +15,13 @@ export default async function ChangePasswordPage() {
     try {
       await serverApi.changeBetaPassword(input);
     } catch (error) {
-      return { error: error instanceof Error ? error.message : 'Mise à jour impossible.' };
+      const message = error instanceof Error ? error.message : 'Mise à jour impossible.';
+      // Une réinitialisation admin fait tourner la version de session : l'ancien
+      // jeton ne peut plus servir, même si le compte reste actif.
+      if (message === 'Session bêta inactive ou révoquée') {
+        await signOut({ redirectTo: '/login' });
+      }
+      return { error: message };
     }
     // Le JWT contient l'état temporaire. Une nouvelle connexion émet donc une
     // session mise à jour avant la redirection vers l'espace privé.

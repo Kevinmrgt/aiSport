@@ -76,6 +76,13 @@ describe('beta tester service', () => {
 
     repository.createBetaTester.mockRejectedValueOnce(new Error('duplicate key'));
     await expect(createManagedBetaTester({ name: 'Beta', email: 'beta@example.com', generationBalance: 0, adminEmail: 'admin@example.com' })).rejects.toMatchObject({ statusCode: 400 });
+    repository.createBetaTester.mockRejectedValueOnce(Object.assign(new Error('Failed query'), {
+      cause: Object.assign(new Error('PostgreSQL constraint'), { code: '23505' }),
+    }));
+    await expect(createManagedBetaTester({ name: 'Beta', email: 'beta@example.com', generationBalance: 0, adminEmail: 'admin@example.com' })).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'Un accès bêta existe déjà pour cette adresse e-mail.',
+    });
     repository.createBetaTester.mockRejectedValueOnce(new Error('database unavailable'));
     await expect(createManagedBetaTester({ name: 'Beta', email: 'beta@example.com', generationBalance: 0, adminEmail: 'admin@example.com' })).rejects.toThrow('database unavailable');
   });

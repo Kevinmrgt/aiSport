@@ -78,10 +78,19 @@ export async function createBetaTester(input: {
   adminEmail: string;
 }): Promise<BetaTesterSummary> {
   return db.transaction(async (tx) => {
-    const [user] = await tx
+    const [createdUser] = await tx
       .insert(users)
       .values({ name: input.name, email: input.email })
+      .onConflictDoNothing({ target: users.email })
       .returning({ id: users.id, name: users.name, email: users.email });
+    let user = createdUser;
+    if (!user) {
+      [user] = await tx
+        .select({ id: users.id, name: users.name, email: users.email })
+        .from(users)
+        .where(eq(users.email, input.email))
+        .limit(1);
+    }
     if (!user) throw new Error('Création utilisateur incomplète');
     const [beta] = await tx
       .insert(betaTesters)

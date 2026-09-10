@@ -15,6 +15,18 @@ import {
 import { createTemporaryPassword, hashPassword, verifyPassword } from './password.service.js';
 import { AppError } from '../types/app-error.js';
 
+function isUniqueConstraintError(error: unknown): boolean {
+  let current = error;
+  for (let depth = 0; depth < 5 && current; depth += 1) {
+    if (typeof current !== 'object') return false;
+    const detail = current as { code?: unknown; message?: unknown; cause?: unknown };
+    if (detail.code === '23505') return true;
+    if (typeof detail.message === 'string' && /unique|duplicate/i.test(detail.message)) return true;
+    current = detail.cause;
+  }
+  return false;
+}
+
 export async function authorizeBeta(email: string, password: string) {
   const beta = await findBetaForAuthentication(email.toLowerCase());
   if (!beta || beta.active !== 1 || !(await verifyPassword(password, beta.passwordHash))) return null;
@@ -61,9 +73,9 @@ export async function createManagedBetaTester(input: {
     });
     return { beta, temporaryPassword };
   } catch (error) {
-    // PostgreSQL garde l'unicité de l'e-mail : ne pas révéler de détails SQL.
-    if (error instanceof Error && /unique|duplicate/i.test(error.message)) {
-      throw AppError.badRequest('Un compte utilise déjà cette adresse e-mail.');
+    // Drizzle peut encapsuler l'erreur PostgreSQL dans `cause`.
+    if (isUniqueConstraintError(error)) {
+      throw AppError.badRequest('Un accès bêta existe déjà pour cette adresse e-mail.');
     }
     throw error;
   }

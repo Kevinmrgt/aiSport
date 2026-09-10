@@ -138,6 +138,21 @@ describeWithDatabase('repositories PostgreSQL', () => {
     });
     const betaUserId = created.userId;
 
+    const existingUserBeta = await createBetaTester({
+      name: 'Nom beta ignore car le compte existe déjà',
+      email: ownerEmail,
+      passwordHash: 'existing-user-hash',
+      generationBalance: 2,
+      sessionVersion: randomUUID(),
+      adminEmail: 'admin@alcide.test',
+    });
+    expect(existingUserBeta).toMatchObject({
+      userId: ownerId,
+      email: ownerEmail,
+      name: 'Integration owner',
+      generationBalance: 2,
+    });
+
     await expect(findBetaForAuthentication(betaEmail)).resolves.toMatchObject({
       userId: betaUserId,
       passwordHash: 'initial-hash',

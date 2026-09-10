@@ -58,7 +58,7 @@ export function BetaAdminPanel({ initialBetaTesters, createBetaTester, adjustCre
       {temporaryPassword && (
         <section className="rounded-[1.25rem] border border-primary-300/40 bg-primary-300/10 p-5" role="status">
           <h2 className="font-bold">Mot de passe temporaire</h2>
-          <p className="mt-2 text-sm">Copiez-le maintenant et transmettez-le au testeur. Il ne sera plus affiché.</p>
+          <p className="mt-2 text-sm">Copiez-le maintenant et transmettez-le au testeur. Il devra se reconnecter avec ce mot de passe avant de le modifier. Il ne sera plus affiché.</p>
           <code className="mt-3 block break-all rounded-lg bg-black/30 p-3 text-base text-white">{temporaryPassword}</code>
           <Button variant="secondary" size="sm" className="mt-4" onClick={() => setTemporaryPassword(null)}>J’ai bien copié</Button>
         </section>
@@ -98,6 +98,7 @@ export function BetaAdminPanel({ initialBetaTesters, createBetaTester, adjustCre
                   if (result.error || !result.data) return setNotice(result.error ?? 'Réinitialisation impossible.');
                   setTemporaryPassword(result.data.temporaryPassword);
                   setTesters((current) => current.map((item) => item.userId === tester.userId ? { ...item, mustChangePassword: true } : item));
+                  setNotice('Mot de passe réinitialisé. La session en cours du testeur a été déconnectée.');
                 })}>Réinitialiser le mot de passe</Button>
                 <Button size="sm" variant={tester.active ? 'danger' : 'primary'} disabled={isPending} onClick={() => run(async () => {
                   const result = await setStatus(tester.userId, !tester.active);
