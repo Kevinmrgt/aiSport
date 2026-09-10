@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createHaloBackground, type HaloBackground } from './halo-background';
+import { createCellsBackground } from './cells-background';
 
-describe('cycle de vie du fond Halo', () => {
+describe.each([
+  { name: 'Halo', createBackground: createHaloBackground, passes: 2 },
+  { name: 'Cells', createBackground: createCellsBackground, passes: 1 },
+])('cycle de vie du fond $name', ({ createBackground, passes }) => {
   let canvas: HTMLCanvasElement;
   let background: HaloBackground | null;
   let hidden: boolean;
@@ -90,7 +94,7 @@ describe('cycle de vie du fond Halo', () => {
   });
 
   it('limite la résolution GPU tout en conservant les dimensions du motif', () => {
-    background = createHaloBackground(canvas);
+    background = createBackground(canvas);
     expect(canvas.width * canvas.height).toBeLessThan(652_000);
     expect(gl.uniform2f).toHaveBeenLastCalledWith(expect.anything(), 1920, 1080);
     const initialDraws = gl.drawArrays.mock.calls.length;
@@ -108,14 +112,14 @@ describe('cycle de vie du fond Halo', () => {
   });
 
   it('arrête les calculs en pause, hors de l’onglet et après démontage', () => {
-    background = createHaloBackground(canvas);
+    background = createBackground(canvas);
     const initialDraws = gl.drawArrays.mock.calls.length;
     background!.setPaused(false);
     nextFrame(100);
     nextFrame(110);
-    expect(gl.drawArrays).toHaveBeenCalledTimes(initialDraws + 2);
+    expect(gl.drawArrays).toHaveBeenCalledTimes(initialDraws + passes);
     nextFrame(140);
-    expect(gl.drawArrays).toHaveBeenCalledTimes(initialDraws + 4);
+    expect(gl.drawArrays).toHaveBeenCalledTimes(initialDraws + passes * 2);
     hidden = true;
     document.dispatchEvent(new Event('visibilitychange'));
     expect(frames.size).toBe(0);
@@ -130,14 +134,14 @@ describe('cycle de vie du fond Halo', () => {
     expect(frames.size).toBe(0);
     expect(disconnect).toHaveBeenCalledTimes(1);
     expect(gl.deleteShader).toHaveBeenCalledTimes(2);
-    expect(gl.deleteTexture).toHaveBeenCalledTimes(2);
-    expect(gl.deleteFramebuffer).toHaveBeenCalledTimes(1);
+    expect(gl.deleteTexture).toHaveBeenCalledTimes(passes === 2 ? 2 : 0);
+    expect(gl.deleteFramebuffer).toHaveBeenCalledTimes(passes === 2 ? 1 : 0);
     document.dispatchEvent(new Event('visibilitychange'));
     expect(frames.size).toBe(0);
   });
 
   it('revient au fond CSS si le contexte graphique est perdu', () => {
-    background = createHaloBackground(canvas);
+    background = createBackground(canvas);
     const initialDraws = gl.drawArrays.mock.calls.length;
     background!.setPaused(false);
     canvas.dispatchEvent(new Event('webglcontextlost'));
@@ -147,22 +151,26 @@ describe('cycle de vie du fond Halo', () => {
     expect(gl.drawArrays).toHaveBeenCalledTimes(initialDraws);
   });
 
-  it.each(['absent', 'interdit', 'compilation', 'liaison', 'allocation', 'feedback'])(
-    'ne bloque pas la page lorsque WebGL échoue : %s',
-    (failure) => {
-      if (failure === 'absent') vi.spyOn(canvas, 'getContext').mockReturnValue(null);
-      if (failure === 'interdit')
-        vi.spyOn(canvas, 'getContext').mockImplementation(() => {
-          throw new Error('WebGL interdit');
-        });
-      if (failure === 'compilation') gl.getShaderParameter.mockReturnValue(false);
-      if (failure === 'liaison') gl.getProgramParameter.mockReturnValue(false);
-      if (failure === 'allocation') gl.createShader.mockReturnValue(null as unknown as object);
-      if (failure === 'feedback') gl.createTexture.mockReturnValue(null as unknown as object);
-      background = createHaloBackground(canvas);
-      expect(background).toBeNull();
-      expect(frames.size).toBe(0);
-      expect(gl.drawArrays).not.toHaveBeenCalled();
-    },
-  );
+  it.each([
+    'absent',
+    'interdit',
+    'compilation',
+    'liaison',
+    'allocation',
+    ...(passes === 2 ? ['feedback'] : []),
+  ])('ne bloque pas la page lorsque WebGL échoue : %s', (failure) => {
+    if (failure === 'absent') vi.spyOn(canvas, 'getContext').mockReturnValue(null);
+    if (failure === 'interdit')
+      vi.spyOn(canvas, 'getContext').mockImplementation(() => {
+        throw new Error('WebGL interdit');
+      });
+    if (failure === 'compilation') gl.getShaderParameter.mockReturnValue(false);
+    if (failure === 'liaison') gl.getProgramParameter.mockReturnValue(false);
+    if (failure === 'allocation') gl.createShader.mockReturnValue(null as unknown as object);
+    if (failure === 'feedback') gl.createTexture.mockReturnValue(null as unknown as object);
+    background = createBackground(canvas);
+    expect(background).toBeNull();
+    expect(frames.size).toBe(0);
+    expect(gl.drawArrays).not.toHaveBeenCalled();
+  });
 });

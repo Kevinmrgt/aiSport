@@ -1,5 +1,7 @@
-Alcide's home background adapts the Halo shader from Vanta.js.
-Source: https://github.com/tengbao/vanta/blob/master/src/vanta.halo.js
+Alcide's backgrounds adapt the Halo and Cells shaders from Vanta.js.
+Sources:
+https://github.com/tengbao/vanta/blob/master/src/vanta.halo.js
+https://github.com/tengbao/vanta/blob/master/src/vanta.cells.js
 The palette, renderer, animation lifecycle and controls are adapted for Alcide.
 
 Copyright 2020 Teng Bao

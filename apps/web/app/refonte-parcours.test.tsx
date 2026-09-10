@@ -206,25 +206,24 @@ describe('parcours préservés par la refonte', () => {
 
   it.each([
     ['/', 'halo'],
-    ['/login', 'textile'],
-    ['/generate', 'textile'],
-    ['/programs/generate', 'textile'],
-    ['/dashboard', 'performance'],
-    ['/workouts/123', 'motion'],
-    ['/programs/123', 'motion'],
-    ['/programs/123/sessions/1-1', 'motion'],
-    ['/programs', 'motion'],
-    ['/settings', 'motion'],
+    ['/login', 'cells'],
+    ['/generate', 'cells'],
+    ['/programs/generate', 'cells'],
+    ['/dashboard', 'cells'],
+    ['/workouts', 'cells'],
+    ['/workouts/123', 'cells'],
+    ['/programs/123', 'cells'],
+    ['/programs/123/sessions/1-1', 'cells'],
+    ['/programs', 'cells'],
+    ['/settings', 'cells'],
+    ['/confidentialite', 'cells'],
+    ['/page-inconnue', 'cells'],
   ])('conserve le fond décoratif adapté à %s', (path, background) => {
     pathnameMock.mockReturnValue(path);
     const { container } = render(<RouteBackdrop />);
     const backdrop = container.firstElementChild!;
     expect(backdrop.getAttribute('aria-hidden')).toBe('true');
     expect(backdrop.getAttribute('data-background')).toBe(background);
-    if (background === 'halo') {
-      expect(backdrop.querySelector('canvas')).not.toBeNull();
-    } else {
-      expect(backdrop.getAttribute('style')).toContain(`/visuals/refonte-${background}.webp`);
-    }
+    expect(backdrop.querySelector('canvas')).not.toBeNull();
   });
 });

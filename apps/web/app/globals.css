@@ -41,8 +41,14 @@ fieldset,
   background-position: center;
   background-color: #051f20;
 }
-.route-backdrop[data-background='motion'] {
-  background-position: 50% 45%;
+.route-cells {
+  background-image:
+    radial-gradient(ellipse at 80% 25%, rgb(160 196 170 / 0.18), transparent 55%),
+    radial-gradient(ellipse at 25% 80%, #316453, #0b2b27 75%);
+}
+/* Reserve the animation toolbar above page titles, including narrow screens. */
+.route-cells ~ .app-container {
+  padding-top: 80px;
 }
 .home-halo {
   background-image:
@@ -54,16 +60,17 @@ fieldset,
     ),
     radial-gradient(ellipse at 70% 20%, #1c4137, #0b2b27 75%);
 }
-.home-halo-canvas {
+.animated-background-canvas {
   display: block;
   width: 100%;
   height: 100%;
   opacity: 0;
 }
-.home-halo-canvas[data-ready='true'] {
+.animated-background-canvas[data-ready='true'] {
   opacity: 1;
 }
-.home-halo::after {
+.home-halo::after,
+.route-cells::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -950,7 +957,7 @@ button:disabled {
   min-height: 100dvh;
   height: 100dvh;
   overflow: auto;
-  background: #051f20 url('/visuals/refonte-motion.webp') center/cover;
+  background: rgb(5 31 32 / 0.3);
   padding: 40px 24px;
   gap: 28px;
   justify-content: flex-start;
@@ -958,6 +965,10 @@ button:disabled {
   padding-bottom: max(24px, env(safe-area-inset-bottom));
   padding-left: max(24px, env(safe-area-inset-left));
   padding-right: max(24px, env(safe-area-inset-right));
+}
+/* Reuse the page canvas behind the fullscreen timer, without a second effect. */
+body:has(> .timer-fullscreen) > .route-backdrop {
+  z-index: 9998;
 }
 /* Center when there is room; keep the first control reachable when scrolling. */
 .timer-fullscreen > * {
