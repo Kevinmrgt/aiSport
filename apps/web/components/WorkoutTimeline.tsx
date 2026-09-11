@@ -1,5 +1,6 @@
 import { buildSessionSchedule, type Exercise, type Phase } from '@alcide/shared';
 import { Icon } from './ui/Icon';
+import { WorkoutTimelineTrack } from './WorkoutTimelineTrack';
 
 interface WorkoutTimelineProps {
   exercises: Exercise[];
@@ -18,6 +19,7 @@ interface TimelineBlock {
   tips?: string;
   restSeconds?: number;
   exerciseIndex?: number;
+  previewLabel: string;
 }
 
 function buildBlocks(exercises: Exercise[], warmup?: Phase[], cooldown?: Phase[]): TimelineBlock[] {
@@ -33,6 +35,12 @@ function buildBlocks(exercises: Exercise[], warmup?: Phase[], cooldown?: Phase[]
     return {
       id: step.id,
       label: step.title,
+      previewLabel:
+        step.type === 'rest' && exercise
+          ? `Après ${exercise.name}`
+          : step.type === 'transition'
+            ? (step.description ?? step.title)
+            : step.title,
       type: step.type,
       seconds: step.plannedSeconds,
       isTimed: step.durationSeconds !== null,
@@ -109,20 +117,27 @@ export function WorkoutTimeline({ exercises, warmup, cooldown }: WorkoutTimeline
           séries, les repos et les transitions.
         </p>
       )}
-      <div
-        className="flex h-3 gap-0.5 overflow-hidden rounded-full"
-        role="img"
-        aria-label={`Timeline de ${totalLabel}`}
-      >
-        {blocks.map((block) => (
-          <div
-            key={block.id}
-            className={`${TYPE_STYLES[block.type]} min-w-0`}
-            style={{ flexBasis: getBlockWidth(block, totalTimedSeconds), flexShrink: 1 }}
-            title={`${block.label} - ${block.isTimed ? formatDuration(block.seconds) : 'libre'}`}
-          />
-        ))}
-      </div>
+      <WorkoutTimelineTrack
+        label={`Timeline de ${totalLabel}`}
+        segments={blocks.map((block) => ({
+          id: block.id,
+          label: block.previewLabel,
+          phase: TYPE_LABELS[block.type],
+          color: TYPE_STYLES[block.type],
+          width: getBlockWidth(block, totalTimedSeconds),
+          detail:
+            block.type === 'rest'
+              ? (block.description ?? '')
+              : block.type === 'exercise'
+                ? (block.sublabel ?? '')
+                : '',
+          duration: block.isTimed
+            ? formatDuration(block.seconds)
+            : block.seconds > 0
+              ? `≈ ${formatDuration(block.seconds)} · À votre rythme`
+              : 'À votre rythme',
+        }))}
+      />
       <ol className="space-y-3" aria-label="Detail des exercices">
         {blocks
           .filter((b) => b.type !== 'rest' && b.type !== 'transition')
