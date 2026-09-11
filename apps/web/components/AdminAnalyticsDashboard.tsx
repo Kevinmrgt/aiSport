@@ -56,7 +56,7 @@ function metricDetail(
 
 function Tooltip({ tooltip }: { tooltip: ChartTooltip }) {
   return (
-    <div className="mt-3 min-h-12" aria-live="polite">
+    <div className="mt-2 min-h-10" aria-live="polite">
       {tooltip && (
         <div
           role="status"
@@ -120,8 +120,8 @@ export function AdminAnalyticsDashboard({ analytics }: Pick<AdminOverview, 'anal
   const sportsMax = Math.max(1, ...sports.map((entry) => entry.total));
 
   return (
-    <section aria-labelledby="admin-analytics-title" className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <section aria-labelledby="admin-analytics-title" className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="section-kicker">Pilotage</p>
           <h2 id="admin-analytics-title" className="panel-title mt-1">
@@ -170,7 +170,7 @@ export function AdminAnalyticsDashboard({ analytics }: Pick<AdminOverview, 'anal
       </div>
 
       <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="glass-soft p-4">
+        <div className="glass-soft p-3">
           <dt className="muted-copy text-xs">{metricLabels[metric]}</dt>
           <dd className="mt-1 text-2xl font-black text-primary-100">
             {totalMetric.toLocaleString('fr-FR')}
@@ -179,21 +179,21 @@ export function AdminAnalyticsDashboard({ analytics }: Pick<AdminOverview, 'anal
             sur {rangeLabels[timeRange].toLowerCase()}
           </p>
         </div>
-        <div className="glass-soft p-4">
+        <div className="glass-soft p-3">
           <dt className="muted-copy text-xs">Contenus créés</dt>
           <dd className="mt-1 text-2xl font-black text-primary-100">
             {totalCreations.toLocaleString('fr-FR')}
           </dd>
           <p className="mt-1 text-xs text-primary-100/75">séances et programmes</p>
         </div>
-        <div className="glass-soft p-4">
+        <div className="glass-soft p-3">
           <dt className="muted-copy text-xs">Membres acquis</dt>
           <dd className="mt-1 text-2xl font-black text-primary-100">
             {totalNewMembers.toLocaleString('fr-FR')}
           </dd>
           <p className="mt-1 text-xs text-primary-100/75">nouvelles inscriptions</p>
         </div>
-        <div className="glass-soft p-4">
+        <div className="glass-soft p-3">
           <dt className="muted-copy text-xs">Visites</dt>
           <dd className="mt-1 text-2xl font-black text-primary-100">
             {totalVisits.toLocaleString('fr-FR')}
@@ -202,9 +202,9 @@ export function AdminAnalyticsDashboard({ analytics }: Pick<AdminOverview, 'anal
         </div>
       </dl>
 
-      <div className="grid gap-5 xl:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-2">
         <article className="glass-panel panel-padding" aria-labelledby="activity-chart-title">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start justify-between gap-3">
             <div>
               <h3 id="activity-chart-title" className="panel-title text-xl">
                 {metricLabels[metric]}
@@ -213,7 +213,7 @@ export function AdminAnalyticsDashboard({ analytics }: Pick<AdminOverview, 'anal
             </div>
             <span className="premium-chip">{rangeLabels[timeRange]}</span>
           </div>
-          <div className="mt-6 flex h-56 items-end gap-1.5 border-b border-white/20 pb-6">
+          <div className="mt-4 flex h-44 items-end gap-1.5 border-b border-white/20 pb-5">
             {daily.map((entry, index) => {
               const value = valueForMetric(entry, metric);
               const labelVisible =
@@ -256,7 +256,7 @@ export function AdminAnalyticsDashboard({ analytics }: Pick<AdminOverview, 'anal
             Acquisition membres
           </h3>
           <p className="muted-copy mt-1 text-sm">Nouvelles inscriptions par jour</p>
-          <div className="relative mt-6 h-44">
+          <div className="relative mt-4 h-40">
             <svg
               className="h-full w-full overflow-visible"
               viewBox="0 0 100 100"
@@ -315,7 +315,7 @@ export function AdminAnalyticsDashboard({ analytics }: Pick<AdminOverview, 'anal
         </article>
 
         <article className="glass-panel panel-padding" aria-labelledby="visits-chart-title">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start justify-between gap-3">
             <div>
               <h3 id="visits-chart-title" className="panel-title text-xl">
                 Visites de la plateforme
@@ -326,7 +326,7 @@ export function AdminAnalyticsDashboard({ analytics }: Pick<AdminOverview, 'anal
             </div>
             <span className="premium-chip">{rangeLabels[timeRange]}</span>
           </div>
-          <div className="mt-6 flex h-56 items-end gap-1.5 border-b border-white/20 pb-6">
+          <div className="mt-4 flex h-44 items-end gap-1.5 border-b border-white/20 pb-5">
             {daily.map((entry, index) => {
               const labelVisible =
                 index === 0 ||
@@ -387,10 +387,10 @@ export function AdminAnalyticsDashboard({ analytics }: Pick<AdminOverview, 'anal
           </span>
         </div>
         {sports.length === 0 ? (
-          <p className="muted-copy mt-5">Aucune activité sportive sur cette période.</p>
+          <p className="muted-copy mt-4">Aucune activité sportive sur cette période.</p>
         ) : (
           <>
-            <ol className="mt-5 space-y-4">
+            <ol className="mt-4 space-y-3">
               {sports.map((entry) => {
                 const tooltip = {
                   title: entry.sport.charAt(0).toUpperCase() + entry.sport.slice(1),

@@ -22,10 +22,10 @@ function formText(formData: FormData, name: string): string {
 
 function Metric({ label, value, detail }: { label: string; value: number; detail: string }) {
   return (
-    <div className="metric-card p-5">
+    <div className="metric-card p-4">
       <dt className="muted-copy text-sm">{label}</dt>
-      <dd className="mt-2 text-3xl font-black text-primary-100">{value.toLocaleString('fr-FR')}</dd>
-      <p className="mt-2 text-xs text-primary-100/80">{detail}</p>
+      <dd className="mt-1 text-2xl font-black text-primary-100">{value.toLocaleString('fr-FR')}</dd>
+      <p className="mt-1 text-xs text-primary-100/80">{detail}</p>
     </div>
   );
 }
@@ -90,7 +90,7 @@ export function BetaAdminPanel({
   );
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-5">
       <nav className="glass-panel overflow-x-auto p-2" aria-label="Sous-menus administration">
         <div className="flex min-w-max gap-1" role="tablist" aria-label="Sections d'administration">
           {adminSections.map((item) => {
@@ -104,7 +104,7 @@ export function BetaAdminPanel({
                 aria-selected={isActive}
                 aria-controls={`admin-panel-${item.id}`}
                 onClick={() => setSection(item.id)}
-                className={`rounded-2xl px-4 py-3 text-left transition-colors ${isActive ? 'bg-primary-200 text-ink shadow-lg' : 'text-primary-100 hover:bg-white/10'}`}
+                className={`rounded-2xl px-3 py-2.5 text-left transition-colors ${isActive ? 'bg-primary-200 text-ink shadow-lg' : 'text-primary-100 hover:bg-white/10'}`}
               >
                 <span className="block text-sm font-black">{item.label}</span>
                 <span
@@ -121,7 +121,7 @@ export function BetaAdminPanel({
       {notice && (
         <p
           role="status"
-          className="rounded-xl border border-primary-300/35 bg-primary-300/10 px-4 py-3 text-sm text-primary-100"
+          className="rounded-xl border border-primary-300/35 bg-primary-300/10 px-3 py-2 text-sm text-primary-100"
         >
           {notice}
         </p>
@@ -132,7 +132,7 @@ export function BetaAdminPanel({
           id="admin-panel-overview"
           role="tabpanel"
           aria-labelledby="admin-tab-overview"
-          className="space-y-7"
+          className="space-y-5"
         >
           <section aria-labelledby="admin-stats-title">
             <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
@@ -146,7 +146,7 @@ export function BetaAdminPanel({
                 Les indicateurs généraux sont mis à jour au chargement.
               </p>
             </div>
-            <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <Metric
                 label="Membres"
                 value={totalUsers}
@@ -178,7 +178,7 @@ export function BetaAdminPanel({
           id="admin-panel-beta"
           role="tabpanel"
           aria-labelledby="admin-tab-beta"
-          className="space-y-7"
+          className="space-y-5"
         >
           <section className="glass-panel panel-padding" aria-labelledby="create-beta-title">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -197,7 +197,7 @@ export function BetaAdminPanel({
             </div>
             <form
               key={settings.defaultBetaGenerationBalance}
-              className="mt-5 grid gap-4 md:grid-cols-2"
+              className="mt-4 grid gap-3 md:grid-cols-2"
               onSubmit={(event) => {
                 event.preventDefault();
                 const formData = new FormData(event.currentTarget);
@@ -251,7 +251,7 @@ export function BetaAdminPanel({
 
           {temporaryPassword && (
             <section
-              className="rounded-[1.25rem] border border-primary-300/40 bg-primary-300/10 p-5"
+              className="rounded-[1.25rem] border border-primary-300/40 bg-primary-300/10 p-4"
               role="status"
             >
               <h2 className="font-bold">Code temporaire à 6 chiffres</h2>
@@ -286,12 +286,12 @@ export function BetaAdminPanel({
                 générations
               </span>
             </div>
-            <div className="mt-5 space-y-4">
+            <div className="mt-4 space-y-3">
               {testers.length === 0 ? (
                 <p className="muted-copy">Aucun compte bêta pour le moment.</p>
               ) : (
                 testers.map((tester) => (
-                  <article key={tester.userId} className="rounded-2xl border border-white/10 p-4">
+                  <article key={tester.userId} className="rounded-2xl border border-white/10 p-3">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <h3 className="font-bold">{tester.name ?? tester.email}</h3>
@@ -301,13 +301,13 @@ export function BetaAdminPanel({
                         {tester.active ? 'Actif' : 'Désactivé'}
                       </span>
                     </div>
-                    <p className="mt-3 text-sm">
+                    <p className="mt-2 text-sm">
                       <strong>{tester.generationBalance}</strong> génération
                       {tester.generationBalance === 1 ? '' : 's'} disponible
                       {tester.generationBalance === 1 ? '' : 's'}
                       {tester.mustChangePassword ? ' · mot de passe à changer' : ''}
                     </p>
-                    <div className="mt-4 flex flex-wrap gap-2">
+                    <div className="mt-3 flex flex-wrap gap-2">
                       <form
                         className="flex flex-wrap items-end gap-2"
                         onSubmit={(event) => {
@@ -468,11 +468,11 @@ export function BetaAdminPanel({
                   ?.label ?? settings.defaultAiModel}
               </span>
             </div>
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
               {overview.availableModels.map((model) => (
                 <article
                   key={model.id}
-                  className={`rounded-2xl border p-4 ${settings.defaultAiModel === model.id ? 'border-primary-200 bg-primary-200/15' : 'border-white/10 bg-black/10'}`}
+                  className={`rounded-2xl border p-3 ${settings.defaultAiModel === model.id ? 'border-primary-200 bg-primary-200/15' : 'border-white/10 bg-black/10'}`}
                 >
                   <p className="text-sm font-black">{model.label}</p>
                   <p className="muted-copy mt-2 text-xs">
@@ -484,7 +484,7 @@ export function BetaAdminPanel({
               ))}
             </div>
             <form
-              className="mt-6 flex flex-wrap items-end gap-4"
+              className="mt-4 flex flex-wrap items-end gap-3"
               onSubmit={(event) => {
                 event.preventDefault();
                 persistSettings(
@@ -542,7 +542,7 @@ export function BetaAdminPanel({
               <span className="premium-chip">Gestion des accès</span>
             </div>
             <form
-              className="mt-6 flex flex-wrap items-end gap-4"
+              className="mt-4 flex flex-wrap items-end gap-3"
               onSubmit={(event) => {
                 event.preventDefault();
                 persistSettings(
@@ -580,17 +580,17 @@ export function BetaAdminPanel({
             </form>
           </section>
           <section
-            className="grid gap-4 sm:grid-cols-2"
+            className="grid gap-3 sm:grid-cols-2"
             aria-label="Récapitulatif de configuration"
           >
-            <article className="glass-soft p-5">
+            <article className="glass-soft p-4">
               <p className="muted-copy text-sm">Modèle par défaut</p>
               <p className="mt-2 font-black">
                 {overview.availableModels.find((model) => model.id === settings.defaultAiModel)
                   ?.label ?? settings.defaultAiModel}
               </p>
             </article>
-            <article className="glass-soft p-5">
+            <article className="glass-soft p-4">
               <p className="muted-copy text-sm">Dotation bêta initiale</p>
               <p className="mt-2 font-black">
                 {settings.defaultBetaGenerationBalance.toLocaleString('fr-FR')} générations
