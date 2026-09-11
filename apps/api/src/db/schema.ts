@@ -270,6 +270,17 @@ export const sessionLogs = pgTable(
   ],
 );
 
+// Comptage agrégé de fréquentation. Aucune identité, adresse IP ou URL détaillée
+// n'est conservée : chaque ligne représente uniquement une ouverture de page.
+export const pageVisits = pgTable(
+  'page_visits',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('page_visits_occurred_idx').on(table.occurredAt)],
+);
+
 // Paramètres IA par utilisateur (clé API chiffrée AES-256-GCM, provider, modèle)
 // OWASP A02: clé API chiffrée côté serveur avant stockage
 export const userSettings = pgTable('user_settings', {
@@ -323,3 +334,4 @@ export type TrainingProgramRow = typeof trainingPrograms.$inferSelect;
 export type NewTrainingProgramRow = typeof trainingPrograms.$inferInsert;
 export type SessionLogRow = typeof sessionLogs.$inferSelect;
 export type NewSessionLogRow = typeof sessionLogs.$inferInsert;
+export type PageVisitRow = typeof pageVisits.$inferSelect;

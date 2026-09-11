@@ -489,6 +489,7 @@ describeWithDatabase('repositories PostgreSQL', () => {
   it('calcule les statistiques globales de la plateforme', async () => {
     const { getAdminPlatformAnalytics, getAdminPlatformStats } =
       await import('../src/repositories/admin-dashboard.repository.js');
+    const { recordPageVisit } = await import('../src/repositories/visitor-analytics.repository.js');
 
     const stats = await getAdminPlatformStats();
 
@@ -502,12 +503,16 @@ describeWithDatabase('repositories PostgreSQL', () => {
     expect(stats.completedSessionCount).toBe(3);
     expect(stats.newUsersLast30Days).toBeGreaterThanOrEqual(4);
 
+    await recordPageVisit();
+    await recordPageVisit();
+
     const analytics = await getAdminPlatformAnalytics();
     expect(analytics.daily).toHaveLength(90);
     expect(analytics.daily.every((day) => /^\d{4}-\d{2}-\d{2}$/.test(day.date))).toBe(true);
     expect(analytics.daily.some((day) => day.workouts > 0)).toBe(true);
     expect(analytics.daily.some((day) => day.programs > 0)).toBe(true);
     expect(analytics.daily.some((day) => day.completedSessions > 0)).toBe(true);
+    expect(analytics.daily.some((day) => day.visits >= 2)).toBe(true);
     expect(analytics.sportActivity).toEqual(
       expect.arrayContaining([expect.objectContaining({ sport: 'course' })]),
     );

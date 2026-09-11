@@ -9,6 +9,7 @@ import { RouteBackdrop } from '@/components/RouteBackdrop';
 import { isLocalPreview } from '@/lib/local-preview';
 import { isAdminEmail } from '@/lib/admin';
 import { BetaPasswordGuard } from '@/components/BetaPasswordGuard';
+import { VisitTracker } from '@/components/VisitTracker';
 
 const bodyFont = Urbanist({
   subsets: ['latin'],
@@ -43,16 +44,19 @@ export default async function RootLayout({ children }: { readonly children: Reac
   const navItems = isAdminEmail(session?.user?.email)
     ? [...NAV_ITEMS, { href: '/admin', label: 'Admin', icon: 'user' as const }]
     : NAV_ITEMS;
-  const sessionUser = session?.user as {
-    authMethod?: 'standard' | 'jury' | 'beta';
-    betaMustChangePassword?: boolean;
-  } | undefined;
+  const sessionUser = session?.user as
+    | {
+        authMethod?: 'standard' | 'jury' | 'beta';
+        betaMustChangePassword?: boolean;
+      }
+    | undefined;
   const mustChangeBetaPassword =
     sessionUser?.authMethod === 'beta' && sessionUser.betaMustChangePassword === true;
   return (
     <html lang="fr">
       <body className={`${bodyFont.variable} ${displayFont.variable} font-sans antialiased`}>
         <RouteBackdrop />
+        <VisitTracker />
         <BetaPasswordGuard mustChangePassword={mustChangeBetaPassword} />
         <a href="#main-content" className="skip-link">
           Aller au contenu principal
@@ -73,7 +77,9 @@ export default async function RootLayout({ children }: { readonly children: Reac
                   <Link href="/programs" className="nav-link">
                     Les programmes
                   </Link>
-                  <Link href="/tarifs" className="nav-link">Les offres</Link>
+                  <Link href="/tarifs" className="nav-link">
+                    Les offres
+                  </Link>
                 </>
               )}
             </div>
@@ -104,9 +110,22 @@ export default async function RootLayout({ children }: { readonly children: Reac
           <Link href="/confidentialite">Confidentialité et données personnelles</Link>
         </footer>
         {session?.user && (
-          <nav className="bottom-dock" aria-label="Navigation mobile" style={navItems.length > 5 ? { gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` } : undefined}>
+          <nav
+            className="bottom-dock"
+            aria-label="Navigation mobile"
+            style={
+              navItems.length > 5
+                ? { gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }
+                : undefined
+            }
+          >
             {navItems.map((item) => (
-              <ActiveNavLink key={item.href} {...item} label={item.href === '/abonnement' ? 'Offre' : item.label} compact />
+              <ActiveNavLink
+                key={item.href}
+                {...item}
+                label={item.href === '/abonnement' ? 'Offre' : item.label}
+                compact
+              />
             ))}
           </nav>
         )}

@@ -26,9 +26,30 @@ const overview = {
   },
   analytics: {
     daily: [
-      { date: '2026-09-08', newUsers: 0, workouts: 1, programs: 0, completedSessions: 2 },
-      { date: '2026-09-09', newUsers: 1, workouts: 2, programs: 1, completedSessions: 3 },
-      { date: '2026-09-10', newUsers: 0, workouts: 0, programs: 0, completedSessions: 1 },
+      {
+        date: '2026-09-08',
+        newUsers: 0,
+        workouts: 1,
+        programs: 0,
+        completedSessions: 2,
+        visits: 6,
+      },
+      {
+        date: '2026-09-09',
+        newUsers: 1,
+        workouts: 2,
+        programs: 1,
+        completedSessions: 3,
+        visits: 11,
+      },
+      {
+        date: '2026-09-10',
+        newUsers: 0,
+        workouts: 0,
+        programs: 0,
+        completedSessions: 1,
+        visits: 4,
+      },
     ],
     sportActivity: [
       { date: '2026-09-08', sport: 'course', workouts: 1, completedSessions: 2 },
@@ -138,7 +159,11 @@ describe('BetaAdminPanel', () => {
     fireEvent.change(screen.getByLabelText('Indicateur du graphique'), {
       target: { value: 'members' },
     });
-    expect(screen.getByRole('img', { name: /Nouveaux membres sur 7 derniers jours/ })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Nouveaux membres' })).toBeTruthy();
+    expect(screen.getByText('Visites de la plateforme')).toBeTruthy();
+
+    fireEvent.pointerEnter(screen.getByRole('button', { name: /8 sept.*6 visites/i }));
+    expect(screen.getByRole('status').textContent).toContain('6 visites');
 
     fireEvent.click(screen.getByRole('tab', { name: /Plateforme/ }));
     expect(screen.getByRole('tabpanel', { name: /Plateforme/ })).toBeTruthy();

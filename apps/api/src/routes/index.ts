@@ -8,6 +8,7 @@ import { generationQuotaRouter } from './generation-quota.routes.js';
 import { betaAuthRouter } from './beta-auth.routes.js';
 import { adminBetaRouter } from './admin-beta.routes.js';
 import { billingRouter } from './billing.routes.js';
+import { visitorAnalyticsRouter } from './visitor-analytics.routes.js';
 
 // Registre central de toutes les routes (architecture.md)
 export function registerRoutes(app: Hono): void {
@@ -20,4 +21,5 @@ export function registerRoutes(app: Hono): void {
   app.route('/generation-quota', generationQuotaRouter);
   app.route('/auth/beta', betaAuthRouter);
   app.route('/admin', adminBetaRouter);
+  app.route('/analytics', visitorAnalyticsRouter);
 }

@@ -1,6 +1,13 @@
 import { count, eq, gte, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { betaTesters, sessionLogs, trainingPrograms, users, workouts } from '../db/schema.js';
+import {
+  betaTesters,
+  pageVisits,
+  sessionLogs,
+  trainingPrograms,
+  users,
+  workouts,
+} from '../db/schema.js';
 
 export interface AdminPlatformStats {
   totalUsers: number;
@@ -21,6 +28,7 @@ export interface AdminPlatformAnalytics {
     workouts: number;
     programs: number;
     completedSessions: number;
+    visits: number;
   }>;
   sportActivity: Array<{
     date: string;
@@ -36,6 +44,7 @@ interface DailyAnalyticsRow extends Record<string, unknown> {
   workouts: number;
   programs: number;
   completedSessions: number;
+  visits: number;
 }
 
 interface SportActivityRow extends Record<string, unknown> {
@@ -116,18 +125,26 @@ export async function getAdminPlatformAnalytics(): Promise<AdminPlatformAnalytic
         FROM session_logs
         WHERE completed_at >= current_date - interval '89 days'
         GROUP BY completed_at::date
+      ),
+      visit_counts AS (
+        SELECT occurred_at::date AS date, count(*)::integer AS value
+        FROM ${pageVisits}
+        WHERE occurred_at >= current_date - interval '89 days'
+        GROUP BY occurred_at::date
       )
       SELECT
         to_char(days.date, 'YYYY-MM-DD') AS "date",
         coalesce(new_users.value, 0)::integer AS "newUsers",
         coalesce(generated_workouts.value, 0)::integer AS "workouts",
         coalesce(generated_programs.value, 0)::integer AS "programs",
-        coalesce(completed_sessions.value, 0)::integer AS "completedSessions"
+        coalesce(completed_sessions.value, 0)::integer AS "completedSessions",
+        coalesce(visit_counts.value, 0)::integer AS "visits"
       FROM days
       LEFT JOIN new_users USING (date)
       LEFT JOIN generated_workouts USING (date)
       LEFT JOIN generated_programs USING (date)
       LEFT JOIN completed_sessions USING (date)
+      LEFT JOIN visit_counts USING (date)
       ORDER BY days.date
     `),
     db.execute<SportActivityRow>(sql`
@@ -167,6 +184,7 @@ export async function getAdminPlatformAnalytics(): Promise<AdminPlatformAnalytic
       workouts: Number(row.workouts),
       programs: Number(row.programs),
       completedSessions: Number(row.completedSessions),
+      visits: Number(row.visits),
     })),
     sportActivity: sportActivityResult.rows.map((row) => ({
       date: row.date,

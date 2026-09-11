@@ -56,6 +56,7 @@ export interface AdminOverview {
       workouts: number;
       programs: number;
       completedSessions: number;
+      visits: number;
     }>;
     sportActivity: Array<{
       date: string;

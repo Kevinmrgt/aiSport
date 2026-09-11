@@ -44,6 +44,10 @@ export default function PrivacyPage() {
                 notes de douleur ;
               </li>
               <li>dates de création et de réalisation nécessaires à l&apos;historique.</li>
+              <li>
+                nombre d&apos;ouvertures de pages par jour, agrégé sans identifiant, adresse IP ni
+                adresse de page détaillée.
+              </li>
             </ul>
           </section>
 
@@ -98,7 +102,7 @@ export default function PrivacyPage() {
           </section>
 
           <p className="border-t border-white/10 pt-5 text-xs text-zinc-200">
-            Information mise à jour le 20 juillet 2026. Pour revenir au service, consultez{' '}
+            Information mise à jour le 11 septembre 2026. Pour revenir au service, consultez{' '}
             <Link href="/" className="font-bold text-primary-300 underline underline-offset-4">
               l&apos;accueil Alcide
             </Link>
