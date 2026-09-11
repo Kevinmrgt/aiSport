@@ -37,6 +37,25 @@ export interface BetaTesterSummary {
   createdAt: string;
 }
 
+export interface AdminOverview {
+  stats: {
+    totalUsers: number;
+    betaTesterCount: number;
+    activeBetaTesterCount: number;
+    pendingPasswordChangeCount: number;
+    availableGenerations: number;
+    workoutCount: number;
+    programCount: number;
+    completedSessionCount: number;
+    newUsersLast30Days: number;
+  };
+  settings: {
+    defaultAiModel: string;
+    defaultBetaGenerationBalance: number;
+  };
+  availableModels: Array<{ id: string; label: string }>;
+}
+
 // API_URL utilise le réseau interne en Docker. Le fallback public conserve la
 // compatibilité avec les environnements Vercel déjà configurés.
 const API_URL =
@@ -251,6 +270,15 @@ export const serverApi = {
 
   listBetaTesters: (): Promise<{ betaTesters: BetaTesterSummary[] }> =>
     serverFetch<{ betaTesters: BetaTesterSummary[] }>('/admin/beta-testers'),
+
+  getAdminOverview: (): Promise<AdminOverview> =>
+    serverFetch<AdminOverview>('/admin/overview'),
+
+  savePlatformSettings: (input: AdminOverview['settings']): Promise<{ settings: AdminOverview['settings'] }> =>
+    serverFetch<{ settings: AdminOverview['settings'] }>('/admin/platform-settings', {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
 
   createBetaTester: (input: { name: string; email: string; generationBalance: number }): Promise<BetaTesterSummary & { temporaryPassword: string }> =>
     serverFetch<BetaTesterSummary & { temporaryPassword: string }>('/admin/beta-testers', { method: 'POST', body: JSON.stringify(input) }),

@@ -1,32 +1,26 @@
 import type { Context } from 'hono';
 import { z } from 'zod';
-import { findSettingsByUser, upsertSettings } from '../repositories/settings.repository.js';
+import { findPlatformSettings, findSettingsByUser, upsertSettings } from '../repositories/settings.repository.js';
 import { AppError } from '../types/app-error.js';
 import type { AiProvider } from '../services/ai.service.js';
+import { DEFAULT_OPENAI_MODEL, normalizeOpenAiModel, OpenAiModelSchema } from '../config/ai-models.js';
 
 const DEFAULT_AI_PROVIDER: AiProvider = 'openai';
-const DEFAULT_OPENAI_MODEL = 'gpt-5.4-mini';
-const ALLOWED_OPENAI_MODELS = ['gpt-5.4-mini', 'gpt-5.4', 'gpt-5.5'] as const;
-const OpenAiModelSchema = z.enum(ALLOWED_OPENAI_MODELS);
 
 const SaveSettingsSchema = z.object({
   model: OpenAiModelSchema.optional(),
 });
-
-function normalizeOpenAiModel(model?: string | null): string {
-  const parsed = OpenAiModelSchema.safeParse(model);
-  return parsed.success ? parsed.data : DEFAULT_OPENAI_MODEL;
-}
 
 export async function handleGetSettings(ctx: Context): Promise<Response> {
   const auth = ctx.get('auth');
 
   try {
     const row = await findSettingsByUser(auth.userId);
+    const platform = row?.aiModel ? null : await findPlatformSettings();
     return ctx.json({
       provider: DEFAULT_AI_PROVIDER,
       hasApiKey: false,
-      model: normalizeOpenAiModel(row?.aiModel),
+      model: normalizeOpenAiModel(row?.aiModel ?? platform?.defaultAiModel),
     });
   } catch {
     // Table pas encore migree : renvoyer les valeurs par defaut.
@@ -74,7 +68,12 @@ export async function resolveAiConfig(userId: string): Promise<{
 
   try {
     const row = await findSettingsByUser(userId);
-    model = normalizeOpenAiModel(row?.aiModel);
+    if (row?.aiModel) {
+      model = normalizeOpenAiModel(row.aiModel);
+    } else {
+      const platform = await findPlatformSettings();
+      model = normalizeOpenAiModel(platform?.defaultAiModel);
+    }
   } catch {
     console.warn('[resolveAiConfig] user_settings table inaccessible, fallback cle serveur');
   }

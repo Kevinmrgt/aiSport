@@ -288,8 +288,29 @@ export const userSettings = pgTable('user_settings', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+// Réglages de la plateforme administrés depuis l'espace Admin. Une unique
+// ligne identifiée par "default" permet de conserver des valeurs globales
+// sans exposer de secrets ou de clés API dans l'interface.
+export const platformSettings = pgTable(
+  'platform_settings',
+  {
+    id: text('id').primaryKey().default('default'),
+    defaultAiModel: text('default_ai_model').notNull().default('gpt-5.4-mini'),
+    defaultBetaGenerationBalance: integer('default_beta_generation_balance').notNull().default(10),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('platform_settings_singleton', sql`${table.id} = 'default'`),
+    check(
+      'platform_settings_default_beta_generation_balance_range',
+      sql`${table.defaultBetaGenerationBalance} BETWEEN 1 AND 10000`,
+    ),
+  ],
+);
+
 export type UserSettings = typeof userSettings.$inferSelect;
 export type NewUserSettings = typeof userSettings.$inferInsert;
+export type PlatformSettings = typeof platformSettings.$inferSelect;
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;

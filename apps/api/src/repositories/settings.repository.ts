@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { userSettings } from '../db/schema.js';
+import { platformSettings, userSettings } from '../db/schema.js';
 import type { AiProvider } from '../services/ai.service.js';
 
 const OPENAI_PROVIDER: AiProvider = 'openai';
@@ -49,6 +49,43 @@ export async function upsertSettings(
         aiProvider: OPENAI_PROVIDER,
         aiApiKeyEncrypted: null,
         ...(data.aiModel !== undefined && { aiModel: data.aiModel }),
+        updatedAt: new Date(),
+      },
+    });
+}
+
+export async function findPlatformSettings(): Promise<{
+  defaultAiModel: string;
+  defaultBetaGenerationBalance: number;
+} | null> {
+  const [row] = await db
+    .select({
+      defaultAiModel: platformSettings.defaultAiModel,
+      defaultBetaGenerationBalance: platformSettings.defaultBetaGenerationBalance,
+    })
+    .from(platformSettings)
+    .where(eq(platformSettings.id, 'default'))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function upsertPlatformSettings(input: {
+  defaultAiModel: string;
+  defaultBetaGenerationBalance: number;
+}): Promise<void> {
+  await db
+    .insert(platformSettings)
+    .values({
+      id: 'default',
+      defaultAiModel: input.defaultAiModel,
+      defaultBetaGenerationBalance: input.defaultBetaGenerationBalance,
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: platformSettings.id,
+      set: {
+        defaultAiModel: input.defaultAiModel,
+        defaultBetaGenerationBalance: input.defaultBetaGenerationBalance,
         updatedAt: new Date(),
       },
     });
