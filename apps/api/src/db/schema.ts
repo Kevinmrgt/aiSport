@@ -1,5 +1,15 @@
 import { sql } from 'drizzle-orm';
-import { check, index, pgTable, text, timestamp, jsonb, uuid, integer } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  check,
+  index,
+  pgTable,
+  text,
+  timestamp,
+  jsonb,
+  uuid,
+  integer,
+} from 'drizzle-orm/pg-core';
 import type { Workout, TrainingProgram } from '@alcide/shared';
 
 // Table des utilisateurs — Auth.js compatible
@@ -11,6 +21,79 @@ export const users = pgTable('users', {
   image: text('image'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const billingAccounts = pgTable('billing_accounts', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  stripeCustomerId: text('stripe_customer_id').unique(),
+  checkoutSessionId: text('checkout_session_id'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+export const billingSubscriptions = pgTable(
+  'billing_subscriptions',
+  {
+    id: text('id').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => billingAccounts.userId, { onDelete: 'cascade' }),
+    status: text('status').notNull(),
+    periodEnd: timestamp('period_end', { withTimezone: true }).notNull(),
+    cancelAtPeriodEnd: boolean('cancel_at_period_end').notNull().default(false),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('billing_subscriptions_user_idx').on(table.userId)],
+);
+export const billingCreditGrants = pgTable(
+  'billing_credit_grants',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => billingAccounts.userId, { onDelete: 'cascade' }),
+    sourceKey: text('source_key').notNull().unique(),
+    subscriptionId: text('subscription_id').references(() => billingSubscriptions.id),
+    amount: integer('amount').notNull(),
+    remaining: integer('remaining').notNull(),
+    startsAt: timestamp('starts_at', { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('billing_credit_grants_user_idx').on(table.userId),
+    check('billing_credit_grants_amount_check', sql`${table.amount}>0`),
+    check(
+      'billing_credit_grants_remaining_check',
+      sql`${table.remaining}>=0 AND ${table.remaining}<=${table.amount}`,
+    ),
+    check(
+      'billing_credit_grants_check',
+      sql`${table.expiresAt} IS NULL OR ${table.expiresAt}>${table.startsAt}`,
+    ),
+  ],
+);
+export const billingCreditReservations = pgTable(
+  'billing_credit_reservations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => billingAccounts.userId, { onDelete: 'cascade' }),
+    allocations: jsonb('allocations').notNull().$type<Array<{ id: string; amount: number }>>(),
+    state: text('state').notNull().default('pending'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('billing_reservations_user_idx').on(table.userId, table.state),
+    check(
+      'billing_credit_reservations_state_check',
+      sql`${table.state} IN ('pending','committed','released')`,
+    ),
+  ],
+);
+export const billingWebhookEvents = pgTable('billing_webhook_events', {
+  id: text('id').primaryKey(),
+  processedAt: timestamp('processed_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 // Comptes OAuth liés (Auth.js)
@@ -95,7 +178,9 @@ export const betaCreditAdjustments = pgTable(
     balanceAfter: integer('balance_after').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index('beta_credit_adjustments_beta_created_idx').on(table.betaUserId, table.createdAt)],
+  (table) => [
+    index('beta_credit_adjustments_beta_created_idx').on(table.betaUserId, table.createdAt),
+  ],
 );
 
 export const workouts = pgTable(

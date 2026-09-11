@@ -19,11 +19,11 @@ export async function generateAndSaveProgram(
   input: GenerateProgramInput,
   accessMode: GenerationAccessMode = 'standard',
 ): Promise<TrainingProgramRecord> {
-  return runWithGenerationQuota(userId, accessMode, async () => {
+  return runWithGenerationQuota(userId, accessMode, async (persist) => {
     const aiConfig = await resolveAiConfig(userId);
     const program = await generateProgram(input, aiConfig);
-    return createProgram(userId, program);
-  });
+    return persist ? persist((tx) => createProgram(userId, program, tx)) : createProgram(userId, program);
+  }, input.weeks_count);
 }
 
 export async function getUserPrograms(

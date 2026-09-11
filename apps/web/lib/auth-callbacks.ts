@@ -5,6 +5,13 @@ type JwtCallback = NonNullable<NonNullable<NextAuthConfig['callbacks']>['jwt']>;
 type JwtCallbackParameters = Parameters<JwtCallback>[0];
 
 export function juryAwareJwt({ token, user, account }: JwtCallbackParameters) {
+  if (account?.provider === 'google') {
+    token.authMethod = 'standard';
+    delete token.betaSessionVersion;
+    delete token.betaMustChangePassword;
+    delete token.juryAccessExpiresAt;
+    delete token.juryAccessFingerprint;
+  }
   if (account?.provider === 'jury' && user?.id) {
     const juryUser = user as typeof user & {
       juryAccessExpiresAt?: string;

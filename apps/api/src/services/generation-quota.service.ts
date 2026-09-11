@@ -5,6 +5,7 @@ import {
   reserveGenerationSlot,
 } from '../repositories/generation-quota.repository.js';
 import { AppError } from '../types/app-error.js';
+import type { CreditPersistence } from '../repositories/billing.repository.js';
 
 export type GenerationAccessMode = 'standard' | 'jury' | 'beta';
 export const JURY_GENERATION_LIMIT = 30;
@@ -18,7 +19,9 @@ export async function getGenerationQuota(
     if (accessMode === 'beta') {
       return { mode: 'beta', limited: true, limit: null, used: 0, remaining: betaBalance ?? 0 };
     }
-    return { limited: false, limit: null, used: 0, remaining: null };
+    const { readBillingStatus } = await import('../repositories/billing.repository.js');
+    const status = await readBillingStatus(userId);
+    return { mode: 'standard', limited: true, limit: null, used: 0, remaining: status.remaining, plan: status.plan, periodEnd: status.periodEnd };
   }
 
   const used = await getGenerationQuotaUsage(userId, JURY_GENERATION_LIMIT);
@@ -33,9 +36,13 @@ export async function getGenerationQuota(
 export async function runWithGenerationQuota<T>(
   userId: string,
   accessMode: GenerationAccessMode,
-  operation: () => Promise<T>,
+  operation: (persist?: CreditPersistence) => Promise<T>,
+  creditCost = 1,
 ): Promise<T> {
-  if (accessMode === 'standard') return operation();
+  if (accessMode === 'standard') {
+    const { withBillingCredits } = await import('./billing-credits.service.js');
+    return withBillingCredits(userId, creditCost, operation);
+  }
 
   if (accessMode === 'beta') {
     // Import tardif : les parcours standard/jury restent testables sans

@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+vi.mock('../src/repositories/billing.repository.js', () => ({
+  readBillingStatus: vi.fn().mockResolvedValue({plan:'free',remaining:3,periodEnd:null}),
+}));
 
 vi.mock('../src/repositories/generation-quota.repository.js', () => ({
   getGenerationQuotaUsage: vi.fn(),
@@ -27,10 +30,10 @@ describe('GenerationQuotaService', () => {
     vi.clearAllMocks();
   });
 
-  it('laisse les comptes Google illimites sans consulter le compteur', async () => {
+  it('applique le solde freemium aux comptes Google sans modifier le compteur jury', async () => {
     const quota = await getGenerationQuota('user-google', 'standard');
 
-    expect(quota).toEqual({ limited: false, limit: null, used: 0, remaining: null });
+    expect(quota).toEqual({ mode:'standard',limited:true,limit:null,used:0,remaining:3,plan:'free',periodEnd:null });
     expect(getGenerationQuotaUsage).not.toHaveBeenCalled();
   });
 

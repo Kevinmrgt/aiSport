@@ -21,10 +21,10 @@ export async function generateAndSaveWorkout(
   input: GenerateWorkoutInput,
   accessMode: GenerationAccessMode = 'standard',
 ): Promise<WorkoutRecord> {
-  return runWithGenerationQuota(userId, accessMode, async () => {
+  return runWithGenerationQuota(userId, accessMode, async (persist) => {
     const aiConfig = await resolveAiConfig(userId);
     const workout = await generateWorkout(input, aiConfig);
-    return createWorkout(userId, workout);
+    return persist ? persist((tx) => createWorkout(userId, workout, tx)) : createWorkout(userId, workout);
   });
 }
 

@@ -15,6 +15,7 @@ import type {
 } from '@alcide/shared';
 import type { CreateSessionLogInput, SessionLogListItem, SessionLogStats } from '@alcide/shared';
 import type { GenerationQuota } from '@alcide/shared';
+import type { BillingStatus } from '@alcide/shared';
 
 export interface UserAiSettings {
   provider: 'openai';
@@ -156,6 +157,10 @@ async function serverFetch<T>(
 }
 
 export const serverApi = {
+  getBillingStatus: (): Promise<BillingStatus> => serverFetch<BillingStatus>('/billing/status'),
+  createCheckout: (): Promise<{ url: string }> => serverFetch('/billing/checkout', { method: 'POST' }, 55_000),
+  createBillingPortal: (): Promise<{ url: string }> => serverFetch('/billing/portal', { method: 'POST' }, 30_000),
+  syncCheckout: (sessionId: string): Promise<{ ok: true }> => serverFetch('/billing/sync', { method: 'POST', body: JSON.stringify({ sessionId }) }, 55_000),
   getGenerationQuota: (): Promise<GenerationQuota> =>
     serverFetch<GenerationQuota>('/generation-quota'),
 

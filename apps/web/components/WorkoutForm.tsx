@@ -213,7 +213,7 @@ export function WorkoutForm({ onSubmit, generationQuota, initialValues }: Workou
             disabled={!formReady || isLoading || quotaExhausted}
           >
             {quotaExhausted
-              ? 'Quota jury atteint'
+              ? generationQuota.mode === 'standard' ? 'Crédits insuffisants' : generationQuota.mode === 'beta' ? 'Solde bêta épuisé' : 'Quota jury atteint'
               : isLoading
                 ? 'Préparation en cours…'
                 : 'Générer la séance'}

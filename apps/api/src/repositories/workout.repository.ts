@@ -12,10 +12,11 @@ import { AppError } from '../types/app-error.js';
 export async function createWorkout(
   userId: string,
   workout: Workout,
+  executor: Pick<typeof db, 'insert'> = db,
 ): Promise<WorkoutRecord> {
   let created: WorkoutRow | undefined;
   try {
-    const result = await db
+    const result = await executor
       .insert(workouts)
       .values({
         userId,

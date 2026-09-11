@@ -35,6 +35,7 @@ const NAV_ITEMS: Array<{ href: string; label: string; icon: IconName }> = [
   { href: '/generate', label: 'Séance', icon: 'zap' },
   { href: '/programs', label: 'Programmes', icon: 'layers' },
   { href: '/workouts', label: 'Historique', icon: 'activity' },
+  { href: '/abonnement', label: 'Abonnement', icon: 'user' },
 ];
 
 export default async function RootLayout({ children }: { readonly children: React.ReactNode }) {
@@ -72,6 +73,7 @@ export default async function RootLayout({ children }: { readonly children: Reac
                   <Link href="/programs" className="nav-link">
                     Les programmes
                   </Link>
+                  <Link href="/tarifs" className="nav-link">Les offres</Link>
                 </>
               )}
             </div>
@@ -102,9 +104,9 @@ export default async function RootLayout({ children }: { readonly children: Reac
           <Link href="/confidentialite">Confidentialité et données personnelles</Link>
         </footer>
         {session?.user && (
-          <nav className="bottom-dock" aria-label="Navigation mobile">
+          <nav className="bottom-dock" aria-label="Navigation mobile" style={navItems.length > 5 ? { gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` } : undefined}>
             {navItems.map((item) => (
-              <ActiveNavLink key={item.href} {...item} compact />
+              <ActiveNavLink key={item.href} {...item} label={item.href === '/abonnement' ? 'Offre' : item.label} compact />
             ))}
           </nav>
         )}

@@ -150,7 +150,7 @@ describe('ProgramService', () => {
 
       await generateAndSaveProgram('user-123', mockInput, 'jury');
 
-      expect(runWithGenerationQuota).toHaveBeenCalledWith('user-123', 'jury', expect.any(Function));
+      expect(runWithGenerationQuota).toHaveBeenCalledWith('user-123', 'jury', expect.any(Function), mockInput.weeks_count);
     });
   });
 

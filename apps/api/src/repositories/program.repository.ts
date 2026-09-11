@@ -28,10 +28,11 @@ function rowToRecord(row: TrainingProgramRow): TrainingProgramRecord {
 export async function createProgram(
   userId: string,
   program: TrainingProgram,
+  executor: Pick<typeof db, 'insert'> = db,
 ): Promise<TrainingProgramRecord> {
   let created: TrainingProgramRow | undefined;
   try {
-    const result = await db
+    const result = await executor
       .insert(trainingPrograms)
       .values({
         userId,

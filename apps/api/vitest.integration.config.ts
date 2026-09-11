@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
-    include: ['tests/repositories.integration.test.ts'],
+    include: ['tests/repositories.integration.test.ts', 'tests/billing.integration.test.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov', 'html'],

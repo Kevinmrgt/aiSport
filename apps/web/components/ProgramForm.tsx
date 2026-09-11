@@ -58,11 +58,12 @@ export function ProgramForm({ onSubmit, generationQuota }: ProgramFormProps) {
     goals: '',
     constraints: '',
   });
-  const quotaExhausted = generationQuota.limited && generationQuota.remaining === 0;
+  const creditCost = generationQuota.mode === 'standard' ? Number(formData.weeks_count) : 1;
+  const quotaExhausted = generationQuota.limited && (generationQuota.remaining ?? 0) < creditCost;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!formReady) return;
+    if (!formReady || isLoading || quotaExhausted) return;
     setErrors({});
     setGlobalError(null);
 
@@ -115,7 +116,7 @@ export function ProgramForm({ onSubmit, generationQuota }: ProgramFormProps) {
       className="glass-panel form-panel program-form-panel"
     >
       <fieldset disabled={!formReady} className="contents">
-        <GenerationQuotaNotice quota={generationQuota} />
+        <GenerationQuotaNotice quota={generationQuota} cost={creditCost} />
         {isLoading && (
           <p role="status" aria-live="polite" className="muted-copy">
             Préparation de votre programme… Chaque semaine est générée avec sa progression.
@@ -268,7 +269,7 @@ export function ProgramForm({ onSubmit, generationQuota }: ProgramFormProps) {
           disabled={!formReady || isLoading || quotaExhausted}
         >
           {quotaExhausted
-            ? 'Quota jury atteint'
+            ? generationQuota.mode === 'standard' ? 'Crédits insuffisants' : generationQuota.mode === 'beta' ? 'Solde bêta épuisé' : 'Quota jury atteint'
             : isLoading
               ? 'Préparation du programme…'
               : 'Générer le programme'}

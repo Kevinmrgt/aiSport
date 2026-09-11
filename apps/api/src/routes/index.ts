@@ -7,9 +7,11 @@ import { sessionLogRouter } from './session-log.routes.js';
 import { generationQuotaRouter } from './generation-quota.routes.js';
 import { betaAuthRouter } from './beta-auth.routes.js';
 import { adminBetaRouter } from './admin-beta.routes.js';
+import { billingRouter } from './billing.routes.js';
 
 // Registre central de toutes les routes (architecture.md)
 export function registerRoutes(app: Hono): void {
+  app.route('/billing', billingRouter);
   app.route('/health', healthRouter);
   app.route('/workouts', workoutRouter);
   app.route('/programs', programRouter);
