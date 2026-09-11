@@ -437,4 +437,48 @@ describeWithDatabase('repositories PostgreSQL', () => {
     await upsertSettings(ownerId, { aiModel: null });
     await expect(findSettingsByUser(ownerId)).resolves.toMatchObject({ aiModel: null });
   });
+
+  it('persiste les reglages par defaut de la plateforme', async () => {
+    const { findPlatformSettings, upsertPlatformSettings } = await import(
+      '../src/repositories/settings.repository.js'
+    );
+
+    await expect(findPlatformSettings()).resolves.toBeNull();
+
+    await upsertPlatformSettings({
+      defaultAiModel: 'gpt-5.4-mini',
+      defaultBetaGenerationBalance: 12,
+    });
+    await expect(findPlatformSettings()).resolves.toEqual({
+      defaultAiModel: 'gpt-5.4-mini',
+      defaultBetaGenerationBalance: 12,
+    });
+
+    await upsertPlatformSettings({
+      defaultAiModel: 'gpt-5.5',
+      defaultBetaGenerationBalance: 24,
+    });
+    await expect(findPlatformSettings()).resolves.toEqual({
+      defaultAiModel: 'gpt-5.5',
+      defaultBetaGenerationBalance: 24,
+    });
+  });
+
+  it('calcule les statistiques globales de la plateforme', async () => {
+    const { getAdminPlatformStats } = await import(
+      '../src/repositories/admin-dashboard.repository.js'
+    );
+
+    const stats = await getAdminPlatformStats();
+
+    expect(stats.totalUsers).toBeGreaterThanOrEqual(4);
+    expect(stats.betaTesterCount).toBe(1);
+    expect(stats.activeBetaTesterCount).toBe(1);
+    expect(stats.pendingPasswordChangeCount).toBe(0);
+    expect(stats.availableGenerations).toBe(0);
+    expect(stats.workoutCount).toBeGreaterThanOrEqual(5);
+    expect(stats.programCount).toBeGreaterThanOrEqual(4);
+    expect(stats.completedSessionCount).toBe(3);
+    expect(stats.newUsersLast30Days).toBeGreaterThanOrEqual(4);
+  });
 });
