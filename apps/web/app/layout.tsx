@@ -34,7 +34,7 @@ const NAV_ITEMS: Array<{ href: string; label: string; icon: IconName }> = [
   { href: '/dashboard', label: 'Progression', icon: 'chart' },
   { href: '/generate', label: 'Séance', icon: 'zap' },
   { href: '/programs', label: 'Programmes', icon: 'layers' },
-  { href: '/workouts', label: 'Historique', icon: 'activity' },
+  { href: '/workouts', label: 'Mes séances', icon: 'activity' },
   { href: '/abonnement', label: 'Abonnement', icon: 'user' },
 ];
 
