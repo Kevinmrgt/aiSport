@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { buildSessionSchedule, type SessionStep, type Exercise, type Phase } from '@alcide/shared';
 import { Button } from './ui/Button';
 import { Icon } from './ui/Icon';
+import { TimerTimeline } from './TimerTimeline';
 import {
   SessionCompletionForm,
   type SessionCompletionPayload,
@@ -552,144 +553,151 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
           </button>
         </div>
       )}
-      <div className="timer-stage">
-        <p className="mb-2 text-sm text-primary-200" aria-live="assertive">
-          {getStepLabel(currentStep)}
-        </p>
-        <h2 id="timer-exercise-title" className="break-words text-3xl font-extrabold">
-          {currentStep.title}
-        </h2>
-        <p className="muted-copy mt-3" aria-live="polite">
-          {progressLabel}
-        </p>
-        {currentStep.description && (
-          <p className="muted-copy mx-auto mt-4 max-w-xl">{currentStep.description}</p>
-        )}
-        <div className="my-7">
-          {hasStepTimer ? (
-            <div
-              role="timer"
-              aria-label={`Temps restant : ${timeDisplay}`}
-              aria-live="off"
-              className={`timer-ring ${isCountingDown ? 'text-sport-orange' : 'text-primary-200'}`}
-            >
-              <svg viewBox="0 0 120 120" aria-hidden="true" fill="none">
-                <circle
-                  cx="60"
-                  cy="60"
-                  r="52"
-                  stroke="currentColor"
-                  strokeOpacity=".12"
-                  strokeWidth="7"
-                />
-                <circle
-                  cx="60"
-                  cy="60"
-                  r="52"
-                  stroke="currentColor"
-                  strokeWidth="7"
-                  strokeLinecap="round"
-                  strokeDasharray={ringLength}
-                  strokeDashoffset={ringLength * (1 - ringRemaining)}
-                />
-              </svg>
-              <span className="timer-value">{timeDisplay}</span>
+      <div className="timer-layout">
+        <div className="timer-main">
+          <div className="timer-stage">
+            <p className="mb-2 text-sm text-primary-200" aria-live="assertive">
+              {getStepLabel(currentStep)}
+            </p>
+            <h2 id="timer-exercise-title" className="break-words text-3xl font-extrabold">
+              {currentStep.title}
+            </h2>
+            <p className="muted-copy mt-3" aria-live="polite">
+              {progressLabel}
+            </p>
+            {currentStep.description && (
+              <p className="muted-copy mx-auto mt-4 max-w-xl">{currentStep.description}</p>
+            )}
+            <div className="my-7">
+              {hasStepTimer ? (
+                <div
+                  role="timer"
+                  aria-label={`Temps restant : ${timeDisplay}`}
+                  aria-live="off"
+                  className={`timer-ring ${isCountingDown ? 'text-sport-orange' : 'text-primary-200'}`}
+                >
+                  <svg viewBox="0 0 120 120" aria-hidden="true" fill="none">
+                    <circle
+                      cx="60"
+                      cy="60"
+                      r="52"
+                      stroke="currentColor"
+                      strokeOpacity=".12"
+                      strokeWidth="7"
+                    />
+                    <circle
+                      cx="60"
+                      cy="60"
+                      r="52"
+                      stroke="currentColor"
+                      strokeWidth="7"
+                      strokeLinecap="round"
+                      strokeDasharray={ringLength}
+                      strokeDashoffset={ringLength * (1 - ringRemaining)}
+                    />
+                  </svg>
+                  <span className="timer-value">{timeDisplay}</span>
+                </div>
+              ) : (
+                <div className="timer-ring glass-soft">
+                  <div>
+                    <p className="text-3xl font-bold">
+                      {isPrescribedManual
+                        ? `${currentStep.reps} répétitions`
+                        : manualExercise?.sets && manualExercise?.reps
+                          ? `${manualExercise.sets} × ${manualExercise.reps}`
+                          : 'À votre rythme'}
+                    </p>
+                    <p className="muted-copy mt-3">
+                      {isPrescribedManual
+                        ? 'À votre rythme · validez la série une fois terminée'
+                        : 'Mode manuel'}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="timer-ring glass-soft">
-              <div>
-                <p className="text-3xl font-bold">
-                  {isPrescribedManual
-                    ? `${currentStep.reps} répétitions`
-                    : manualExercise?.sets && manualExercise?.reps
-                      ? `${manualExercise.sets} × ${manualExercise.reps}`
-                      : 'À votre rythme'}
-                </p>
-                <p className="muted-copy mt-3">
-                  {isPrescribedManual
-                    ? 'À votre rythme · validez la série une fois terminée'
-                    : 'Mode manuel'}
-                </p>
+            {currentStep.tips && currentStep.type === 'exercise' && (
+              <p className="muted-copy mx-auto max-w-xl text-sm">{currentStep.tips}</p>
+            )}
+          </div>
+          <div className="timer-controls">
+            <Button
+              variant="primary"
+              size="lg"
+              data-timer-fullscreen-trigger
+              onClick={() => {
+                if (hasStepTimer || isPrescribedManual) toggleTimer();
+                else goToStep(currentIndex + 1);
+              }}
+              disabled={startCountdownSeconds !== null}
+              aria-pressed={hasStepTimer || isPrescribedManual ? isRunning : undefined}
+            >
+              <Icon
+                name={isRunning ? 'pause' : hasStepTimer || isPrescribedManual ? 'play' : 'check'}
+                className="h-5 w-5"
+              />
+              {primaryButtonLabel}
+            </Button>
+            {isPrescribedManual && (
+              <Button
+                variant="secondary"
+                size="lg"
+                disabled={startCountdownSeconds !== null}
+                onClick={() => goToStep(currentIndex + 1, isRunning)}
+              >
+                <Icon name="check" className="h-5 w-5" />
+                Série terminée
+              </Button>
+            )}
+            {hasStepTimer && (
+              <Button
+                variant="secondary"
+                size="lg"
+                disabled={startCountdownSeconds !== null}
+                onClick={() => {
+                  goToStep(currentIndex + 1);
+                }}
+              >
+                {secondaryButtonLabel}
+                <Icon name="arrow-right" className="h-5 w-5" />
+              </Button>
+            )}
+          </div>
+          {totalTimedSeconds > 0 && (
+            <div className="timer-session-progress">
+              <div className="muted-copy mb-3 flex justify-between gap-4 text-sm">
+                <span>{isEstimatedSession ? 'Estimation restante' : 'Session'}</span>
+                <span
+                  role="timer"
+                  aria-label={`${isEstimatedSession ? 'Temps estimé restant' : 'Temps chronometre restant'} : ${sessionDisplay}`}
+                  aria-live="off"
+                >
+                  {isEstimatedSession ? '≈ ' : ''}
+                  {sessionDisplay} restant
+                </span>
               </div>
+              <div className="h-2 overflow-hidden rounded-full bg-white/15">
+                <div
+                  className="h-full rounded-full bg-primary-200"
+                  style={{ width: `${sessionProgress ?? 0}%` }}
+                  role="progressbar"
+                  aria-label="Progression de la séance"
+                  aria-valuenow={sessionProgress ?? 0}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                />
+              </div>
+              {steps[currentIndex + 1] && (
+                <p className="muted-copy mt-4 text-sm">
+                  À suivre : {steps[currentIndex + 1]?.title}
+                </p>
+              )}
             </div>
           )}
         </div>
-        {currentStep.tips && currentStep.type === 'exercise' && (
-          <p className="muted-copy mx-auto max-w-xl text-sm">{currentStep.tips}</p>
-        )}
+        {isFullscreen && <TimerTimeline steps={steps} currentIndex={currentIndex} />}
       </div>
-      <div className="timer-controls">
-        <Button
-          variant="primary"
-          size="lg"
-          data-timer-fullscreen-trigger
-          onClick={() => {
-            if (hasStepTimer || isPrescribedManual) toggleTimer();
-            else goToStep(currentIndex + 1);
-          }}
-          disabled={startCountdownSeconds !== null}
-          aria-pressed={hasStepTimer || isPrescribedManual ? isRunning : undefined}
-        >
-          <Icon
-            name={isRunning ? 'pause' : hasStepTimer || isPrescribedManual ? 'play' : 'check'}
-            className="h-5 w-5"
-          />
-          {primaryButtonLabel}
-        </Button>
-        {isPrescribedManual && (
-          <Button
-            variant="secondary"
-            size="lg"
-            disabled={startCountdownSeconds !== null}
-            onClick={() => goToStep(currentIndex + 1, isRunning)}
-          >
-            <Icon name="check" className="h-5 w-5" />
-            Série terminée
-          </Button>
-        )}
-        {hasStepTimer && (
-          <Button
-            variant="secondary"
-            size="lg"
-            disabled={startCountdownSeconds !== null}
-            onClick={() => {
-              goToStep(currentIndex + 1);
-            }}
-          >
-            {secondaryButtonLabel}
-            <Icon name="arrow-right" className="h-5 w-5" />
-          </Button>
-        )}
-      </div>
-      {totalTimedSeconds > 0 && (
-        <div className="timer-session-progress">
-          <div className="muted-copy mb-3 flex justify-between gap-4 text-sm">
-            <span>{isEstimatedSession ? 'Estimation restante' : 'Session'}</span>
-            <span
-              role="timer"
-              aria-label={`${isEstimatedSession ? 'Temps estimé restant' : 'Temps chronometre restant'} : ${sessionDisplay}`}
-              aria-live="off"
-            >
-              {isEstimatedSession ? '≈ ' : ''}
-              {sessionDisplay} restant
-            </span>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-white/15">
-            <div
-              className="h-full rounded-full bg-primary-200"
-              style={{ width: `${sessionProgress ?? 0}%` }}
-              role="progressbar"
-              aria-label="Progression de la séance"
-              aria-valuenow={sessionProgress ?? 0}
-              aria-valuemin={0}
-              aria-valuemax={100}
-            />
-          </div>
-          {steps[currentIndex + 1] && (
-            <p className="muted-copy mt-4 text-sm">À suivre : {steps[currentIndex + 1]?.title}</p>
-          )}
-        </div>
-      )}
     </section>
   );
 

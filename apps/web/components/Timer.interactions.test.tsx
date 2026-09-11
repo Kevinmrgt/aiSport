@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import type { Exercise } from '@alcide/shared';
 import { Timer } from './Timer';
 
@@ -41,14 +41,14 @@ describe('Timer - interactions', () => {
         completeAction={vi.fn()}
       />,
     );
-    expect(screen.getByText(/Série 1\/2/)).toBeTruthy();
+    expect(screen.getByText(/Série 1\/2/, { selector: '.timer-stage > p' })).toBeTruthy();
     expect(screen.getByRole('timer', { name: 'Temps estimé restant : 02:30' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Démarrer' }));
     expect(screen.getByRole('button', { name: 'Départ dans 3' })).toBeTruthy();
     act(() => {
       vi.advanceTimersByTime(43_000);
     });
-    expect(screen.getByText(/Série 1\/2/)).toBeTruthy();
+    expect(screen.getByText(/Série 1\/2/, { selector: '.timer-stage > p' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
     act(() => {
       vi.advanceTimersByTime(20000);
@@ -59,7 +59,7 @@ describe('Timer - interactions', () => {
     act(() => {
       vi.advanceTimersByTime(90000);
     });
-    expect(screen.getByText(/Série 2\/2/)).toBeTruthy();
+    expect(screen.getByText(/Série 2\/2/, { selector: '.timer-stage > p' })).toBeTruthy();
     act(() => {
       vi.advanceTimersByTime(25000);
     });
@@ -255,5 +255,74 @@ describe('Timer - interactions', () => {
         Reflect.deleteProperty(document.documentElement, 'requestFullscreen');
       }
     }
+  });
+
+  it('synchronise la timeline plein écran avec les séries, les repos et la pause', () => {
+    vi.useFakeTimers();
+    render(<Timer exercises={[prescribed]} />);
+    expect(screen.queryByRole('complementary', { name: 'Votre séance' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Démarrer' }));
+    const timeline = screen.getByRole('complementary', { name: 'Votre séance' });
+    const items = within(timeline).getAllByRole('listitem');
+    expect(items).toHaveLength(3);
+    expect(items[0]!.getAttribute('aria-current')).toBe('step');
+    expect(within(items[0]!).getByText('Série 1/2 · 10 rép.')).toBeTruthy();
+    expect(within(timeline).getByText('Étape 1 sur 3')).toBeTruthy();
+    act(() => {
+      vi.advanceTimersByTime(4000);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+    act(() => {
+      vi.advanceTimersByTime(20000);
+    });
+    expect(items[0]!.getAttribute('aria-current')).toBe('step');
+    fireEvent.click(screen.getByRole('button', { name: 'Reprendre' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Série terminée' }));
+    expect(items[0]!.getAttribute('aria-current')).toBeNull();
+    expect(within(items[0]!).getByText('Passée')).toBeTruthy();
+    expect(items[1]!.getAttribute('aria-current')).toBe('step');
+    expect(within(items[1]!).getByText('Repos')).toBeTruthy();
+    act(() => {
+      vi.advanceTimersByTime(90000);
+    });
+    expect(items[2]!.getAttribute('aria-current')).toBe('step');
+    expect(within(timeline).getByText('Étape 3 sur 3')).toBeTruthy();
+    expect(timeline.querySelectorAll('[aria-current="step"]')).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Série terminée' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByRole('complementary', { name: 'Votre séance' })).toBeNull();
+    expect(screen.getByText('Séance terminée')).toBeTruthy();
+  });
+
+  it('suit aussi les étapes passées manuellement et conserve le focus dans le plein écran', () => {
+    vi.useFakeTimers();
+    render(
+      <Timer
+        exercises={[
+          { name: 'Gainage', description: 'Respirez', duration_seconds: 40, rest_seconds: 0 },
+        ]}
+        warmup={[{ name: 'Mobilité', description: 'Doucement', duration_seconds: 60 }]}
+        cooldown={[{ name: 'Respiration', description: 'Relâchez', duration_seconds: 30 }]}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Démarrer' }));
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Passer' }));
+    const timeline = screen.getByRole('complementary', { name: 'Votre séance' });
+    expect(within(timeline).getByText('Étape 2 sur 3')).toBeTruthy();
+    expect(timeline.querySelector('[aria-current="step"]')?.textContent).toContain('Gainage');
+    const scroller = within(timeline).getByRole('region', { name: 'Étapes de la séance' });
+    scroller.focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Quitter plein écran' }),
+    );
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(scroller);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Gainage' })).toBeTruthy();
   });
 });

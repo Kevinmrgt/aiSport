@@ -889,6 +889,10 @@ button:disabled {
   width: 100%;
   text-align: center;
 }
+.timer-layout,
+.timer-main {
+  display: contents;
+}
 .timer-ring {
   position: relative;
   display: grid;
@@ -947,7 +951,7 @@ body:has(> .timer-fullscreen) > .route-backdrop {
 .timer-fullscreen-header {
   display: flex;
   width: 100%;
-  max-width: 1024px;
+  max-width: 1400px;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
@@ -970,6 +974,144 @@ body:has(> .timer-fullscreen) > .route-backdrop {
 }
 .timer-fullscreen .timer-value {
   font-size: clamp(60px, 8vw, 100px);
+}
+.timer-fullscreen .timer-layout {
+  display: grid;
+  grid-template-columns: minmax(210px, 280px) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(24px, 3vw, 56px);
+  width: 100%;
+  max-width: 1400px;
+}
+.timer-fullscreen .timer-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  min-width: 0;
+  grid-column: 2;
+  grid-row: 1;
+}
+.timer-timeline {
+  display: flex;
+  flex-direction: column;
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  max-height: min(740px, calc(100dvh - 160px));
+  padding: 20px 14px 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  background: rgb(142 182 155 / 0.1);
+  backdrop-filter: blur(18px);
+}
+.timer-timeline-heading {
+  padding: 0 6px 16px;
+}
+.timer-timeline-heading h3 {
+  font-weight: 800;
+  font-size: 18px;
+}
+.timer-timeline-heading p {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #c8e8cf;
+}
+.timer-timeline-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #6e9e87 transparent;
+  border-radius: 12px;
+}
+.timer-timeline-list {
+  padding: 4px 4px 4px 0;
+}
+.timer-timeline-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 8px;
+  padding-bottom: 10px;
+}
+.timer-timeline-item:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 28px;
+  bottom: -12px;
+  width: 1px;
+  background: rgb(200 232 207 / 0.25);
+}
+.timer-timeline-marker {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-top: 12px;
+  border: 1px solid rgb(200 232 207 / 0.35);
+  border-radius: 50%;
+  background: #0b2b26;
+  color: #c8e8cf;
+  font-size: 10px;
+}
+.timer-timeline-card {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+}
+.timer-timeline-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  color: #c8e8cf;
+  font-size: 10px;
+}
+.timer-timeline-current-label {
+  border-radius: 20px;
+  padding: 2px 6px;
+  background: #c8e8cf;
+  color: #0b2b26;
+  font-weight: 700;
+}
+.timer-timeline-name {
+  margin-top: 4px;
+  color: #f0faf2;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.timer-timeline-detail {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #c8e8cf;
+  overflow-wrap: anywhere;
+}
+.timer-timeline-item.is-past .timer-timeline-card {
+  opacity: 0.65;
+}
+.timer-timeline-item.is-past::before {
+  background: #8eb69b;
+}
+.timer-timeline-item[aria-current='step'] .timer-timeline-marker {
+  border-color: #c8e8cf;
+  box-shadow: 0 0 0 4px rgb(200 232 207 / 0.12);
+}
+.timer-timeline-marker > span {
+  width: 8px;
+  height: 8px;
+  background: #c8e8cf;
+  border-radius: 50%;
+}
+.timer-timeline-item[aria-current='step'] .timer-timeline-card {
+  border-color: rgb(200 232 207 / 0.5);
+  background: rgb(142 182 155 / 0.15);
 }
 .timer-controls {
   display: flex;
@@ -1437,6 +1579,18 @@ body:has(> .timer-fullscreen) > .route-backdrop {
   .timer-fullscreen {
     padding-inline: max(18px, env(safe-area-inset-left)) max(18px, env(safe-area-inset-right));
   }
+  .timer-fullscreen .timer-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .timer-fullscreen .timer-main {
+    width: 100%;
+  }
+  .timer-timeline {
+    width: 100%;
+    max-height: 240px;
+  }
   .timer-controls > button {
     flex: 1 1 120px;
     min-width: 0;
@@ -1631,18 +1785,28 @@ body:has(> .timer-fullscreen) > .route-backdrop {
   }
 }
 @media (min-width: 640px) and (max-height: 600px) {
-  .timer-fullscreen {
+  .timer-fullscreen .timer-main {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(240px, 0.8fr);
     align-content: start;
     align-items: center;
     gap: 16px 24px;
   }
+  .timer-fullscreen .timer-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .timer-timeline {
+    width: 100%;
+    max-height: 240px;
+  }
   .timer-fullscreen-header {
     grid-column: 1/-1;
   }
   .timer-fullscreen .timer-stage {
-    grid-row: 2 / span 2;
+    grid-column: 1;
+    grid-row: 1 / span 2;
   }
   .timer-fullscreen .timer-stage h2 {
     font-size: 32px;
