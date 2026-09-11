@@ -49,6 +49,21 @@ export interface AdminOverview {
     completedSessionCount: number;
     newUsersLast30Days: number;
   };
+  analytics: {
+    daily: Array<{
+      date: string;
+      newUsers: number;
+      workouts: number;
+      programs: number;
+      completedSessions: number;
+    }>;
+    sportActivity: Array<{
+      date: string;
+      sport: string;
+      workouts: number;
+      completedSessions: number;
+    }>;
+  };
   settings: {
     defaultAiModel: string;
     defaultBetaGenerationBalance: number;

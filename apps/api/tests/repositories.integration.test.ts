@@ -20,12 +20,14 @@ function workoutFixture(overrides: Partial<Workout> = {}): Workout {
     sport: 'course',
     difficulty: 'beginner',
     duration_minutes: 30,
-    exercises: [{
-      name: 'Course',
-      description: 'Courir',
-      duration_seconds: 1_800,
-      rest_seconds: 0,
-    }],
+    exercises: [
+      {
+        name: 'Course',
+        description: 'Courir',
+        duration_seconds: 1_800,
+        rest_seconds: 0,
+      },
+    ],
     ...overrides,
   };
 }
@@ -36,12 +38,14 @@ function programFixture(overrides: Partial<TrainingProgram> = {}): TrainingProgr
     title: `Seance ${sessionNumber}`,
     focus: 'Technique',
     duration_minutes: 20,
-    exercises: [{
-      name: 'Exercice',
-      description: 'Mouvement controle',
-      duration_seconds: 1_200,
-      rest_seconds: 0,
-    }],
+    exercises: [
+      {
+        name: 'Exercice',
+        description: 'Mouvement controle',
+        duration_seconds: 1_200,
+        rest_seconds: 0,
+      },
+    ],
   });
 
   return {
@@ -83,11 +87,8 @@ describeWithDatabase('repositories PostgreSQL', () => {
   });
 
   it('reserve au plus 30 generations meme avec 31 requetes concurrentes', async () => {
-    const {
-      getGenerationQuotaUsage,
-      releaseGenerationSlot,
-      reserveGenerationSlot,
-    } = await import('../src/repositories/generation-quota.repository.js');
+    const { getGenerationQuotaUsage, releaseGenerationSlot, reserveGenerationSlot } =
+      await import('../src/repositories/generation-quota.repository.js');
 
     const reservations = await Promise.all(
       Array.from({ length: 31 }, () => reserveGenerationSlot(quotaOwnerId, 30)),
@@ -168,16 +169,26 @@ describeWithDatabase('repositories PostgreSQL', () => {
       active: 1,
       generationBalance: 3,
     });
-    await expect(listBetaTesters()).resolves.toEqual(expect.arrayContaining([
-      expect.objectContaining({ userId: betaUserId, active: true, mustChangePassword: true }),
-    ]));
+    await expect(listBetaTesters()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ userId: betaUserId, active: true, mustChangePassword: true }),
+      ]),
+    );
 
     await expect(adjustBetaBalance(betaUserId, 5, 'admin@alcide.test')).resolves.toBe(8);
     await expect(adjustBetaBalance(betaUserId, -9, 'admin@alcide.test')).resolves.toBeNull();
-    const adjustments = await db.select().from(betaCreditAdjustments).where(eq(betaCreditAdjustments.betaUserId, betaUserId));
-    expect(adjustments.map((adjustment) => [adjustment.amount, adjustment.balanceAfter])).toEqual([[3, 3], [5, 8]]);
+    const adjustments = await db
+      .select()
+      .from(betaCreditAdjustments)
+      .where(eq(betaCreditAdjustments.betaUserId, betaUserId));
+    expect(adjustments.map((adjustment) => [adjustment.amount, adjustment.balanceAfter])).toEqual([
+      [3, 3],
+      [5, 8],
+    ]);
 
-    const reservations = await Promise.all(Array.from({ length: 9 }, () => reserveBetaGeneration(betaUserId)));
+    const reservations = await Promise.all(
+      Array.from({ length: 9 }, () => reserveBetaGeneration(betaUserId)),
+    );
     expect(reservations.filter(Boolean)).toHaveLength(8);
     expect(reservations.filter((reservation) => reservation === null)).toHaveLength(1);
     await releaseBetaGeneration(betaUserId);
@@ -192,18 +203,23 @@ describeWithDatabase('repositories PostgreSQL', () => {
 
     await expect(resetBetaPassword(betaUserId, 'reset-hash', randomUUID())).resolves.toBe(true);
     await expect(resetBetaPassword(randomUUID(), 'reset-hash', randomUUID())).resolves.toBe(false);
-    await expect(findBetaByUserId(betaUserId)).resolves.toEqual({ passwordHash: 'reset-hash', active: 1 });
+    await expect(findBetaByUserId(betaUserId)).resolves.toEqual({
+      passwordHash: 'reset-hash',
+      active: 1,
+    });
     await changeBetaPassword(betaUserId, 'changed-hash');
-    await expect(findBetaByUserId(betaUserId)).resolves.toEqual({ passwordHash: 'changed-hash', active: 1 });
-    await expect(db.select().from(betaTesters).where(eq(betaTesters.userId, betaUserId))).resolves.toEqual([
-      expect.objectContaining({ mustChangePassword: 0 }),
-    ]);
+    await expect(findBetaByUserId(betaUserId)).resolves.toEqual({
+      passwordHash: 'changed-hash',
+      active: 1,
+    });
+    await expect(
+      db.select().from(betaTesters).where(eq(betaTesters.userId, betaUserId)),
+    ).resolves.toEqual([expect.objectContaining({ mustChangePassword: 0 })]);
   });
 
   it('persiste, relit et protege une seance par son proprietaire', async () => {
-    const { createWorkout, findWorkoutById } = await import(
-      '../src/repositories/workout.repository.js'
-    );
+    const { createWorkout, findWorkoutById } =
+      await import('../src/repositories/workout.repository.js');
     const created = await createWorkout(ownerId, workoutFixture());
     await expect(findWorkoutById(created.id, ownerId)).resolves.toMatchObject({
       id: created.id,
@@ -217,20 +233,21 @@ describeWithDatabase('repositories PostgreSQL', () => {
   it('journalise uniquement une source appartenant a l utilisateur', async () => {
     const { createWorkout } = await import('../src/repositories/workout.repository.js');
     const { createOwnedSessionLog } = await import('../src/services/session-log.service.js');
-    const { findRecentSessionLogsByUser } = await import(
-      '../src/repositories/session-log.repository.js'
-    );
+    const { findRecentSessionLogsByUser } =
+      await import('../src/repositories/session-log.repository.js');
     const workout = await createWorkout(ownerId, {
       title: 'Seance a journaliser',
       sport: 'velo',
       difficulty: 'intermediate',
       duration_minutes: 20,
-      exercises: [{
-        name: 'Velo',
-        description: 'Pedaler',
-        duration_seconds: 1_200,
-        rest_seconds: 0,
-      }],
+      exercises: [
+        {
+          name: 'Velo',
+          description: 'Pedaler',
+          duration_seconds: 1_200,
+          rest_seconds: 0,
+        },
+      ],
     });
     const input = {
       sourceType: 'workout' as const,
@@ -261,9 +278,8 @@ describeWithDatabase('repositories PostgreSQL', () => {
   });
 
   it('persiste un programme coherent et controle son proprietaire', async () => {
-    const { createProgram, findProgramById } = await import(
-      '../src/repositories/program.repository.js'
-    );
+    const { createProgram, findProgramById } =
+      await import('../src/repositories/program.repository.js');
     const created = await createProgram(ownerId, programFixture());
     await expect(findProgramById(created.id, ownerId)).resolves.toMatchObject({
       id: created.id,
@@ -282,25 +298,36 @@ describeWithDatabase('repositories PostgreSQL', () => {
       findWorkoutsByUser,
       getWorkoutStatsByUser,
     } = await import('../src/repositories/workout.repository.js');
-    const first = await createWorkout(ownerId, workoutFixture({
-      title: 'Rameur debutant',
-      sport: 'rameur-integration',
-    }));
-    const second = await createWorkout(ownerId, workoutFixture({
-      title: 'Rameur avance',
-      sport: 'rameur-integration',
-      difficulty: 'advanced',
-    }));
-    await createWorkout(otherUserId, workoutFixture({
-      title: 'Rameur autre compte',
-      sport: 'rameur-integration',
-    }));
+    const first = await createWorkout(
+      ownerId,
+      workoutFixture({
+        title: 'Rameur debutant',
+        sport: 'rameur-integration',
+      }),
+    );
+    const second = await createWorkout(
+      ownerId,
+      workoutFixture({
+        title: 'Rameur avance',
+        sport: 'rameur-integration',
+        difficulty: 'advanced',
+      }),
+    );
+    await createWorkout(
+      otherUserId,
+      workoutFixture({
+        title: 'Rameur autre compte',
+        sport: 'rameur-integration',
+      }),
+    );
 
-    await expect(findWorkoutsByUser(ownerId, {
-      page: 1,
-      limit: 1,
-      sport: 'rameur-integration',
-    })).resolves.toMatchObject({ total: 2, page: 1, limit: 1, hasMore: true });
+    await expect(
+      findWorkoutsByUser(ownerId, {
+        page: 1,
+        limit: 1,
+        sport: 'rameur-integration',
+      }),
+    ).resolves.toMatchObject({ total: 2, page: 1, limit: 1, hasMore: true });
     const filtered = await findWorkoutsByUser(ownerId, {
       sport: 'rameur-integration',
       level: 'advanced',
@@ -321,12 +348,8 @@ describeWithDatabase('repositories PostgreSQL', () => {
   });
 
   it('pagine et supprime les programmes sans exposer ceux d un autre compte', async () => {
-    const {
-      createProgram,
-      deleteProgram,
-      findProgramById,
-      findProgramsByUser,
-    } = await import('../src/repositories/program.repository.js');
+    const { createProgram, deleteProgram, findProgramById, findProgramsByUser } =
+      await import('../src/repositories/program.repository.js');
     const first = await createProgram(ownerId, programFixture({ title: 'Programme A' }));
     await createProgram(ownerId, programFixture({ title: 'Programme B' }));
     await createProgram(otherUserId, programFixture({ title: 'Programme prive' }));
@@ -345,11 +368,8 @@ describeWithDatabase('repositories PostgreSQL', () => {
 
   it('calcule les statistiques de journaux et isole les comptes', async () => {
     const { createWorkout } = await import('../src/repositories/workout.repository.js');
-    const {
-      createSessionLog,
-      findRecentSessionLogsByUser,
-      getSessionLogStatsByUser,
-    } = await import('../src/repositories/session-log.repository.js');
+    const { createSessionLog, findRecentSessionLogsByUser, getSessionLogStatsByUser } =
+      await import('../src/repositories/session-log.repository.js');
     const workout = await createWorkout(ownerId, workoutFixture({ title: 'Stats journal' }));
     await createSessionLog(ownerId, {
       sourceType: 'workout',
@@ -409,20 +429,23 @@ describeWithDatabase('repositories PostgreSQL', () => {
       difficulty: program.difficulty,
       plannedDurationMinutes: 20,
     });
-    await expect(createOwnedSessionLog(ownerId, {
-      ...input,
-      programSessionNumber: 99,
-    })).rejects.toMatchObject({ statusCode: 400 });
-    await expect(createOwnedSessionLog(ownerId, {
-      ...input,
-      programId: undefined,
-    })).rejects.toMatchObject({ statusCode: 400 });
+    await expect(
+      createOwnedSessionLog(ownerId, {
+        ...input,
+        programSessionNumber: 99,
+      }),
+    ).rejects.toMatchObject({ statusCode: 400 });
+    await expect(
+      createOwnedSessionLog(ownerId, {
+        ...input,
+        programId: undefined,
+      }),
+    ).rejects.toMatchObject({ statusCode: 400 });
   });
 
   it('cree puis met a jour les reglages IA persistants', async () => {
-    const { findSettingsByUser, upsertSettings } = await import(
-      '../src/repositories/settings.repository.js'
-    );
+    const { findSettingsByUser, upsertSettings } =
+      await import('../src/repositories/settings.repository.js');
     await expect(findSettingsByUser(ownerId)).resolves.toBeNull();
     await upsertSettings(ownerId, { aiModel: 'gpt-integration-1' });
     await expect(findSettingsByUser(ownerId)).resolves.toEqual({
@@ -439,9 +462,8 @@ describeWithDatabase('repositories PostgreSQL', () => {
   });
 
   it('persiste les reglages par defaut de la plateforme', async () => {
-    const { findPlatformSettings, upsertPlatformSettings } = await import(
-      '../src/repositories/settings.repository.js'
-    );
+    const { findPlatformSettings, upsertPlatformSettings } =
+      await import('../src/repositories/settings.repository.js');
 
     await expect(findPlatformSettings()).resolves.toBeNull();
 
@@ -465,9 +487,8 @@ describeWithDatabase('repositories PostgreSQL', () => {
   });
 
   it('calcule les statistiques globales de la plateforme', async () => {
-    const { getAdminPlatformStats } = await import(
-      '../src/repositories/admin-dashboard.repository.js'
-    );
+    const { getAdminPlatformAnalytics, getAdminPlatformStats } =
+      await import('../src/repositories/admin-dashboard.repository.js');
 
     const stats = await getAdminPlatformStats();
 
@@ -480,5 +501,15 @@ describeWithDatabase('repositories PostgreSQL', () => {
     expect(stats.programCount).toBeGreaterThanOrEqual(4);
     expect(stats.completedSessionCount).toBe(3);
     expect(stats.newUsersLast30Days).toBeGreaterThanOrEqual(4);
+
+    const analytics = await getAdminPlatformAnalytics();
+    expect(analytics.daily).toHaveLength(90);
+    expect(analytics.daily.every((day) => /^\d{4}-\d{2}-\d{2}$/.test(day.date))).toBe(true);
+    expect(analytics.daily.some((day) => day.workouts > 0)).toBe(true);
+    expect(analytics.daily.some((day) => day.programs > 0)).toBe(true);
+    expect(analytics.daily.some((day) => day.completedSessions > 0)).toBe(true);
+    expect(analytics.sportActivity).toEqual(
+      expect.arrayContaining([expect.objectContaining({ sport: 'course' })]),
+    );
   });
 });
