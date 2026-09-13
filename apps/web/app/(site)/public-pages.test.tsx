@@ -5,14 +5,14 @@ vi.mock('@/lib/auth', () => ({ signIn: vi.fn() }));
 vi.mock('@/lib/jury-auth', () => ({ isJuryAccessAvailable: () => true }));
 vi.mock('server-only', () => ({}));
 
-import ErrorPage from './error';
+import ErrorPage from '../error';
 import LoginPage from './(auth)/login/page';
-import { GET as getHealth } from './api/health/route';
+import { GET as getHealth } from '../api/health/route';
 import PrivacyPage from './confidentialite/page';
 import DashboardLoading from './dashboard/loading';
 import GenerateLoading from './generate/loading';
 import HomePage from './page';
-import NotFound from './not-found';
+import NotFound from '../not-found';
 import ProgramDetailLoading from './programs/[id]/loading';
 import ProgramsLoading from './programs/loading';
 import SettingsLoading from './settings/loading';

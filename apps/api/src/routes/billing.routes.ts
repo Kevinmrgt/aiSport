@@ -41,7 +41,9 @@ protectedBilling.use('*', async (ctx, next) => {
 });
 protectedBilling.get('/status', async (ctx) => {
   ctx.header('Cache-Control', 'no-store');
-  return ctx.json(await readBillingStatus(ctx.get('auth').userId));
+  const status = await readBillingStatus(ctx.get('auth').userId);
+  const suspended = ctx.get('accountSuspended') === true;
+  return ctx.json({ ...status, suspended, canSubscribe: !suspended && status.canSubscribe });
 });
 protectedBilling.post('/checkout', rateLimitMiddleware, async (ctx) => {
   const { userId, email } = ctx.get('auth');

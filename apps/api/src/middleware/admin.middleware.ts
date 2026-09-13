@@ -1,18 +1,10 @@
 import type { Context, Next } from 'hono';
 import { AppError } from '../types/app-error.js';
-
-function adminEmails(): Set<string> {
-  return new Set(
-    (process.env['ADMIN_EMAILS'] ?? '')
-      .split(',')
-      .map((email) => email.trim().toLowerCase())
-      .filter(Boolean),
-  );
-}
+import { isAdministratorEmail } from '../config/admin.js';
 
 export async function adminMiddleware(ctx: Context, next: Next): Promise<void> {
   const auth = ctx.get('auth');
-  if (auth.accessMode !== 'standard' || !adminEmails().has(auth.email.toLowerCase())) {
+  if (auth.accessMode !== 'standard' || !isAdministratorEmail(auth.email)) {
     throw AppError.forbidden('Accès administrateur requis');
   }
   await next();

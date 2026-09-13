@@ -65,11 +65,14 @@ Les valeurs `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `AUTH_SECRET`,
 `SERVICE_SECRET` et `OPENAI_API_KEY` sont ensuite renseignées dans `.env`.
 Ce fichier est ignoré par Git.
 
-Pour activer le panel d’administration bêta, ajouter également `ADMIN_EMAILS`
+Pour activer l’espace d’administration, ajouter également `ADMIN_EMAILS`
 avec l’adresse Google du développeur autorisé (plusieurs adresses peuvent être
 séparées par des virgules). Les bêta-testeurs sont ensuite créés depuis
 `/admin` : leur mot de passe temporaire n’est affiché qu’une fois et doit être
 transmis par un canal choisi par l’administrateur.
+
+L’espace comprend aussi les membres, les suspensions, les abonnements, les crédits,
+les contenus sportifs et le journal. Voir [le guide de l’administration](docs/admin-workspace.md).
 
 La stack peut alors être lancée :
 

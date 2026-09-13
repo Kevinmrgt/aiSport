@@ -32,6 +32,7 @@ app.use(
       'x-user-id',
       'x-user-email',
       'x-user-name',
+      'x-user-name-utf8',
       'x-auth-method',
       'x-beta-session-version',
     ],

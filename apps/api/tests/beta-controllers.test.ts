@@ -130,7 +130,7 @@ describe('beta controllers', () => {
     expect(platformSettings.upsertPlatformSettings).toHaveBeenCalledWith({
       defaultAiModel: 'gpt-5.4',
       defaultBetaGenerationBalance: 20,
-    });
+    }, 'admin@example.com');
   });
 
   it('valide les crédits, le statut et la réinitialisation admin', async () => {
@@ -141,7 +141,7 @@ describe('beta controllers', () => {
       body: JSON.stringify({ amount: -1 }),
     });
     expect(await adjusted.json()).toEqual({ generationBalance: 4 });
-    expect(service.adjustManagedBetaBalance).toHaveBeenCalledWith(USER_ID, -1, 'admin@example.com');
+    expect(service.adjustManagedBetaBalance).toHaveBeenCalledWith(USER_ID, -1, 'admin@example.com', undefined, undefined);
     expect(
       (
         await app().request(`/admin/beta-testers/${USER_ID}/credits`, {
@@ -192,7 +192,7 @@ describe('beta controllers', () => {
     expect(
       await (await app().request(`/admin/beta-testers/${USER_ID}`, { method: 'DELETE' })).json(),
     ).toEqual({ ok: true });
-    expect(service.deleteManagedBetaTester).toHaveBeenCalledWith(USER_ID);
+    expect(service.deleteManagedBetaTester).toHaveBeenCalledWith(USER_ID, 'admin@example.com', undefined);
     expect(
       (await app().request('/admin/beta-testers/not-a-uuid', { method: 'DELETE' })).status,
     ).toBe(400);

@@ -86,28 +86,30 @@ export async function adjustManagedBetaBalance(
   userId: string,
   amount: number,
   adminEmail: string,
+  reason?: string,
+  requestId?: string,
 ) {
-  const balance = await adjustBetaBalance(userId, amount, adminEmail);
+  const balance = await adjustBetaBalance(userId, amount, adminEmail, reason, requestId);
   if (balance === null) {
     throw AppError.badRequest('Le retrait dépasse le solde de générations disponible.');
   }
   return balance;
 }
 
-export async function setManagedBetaStatus(userId: string, active: boolean) {
-  if (!(await setBetaStatus(userId, active, randomUUID()))) throw AppError.notFound('Bêta-testeur');
+export async function setManagedBetaStatus(userId: string, active: boolean, adminEmail: string, reason?: string) {
+  if (!(await setBetaStatus(userId, active, randomUUID(), adminEmail, reason))) throw AppError.notFound('Bêta-testeur');
 }
 
-export async function resetManagedBetaPassword(userId: string) {
+export async function resetManagedBetaPassword(userId: string, adminEmail: string, reason?: string) {
   const temporaryPassword = createTemporaryPassword();
-  if (!(await resetBetaPassword(userId, hashPassword(temporaryPassword), randomUUID()))) {
+  if (!(await resetBetaPassword(userId, hashPassword(temporaryPassword), randomUUID(), adminEmail, reason))) {
     throw AppError.notFound('Bêta-testeur');
   }
   return temporaryPassword;
 }
 
-export async function deleteManagedBetaTester(userId: string) {
-  if (!(await deleteBetaTester(userId))) throw AppError.notFound('Bêta-testeur');
+export async function deleteManagedBetaTester(userId: string, adminEmail: string, reason?: string) {
+  if (!(await deleteBetaTester(userId, adminEmail, reason))) throw AppError.notFound('Bêta-testeur');
 }
 
 export async function updateOwnBetaPassword(userId: string, currentPassword: string, newPassword: string) {

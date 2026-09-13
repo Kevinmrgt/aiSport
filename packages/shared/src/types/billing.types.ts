@@ -9,6 +9,8 @@ export interface BillingStatus {
   plan: 'free' | 'premium';
   subscriptionStatus: string | null;
   freeCredits: number;
+  offeredCredits?: number;
+  suspended?: boolean;
   premiumCredits: number;
   remaining: number;
   periodEnd: string | null;

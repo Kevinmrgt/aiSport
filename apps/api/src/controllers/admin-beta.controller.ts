@@ -1,5 +1,6 @@
 import type { Context } from 'hono';
 import { z } from 'zod';
+import { AdminBetaCreateSchema, AdminBetaAdjustmentSchema, AdminBetaStatusSchema, AdminReasonInputSchema, AdminSettingsSchema } from '@alcide/shared';
 import {
   adjustManagedBetaBalance,
   createManagedBetaTester,
@@ -24,23 +25,11 @@ import {
   upsertPlatformSettings,
 } from '../repositories/settings.repository.js';
 
-const CreateSchema = z.object({
-  name: z.string().trim().min(1).max(128),
-  email: z.string().trim().email().max(254),
-  generationBalance: z.number().int().min(0).max(10_000),
-});
-const AdjustmentSchema = z.object({
-  amount: z
-    .number()
-    .int()
-    .min(-10_000)
-    .max(10_000)
-    .refine((value) => value !== 0),
-});
-const StatusSchema = z.object({ active: z.boolean() });
-const PlatformSettingsSchema = z.object({
+const CreateSchema = AdminBetaCreateSchema;
+const AdjustmentSchema = AdminBetaAdjustmentSchema;
+const StatusSchema = AdminBetaStatusSchema;
+const PlatformSettingsSchema = AdminSettingsSchema.extend({
   defaultAiModel: OpenAiModelSchema,
-  defaultBetaGenerationBalance: z.number().int().min(1).max(10_000),
 });
 const UserIdSchema = z.string().uuid();
 
@@ -80,7 +69,7 @@ export async function handleSavePlatformSettings(ctx: Context): Promise<Response
     throw AppError.badRequest('Réglages de plateforme invalides', parsed.error.flatten());
 
   try {
-    await upsertPlatformSettings(parsed.data);
+    await upsertPlatformSettings(parsed.data, ctx.get('auth').email);
   } catch (error) {
     console.error('[Admin] Erreur sauvegarde réglages plateforme:', error);
     throw AppError.internal(
@@ -111,6 +100,8 @@ export async function handleAdjustBetaBalance(ctx: Context): Promise<Response> {
     userId(ctx),
     parsed.data.amount,
     ctx.get('auth').email,
+    parsed.data.reason,
+    parsed.data.requestId,
   );
   return ctx.json({ generationBalance: balance });
 }
@@ -119,16 +110,32 @@ export async function handleSetBetaStatus(ctx: Context): Promise<Response> {
   const body = await ctx.req.json<unknown>().catch(() => null);
   const parsed = StatusSchema.safeParse(body);
   if (!parsed.success) throw AppError.badRequest('Statut invalide');
-  await setManagedBetaStatus(userId(ctx), parsed.data.active);
+  await setManagedBetaStatus(userId(ctx), parsed.data.active, ctx.get('auth').email, parsed.data.reason);
   return ctx.json({ ok: true });
 }
 
 export async function handleResetBetaPassword(ctx: Context): Promise<Response> {
-  const temporaryPassword = await resetManagedBetaPassword(userId(ctx));
+  const reason = await optionalReason(ctx);
+  const temporaryPassword = await resetManagedBetaPassword(userId(ctx), ctx.get('auth').email, reason);
   return ctx.json({ temporaryPassword });
 }
 
 export async function handleDeleteBetaTester(ctx: Context): Promise<Response> {
-  await deleteManagedBetaTester(userId(ctx));
+  const reason = await optionalReason(ctx);
+  await deleteManagedBetaTester(userId(ctx), ctx.get('auth').email, reason);
   return ctx.json({ ok: true });
+}
+
+async function optionalReason(ctx: Context): Promise<string | undefined> {
+  const text = await ctx.req.text();
+  let body: unknown = {};
+  try { if (text) body = JSON.parse(text); } catch { throw AppError.badRequest('Motif invalide'); }
+  const parsed = AdminReasonInputSchema.safeParse(body);
+  if (!parsed.success) throw AppError.badRequest('Motif invalide');
+  return parsed.data.reason;
+}
+
+export async function handleGetPlatformSettings(ctx: Context): Promise<Response> {
+  const settings = await findPlatformSettings();
+  return ctx.json({ settings: { defaultAiModel: normalizeOpenAiModel(settings?.defaultAiModel ?? DEFAULT_OPENAI_MODEL), defaultBetaGenerationBalance: settings?.defaultBetaGenerationBalance ?? 10 }, availableModels: AI_MODELS });
 }

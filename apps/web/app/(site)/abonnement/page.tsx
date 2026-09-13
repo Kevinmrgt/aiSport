@@ -47,6 +47,7 @@ export default async function SubscriptionPage({
         </h1>
       </header>
       <p className="premium-chip w-fit">Mode test · aucun prélèvement réel</p>
+      {status?.suspended && <p role="status" className="glass-soft p-4">Votre compte est suspendu. Vous pouvez toujours gérer votre abonnement et votre moyen de paiement.</p>}
       {!google ? (
         <GlassPanel className="panel-padding">
           <h2 className="panel-title">Votre entraînement commence ici</h2>
@@ -101,7 +102,8 @@ export default async function SubscriptionPage({
                 <span className="muted-copy ml-3">crédits disponibles</span>
               </p>
               <p className="muted-copy mt-3">
-                {status.freeCredits} crédit{status.freeCredits > 1 ? 's' : ''} de bienvenue
+                {status.freeCredits - (status.offeredCredits ?? 0)} crédits de bienvenue
+                {status.offeredCredits ? ` · ${status.offeredCredits} crédits offerts` : ''}
                 {status.plan === 'premium' ? ` · ${status.premiumCredits} crédits Premium` : ''}
               </p>
               {status.plan === 'premium' && date && (
@@ -119,9 +121,9 @@ export default async function SubscriptionPage({
                 </p>
               )}
               <div className="mt-8 flex flex-wrap gap-4">
-                <Link href="/generate" className="action-secondary">
+                {!status.suspended && <Link href="/generate" className="action-secondary">
                   Créer une séance
-                </Link>
+                </Link>}
                 {status.canManage && (
                   <BillingButton kind="portal">Gérer mon abonnement</BillingButton>
                 )}

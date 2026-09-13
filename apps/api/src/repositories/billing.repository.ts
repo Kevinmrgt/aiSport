@@ -12,6 +12,7 @@ export interface BillingAccount {
 }
 interface Grant {
   id: string;
+  source_key: string;
   remaining: number;
   subscription_id: string | null;
   expires_at: string | null;
@@ -49,7 +50,7 @@ export async function findBillingUser(customerId: string): Promise<string | null
 
 async function availableGrants(tx: BillingTransaction, userId: string): Promise<Grant[]> {
   const result =
-    await tx.execute(sql`SELECT g.id,g.remaining,g.subscription_id,g.expires_at FROM billing_credit_grants g
+    await tx.execute(sql`SELECT g.id,g.source_key,g.remaining,g.subscription_id,g.expires_at FROM billing_credit_grants g
     LEFT JOIN billing_subscriptions s ON s.id=g.subscription_id
     WHERE g.user_id=${userId}::uuid AND g.starts_at<=now() AND (g.expires_at IS NULL OR g.expires_at>now())
     AND (g.subscription_id IS NULL OR s.status IN ('active','past_due'))
@@ -99,6 +100,7 @@ export async function readBillingStatus(userId: string): Promise<BillingStatus> 
       plan: premium ? 'premium' : 'free',
       subscriptionStatus: status ?? null,
       freeCredits,
+      offeredCredits: grants.filter((g) => g.source_key.startsWith('admin:')).reduce((sum,g) => sum+g.remaining,0),
       premiumCredits,
       remaining: freeCredits + premiumCredits,
       periodEnd: periodEnd ? new Date(periodEnd).toISOString() : null,

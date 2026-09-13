@@ -1,6 +1,8 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { betaCreditAdjustments, betaTesters, users } from '../db/schema.js';
+import { writeAdminAudit, type AdminTransaction } from './admin-audit.repository.js';
+import { AppError } from '../types/app-error.js';
 
 export interface BetaTesterSummary {
   userId: string;
@@ -108,6 +110,9 @@ export async function createBetaTester(input: {
       amount: input.generationBalance,
       balanceAfter: input.generationBalance,
     });
+    await writeAdminAudit(tx, { actorEmail: input.adminEmail, userId: user.id, targetEmail: user.email,
+      action: 'beta.created', reason: 'Création d’un accès bêta',
+      changes: { amount: input.generationBalance, balanceAfter: input.generationBalance } });
     return {
       userId: user.id,
       name: user.name,
@@ -120,8 +125,21 @@ export async function createBetaTester(input: {
   });
 }
 
-export async function adjustBetaBalance(userId: string, amount: number, adminEmail: string): Promise<number | null> {
+export async function adjustBetaBalance(userId: string, amount: number, adminEmail: string, reason = 'Ajustement des générations bêta', requestId?: string): Promise<number | null> {
   return db.transaction(async (tx) => {
+    const member = await lockedBeta(tx, userId);
+    if (!member) throw AppError.notFound('Bêta-testeur');
+    const key = requestId ? `beta:${userId}:${requestId}` : null;
+    if (key) {
+      const previous = await tx.execute(sql`SELECT actor_email,reason,changes FROM admin_audit_events WHERE request_key=${key}`);
+      const old = previous.rows[0];
+      if (old) {
+        const changes = old['changes'] as { amount: number; balanceAfter: number };
+        if (old['actor_email'] !== adminEmail || old['reason'] !== reason || changes.amount !== amount)
+          throw new AppError(409, 'IDEMPOTENCY_CONFLICT', 'Cette demande a déjà été utilisée avec des valeurs différentes.');
+        return changes.balanceAfter;
+      }
+    }
     const [updated] = await tx
       .update(betaTesters)
       .set({ generationBalance: sql`${betaTesters.generationBalance} + ${amount}`, updatedAt: new Date() })
@@ -134,35 +152,60 @@ export async function adjustBetaBalance(userId: string, amount: number, adminEma
       amount,
       balanceAfter: updated.balance,
     });
+    await writeAdminAudit(tx, { actorEmail: adminEmail, userId, targetEmail: String(member['email']),
+      action: 'beta.credits', reason, changes: { amount, balanceAfter: updated.balance }, requestKey: key });
     return updated.balance;
   });
 }
 
-export async function setBetaStatus(userId: string, active: boolean, sessionVersion: string): Promise<boolean> {
-  const result = await db
+async function lockedBeta(tx: AdminTransaction, userId: string) {
+  const result = await tx.execute(sql`SELECT u.email,b.active,b.generation_balance FROM beta_testers b JOIN users u ON u.id=b.user_id WHERE b.user_id=${userId}::uuid FOR UPDATE OF b`);
+  return result.rows[0];
+}
+
+export async function setBetaStatus(userId: string, active: boolean, sessionVersion: string, adminEmail: string, reason = 'Modification de l’accès bêta'): Promise<boolean> {
+  return db.transaction(async (tx) => {
+  const member = await lockedBeta(tx, userId);
+  if (!member) return false;
+  const result = await tx
     .update(betaTesters)
     .set({ active: active ? 1 : 0, sessionVersion, updatedAt: new Date() })
     .where(eq(betaTesters.userId, userId))
     .returning({ userId: betaTesters.userId });
+  await writeAdminAudit(tx, { actorEmail: adminEmail, userId, targetEmail: String(member['email']),
+    action: active ? 'beta.activated' : 'beta.deactivated', reason, changes: { before: member['active'] === 1, after: active } });
   return result.length === 1;
+  });
 }
 
-export async function resetBetaPassword(userId: string, passwordHash: string, sessionVersion: string): Promise<boolean> {
-  const result = await db
+export async function resetBetaPassword(userId: string, passwordHash: string, sessionVersion: string, adminEmail: string, reason = 'Réinitialisation du mot de passe bêta'): Promise<boolean> {
+  return db.transaction(async (tx) => {
+  const member = await lockedBeta(tx, userId);
+  if (!member) return false;
+  const result = await tx
     .update(betaTesters)
     .set({ passwordHash, mustChangePassword: 1, sessionVersion, updatedAt: new Date() })
     .where(eq(betaTesters.userId, userId))
     .returning({ userId: betaTesters.userId });
+  await writeAdminAudit(tx, { actorEmail: adminEmail, userId, targetEmail: String(member['email']),
+    action: 'beta.password_reset', reason, changes: { mustChangePassword: true, sessionsRevoked: true } });
   return result.length === 1;
+  });
 }
 
 /** Retire uniquement l'accès bêta : les données utilisateur et Google éventuelles sont conservées. */
-export async function deleteBetaTester(userId: string): Promise<boolean> {
-  const result = await db
+export async function deleteBetaTester(userId: string, adminEmail: string, reason = 'Retrait de l’accès bêta'): Promise<boolean> {
+  return db.transaction(async (tx) => {
+  const member = await lockedBeta(tx, userId);
+  if (!member) return false;
+  const result = await tx
     .delete(betaTesters)
     .where(eq(betaTesters.userId, userId))
     .returning({ userId: betaTesters.userId });
+  await writeAdminAudit(tx, { actorEmail: adminEmail, userId, targetEmail: String(member['email']),
+    action: 'beta.deleted', reason, changes: { accessRemoved: true, trainingDataPreserved: true } });
   return result.length === 1;
+  });
 }
 
 export async function changeBetaPassword(userId: string, passwordHash: string): Promise<void> {

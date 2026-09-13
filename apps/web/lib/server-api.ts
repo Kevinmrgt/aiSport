@@ -95,7 +95,7 @@ export function isServerApiNotFound(error: unknown): error is ServerApiError {
 
 // Helper interne - appel Hono avec auth service-to-service (OWASP A01)
 // Le secret n'est jamais expose cote client : ce module est server-only
-async function serverFetch<T>(
+export async function serverFetch<T>(
   path: string,
   options?: RequestInit,
   timeoutMs = DEFAULT_TIMEOUT_MS,
@@ -120,7 +120,7 @@ async function serverFetch<T>(
   // Le guard client ne peut intervenir qu'après le rendu serveur. Sans cette
   // redirection, les pages privées appellent l'API trop tôt et affichent une
   // erreur générique à un bêta-testeur qui doit encore changer son mot de passe.
-  if (authMethod === 'beta' && sessionUser.betaMustChangePassword && path !== '/auth/beta/password') {
+  if (authMethod === 'beta' && sessionUser.betaMustChangePassword && !['/auth/beta/password', '/account/status'].includes(path)) {
     redirect('/change-password');
   }
 
@@ -142,6 +142,7 @@ async function serverFetch<T>(
   try {
     response = await fetch(`${API_URL}${path}`, {
       ...options,
+      cache: 'no-store',
       signal: timeoutController.signal,
       headers: {
         'Content-Type': 'application/json',
@@ -149,7 +150,8 @@ async function serverFetch<T>(
         'x-internal-secret': process.env['SERVICE_SECRET'] ?? '',
         'x-user-id': session.user.id,
         'x-user-email': session.user.email ?? '',
-        'x-user-name': session.user.name ?? '',
+        // Les en-têtes HTTP n'acceptent pas directement tous les caractères Unicode.
+        'x-user-name-utf8': encodeURIComponent(session.user.name ?? ''),
         // Ce contexte est fiable car il voyage avec le secret service-to-service.
         'x-auth-method': authMethod,
         ...(authMethod === 'beta' && sessionUser.betaSessionVersion
@@ -177,6 +179,7 @@ async function serverFetch<T>(
       error?: string;
       statusCode?: number;
     };
+    if (err.error === 'ACCOUNT_SUSPENDED') redirect('/compte-suspendu');
     // OWASP A09: logger l'erreur API complete cote Next.js server (visible dans les logs Vercel)
     console.error('[ServerAPI] Erreur reponse API:', {
       url: `${API_URL}${path}`,

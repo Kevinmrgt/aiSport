@@ -7,7 +7,7 @@ export function BetaPasswordGuard({ mustChangePassword }: { mustChangePassword: 
   const pathname = usePathname();
   const router = useRouter();
   useEffect(() => {
-    if (mustChangePassword && pathname !== '/change-password') router.replace('/change-password');
+    if (mustChangePassword && !['/change-password', '/compte-suspendu'].includes(pathname)) router.replace('/change-password');
   }, [mustChangePassword, pathname, router]);
   return null;
 }

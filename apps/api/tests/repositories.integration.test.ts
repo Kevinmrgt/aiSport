@@ -154,8 +154,8 @@ describeWithDatabase('repositories PostgreSQL', () => {
       name: 'Integration owner',
       generationBalance: 2,
     });
-    await expect(deleteBetaTester(ownerId)).resolves.toBe(true);
-    await expect(deleteBetaTester(ownerId)).resolves.toBe(false);
+    await expect(deleteBetaTester(ownerId, 'admin@alcide.test')).resolves.toBe(true);
+    await expect(deleteBetaTester(ownerId, 'admin@alcide.test')).resolves.toBe(false);
     await expect(db.select().from(users).where(eq(users.id, ownerId))).resolves.toHaveLength(1);
 
     await expect(findBetaForAuthentication(betaEmail)).resolves.toMatchObject({
@@ -195,14 +195,24 @@ describeWithDatabase('repositories PostgreSQL', () => {
     await expect(reserveBetaGeneration(betaUserId)).resolves.toMatchObject({ remaining: 0 });
 
     const revokedSessionVersion = randomUUID();
-    await expect(setBetaStatus(betaUserId, false, revokedSessionVersion)).resolves.toBe(true);
+    await expect(
+      setBetaStatus(betaUserId, false, revokedSessionVersion, 'admin@alcide.test'),
+    ).resolves.toBe(true);
     await expect(findActiveBetaSession(betaUserId, initialSessionVersion)).resolves.toBeUndefined();
     await expect(reserveBetaGeneration(betaUserId)).resolves.toBeNull();
-    await expect(setBetaStatus(betaUserId, true, randomUUID())).resolves.toBe(true);
-    await expect(setBetaStatus(randomUUID(), true, randomUUID())).resolves.toBe(false);
+    await expect(setBetaStatus(betaUserId, true, randomUUID(), 'admin@alcide.test')).resolves.toBe(
+      true,
+    );
+    await expect(
+      setBetaStatus(randomUUID(), true, randomUUID(), 'admin@alcide.test'),
+    ).resolves.toBe(false);
 
-    await expect(resetBetaPassword(betaUserId, 'reset-hash', randomUUID())).resolves.toBe(true);
-    await expect(resetBetaPassword(randomUUID(), 'reset-hash', randomUUID())).resolves.toBe(false);
+    await expect(
+      resetBetaPassword(betaUserId, 'reset-hash', randomUUID(), 'admin@alcide.test'),
+    ).resolves.toBe(true);
+    await expect(
+      resetBetaPassword(randomUUID(), 'reset-hash', randomUUID(), 'admin@alcide.test'),
+    ).resolves.toBe(false);
     await expect(findBetaByUserId(betaUserId)).resolves.toEqual({
       passwordHash: 'reset-hash',
       active: 1,
@@ -465,6 +475,9 @@ describeWithDatabase('repositories PostgreSQL', () => {
     const { findPlatformSettings, upsertPlatformSettings } =
       await import('../src/repositories/settings.repository.js');
 
+    const { db } = await import('../src/db/index.js');
+    const { platformSettings } = await import('../src/db/schema.js');
+    await db.delete(platformSettings);
     await expect(findPlatformSettings()).resolves.toBeNull();
 
     await upsertPlatformSettings({

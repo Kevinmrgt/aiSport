@@ -95,19 +95,19 @@ describe('beta tester service', () => {
     await expect(adjustManagedBetaBalance(USER_ID, -20, 'admin@example.com')).rejects.toMatchObject({ statusCode: 400 });
 
     repository.setBetaStatus.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
-    await expect(setManagedBetaStatus(USER_ID, false)).resolves.toBeUndefined();
-    await expect(setManagedBetaStatus(USER_ID, true)).rejects.toMatchObject({ statusCode: 404 });
+    await expect(setManagedBetaStatus(USER_ID, false, 'admin@example.com')).resolves.toBeUndefined();
+    await expect(setManagedBetaStatus(USER_ID, true, 'admin@example.com')).rejects.toMatchObject({ statusCode: 404 });
 
     repository.resetBetaPassword.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
-    await expect(resetManagedBetaPassword(USER_ID)).resolves.toBe('Temporary-password-123!');
-    await expect(resetManagedBetaPassword(USER_ID)).rejects.toMatchObject({ statusCode: 404 });
+    await expect(resetManagedBetaPassword(USER_ID, 'admin@example.com')).resolves.toBe('Temporary-password-123!');
+    await expect(resetManagedBetaPassword(USER_ID, 'admin@example.com')).rejects.toMatchObject({ statusCode: 404 });
   });
 
   it('supprime uniquement l’accès bêta demandé', async () => {
     repository.deleteBetaTester.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
-    await expect(deleteManagedBetaTester(USER_ID)).resolves.toBeUndefined();
-    expect(repository.deleteBetaTester).toHaveBeenCalledWith(USER_ID);
-    await expect(deleteManagedBetaTester(USER_ID)).rejects.toMatchObject({ statusCode: 404 });
+    await expect(deleteManagedBetaTester(USER_ID, 'admin@example.com')).resolves.toBeUndefined();
+    expect(repository.deleteBetaTester).toHaveBeenCalledWith(USER_ID, 'admin@example.com', undefined);
+    await expect(deleteManagedBetaTester(USER_ID, 'admin@example.com')).rejects.toMatchObject({ statusCode: 404 });
   });
 
   it('réserve et libère une génération via le dépôt atomique', async () => {

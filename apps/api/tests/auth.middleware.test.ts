@@ -4,12 +4,16 @@ import { authMiddleware } from '../src/middleware/auth.middleware.js';
 import { handleError } from '../src/middleware/error.middleware.js';
 
 const MOCK_DB_UUID = 'db-uuid-from-upsert';
+const { insertMock, valuesMock } = vi.hoisted(() => ({
+  insertMock: vi.fn(),
+  valuesMock: vi.fn(),
+}));
 
 // Mock DB — évite la connexion réelle en tests unitaires
 vi.mock('../src/db/index.js', () => ({
   db: {
-    insert: vi.fn(() => ({
-      values: vi.fn(() => ({
+    insert: insertMock.mockImplementation(() => ({
+      values: valuesMock.mockImplementation(() => ({
         onConflictDoUpdate: vi.fn(() => ({
           returning: vi.fn().mockResolvedValue([{ id: MOCK_DB_UUID }]),
         })),
@@ -35,6 +39,7 @@ const VALID_SECRET = 'test-service-secret';
 
 describe('authMiddleware', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     process.env['SERVICE_SECRET'] = VALID_SECRET;
   });
 
@@ -114,6 +119,71 @@ describe('authMiddleware', () => {
     expect(res.status).toBe(200);
     expect((await res.json()) as object).toMatchObject({ accessMode: 'jury' });
   });
+
+  it.each(['Jury — Alcide', '東京 太郎', 'Élodie 🏃'])(
+    'restitue le nom Unicode %s à la base sans changer l identité',
+    async (name) => {
+      const res = await createApp().fetch(
+        new Request('http://localhost/protected', {
+          headers: {
+            'x-internal-secret': VALID_SECRET,
+            'x-user-id': 'user-abc',
+            'x-user-email': 'user@example.com',
+            'x-user-name-utf8': encodeURIComponent(name),
+            'x-user-name': 'Ancien nom',
+          },
+        }),
+      );
+
+      expect(res.status).toBe(200);
+      expect(valuesMock).toHaveBeenCalledWith({ email: 'user@example.com', name });
+      expect(await res.json()).toMatchObject({
+        userId: MOCK_DB_UUID,
+        email: 'user@example.com',
+      });
+    },
+  );
+
+  it('préserve les pourcentages littéraux de l ancien en-tête', async () => {
+    const name = '100% Max %C3%A9';
+    const res = await createApp().fetch(
+      new Request('http://localhost/protected', {
+        headers: {
+          'x-internal-secret': VALID_SECRET,
+          'x-user-id': 'user-abc',
+          'x-user-email': 'user@example.com',
+          'x-user-name': name,
+        },
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(valuesMock).toHaveBeenCalledWith({ email: 'user@example.com', name });
+  });
+
+  it.each(['%', '%ZZ', '%E2%28', '%ED%A0%80'])(
+    'rejette le nouvel en-tête mal encodé %s avant tout accès base',
+    async (encodedName) => {
+      const res = await createApp().fetch(
+        new Request('http://localhost/protected', {
+          headers: {
+            'x-internal-secret': VALID_SECRET,
+            'x-user-id': 'user-abc',
+            'x-user-email': 'user@example.com',
+            'x-user-name-utf8': encodedName,
+            'x-user-name': 'Ancien nom',
+          },
+        }),
+      );
+
+      expect(res.status).toBe(400);
+      expect(await res.json()).toMatchObject({
+        error: 'BAD_REQUEST',
+        message: 'Encodage du nom utilisateur invalide',
+      });
+      expect(insertMock).not.toHaveBeenCalled();
+    },
+  );
 
   it("retourne 401 si SERVICE_SECRET n'est pas configuré", async () => {
     delete process.env['SERVICE_SECRET'];

@@ -175,30 +175,30 @@ export function AdminAnalyticsDashboard({ analytics }: Pick<AdminOverview, 'anal
           <dd className="mt-1 text-2xl font-black text-primary-100">
             {totalMetric.toLocaleString('fr-FR')}
           </dd>
-          <p className="mt-1 text-xs text-primary-100/75">
+          <dd className="mt-1 text-xs text-primary-100/75">
             sur {rangeLabels[timeRange].toLowerCase()}
-          </p>
+          </dd>
         </div>
         <div className="glass-soft p-3">
           <dt className="muted-copy text-xs">Contenus créés</dt>
           <dd className="mt-1 text-2xl font-black text-primary-100">
             {totalCreations.toLocaleString('fr-FR')}
           </dd>
-          <p className="mt-1 text-xs text-primary-100/75">séances et programmes</p>
+          <dd className="mt-1 text-xs text-primary-100/75">séances et programmes</dd>
         </div>
         <div className="glass-soft p-3">
           <dt className="muted-copy text-xs">Membres acquis</dt>
           <dd className="mt-1 text-2xl font-black text-primary-100">
             {totalNewMembers.toLocaleString('fr-FR')}
           </dd>
-          <p className="mt-1 text-xs text-primary-100/75">nouvelles inscriptions</p>
+          <dd className="mt-1 text-xs text-primary-100/75">nouvelles inscriptions</dd>
         </div>
         <div className="glass-soft p-3">
           <dt className="muted-copy text-xs">Visites</dt>
           <dd className="mt-1 text-2xl font-black text-primary-100">
             {totalVisits.toLocaleString('fr-FR')}
           </dd>
-          <p className="mt-1 text-xs text-primary-100/75">ouvertures de pages</p>
+          <dd className="mt-1 text-xs text-primary-100/75">ouvertures de pages</dd>
         </div>
       </dl>
 

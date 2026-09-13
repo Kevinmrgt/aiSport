@@ -21,6 +21,7 @@ export interface AuthContext {
 declare module 'hono' {
   interface ContextVariableMap {
     auth: AuthContext;
+    accountSuspended: boolean;
   }
 }
 
@@ -40,12 +41,23 @@ export async function authMiddleware(ctx: Context, next: Next): Promise<void> {
 
   const oauthId = ctx.req.header('x-user-id');
   const email = ctx.req.header('x-user-email') ?? '';
-  const name = ctx.req.header('x-user-name') ?? null;
   const methodHeader = ctx.req.header('x-auth-method');
   const accessMode = methodHeader === 'jury' || methodHeader === 'beta' ? methodHeader : 'standard';
 
   if (!oauthId || !email) {
     throw AppError.unauthorized('Identifiant utilisateur manquant');
+  }
+
+  // Le nouvel en-tête transporte le nom Unicode sous forme percent-encodée UTF-8.
+  // L'ancien format reste brut : un % dans un ancien nom doit rester littéral.
+  const encodedName = ctx.req.header('x-user-name-utf8');
+  let name = ctx.req.header('x-user-name') ?? null;
+  if (encodedName !== undefined) {
+    try {
+      name = decodeURIComponent(encodedName);
+    } catch {
+      throw AppError.badRequest('Encodage du nom utilisateur invalide');
+    }
   }
 
   // Auth.js JWT strategy ne crée pas les utilisateurs en base — on upsert ici
@@ -59,7 +71,7 @@ export async function authMiddleware(ctx: Context, next: Next): Promise<void> {
       target: users.email,
       set: { updatedAt: sql`now()` } as Record<string, unknown>,
     })
-    .returning({ id: users.id });
+    .returning({ id: users.id, suspendedAt: users.suspendedAt });
 
   if (!user) {
     throw AppError.internal("Impossible de résoudre l'utilisateur en base");
@@ -76,5 +88,14 @@ export async function authMiddleware(ctx: Context, next: Next): Promise<void> {
   }
 
   ctx.set('auth', { userId: user.id, email, accessMode, mustChangePassword, generationBalance });
+  const suspended = user.suspendedAt != null;
+  ctx.set('accountSuspended', suspended);
+  // An existing session cannot bypass suspension. Billing management remains accessible.
+  const allowedWhileSuspended =
+    (ctx.req.method === 'GET' && ['/account/status', '/billing/status'].includes(ctx.req.path)) ||
+    (ctx.req.method === 'POST' && ctx.req.path === '/billing/portal');
+  if (suspended && !allowedWhileSuspended) {
+    throw new AppError(403, 'ACCOUNT_SUSPENDED', 'Votre compte est suspendu. La gestion de votre abonnement reste accessible.');
+  }
   await next();
 }

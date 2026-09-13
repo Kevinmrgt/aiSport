@@ -19,6 +19,7 @@ export const users = pgTable('users', {
   email: text('email').notNull().unique(),
   emailVerified: timestamp('email_verified', { withTimezone: true }),
   image: text('image'),
+  suspendedAt: timestamp('suspended_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
@@ -335,3 +336,20 @@ export type NewTrainingProgramRow = typeof trainingPrograms.$inferInsert;
 export type SessionLogRow = typeof sessionLogs.$inferSelect;
 export type NewSessionLogRow = typeof sessionLogs.$inferInsert;
 export type PageVisitRow = typeof pageVisits.$inferSelect;
+
+export const adminAuditEvents = pgTable('admin_audit_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  actorEmail: text('actor_email').notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  targetEmail: text('target_email'),
+  action: text('action').notNull(),
+  reason: text('reason').notNull(),
+  changes: jsonb('changes').notNull().default({}).$type<Record<string, unknown>>(),
+  requestKey: text('request_key').unique(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [index('admin_audit_created_idx').on(table.createdAt, table.id), index('admin_audit_user_created_idx').on(table.userId, table.createdAt)]);
+
+export const adminTracking = pgTable('admin_tracking', {
+  id: text('id').primaryKey().default('default'),
+  startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [check('admin_tracking_id_check', sql`${table.id} = 'default'`)]);

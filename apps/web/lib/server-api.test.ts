@@ -62,10 +62,34 @@ describe('serverApi', () => {
       'x-internal-secret': 'secret-test',
       'x-user-id': 'user-1',
       'x-user-email': 'sportif@example.test',
-      'x-user-name': 'Sportif Test',
+      'x-user-name-utf8': 'Sportif%20Test',
       'x-auth-method': 'standard',
     });
   });
+
+  it.each(['Jury — Alcide', '東京 太郎', 'Élodie 🏃'])(
+    'transmet le nom Unicode %s dans de vrais en-têtes HTTP',
+    async (name) => {
+      authMock.mockResolvedValue({
+        user: { id: 'user-1', email: 'sportif@example.test', name },
+      } as never);
+      let sentHeaders: Headers | undefined;
+      const fetchMock = vi.fn((_url: string, init: RequestInit) => {
+        // Exerce la conversion ByteString réelle, ignorée par un simple mock fetch.
+        sentHeaders = new Headers(init.headers);
+        return Promise.resolve(response({ workouts: [], total: 0 }));
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      await serverApi.getWorkouts();
+
+      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(sentHeaders?.has('x-user-name')).toBe(false);
+      expect(decodeURIComponent(sentHeaders?.get('x-user-name-utf8') ?? '')).toBe(name);
+      expect(sentHeaders?.get('x-user-id')).toBe('user-1');
+      expect(sentHeaders?.get('x-user-email')).toBe('sportif@example.test');
+    },
+  );
 
   it('marque le contexte jury uniquement pour l email jury configure', async () => {
     process.env['JURY_ACCESS_EMAIL'] = 'jury@alcide.invalid';

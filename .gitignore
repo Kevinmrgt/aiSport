@@ -60,3 +60,6 @@ output/alcide-bloc2-rncp39583-*.zip
 output/jury-private/
 
 .vercel
+
+# Isolated administration verification runtime and fixtures
+output/admin-verification/

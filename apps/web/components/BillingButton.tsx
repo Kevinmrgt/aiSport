@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { openBilling } from '@/app/abonnement/actions';
+import { openBilling } from '@/app/(site)/abonnement/actions';
 import { Icon } from './ui/Icon';
 
 export function BillingButton({

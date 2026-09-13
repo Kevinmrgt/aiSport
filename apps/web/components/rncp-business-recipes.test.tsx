@@ -15,10 +15,10 @@ vi.mock('@/lib/server-api', () => ({
 
 import { auth } from '@/lib/auth';
 import { serverApi } from '@/lib/server-api';
-import DashboardPage from '@/app/dashboard/page';
-import ProgramsPage from '@/app/programs/page';
-import PrivacyPage from '@/app/confidentialite/page';
-import SettingsPage from '@/app/settings/page';
+import DashboardPage from '@/app/(site)/dashboard/page';
+import ProgramsPage from '@/app/(site)/programs/page';
+import PrivacyPage from '@/app/(site)/confidentialite/page';
+import SettingsPage from '@/app/(site)/settings/page';
 import { DeleteConfirmationButton } from './DeleteConfirmationButton';
 import { SessionCompletionForm } from './SessionCompletionForm';
 import { WorkoutForm } from './WorkoutForm';

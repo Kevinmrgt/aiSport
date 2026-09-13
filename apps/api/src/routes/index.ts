@@ -9,9 +9,14 @@ import { betaAuthRouter } from './beta-auth.routes.js';
 import { adminBetaRouter } from './admin-beta.routes.js';
 import { billingRouter } from './billing.routes.js';
 import { visitorAnalyticsRouter } from './visitor-analytics.routes.js';
+import { authMiddleware } from '../middleware/auth.middleware.js';
 
 // Registre central de toutes les routes (architecture.md)
 export function registerRoutes(app: Hono): void {
+  app.get('/account/status', authMiddleware, (ctx) => {
+    ctx.header('Cache-Control', 'no-store');
+    return ctx.json({ suspended: ctx.get('accountSuspended') });
+  });
   app.route('/billing', billingRouter);
   app.route('/health', healthRouter);
   app.route('/workouts', workoutRouter);
