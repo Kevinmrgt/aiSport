@@ -1,10 +1,126 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { Exercise } from '@alcide/shared';
 import { Timer } from './Timer';
+import type { SessionCompletionPayload, TimerSessionMeta } from './Timer';
 
 describe('Timer - interactions', () => {
   afterEach(cleanup);
+
+  it('conserve l etape courante quand le serveur renvoie les memes donnees', () => {
+    const exercises: Exercise[] = [
+      { name: 'Pompes', description: 'Trois series', sets: 3, reps: '10', rest_seconds: 0 },
+      { name: 'Squats', description: 'Deux series', sets: 2, reps: '10', rest_seconds: 0 },
+    ];
+    const { rerender } = render(<Timer exercises={exercises} />);
+    fireEvent.click(screen.getByRole('button', { name: /terminer l'exercice/i }));
+    expect(screen.getByRole('heading', { name: 'Squats' })).toBeTruthy();
+
+    rerender(<Timer exercises={structuredClone(exercises)} />);
+
+    expect(screen.getByRole('heading', { name: 'Squats' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Pompes' })).toBeNull();
+  });
+
+  it('conserve le formulaire et sa confirmation pendant une revalidation serveur', async () => {
+    const exercises: Exercise[] = [
+      { name: 'Pompes', description: 'Trois series', sets: 3, reps: '10', rest_seconds: 0 },
+    ];
+    const sessionMeta: TimerSessionMeta = {
+      sourceType: 'workout',
+      workoutId: '22222222-2222-4222-8222-222222222222',
+      title: 'Seance privee',
+      sport: 'renforcement',
+      difficulty: 'beginner',
+      plannedDurationMinutes: 15,
+    };
+    let resolveSave!: () => void;
+    const completeAction = vi.fn<(payload: SessionCompletionPayload) => Promise<void>>(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSave = resolve;
+        }),
+    );
+    const { rerender } = render(
+      <Timer exercises={exercises} sessionMeta={sessionMeta} completeAction={completeAction} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /terminer l'exercice/i }));
+    fireEvent.change(screen.getByLabelText('Notes'), { target: { value: 'Bonne technique' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer le retour' }));
+    expect(completeAction).toHaveBeenCalledOnce();
+
+    const refreshed = () => (
+      <Timer
+        exercises={structuredClone(exercises)}
+        sessionMeta={structuredClone(sessionMeta)}
+        completeAction={(payload) => completeAction(payload)}
+      />
+    );
+    rerender(refreshed());
+    expect(screen.getByText('Seance terminee')).toBeTruthy();
+    expect(screen.getByLabelText<HTMLTextAreaElement>('Notes').value).toBe('Bonne technique');
+
+    await act(async () => {
+      resolveSave();
+      await Promise.resolve();
+    });
+    expect(screen.getByText('Retour enregistre.')).toBeTruthy();
+    rerender(refreshed());
+    expect(screen.getByText('Retour enregistre.')).toBeTruthy();
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Sauvegarde' }).disabled).toBe(
+      true,
+    );
+    expect(completeAction).toHaveBeenCalledOnce();
+  });
+
+  it('reinitialise le minuteur quand le contenu de la seance change reellement', () => {
+    const exercise: Exercise = {
+      name: 'Pompes',
+      description: 'Trois series',
+      sets: 3,
+      reps: '10',
+      rest_seconds: 0,
+    };
+    const { rerender } = render(<Timer exercises={[exercise]} />);
+    fireEvent.click(screen.getByRole('button', { name: /terminer l'exercice/i }));
+    expect(screen.getByText('Seance terminee')).toBeTruthy();
+
+    rerender(<Timer exercises={[{ ...exercise, name: 'Squats' }]} />);
+
+    expect(screen.getByRole('heading', { name: 'Squats' })).toBeTruthy();
+    expect(screen.queryByText('Seance terminee')).toBeNull();
+  });
+
+  it('ne conserve pas le retour termine pour une autre identite de seance', () => {
+    const exercises: Exercise[] = [
+      { name: 'Pompes', description: 'Trois series', sets: 3, reps: '10', rest_seconds: 0 },
+    ];
+    const sessionMeta: TimerSessionMeta = {
+      sourceType: 'workout',
+      workoutId: '22222222-2222-4222-8222-222222222222',
+      title: 'Seance privee',
+      sport: 'renforcement',
+      difficulty: 'beginner',
+      plannedDurationMinutes: 15,
+    };
+    const completeAction = vi.fn();
+    const { rerender } = render(
+      <Timer exercises={exercises} sessionMeta={sessionMeta} completeAction={completeAction} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /terminer l'exercice/i }));
+    expect(screen.getByRole('button', { name: 'Enregistrer le retour' })).toBeTruthy();
+
+    rerender(
+      <Timer
+        exercises={exercises}
+        completeAction={completeAction}
+        sessionMeta={{ ...sessionMeta, workoutId: '33333333-3333-4333-8333-333333333333' }}
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Pompes' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Enregistrer le retour' })).toBeNull();
+  });
 
   it('termine explicitement un exercice sans duree', () => {
     const exercises: Exercise[] = [

@@ -117,6 +117,17 @@ jobs:
           PRODUCTION_RELEASE_CHECKLIST_JSON: ${{ vars.PRODUCTION_RELEASE_CHECKLIST_JSON }}
         run: node scripts/cd-release-preflight.mjs
 
+      - name: Compare configured Vercel API database with the GitHub migration target
+        if: inputs.mode == 'verify'
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_API_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
+          DATABASE_TARGET_EVIDENCE_FILE: ${{ runner.temp }}/alcide-db-review/database-target.json
+        run: node scripts/production-database-target-check.mjs
+
       - name: Inventory source in a read-only transaction
         id: inventory
         env:
@@ -182,6 +193,7 @@ jobs:
             ${{ runner.temp }}/alcide-db-review/release.dump.manifest.json
             ${{ runner.temp }}/alcide-db-review/restore-evidence.json
             ${{ runner.temp }}/alcide-db-review/inventory.json
+            ${{ runner.temp }}/alcide-db-review/database-target.json
           if-no-files-found: error
           retention-days: 30
 

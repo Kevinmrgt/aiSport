@@ -195,6 +195,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
   const accumulatedActiveMsRef = useRef(0);
   const fullscreenTriggerRef = useRef<HTMLElement | null>(null);
   const storageContext = useRef({ scope: '', signature: '' });
+  const resetContextRef = useRef<string | null>(null);
   const hasStartedRef = useRef(false);
   const [savedProgress, setSavedProgress] = useState<TimerProgress | null>(null);
 
@@ -298,6 +299,13 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
   );
 
   useEffect(() => {
+    const scope = document.body.dataset.timerSession ?? '';
+    const path = window.location.pathname;
+    // Server action revalidation can deserialize identical steps into new arrays.
+    // Preserve the live timer and completion form unless their content/context changes.
+    const resetContext = JSON.stringify([scope, path, steps, sessionMeta]);
+    if (resetContextRef.current === resetContext) return;
+    resetContextRef.current = resetContext;
     setCurrentIndex(0);
     setSecondsLeft(steps[0]?.durationSeconds ?? null);
     setIsRunning(false);
@@ -308,12 +316,11 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
     activeStartedAtRef.current = null;
     accumulatedActiveMsRef.current = 0;
     hasStartedRef.current = false;
-    const scope = document.body.dataset.timerSession ?? '';
     const durations = steps.map((step) => step.durationSeconds);
-    const signature = timerSignature(window.location.pathname, durations);
+    const signature = timerSignature(path, durations);
     storageContext.current = { scope, signature };
     setSavedProgress(readTimerProgress(scope, signature, durations));
-  }, [exitFullscreen, steps]);
+  }, [exitFullscreen, sessionMeta, steps]);
 
   const persistProgress = useCallback(() => {
     if (savedProgress || !hasStartedRef.current) return;

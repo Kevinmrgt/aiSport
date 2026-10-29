@@ -7,6 +7,16 @@ candidates : même horodatage du journal et même SHA-256 du texte SQL.
 Une base vide peut démarrer sans registre. Une base contenant des tables
 sans historique appliqué est refusée ; aucun baseline automatique n'est créé.
 
+L'export `inspectDatabaseMigrationLineage(client, folder)` fournit le même
+diagnostic en lecture seule, sans bloquer une sauvegarde : `compatible`,
+`appliedMigrations` et `matchedPrefix`. Une lignée compatible ajoute
+`pendingMigrations` ; une lignée incompatible ajoute uniquement le motif
+fixe `history_divergent` ou `history_missing`. Les empreintes, horodatages,
+noms et données du registre ne figurent jamais dans ce résultat. Une erreur
+du pilote ou de lecture des fichiers reste une erreur ; elle ne devient pas
+un verdict de divergence. Le consommateur doit expurger ces erreurs avec
+le même traitement que les autres opérations PostgreSQL.
+
 Cette vérification est nécessaire parce que Drizzle choisit les migrations
 en comparant uniquement le dernier horodatage appliqué. Des migrations
 issues de deux branches peuvent donc être cumulées sans erreur SQL.

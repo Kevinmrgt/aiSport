@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { assertMigrationLineage, assertDatabaseMigrationLineage, readCandidateLineage } from './db-migration-lineage.mjs';
+import { assertMigrationLineage, assertDatabaseMigrationLineage, inspectDatabaseMigrationLineage, readCandidateLineage } from './db-migration-lineage.mjs';
 import { require } from './db-operations.mjs';
 import { fileURLToPath } from 'node:url';
 
@@ -52,4 +52,52 @@ test('candidate hashes and timestamps exactly match the installed Drizzle reader
   const drizzle = readMigrationFiles({ migrationsFolder: fileURLToPath(new URL('../apps/api/drizzle/', import.meta.url)) });
   const lineage = await readCandidateLineage();
   assert.deepEqual(lineage.map(({ createdAt, hash }) => ({ createdAt, hash })), drizzle.map(({ folderMillis, hash }) => ({ createdAt: folderMillis, hash })));
+});
+
+function inspectionClient({ registry = 'drizzle.__drizzle_migrations', rows = [], present = false, failOn } = {}) {
+  const queries = [];
+  return {
+    queries,
+    query: async (query) => {
+      queries.push(query);
+      if (failOn?.query === queries.length) throw failOn.error;
+      if (query.includes('to_regclass')) return { rows: [{ registry }] };
+      if (query.includes('order by')) return { rows };
+      return { rows: [{ present }] };
+    },
+  };
+}
+
+test('read-only inspection reports only safe counts for pristine, prefix and current databases', async () => {
+  const candidateRows = (await readCandidateLineage()).map(({ createdAt, hash }) => ({ created_at: String(createdAt), hash }));
+  for (const [rows, registry] of [[[], null], [candidateRows.slice(0, 7), 'registry'], [candidateRows, 'registry']]) {
+    const client = inspectionClient({ registry, rows });
+    assert.deepEqual(await inspectDatabaseMigrationLineage(client), {
+      compatible: true, appliedMigrations: rows.length, matchedPrefix: rows.length,
+      pendingMigrations: candidateRows.length - rows.length,
+    });
+    assert.ok(client.queries.every((query) => query.trim().startsWith('select')));
+  }
+});
+
+test('inspection identifies divergence and missing history without returning any registry values', async () => {
+  const candidateRows = (await readCandidateLineage()).map(({ createdAt, hash }) => ({ created_at: String(createdAt), hash }));
+  const divergentRows = [...candidateRows.slice(0, 7), { created_at: 'PRIVATE_TIMESTAMP_SENTINEL', hash: 'PRIVATE_HASH_SENTINEL' }];
+  assert.deepEqual(await inspectDatabaseMigrationLineage(inspectionClient({ rows: divergentRows })), {
+    compatible: false, appliedMigrations: 8, matchedPrefix: 7, reason: 'history_divergent',
+  });
+  for (const registry of [null, 'drizzle.__drizzle_migrations']) {
+    assert.deepEqual(await inspectDatabaseMigrationLineage(inspectionClient({ registry, present: true })), {
+      compatible: false, appliedMigrations: 0, matchedPrefix: 0, reason: 'history_missing',
+    });
+  }
+});
+
+test('inspection and enforcement propagate driver errors rather than reporting false divergence', async () => {
+  const failure = new Error('PRIVATE_DRIVER_DIAGNOSTIC_SENTINEL');
+  for (const query of [1, 2, 3]) {
+    for (const inspect of [inspectDatabaseMigrationLineage, assertDatabaseMigrationLineage]) {
+      await assert.rejects(inspect(inspectionClient({ failOn: { query, error: failure } })), (error) => error === failure);
+    }
+  }
 });

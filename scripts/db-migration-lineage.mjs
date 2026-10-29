@@ -24,26 +24,42 @@ export async function readCandidateLineage(folder = defaultFolder) {
   return candidates;
 }
 
-/** Only an exact prefix is safe for Drizzle's timestamp-based migration selection. */
-export function assertMigrationLineage({ candidates, applied, hasUserTables }) {
-  if (!applied.length && hasUserTables) {
-    throw new Error('Existing tables without migration history require an explicit isolated data review');
-  }
-  if (applied.length > candidates.length) {
-    throw new Error('Database migration history is not a prefix of the candidate');
-  }
+/** Return counts and fixed reasons only; never expose registry hashes or timestamps. */
+function inspectMigrationLineage({ candidates, applied, hasUserTables }) {
+  let matchedPrefix = 0;
   for (const [index, row] of applied.entries()) {
     const expected = candidates[index];
     // pg returns bigint timestamps as strings. Reject null, rounded and malformed values.
-    if (String(row.created_at) !== String(expected.createdAt) || row.hash !== expected.hash) {
-      throw new Error('Database migration history diverges from the candidate; use an isolated data review');
-    }
+    if (!expected || String(row.created_at) !== String(expected.createdAt) || row.hash !== expected.hash) break;
+    matchedPrefix += 1;
   }
-  return { appliedMigrations: applied.length, pendingMigrations: candidates.length - applied.length };
+  const counts = { appliedMigrations: applied.length, matchedPrefix };
+  if (!applied.length && hasUserTables) {
+    return { compatible: false, ...counts, reason: 'history_missing' };
+  }
+  if (matchedPrefix !== applied.length) {
+    return { compatible: false, ...counts, reason: 'history_divergent' };
+  }
+  return { compatible: true, ...counts, pendingMigrations: candidates.length - applied.length };
 }
 
-/** Read-only, called while holding the same session lock as the subsequent migration. */
-export async function assertDatabaseMigrationLineage(client, folder = defaultFolder) {
+function assertCompatibleInspection(inspection) {
+  if (inspection.reason === 'history_missing') {
+    throw new Error('Existing tables without migration history require an explicit isolated data review');
+  }
+  if (!inspection.compatible) {
+    throw new Error('Database migration history diverges from the candidate; use an isolated data review');
+  }
+  return { appliedMigrations: inspection.appliedMigrations, pendingMigrations: inspection.pendingMigrations };
+}
+
+/** Only an exact prefix is safe for Drizzle's timestamp-based migration selection. */
+export function assertMigrationLineage(state) {
+  return assertCompatibleInspection(inspectMigrationLineage(state));
+}
+
+/** Read-only diagnosis. Driver/file errors propagate; they are not lineage verdicts. */
+export async function inspectDatabaseMigrationLineage(client, folder = defaultFolder) {
   const candidates = await readCandidateLineage(folder);
   const registry = (await client.query("select to_regclass('drizzle.__drizzle_migrations') as registry")).rows[0]?.registry;
   const applied = registry
@@ -56,5 +72,10 @@ export async function assertDatabaseMigrationLineage(client, folder = defaultFol
       and n.nspname not like 'pg_toast%'
       and not (n.nspname = 'drizzle' and c.relname = '__drizzle_migrations')
   ) as present`)).rows[0]?.present;
-  return assertMigrationLineage({ candidates, applied, hasUserTables });
+  return inspectMigrationLineage({ candidates, applied, hasUserTables });
+}
+
+/** Called while holding the same session lock as the subsequent migration. */
+export async function assertDatabaseMigrationLineage(client, folder = defaultFolder) {
+  return assertCompatibleInspection(await inspectDatabaseMigrationLineage(client, folder));
 }
