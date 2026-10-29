@@ -20,7 +20,7 @@ Les détails et résultats sont conservés dans :
 
 Les builds API et Web ont réussi après correction des noms Unicode transmis
 dans les headers. La suite des scripts de politique et exploitation compte
-46 tests réussis après ajout du contrôle de lignée SQL, du diagnostic expurgé,
+49 tests réussis après ajout du contrôle de lignée SQL, du diagnostic expurgé,
 de la comparaison des cibles configurées et de l'empreinte
 réellement répétée sur restauration. La couverture Web après correction
 du minuteur passe avec 93 tests, 79,69 % des lignes et 71,44 % des branches.
@@ -35,6 +35,11 @@ du build `GBB64nJhG5rrSvc-o82ay` réussit les six scénarios, runner inchangé.
 Les résultats finaux navigateur sont consignés dans le rapport de recette.
 Le smoke public de production réussit ses **50 tests Chromium et Firefox**
 avec deux workers, après correction du nom accessible de la marque.
+La [CI Linux du correctif applicatif](https://github.com/Kevinmrgt/aiSport/actions/runs/40908876175)
+est entièrement réussie sur `7cc8c9c`, y compris Docker Web/API, les
+363 tests unitaires, les couvertures SQL et les six recettes synthétiques.
+Les contrôles du dernier commit sont visibles dans
+[les checks de la PR](https://github.com/Kevinmrgt/aiSport/pull/82/checks).
 
 ## Divergence avec le service hébergé
 
@@ -82,10 +87,18 @@ Les droits effectifs sur Vercel et la correspondance des projets, domaines et
 bases doivent être vérifiés sur les connexions retenues. L'inventaire distant
 a confirmé les projets `ai-sport-web` (`apps/web`) et `ai-sport-api` (`apps/api`),
 Node 24 et le domaine vérifié `www.alcideai.fr`. Tous deux servent encore
-`fd750f0`. La sauvegarde chiffrée et sa restauration sur PostgreSQL 17 ont
-réussi, puis la répétition des migrations a été refusée ; voir le
-[run en lecture seule](https://github.com/Kevinmrgt/aiSport/actions/runs/40906647794).
-La source contient les tables historiques de l'autre offre. Les anciens cookies
+`fd750f0`. La base pointée par le secret GitHub de migration a été sauvegardée
+et restaurée sur PostgreSQL 17, puis les migrations ont été refusées :
+12 migrations appliquées, seulement les sept premières communes. Voir le
+[run en lecture seule](https://github.com/Kevinmrgt/aiSport/actions/runs/40908873473).
+Cette source contient les tables historiques de l'autre offre. La comparaison
+initiale avec la connexion Vercel a donné des empreintes SQL différentes ;
+l'adresse/port acceptant la connexion ne garantit pas une identité logique
+stable chez un hébergeur. Ce résultat ne permet donc pas d'affirmer que la
+sauvegarde GitHub qualifie la base effectivement configurée sur Vercel.
+Le diagnostic compare également les configurations et inspecte la lignée
+Vercel en lecture seule, sans jamais exporter les URL ni les secrets.
+La correspondance doit être établie avant la bascule. Les anciens cookies
 de test et la réussite locale ne constituent pas ces preuves.
 
 `main` est désormais protégé : PR, six checks GitHub Actions identifiés,

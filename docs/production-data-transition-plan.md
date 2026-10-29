@@ -1,11 +1,15 @@
 # Transition des données vers le dépôt local retenu
 
-La vérification distante du 29 octobre 2026 a constaté PostgreSQL 17 et des
+La vérification distante du 29 octobre 2026 de la base pointée par le secret
+GitHub de migration a constaté PostgreSQL 17 et des
 tables de bêta, facturation et administration. Elles contiennent des données,
 dont un historique d'abonnement et des événements administratifs.
 L'archive chiffrée et la restauration isolée ont été exécutées dans
 [le run de vérification](https://github.com/Kevinmrgt/aiSport/actions/runs/40906647794).
 La répétition des migrations candidates a échoué. La source est restée intacte.
+La correspondance avec la connexion configurée sur Vercel doit encore être
+établie ; une empreinte d'adresse serveur différente ne suffit pas, seule,
+à conclure qu'il s'agit de deux bases logiques distinctes.
 
 ## Ce que le candidat permet déjà
 
