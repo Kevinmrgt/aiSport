@@ -3,16 +3,23 @@ import type { NextAuthConfig } from 'next-auth';
 type JwtCallback = NonNullable<NonNullable<NextAuthConfig['callbacks']>['jwt']>;
 type JwtCallbackParameters = Parameters<JwtCallback>[0];
 
-export function googleJwt({ token, user, account }: JwtCallbackParameters) {
+export function googleJwt({ token, account }: JwtCallbackParameters) {
   if (account) {
-    if (account.provider !== 'google') return null;
+    if (account.provider !== 'google' || !account.providerAccountId) return null;
     token.authMethod = 'google';
+    token.identityVersion = 2;
+    token.userId = account.providerAccountId;
+    token.authIssuedAt = Date.now();
   }
-
-  // Rejeter les anciens cookies issus d'un fournisseur désormais retiré.
-  // Les sessions Google antérieures à ce marqueur restent valides.
-  if (token.authMethod !== undefined && token.authMethod !== 'google') return null;
-
-  if (user?.id) token.userId = user.id;
+  // Require a fresh Google login for cookies issued before stable provider binding.
+  if (
+    token.authMethod !== 'google' ||
+    token.identityVersion !== 2 ||
+    typeof token.userId !== 'string' ||
+    !token.userId ||
+    typeof token.authIssuedAt !== 'number' ||
+    !Number.isSafeInteger(token.authIssuedAt)
+  )
+    return null;
   return token;
 }

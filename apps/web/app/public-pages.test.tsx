@@ -42,7 +42,7 @@ describe('pages publiques et etats de chargement', () => {
     expect(document.querySelector('input[type="password"]')).toBeNull();
     rerender(<PrivacyPage />);
     expect(screen.getByRole('heading', { name: /confidentialit/i })).toBeTruthy();
-    expect(screen.getByText(/Information mise/i).classList.contains('text-zinc-200')).toBe(true);
+    expect(screen.getByText(/Mise à jour/i).classList.contains('text-zinc-200')).toBe(true);
     rerender(<NotFound />);
     expect(screen.getByRole('heading', { name: 'Page introuvable' })).toBeTruthy();
     consoleError.mockRestore();

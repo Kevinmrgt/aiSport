@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-vi.mock('next/navigation', () => ({ redirect: vi.fn() }));
+vi.mock('next/navigation', () => ({ redirect: vi.fn(), useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('@/lib/auth', () => ({ auth: vi.fn() }));
 vi.mock('@/lib/server-api', () => ({
@@ -118,7 +118,7 @@ describe('recettes UI metier Alcide', () => {
     },
   );
 
-  it('CR-030/CR-034 transmet la duree active et une note de douleur facultative', async () => {
+  it('CR-030/CR-034 transmet la duree active sans collecter de douleur', async () => {
     const completeAction = vi.fn().mockResolvedValue(undefined);
     render(
       <SessionCompletionForm
@@ -137,9 +137,7 @@ describe('recettes UI metier Alcide', () => {
 
     fireEvent.click(screen.getByLabelText('7'));
     fireEvent.click(screen.getByLabelText('Bien dose'));
-    fireEvent.change(screen.getByLabelText(/douleur eventuelle/i), {
-      target: { value: '  Gene legere au genou gauche  ' },
-    });
+    expect(screen.queryByLabelText(/douleur eventuelle/i)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /enregistrer le retour/i }));
 
     await waitFor(() =>
@@ -148,24 +146,25 @@ describe('recettes UI metier Alcide', () => {
           durationSeconds: 487,
           perceivedEffort: 7,
           feedback: 'good',
-          painNotes: 'Gene legere au genou gauche',
         }),
       ),
     );
+    expect(completeAction.mock.calls[0]?.[0]).not.toHaveProperty('painNotes');
     expect(await screen.findByText('Retour enregistre.')).toBeTruthy();
   });
 
-  it('CR-034 informe que la note de douleur est sensible, facultative et hors flux OpenAI', () => {
+  it('CR-034 informe du retrait de la collecte de douleur et du traitement des anciennes notes', () => {
     render(<PrivacyPage />);
 
     const pageText = document.body.textContent
       ?.normalize('NFKD')
       .replace(/\p{Diacritic}/gu, '')
       .toLocaleLowerCase('fr-FR');
-    expect(screen.getByRole('heading', { name: 'Notes de douleur' })).toBeTruthy();
-    expect(screen.getByText(/sa saisie est facultative/i)).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Périmètre sportif' })).toBeTruthy();
+    expect(pageText).toContain('ne collecte plus de nouvelles notes de douleur');
+    expect(pageText).toContain('anciennes notes');
     expect(pageText).toContain('les notes de suivi ne sont pas envoyees a openai');
-    expect(screen.getByText(/ne remplace ni un diagnostic/i)).toBeTruthy();
+    expect(screen.getByText(/ne remplace pas un diagnostic/i)).toBeTruthy();
   });
 
   it('CR-037 garde les choix techniques hors de l interface utilisateur', async () => {

@@ -21,7 +21,7 @@ export default async function WorkoutsPage({
   const session = await auth();
 
   if (!session?.user) {
-    redirect('/login');
+    redirect('/login?callbackUrl=%2Fworkouts');
   }
 
   const page = Math.max(1, Number(query.page) || 1);

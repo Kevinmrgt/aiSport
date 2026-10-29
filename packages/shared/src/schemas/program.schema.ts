@@ -31,7 +31,7 @@ export const ProgramWeekSchema = z
       sessionNumbers.some((number, index) => number !== expectedNumbers[index])
     ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['sessions'],
         message: 'Les numeros de seance doivent etre uniques et consecutifs a partir de 1',
       });
@@ -53,7 +53,7 @@ export const TrainingProgramSchema = z
   .superRefine((program, ctx) => {
     if (program.weeks.length !== program.weeks_count) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['weeks'],
         message: `Le programme doit contenir exactement ${program.weeks_count} semaines`,
       });
@@ -65,7 +65,7 @@ export const TrainingProgramSchema = z
       weekNumbers.some((number, index) => number !== index + 1)
     ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['weeks'],
         message: 'Les numeros de semaine doivent etre uniques et consecutifs a partir de 1',
       });
@@ -74,7 +74,7 @@ export const TrainingProgramSchema = z
     program.weeks.forEach((week, weekIndex) => {
       if (week.sessions.length !== program.sessions_per_week) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: ['weeks', weekIndex, 'sessions'],
           message: `Chaque semaine doit contenir exactement ${program.sessions_per_week} seances`,
         });
@@ -83,7 +83,7 @@ export const TrainingProgramSchema = z
       week.sessions.forEach((session, sessionIndex) => {
         if (session.duration_minutes !== program.session_duration_minutes) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             path: ['weeks', weekIndex, 'sessions', sessionIndex, 'duration_minutes'],
             message: `La duree annoncee doit etre de ${program.session_duration_minutes} minutes`,
           });
@@ -100,7 +100,7 @@ export const TrainingProgramSchema = z
         const expectedSeconds = program.session_duration_minutes * 60;
         if (phaseSeconds + exerciseSeconds !== expectedSeconds) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             path: ['weeks', weekIndex, 'sessions', sessionIndex],
             message: `La duree detaillee doit etre exactement de ${expectedSeconds} secondes`,
           });
@@ -113,48 +113,54 @@ export const TrainingProgramSchema = z
 export const GenerateProgramInputSchema = z.object({
   sport: z
     .string({
-      required_error: 'Le sport est requis',
-      invalid_type_error: 'Le sport doit être un texte',
+      error: (issue) =>
+        issue.input === undefined ? 'Le sport est requis' : 'Le sport doit être un texte',
     })
     .min(1, 'Le sport ne peut pas être vide')
     .max(100, 'Le sport ne peut pas dépasser 100 caractères'),
   level: z.enum(['beginner', 'intermediate', 'advanced'], {
-    required_error: 'Le niveau est requis',
-    invalid_type_error: 'Le niveau est invalide',
+    error: (issue) =>
+      issue.input === undefined ? 'Le niveau est requis' : 'Le niveau est invalide',
   }),
   weeks_count: z
     .number({
-      required_error: 'Le nombre de semaines est requis',
-      invalid_type_error: 'Le nombre de semaines doit être un nombre',
+      error: (issue) =>
+        issue.input === undefined
+          ? 'Le nombre de semaines est requis'
+          : 'Le nombre de semaines doit être un nombre',
     })
     .int('Le nombre de semaines doit être un nombre entier')
     .min(2, 'Le programme doit durer au moins 2 semaines')
     .max(4, 'Le programme ne peut pas dépasser 4 semaines'),
   sessions_per_week: z
     .number({
-      required_error: 'Le nombre de séances par semaine est requis',
-      invalid_type_error: 'Le nombre de séances par semaine doit être un nombre',
+      error: (issue) =>
+        issue.input === undefined
+          ? 'Le nombre de séances par semaine est requis'
+          : 'Le nombre de séances par semaine doit être un nombre',
     })
     .int('Le nombre de séances par semaine doit être un nombre entier')
     .min(2, 'Il faut au moins 2 séances par semaine')
     .max(5, 'Il ne peut pas y avoir plus de 5 séances par semaine'),
   session_duration_minutes: z
     .number({
-      required_error: 'La durée des séances est requise',
-      invalid_type_error: 'La durée des séances doit être un nombre',
+      error: (issue) =>
+        issue.input === undefined
+          ? 'La durée des séances est requise'
+          : 'La durée des séances doit être un nombre',
     })
     .int('La durée des séances doit être un nombre entier')
     .min(20, 'Une séance doit durer au moins 20 minutes')
     .max(60, 'Une séance ne peut pas dépasser 60 minutes'),
   goals: z
     .string({
-      required_error: 'L’objectif est requis',
-      invalid_type_error: 'L’objectif doit être un texte',
+      error: (issue) =>
+        issue.input === undefined ? 'L’objectif est requis' : 'L’objectif doit être un texte',
     })
     .min(1, 'L’objectif ne peut pas être vide')
     .max(500, 'L’objectif ne peut pas dépasser 500 caractères'),
   constraints: z
-    .string({ invalid_type_error: 'Les contraintes doivent être un texte' })
+    .string({ error: 'Les contraintes doivent être un texte' })
     .max(500, 'Les contraintes ne peuvent pas dépasser 500 caractères')
     .optional(),
 });

@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const productionMode = process.env['E2E_PRODUCTION'] === '1';
+
 /**
  * Configuration Playwright pour les tests E2E Alcide
  * Docs: https://playwright.dev/docs/test-configuration
@@ -36,7 +38,7 @@ export default defineConfig({
     // pnpm est fourni par pnpm/action-setup en CI et par le runtime local.
     // Ne pas imposer Corepack : certains environnements Node minimaux ne
     // livrent pas son exécutable alors que pnpm est déjà disponible.
-    command: 'pnpm dev',
+    command: productionMode ? 'pnpm exec next start -H 127.0.0.1 -p 3000' : 'pnpm dev',
     env: {
       ...process.env,
       AUTH_SECRET: process.env['AUTH_SECRET'] ?? 'test-auth-secret-for-playwright-32chars',

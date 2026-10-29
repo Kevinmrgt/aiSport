@@ -1,101 +1,161 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GlassPanel } from '@/components/PremiumPrimitives';
+import { legalInformation } from '@/lib/legal';
 
 export const metadata: Metadata = {
   title: 'Confidentialité - Alcide',
-  description: 'Informations sur les données personnelles traitées par le prototype Alcide.',
+  description: 'Données personnelles, conservation et droits dans Alcide.',
 };
 
 export default function PrivacyPage() {
+  const legal = legalInformation();
   return (
     <article className="mx-auto max-w-4xl space-y-6" aria-labelledby="privacy-title">
-      <header className="abstract-surface rounded-[2.4rem] border border-white/[0.15] bg-zinc-950/50 p-5 shadow-2xl shadow-black/30 backdrop-blur-2xl sm:p-8">
-        <p className="section-kicker mb-3">Données personnelles</p>
-        <h1 id="privacy-title" className="page-title">
-          Confidentialité
-        </h1>
-        <p className="muted-copy mt-4 max-w-3xl">
-          Alcide est un prototype de coaching sportif. Cette page décrit les traitements réellement
-          présents dans l&apos;application ; elle ne prétend pas offrir des fonctions encore
-          absentes.
+      <h1 id="privacy-title" className="page-title">
+        Confidentialité
+      </h1>
+      {!legal.ready && (
+        <p className="rounded-xl border border-amber-300/40 bg-zinc-950 p-4 text-zinc-100">
+          Cette version est en évaluation privée. Les informations du responsable et de
+          l’hébergement doivent être finalisées avant ouverture publique.
         </p>
-      </header>
-
+      )}
       <GlassPanel className="space-y-7 p-5 sm:p-8">
-        <section aria-labelledby="data-title">
-          <h2 id="data-title" className="text-2xl font-black text-white">
-            Données traitées
+        <section aria-labelledby="privacy-owner">
+          <h2 id="privacy-owner" className="text-2xl font-black text-white">
+            Responsable et contact
           </h2>
-          <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-zinc-300">
-            <li>identifiant, nom et adresse e-mail fournis lors de la connexion Google ;</li>
+          <p className="muted-copy">
+            {legal.operator ??
+              'Responsable du service : information à compléter avant ouverture publique.'}
+          </p>
+          {legal.email ? (
+            <p className="muted-copy">
+              Pour toute question ou demande concernant vos données :{' '}
+              <a className="underline" href={'mailto:' + legal.email}>
+                {legal.email}
+              </a>
+              .
+            </p>
+          ) : (
+            <p className="muted-copy">
+              Le contact public doit être renseigné. Pendant l’évaluation privée, utilisez le canal
+              qui vous a transmis l’accès ; ne publiez pas de données personnelles dans une issue
+              publique.
+            </p>
+          )}
+        </section>
+        <section aria-labelledby="privacy-data">
+          <h2 id="privacy-data" className="text-2xl font-black text-white">
+            Données et finalités
+          </h2>
+          <ul className="muted-copy list-disc space-y-2 pl-5">
+            <li>Identifiant Google stable, nom et e-mail : connexion et rattachement du compte.</li>
             <li>
-              séances et programmes générés, objectifs, sport, niveau et contraintes saisies ;
+              Sport, niveau, objectifs et contraintes non médicales : génération de séances et
+              programmes, conservés dans votre historique.
             </li>
             <li>
-              journaux de séance : durée, effort perçu, ressenti, notes libres et éventuelles notes
-              de douleur ;
+              Durée, effort perçu, ressenti et notes de séance : journal et progression. Les notes
+              de suivi ne sont pas envoyées à OpenAI.
             </li>
-            <li>dates de création et de réalisation nécessaires à l&apos;historique.</li>
+            <li>
+              Événements techniques de génération et compteurs de consommation : disponibilité,
+              prévention des abus et maîtrise des coûts, sans conservation du texte des prompts dans
+              ces événements.
+            </li>
           </ul>
-        </section>
-
-        <section aria-labelledby="purpose-title">
-          <h2 id="purpose-title" className="text-2xl font-black text-white">
-            Finalités et destinataires
-          </h2>
-          <p className="mt-3 text-sm leading-6 text-zinc-300">
-            Ces données servent à authentifier le compte, générer et conserver les entraînements,
-            afficher la progression et enregistrer le ressenti. Google intervient pour la connexion,
-            l&apos;infrastructure PostgreSQL conserve les données applicatives et OpenAI traite les
-            informations envoyées lors d&apos;une demande de génération. Les notes de suivi ne sont
-            pas envoyées à OpenAI par le parcours actuel.
+          <p className="muted-copy">
+            Base légale des traitements :{' '}
+            {legal.basis ??
+              'qualification à finaliser par le responsable avant ouverture publique.'}
+          </p>
+          <p className="muted-copy">
+            Google assure la connexion, Vercel héberge les services, PostgreSQL/Neon conserve les
+            données et OpenAI reçoit les informations de la demande de génération. N’inscrivez pas
+            de données de santé, d’autres personnes ou de documents confidentiels dans les champs
+            libres.
+          </p>
+          <p className="muted-copy">
+            Régions, transferts et garanties des prestataires :{' '}
+            {legal.transfers ??
+              'informations des comptes et contrats à vérifier et compléter avant ouverture publique.'}
           </p>
         </section>
-
-        <section aria-labelledby="sensitive-title">
-          <h2 id="sensitive-title" className="text-2xl font-black text-white">
-            Notes de douleur
+        <section aria-labelledby="privacy-health">
+          <h2 id="privacy-health" className="text-2xl font-black text-white">
+            Périmètre sportif
           </h2>
-          <p className="mt-3 text-sm leading-6 text-zinc-300">
-            Une note de douleur peut révéler une information sensible. Sa saisie est facultative :
-            n&apos;indiquez que ce qui est utile au suivi sportif. Alcide ne remplace ni un
-            diagnostic ni l&apos;avis d&apos;un professionnel de santé.
+          <p className="muted-copy">
+            Cette version ne collecte plus de nouvelles notes de douleur. Les demandes médicales
+            sont hors périmètre ; les filtres automatiques ne sont pas infaillibles. Alcide ne
+            remplace pas un diagnostic ni un professionnel de santé. D’anciennes notes
+            éventuellement présentes restent incluses dans l’export et l’effacement du compte.
           </p>
         </section>
-
-        <section aria-labelledby="retention-title">
-          <h2 id="retention-title" className="text-2xl font-black text-white">
-            Conservation actuelle
+        <section aria-labelledby="privacy-retention">
+          <h2 id="privacy-retention" className="text-2xl font-black text-white">
+            Conservation et effacement
           </h2>
-          <p className="mt-3 text-sm leading-6 text-zinc-300">
-            Aucune durée de conservation automatique n&apos;est encore configurée dans ce prototype.
-            Les données restent donc conservées en base tant qu&apos;elles ne sont pas supprimées
-            par le responsable du projet. Ce point doit être défini avant toute mise en production
-            réelle.
+          <p className="muted-copy">
+            La politique technique proposée prévoit l’effacement des comptes après{' '}
+            {legal.retentionDays} jours sans activité. Elle doit être validée par le responsable et
+            sa mise en œuvre régulière vérifiée avant ouverture. Vous pouvez supprimer votre compte
+            plus tôt depuis « Mon coach » : profil, séances, programmes, journaux et notes sont
+            alors effacés de la base active.
+          </p>
+          <p className="muted-copy">
+            Supprimer une séance seule conserve son journal dans votre historique. Après suppression
+            du compte, un identifiant transformé et une date sont conservés pour une durée prévue de
+            35 jours, avec purge lors de la maintenance pour empêcher ses anciennes sessions de le
+            recréer. Les sauvegardes suivent leur propre durée, à documenter ; un effacement doit
+            être réappliqué avant remise en service d’une restauration.
           </p>
         </section>
-
-        <section aria-labelledby="rights-title">
-          <h2 id="rights-title" className="text-2xl font-black text-white">
-            Vos droits et contact
+        <section aria-labelledby="privacy-rights">
+          <h2 id="privacy-rights" className="text-2xl font-black text-white">
+            Vos droits
           </h2>
-          <p className="mt-3 text-sm leading-6 text-zinc-300">
-            Vous pouvez demander l&apos;accès, la rectification ou la suppression de vos données,
-            ainsi que la limitation du traitement. L&apos;application ne propose pas encore
-            d&apos;export du compte ni de suppression globale en libre-service. Contactez le
-            responsable du projet par le canal privé qui vous a transmis l&apos;accès à Alcide.
-            Aucune adresse de contact dédiée n&apos;est actuellement publiée ; ne placez pas de
-            donnée sensible dans une issue publique.
+          <p className="muted-copy">
+            Vous pouvez demander l’accès, la rectification, l’effacement, la limitation et,
+            lorsqu’ils s’appliquent, l’opposition et la portabilité. Votre espace propose un export
+            structuré et une suppression du compte. Pour toute autre demande, contactez le
+            responsable ; une vérification proportionnée de l’identité peut être nécessaire. Une
+            réponse doit normalement intervenir sous un mois, avec prolongation motivée dans les cas
+            prévus.
           </p>
-        </section>
-
-        <p className="border-t border-white/10 pt-5 text-xs text-zinc-200">
-          Information mise à jour le 20 juillet 2026. Pour revenir au service, consultez{' '}
-          <Link href="/" className="font-bold text-primary-300 underline underline-offset-4">
-            l&apos;accueil Alcide
+          <p className="muted-copy">
+            Vous pouvez introduire une réclamation auprès de la{' '}
+            <a href="https://www.cnil.fr/fr/plaintes" className="underline">
+              CNIL
+            </a>
+            .
+          </p>
+          <Link href="/settings" className="action-secondary inline-flex">
+            Gérer mes données
           </Link>
-          .
+        </section>
+        <section aria-labelledby="privacy-cookies">
+          <h2 id="privacy-cookies" className="text-2xl font-black text-white">
+            Cookies et session
+          </h2>
+          <p className="muted-copy">
+            La connexion utilise des cookies techniques Auth.js nécessaires à la session et à sa
+            sécurité, dont la session expire après 30 jours. Aucun outil publicitaire n’est intégré
+            dans le candidat examiné. L’inventaire du déploiement final doit être confirmé avant
+            ouverture.
+          </p>
+        </section>
+        <p className="text-xs text-zinc-200">
+          Mise à jour : 29 octobre 2026.{' '}
+          <Link href="/mentions-legales" className="underline">
+            Mentions légales
+          </Link>{' '}
+          ·{' '}
+          <Link href="/conditions" className="underline">
+            Conditions d’utilisation
+          </Link>
         </p>
       </GlassPanel>
     </article>

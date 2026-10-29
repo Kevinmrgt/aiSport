@@ -31,7 +31,7 @@ export default async function DashboardPage() {
   const session = await auth();
 
   if (!session?.user) {
-    redirect('/login');
+    redirect('/login?callbackUrl=%2Fdashboard');
   }
 
   const [stats, sessionStats] = await Promise.all([

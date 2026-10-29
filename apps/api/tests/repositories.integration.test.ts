@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
-import { users } from '../src/db/schema.js';
+import { eq, inArray } from 'drizzle-orm';
+import { accounts, users, workouts } from '../src/db/schema.js';
 import type { TrainingProgram, Workout } from '@alcide/shared';
 
 const testDatabaseUrl = process.env['TEST_DATABASE_URL'];
@@ -10,6 +10,7 @@ const ownerId = randomUUID();
 const otherUserId = randomUUID();
 const ownerEmail = `integration-${ownerId}@alcide.test`;
 const otherEmail = `integration-${otherUserId}@alcide.test`;
+const identityUsers: string[] = [];
 
 function workoutFixture(overrides: Partial<Workout> = {}): Workout {
   return {
@@ -77,7 +78,104 @@ describeWithDatabase('repositories PostgreSQL', () => {
     const { db, pool } = await import('../src/db/index.js');
     await db.delete(users).where(eq(users.id, ownerId));
     await db.delete(users).where(eq(users.id, otherUserId));
+    if (identityUsers.length) await db.delete(users).where(inArray(users.id, identityUsers));
     await pool.end();
+  });
+
+  it('isole les sujets Google partageant un email et préserve le compte après changement d adresse', async () => {
+    const { resolveGoogleIdentity } = await import('../src/repositories/identity.repository.js');
+    const { createWorkout, findWorkoutById } =
+      await import('../src/repositories/workout.repository.js');
+    const email = `shared-${randomUUID()}@alcide.test`;
+    const subject = `subject-${randomUUID()}`;
+    const first = await resolveGoogleIdentity({ subject, email, name: 'First' });
+    identityUsers.push(first);
+    const other = await resolveGoogleIdentity({
+      subject: `other-${randomUUID()}`,
+      email,
+      name: 'Other',
+    });
+    identityUsers.push(other);
+    expect(other).not.toBe(first);
+    const workout = await createWorkout(first, workoutFixture());
+    await expect(findWorkoutById(workout.id, other)).rejects.toMatchObject({ statusCode: 403 });
+    expect(
+      await resolveGoogleIdentity({
+        subject,
+        email: `renamed-${randomUUID()}@alcide.test`,
+        name: 'Renamed',
+      }),
+    ).toBe(first);
+    await expect(findWorkoutById(workout.id, first)).resolves.toMatchObject({ id: workout.id });
+  });
+
+  it('sérialise les premières connexions concurrentes du même sujet', async () => {
+    const { resolveGoogleIdentity } = await import('../src/repositories/identity.repository.js');
+    const identity = {
+      subject: `concurrent-${randomUUID()}`,
+      email: `concurrent-${randomUUID()}@alcide.test`,
+      name: null,
+    };
+    const ids = await Promise.all(Array.from({ length: 6 }, () => resolveGoogleIdentity(identity)));
+    identityUsers.push(...new Set(ids));
+    expect(new Set(ids).size).toBe(1);
+  });
+
+  it('refuse le rapprochement implicite legacy, dry-run ne modifie rien et mapping explicite conserve les données', async () => {
+    const { db } = await import('../src/db/index.js');
+    const { resolveGoogleIdentity, linkLegacyGoogleIdentity } =
+      await import('../src/repositories/identity.repository.js');
+    const legacyId = randomUUID();
+    const email = `legacy-${randomUUID()}@alcide.test`;
+    const subject = `legacy-sub-${randomUUID()}`;
+    await db.insert(users).values({ id: legacyId, email });
+    identityUsers.push(legacyId);
+    await expect(
+      resolveGoogleIdentity({ subject, email: email.toUpperCase(), name: null }),
+    ).rejects.toMatchObject({ code: 'IDENTITY_LINK_REQUIRED', statusCode: 409 });
+    const mapping = { userId: legacyId, subject, expectedEmail: email };
+    await linkLegacyGoogleIdentity(mapping, false);
+    expect(await db.select().from(accounts).where(eq(accounts.userId, legacyId))).toHaveLength(0);
+    await expect(
+      linkLegacyGoogleIdentity({ ...mapping, expectedEmail: 'wrong@alcide.test' }, true),
+    ).rejects.toThrow('Mapping refusé');
+    await linkLegacyGoogleIdentity(mapping, true);
+    expect(await resolveGoogleIdentity({ subject, email, name: null })).toBe(legacyId);
+    await expect(linkLegacyGoogleIdentity(mapping, true)).rejects.toThrow('identité déjà liée');
+  });
+
+  it('bloque les nouvelles valeurs scalaires invalides et rend les JSON anciens invalides supprimables', async () => {
+    const { db } = await import('../src/db/index.js');
+    const { findWorkoutById, deleteWorkout } =
+      await import('../src/repositories/workout.repository.js');
+    await expect(
+      db.insert(workouts).values({
+        userId: ownerId,
+        title: 'Invalid',
+        sport: 'test',
+        difficulty: 'beginner',
+        durationMinutes: -1,
+        data: workoutFixture(),
+      }),
+    ).rejects.toThrow();
+    const [row] = await db
+      .insert(workouts)
+      .values({
+        userId: ownerId,
+        title: 'Ancien JSON',
+        sport: 'test',
+        difficulty: 'beginner',
+        durationMinutes: 30,
+        data: { exercises: [] } as unknown as Workout,
+      })
+      .returning({ id: workouts.id });
+    expect(row).toBeDefined();
+    await expect(findWorkoutById(row!.id, ownerId)).rejects.toMatchObject({
+      statusCode: 422,
+      code: 'STORED_DATA_INVALID',
+    });
+    await deleteWorkout(row!.id, ownerId);
+    expect(await db.select().from(workouts).where(eq(workouts.id, row!.id))).toHaveLength(0);
   });
 
   it('persiste, relit et protege une seance par son proprietaire', async () => {
@@ -322,5 +420,60 @@ describeWithDatabase('repositories PostgreSQL', () => {
     });
     await upsertSettings(ownerId, { aiModel: null });
     await expect(findSettingsByUser(ownerId)).resolves.toMatchObject({ aiModel: null });
+  });
+
+  it('départage les dates égales par UUID sans doublon entre pages', async () => {
+    const { db } = await import('../src/db/index.js');
+    const { findWorkoutsByUser } = await import('../src/repositories/workout.repository.js');
+    const account = randomUUID();
+    identityUsers.push(account);
+    await db.insert(users).values({ id: account, email: `pages-${account}@alcide.test` });
+    const ids = Array.from({ length: 5 }, () => randomUUID());
+    const fixture = workoutFixture();
+    await db.insert(workouts).values(
+      ids.map((id) => ({
+        id,
+        userId: account,
+        title: fixture.title,
+        sport: fixture.sport,
+        difficulty: fixture.difficulty,
+        durationMinutes: fixture.duration_minutes,
+        data: fixture,
+        createdAt: new Date('2026-01-01T00:00:00Z'),
+      })),
+    );
+    const first = await findWorkoutsByUser(account, { page: 1, limit: 2 });
+    const second = await findWorkoutsByUser(account, { page: 2, limit: 2 });
+    const third = await findWorkoutsByUser(account, { page: 3, limit: 2 });
+    expect([...first.workouts, ...second.workouts, ...third.workouts].map((row) => row.id)).toEqual(
+      [...ids].sort().reverse(),
+    );
+    expect(first.total).toBe(5);
+    expect(third.hasMore).toBe(false);
+  });
+
+  it('conserve les totaux statistiques cohérents pendant des créations concurrentes', async () => {
+    const { db } = await import('../src/db/index.js');
+    const { createWorkout, getWorkoutStatsByUser } =
+      await import('../src/repositories/workout.repository.js');
+    const account = randomUUID();
+    identityUsers.push(account);
+    await db.insert(users).values({ id: account, email: `stats-${account}@alcide.test` });
+    await Promise.all([
+      (async () => {
+        for (let index = 0; index < 8; index++) await createWorkout(account, workoutFixture());
+      })(),
+      (async () => {
+        for (let index = 0; index < 8; index++) {
+          const stats = await getWorkoutStatsByUser(account);
+          expect(Object.values(stats.byLevel).reduce((sum, count) => sum + count, 0)).toBe(
+            stats.total,
+          );
+          expect(Object.values(stats.bySport).reduce((sum, count) => sum + count, 0)).toBe(
+            stats.total,
+          );
+        }
+      })(),
+    ]);
   });
 });

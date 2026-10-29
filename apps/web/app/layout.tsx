@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { Barlow_Condensed, Urbanist } from 'next/font/google';
 import './globals.css';
 import { auth, signOut } from '@/lib/auth';
-import { Icon, type IconName } from '@/components/ui/Icon';
+import { type IconName } from '@/components/ui/Icon';
 import { ActiveNavLink } from '@/components/ActiveNavLink';
+import { SessionSignOut } from '@/components/SessionSignOut';
 
 const bodyFont = Urbanist({
   subsets: ['latin'],
@@ -22,11 +23,20 @@ const displayFont = Barlow_Condensed({
 });
 
 export const metadata: Metadata = {
-  title: 'Alcide - Coaching sportif premium',
+  metadataBase: new URL('https://www.alcideai.fr'),
+  title: 'Alcide - Entraînements sportifs personnalisés',
   description:
     'Alcide prepare des seances et programmes sportifs personnalises avec une interface d entrainement immersive.',
   icons: {
     icon: '/visuals/alcide-logo-mark.svg',
+  },
+  openGraph: {
+    title: 'Alcide — Entraînements sportifs personnalisés',
+    description:
+      'Préparez une séance ou un programme, suivez le minuteur et retrouvez votre progression.',
+    url: 'https://www.alcideai.fr',
+    locale: 'fr_FR',
+    type: 'website',
   },
 };
 
@@ -43,7 +53,6 @@ function BrandMark() {
     <Link
       href="/"
       className="group inline-flex items-center gap-3 text-sm font-black tracking-normal text-white transition-colors hover:text-primary-200"
-      aria-label="Alcide - Accueil"
     >
       <span className="grid h-11 w-11 place-items-center rounded-xl border border-primary-300/[0.2] bg-zinc-950/[0.72] p-1 shadow-lg shadow-primary-400/20 transition group-hover:border-primary-300/[0.45] group-hover:bg-zinc-950/[0.9]">
         <Image
@@ -56,11 +65,12 @@ function BrandMark() {
         />
       </span>
       <span className="leading-tight">
-        Alcide
+        Alcide{' '}
         <span className="block text-xs font-bold uppercase tracking-[0.22em] text-primary-300">
           Pulse
         </span>
       </span>
+      <span className="sr-only"> — Accueil</span>
     </Link>
   );
 }
@@ -71,6 +81,9 @@ export default async function RootLayout({ children }: { readonly children: Reac
   return (
     <html lang="fr">
       <body
+        data-timer-session={
+          session?.user?.authIssuedAt ? String(session.user.authIssuedAt) : undefined
+        }
         className={`${bodyFont.variable} ${displayFont.variable} min-h-screen overflow-x-hidden bg-[#dfe8d2] font-sans text-zinc-100 antialiased`}
       >
         <a href="#main-content" className="skip-link">
@@ -96,24 +109,12 @@ export default async function RootLayout({ children }: { readonly children: Reac
             </div>
 
             {session?.user ? (
-              <form
-                className="ml-auto"
+              <SessionSignOut
                 action={async () => {
                   'use server';
                   await signOut({ redirectTo: '/' });
                 }}
-              >
-                <button
-                  type="submit"
-                  aria-label="Se deconnecter"
-                  className="group hidden items-center gap-2 rounded-md px-2 py-1.5 text-sm font-bold text-zinc-200 transition hover:bg-white/[0.06] hover:text-white sm:flex"
-                >
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-white/[0.06] text-zinc-200 transition group-hover:bg-sport-orange group-hover:text-zinc-950">
-                    <Icon name="log-out" className="h-3.5 w-3.5" />
-                  </span>
-                  <span className="hidden xl:block">Sortir</span>
-                </button>
-              </form>
+              />
             ) : (
               <Link href="/login" className="action-primary ml-auto min-h-9 px-4 py-2 text-xs">
                 Se connecter
@@ -143,6 +144,14 @@ export default async function RootLayout({ children }: { readonly children: Reac
             >
               Confidentialité et données personnelles
             </Link>
+            <div className="mt-2 flex flex-wrap justify-center gap-4">
+              <Link href="/mentions-legales" className="font-bold underline underline-offset-4">
+                Mentions légales
+              </Link>
+              <Link href="/conditions" className="font-bold underline underline-offset-4">
+                Conditions d’utilisation
+              </Link>
+            </div>
           </div>
         </footer>
       </body>

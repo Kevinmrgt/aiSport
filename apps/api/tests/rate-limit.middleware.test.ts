@@ -1,30 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Hono } from 'hono';
 import { rateLimitMiddleware } from '../src/middleware/rate-limit.middleware.js';
-import { authMiddleware } from '../src/middleware/auth.middleware.js';
 import { handleError } from '../src/middleware/error.middleware.js';
-
-// Mock DB — authMiddleware upsert utilisateur, évite la connexion réelle
-vi.mock('../src/db/index.js', () => ({
-  db: {
-    insert: vi.fn(() => {
-      let capturedEmail = 'unknown';
-      return {
-        values: vi.fn((vals: { email: string; name?: string | null }) => {
-          capturedEmail = vals.email;
-          return {
-            onConflictDoUpdate: vi.fn(() => ({
-              returning: vi.fn(() =>
-                Promise.resolve([{ id: `uuid-${capturedEmail}` }]),
-              ),
-            })),
-          };
-        }),
-      };
-    }),
-  },
-}));
-vi.mock('../src/db/schema.js', () => ({ users: {} }));
 
 // OWASP A04: tests du rate limiter sur /workouts/generate
 
@@ -34,8 +11,11 @@ const USER_ID = 'user-rate-test';
 function createApp() {
   const app = new Hono();
   app.onError(handleError);
-  // authMiddleware peuple ctx.auth (requis par rateLimitMiddleware)
-  app.use('*', authMiddleware);
+  // Limiter unit boundary: authentication is exercised in its own SQL tests.
+  app.use('*', async (ctx, next) => {
+    ctx.set('auth', { userId: ctx.req.header('x-user-id')!, email: 'synthetic@test.invalid' });
+    await next();
+  });
   app.post('/generate', rateLimitMiddleware, (ctx) => ctx.json({ ok: true }));
   return app;
 }
@@ -98,7 +78,7 @@ describe('rateLimitMiddleware', () => {
     expect(Number(retryAfter)).toBeGreaterThan(0);
   });
 
-  it('isole les fenêtres par userId — un utilisateur différent n\'est pas bloqué', async () => {
+  it("isole les fenêtres par userId — un utilisateur différent n'est pas bloqué", async () => {
     const app = createApp();
     const userId1 = 'user-isolated-1';
     const userId2 = 'user-isolated-2';
@@ -115,7 +95,7 @@ describe('rateLimitMiddleware', () => {
     expect(allowed.status).toBe(200);
   });
 
-  it('console.warn est appelé lors d\'un dépassement de limite (OWASP A09)', async () => {
+  it("console.warn est appelé lors d'un dépassement de limite (OWASP A09)", async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const app = createApp();
     const userId = 'user-warn-test';

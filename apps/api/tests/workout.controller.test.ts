@@ -86,6 +86,8 @@ describe('WorkoutController', () => {
       expect(generateAndSaveWorkout).toHaveBeenCalledWith(
         'user-123',
         expect.objectContaining({ sport: 'course' }),
+        undefined,
+        expect.any(AbortSignal),
       );
     });
 

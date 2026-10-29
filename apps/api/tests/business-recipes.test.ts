@@ -6,6 +6,18 @@ import { handleCreateSessionLog } from '../src/controllers/session-log.controlle
 import { handleGetSettings, handleSaveSettings } from '../src/controllers/settings.controller.js';
 import { handleError } from '../src/middleware/error.middleware.js';
 import { AppError } from '../src/types/app-error.js';
+const budgetRepository = vi.hoisted(() => ({
+  begin: vi.fn(),
+  reserveAttempt: vi.fn(),
+  recordUsage: vi.fn(),
+  fail: vi.fn(),
+  completeWorkout: vi.fn(),
+  completeProgram: vi.fn(),
+}));
+
+vi.mock('../src/repositories/generation-budget.repository.js', () => ({
+  generationBudgetRepository: budgetRepository,
+}));
 
 vi.mock('../src/services/workout-ai.service.js', () => ({
   generateWorkout: vi.fn(),
@@ -89,6 +101,11 @@ const workoutRecord = {
 describe('recettes metier Alcide', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    budgetRepository.begin.mockResolvedValue({
+      operation: { id: 'operation-test' },
+      replay: false,
+    });
+    budgetRepository.fail.mockResolvedValue(undefined);
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     process.env['OPENAI_API_KEY'] = 'test-openai-key';
     vi.mocked(findSettingsByUser).mockResolvedValue(null);
@@ -177,7 +194,7 @@ describe('recettes metier Alcide', () => {
     });
   });
 
-  it('CR-030 et CR-034 enregistrent la duree active et la note de douleur sous le compte authentifie', async () => {
+  it('CR-030 et CR-034 enregistrent la duree active sans nouvelle donnee de sante', async () => {
     vi.mocked(findWorkoutById).mockResolvedValue(workoutRecord);
     vi.mocked(createSessionLog).mockImplementation((ownerId, input) =>
       Promise.resolve({
@@ -218,7 +235,6 @@ describe('recettes metier Alcide', () => {
         durationSeconds: 487,
         perceivedEffort: 7,
         feedback: 'good',
-        painNotes: 'Gene legere au genou gauche',
         notes: 'Rythme regulier',
       }),
     });
@@ -233,13 +249,13 @@ describe('recettes metier Alcide', () => {
         difficulty: workoutRecord.difficulty,
         plannedDurationMinutes: workoutRecord.durationMinutes,
         durationSeconds: 487,
-        painNotes: 'Gene legere au genou gauche',
+        notes: 'Rythme regulier',
       }),
     );
     await expect(response.json()).resolves.toMatchObject({
       userId,
       durationSeconds: 487,
-      painNotes: 'Gene legere au genou gauche',
+      painNotes: null,
     });
   });
 
@@ -251,22 +267,22 @@ describe('recettes metier Alcide', () => {
     const saveResponse = await app.request('/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'gpt-5.4' }),
+      body: JSON.stringify({ model: 'gpt-5.4-mini' }),
     });
 
     expect(saveResponse.status).toBe(200);
-    expect(upsertSettings).toHaveBeenCalledWith(userId, { aiModel: 'gpt-5.4' });
+    expect(upsertSettings).toHaveBeenCalledWith(userId, { aiModel: 'gpt-5.4-mini' });
     vi.mocked(findSettingsByUser).mockResolvedValue({
       provider: 'openai',
       aiApiKeyEncrypted: null,
-      aiModel: 'gpt-5.4',
+      aiModel: 'gpt-5.4-mini',
     });
     const readApp = createTestApp();
     readApp.get('/settings', handleGetSettings);
     const getResponse = await readApp.request('/settings');
     await expect(getResponse.json()).resolves.toMatchObject({
       provider: 'openai',
-      model: 'gpt-5.4',
+      model: 'gpt-5.4-mini',
     });
   });
 

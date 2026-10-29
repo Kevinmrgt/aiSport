@@ -38,6 +38,21 @@ migrations additives et ne pas modifier un fichier déjà appliqué.
 `docker compose down` conserve les données locales ; l'option `-v` supprime
 le volume et son contenu et n'est pas une procédure de restauration.
 
+Les scripts `db-backup.mjs` et `db-restore-check.mjs` utilisent un snapshot
+cohérent, des comptages et un chiffrement authentifié. La restauration exige
+une confirmation explicite, une base distincte et vide et le même majeur
+PostgreSQL. Elle refuse d'écraser la source. Le mode `verify` du workflow DB
+effectue cette répétition puis applique les migrations candidates sur la
+copie seulement. Aucun dump clair ni ligne utilisateur n'est publié en artefact.
+
+Les archives chiffrées Actions expirent après trente jours. Ce mécanisme
+manuel n'établit ni cadence de sauvegarde, ni RPO/RTO, ni archivage indépendant.
+Définir ces objectifs, organiser une copie extérieure si nécessaire et
+conserver la clé de déchiffrement avec un accès et une récupération documentés.
+Voir [production-runbook.md](production-runbook.md) pour les commandes,
+preuves et conditions de reprise. Les preuves de restauration doivent être
+renouvelées après changement de migrations ou expiration de leur validité.
+
 ## Mise à jour et support
 
 Installer depuis le lockfile, examiner les dépendances, exécuter les contrôles,

@@ -1,32 +1,38 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { ProgramForm } from '@/components/ProgramForm';
-import { GlassPanel, MetricPill, ProgressRing } from '@/components/PremiumPrimitives';
-import { serverApi } from '@/lib/server-api';
+import { GlassPanel, MetricPill } from '@/components/PremiumPrimitives';
+import { serverApi, ServerApiError } from '@/lib/server-api';
+import type { GenerationResult } from '@/lib/generation-operation';
 import type { GenerateProgramInput } from '@alcide/shared';
 
 export default async function GenerateProgramPage() {
   const session = await auth();
 
   if (!session?.user) {
-    redirect('/login');
+    redirect('/login?callbackUrl=%2Fprograms%2Fgenerate');
   }
 
-  async function handleGenerate(data: GenerateProgramInput): Promise<{ error?: string } | void> {
+  async function handleGenerate(
+    data: GenerateProgramInput,
+    operationId: string,
+  ): Promise<GenerationResult | void> {
     'use server';
     let programId: string;
     try {
-      const program = await serverApi.generateProgram(data);
+      const program = await serverApi.generateProgram(data, operationId);
       programId = program.id;
     } catch (error) {
       console.error('[GenerateProgramPage] Erreur generation programme:', {
-        error: error instanceof Error ? error.message : error,
-        stack: error instanceof Error ? error.stack : undefined,
-        timestamp: new Date().toISOString(),
+        category: error instanceof Error ? error.name : 'UnknownError',
       });
       const message =
         error instanceof Error ? error.message : 'Erreur inattendue, veuillez reessayer';
-      return { error: message };
+      return {
+        error: message,
+        retryWithNewOperation:
+          error instanceof ServerApiError && error.code === 'GENERATION_RETRY_REQUIRES_NEW_KEY',
+      };
     }
     redirect(`/programs/${programId}`);
   }
@@ -52,7 +58,9 @@ export default async function GenerateProgramPage() {
                 </p>
                 <p className="mt-2 text-2xl font-black text-white">Progression guidee</p>
               </div>
-              <ProgressRing value={84} label="plan" />
+              <span className="icon-bubble bg-primary-300 text-zinc-950" aria-hidden="true">
+                ✓
+              </span>
             </div>
             <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
               <MetricPill icon="calendar" label="Duree" value="2-4 sem." />

@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation';
-import { auth } from '@/lib/auth';
+import { auth, signOut } from '@/lib/auth';
+import { serverApi } from '@/lib/server-api';
+import { AccountControls } from '@/components/AccountControls';
 import { Icon } from '@/components/ui/Icon';
 import { GlassPanel, MetricPill } from '@/components/PremiumPrimitives';
 
@@ -22,7 +24,20 @@ export default async function SettingsPage() {
   const session = await auth();
 
   if (!session?.user) {
-    redirect('/login');
+    redirect('/login?callbackUrl=%2Fsettings');
+  }
+
+  async function deleteAccount(confirmation: string): Promise<{ error?: string } | void> {
+    'use server';
+    if (confirmation !== 'SUPPRIMER') return { error: 'Confirmez avec SUPPRIMER.' };
+    try {
+      await serverApi.deleteAccount();
+    } catch {
+      return {
+        error: 'La suppression ne peut pas être confirmée. Réessayez ou contactez le responsable.',
+      };
+    }
+    await signOut({ redirectTo: '/?account=deleted' });
   }
 
   return (
@@ -42,29 +57,32 @@ export default async function SettingsPage() {
         </div>
       </GlassPanel>
 
-      <GlassPanel className="flex flex-col gap-6 p-5 sm:p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="section-kicker mb-3">Votre parcours</p>
-            <h2 className="text-3xl font-black text-white">Un accompagnement simple</h2>
-          </div>
-          <span className="icon-bubble bg-primary-300 text-zinc-950">
-            <Icon name="target" className="h-4 w-4" />
-          </span>
-        </div>
-
-        <div className="grid gap-3">
-          {COACH_STEPS.map((item) => (
-            <div
-              key={item.title}
-              className="rounded-[1.25rem] border border-white/10 bg-zinc-950/[0.45] p-4"
-            >
-              <p className="font-bold text-primary-100">{item.title}</p>
-              <p className="muted-copy mt-1">{item.description}</p>
+      <div className="space-y-6">
+        <GlassPanel className="flex flex-col gap-6 p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="section-kicker mb-3">Votre parcours</p>
+              <h2 className="text-3xl font-black text-white">Un accompagnement simple</h2>
             </div>
-          ))}
-        </div>
-      </GlassPanel>
+            <span className="icon-bubble bg-primary-300 text-zinc-950">
+              <Icon name="target" className="h-4 w-4" />
+            </span>
+          </div>
+
+          <div className="grid gap-3">
+            {COACH_STEPS.map((item) => (
+              <div
+                key={item.title}
+                className="rounded-[1.25rem] border border-white/10 bg-zinc-950/[0.45] p-4"
+              >
+                <p className="font-bold text-primary-100">{item.title}</p>
+                <p className="muted-copy mt-1">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </GlassPanel>
+        <AccountControls deleteAction={deleteAccount} />
+      </div>
     </div>
   );
 }

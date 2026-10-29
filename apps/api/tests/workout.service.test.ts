@@ -6,6 +6,17 @@ import {
   removeWorkout,
 } from '../src/services/workout.service.js';
 import { AppError } from '../src/types/app-error.js';
+const generationBudgetRepository = vi.hoisted(() => ({
+  begin: vi.fn(),
+  reserveAttempt: vi.fn(),
+  recordUsage: vi.fn(),
+  fail: vi.fn(),
+  completeWorkout: vi.fn(),
+  completeProgram: vi.fn(),
+}));
+vi.mock('../src/repositories/generation-budget.repository.js', () => ({
+  generationBudgetRepository,
+}));
 
 // Mock du service IA
 vi.mock('../src/services/workout-ai.service.js', () => ({
@@ -64,20 +75,33 @@ const mockInput = {
 describe('WorkoutService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    generationBudgetRepository.begin.mockResolvedValue({
+      operation: { id: 'operation-test', resourceId: 'workout-abc' },
+      replay: false,
+    });
+    generationBudgetRepository.fail.mockResolvedValue(undefined);
   });
 
   describe('generateAndSaveWorkout', () => {
     it('génère via le service IA et persiste en BDD', async () => {
       vi.mocked(generateWithAi).mockResolvedValue(mockWorkoutData);
-      vi.mocked(createWorkout).mockResolvedValue(mockWorkoutRecord);
+      generationBudgetRepository.completeWorkout.mockResolvedValue(mockWorkoutRecord);
 
       const result = await generateAndSaveWorkout('user-123', mockInput);
 
       expect(generateWithAi).toHaveBeenCalledWith(
         mockInput,
         expect.objectContaining({ provider: 'openai' }),
+        expect.objectContaining({
+          onAttempt: expect.any(Function) as unknown,
+          onUsage: expect.any(Function) as unknown,
+        }),
       );
-      expect(createWorkout).toHaveBeenCalledWith('user-123', mockWorkoutData);
+      expect(generationBudgetRepository.completeWorkout).toHaveBeenCalledWith(
+        'operation-test',
+        'user-123',
+        mockWorkoutData,
+      );
       expect(result.id).toBe('workout-abc');
     });
 

@@ -1,7 +1,5 @@
 // @ts-check
 
-const isDevelopment = process.env.NODE_ENV !== 'production';
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -11,24 +9,7 @@ const nextConfig = {
       {
         source: '/(.*)',
         headers: [
-          // OWASP A08: Content Security Policy
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ''}`,
-              "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: https:",
-              "font-src 'self'",
-              `connect-src 'self' ${apiUrl}`,
-              "object-src 'none'",
-              "base-uri 'self'",
-              "form-action 'self'",
-              "frame-ancestors 'none'",
-              ...(isDevelopment ? [] : ['upgrade-insecure-requests']),
-            ].join('; '),
-          },
-          // OWASP A05: headers de sécurité additionnels
+          // CSP with a fresh script nonce is supplied by middleware.\r\n          // OWASP A05: headers de sécurité additionnels
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },

@@ -3,6 +3,12 @@ import type { NextAuthConfig } from 'next-auth';
 import Google from 'next-auth/providers/google';
 import { googleJwt } from '@/lib/auth-callbacks';
 
+declare module 'next-auth' {
+  interface User {
+    authIssuedAt?: number;
+  }
+}
+
 export const authConfig = {
   providers: [
     Google({
@@ -23,6 +29,7 @@ export const authConfig = {
       if (token.userId && typeof token.userId === 'string') {
         session.user.id = token.userId;
       }
+      if (typeof token.authIssuedAt === 'number') session.user.authIssuedAt = token.authIssuedAt;
       return session;
     },
   },

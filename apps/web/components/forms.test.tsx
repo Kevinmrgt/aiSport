@@ -31,6 +31,7 @@ describe('formulaires metier', () => {
           level: 'beginner',
           duration_minutes: 30,
         }),
+        expect.stringMatching(/^[a-f0-9-]{36}$/),
       ),
     );
   });
@@ -103,6 +104,7 @@ describe('formulaires metier', () => {
     expect((await screen.findByRole('alert')).textContent).toContain('Service IA indisponible');
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({ sport: 'natation', weeks_count: 3, sessions_per_week: 3 }),
+      expect.stringMatching(/^[a-f0-9-]{36}$/),
     );
   });
 
@@ -127,7 +129,7 @@ describe('formulaires metier', () => {
 
     fireEvent.click(screen.getByLabelText('8'));
     fireEvent.click(screen.getByLabelText('Trop dur'));
-    fireEvent.change(screen.getByLabelText(/douleur/i), { target: { value: '  Genou  ' } });
+    expect(screen.queryByLabelText(/douleur/i)).toBeNull();
     fireEvent.change(screen.getByLabelText(/^notes$/i), { target: { value: '  Ralentir  ' } });
     fireEvent.click(screen.getByRole('button', { name: /enregistrer le retour/i }));
 
@@ -137,12 +139,13 @@ describe('formulaires metier', () => {
           durationSeconds: 1_200,
           perceivedEffort: 8,
           feedback: 'too_hard',
-          painNotes: 'Genou',
           notes: 'Ralentir',
         }),
       ),
     );
     const submitted = completeAction.mock.calls[0]?.[0];
+    expect(submitted).not.toHaveProperty('painNotes');
+    expect(submitted?.operationId).toMatch(/^[a-f0-9-]{36}$/);
     expect(submitted?.completedAt).toBeTruthy();
     expect(Number.isNaN(Date.parse(submitted?.completedAt ?? ''))).toBe(false);
     expect((await screen.findByRole('status')).textContent).toContain('Retour enregistre');

@@ -15,7 +15,7 @@ export default async function ProgramsPage({
   const session = await auth();
 
   if (!session?.user) {
-    redirect('/login');
+    redirect('/login?callbackUrl=%2Fprograms');
   }
 
   const page = Math.max(1, Number(query.page) || 1);

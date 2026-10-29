@@ -3,7 +3,10 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { ProgramWeek } from '@alcide/shared';
 
 const { pathnameMock } = vi.hoisted(() => ({ pathnameMock: vi.fn() }));
-vi.mock('next/navigation', () => ({ usePathname: pathnameMock }));
+vi.mock('next/navigation', () => ({
+  usePathname: pathnameMock,
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
 
 import { ActiveNavLink } from './ActiveNavLink';
 import { ProgramCard } from './ProgramCard';
@@ -165,7 +168,9 @@ describe('composants de presentation', () => {
     fireEvent.keyDown(firstTab, { key: 'ArrowRight' });
     expect(screen.getByRole('heading', { name: 'Intensite' })).toBeTruthy();
     expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'Sem. 2' }));
-    expect(document.getElementById(firstTab.getAttribute('aria-controls') ?? '')?.hidden).toBe(true);
+    expect(document.getElementById(firstTab.getAttribute('aria-controls') ?? '')?.hidden).toBe(
+      true,
+    );
     fireEvent.keyDown(document.activeElement ?? document, { key: 'Home' });
     expect(screen.getByRole('heading', { name: 'Base' })).toBeTruthy();
     fireEvent.keyDown(document.activeElement ?? document, { key: 'End' });

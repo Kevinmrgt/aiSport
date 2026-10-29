@@ -205,7 +205,7 @@ async function seed() {
   await db
     .insert(users)
     .values({
-      id: DEMO_USER_ID as unknown as string,
+      id: DEMO_USER_ID,
       name: 'Utilisateur Démo',
       email: DEMO_EMAIL,
     })
@@ -227,7 +227,7 @@ async function seed() {
     }
 
     await db.insert(workouts).values({
-      userId: DEMO_USER_ID as unknown as string,
+      userId: DEMO_USER_ID,
       title: workout.title,
       sport: workout.sport,
       difficulty: workout.difficulty,

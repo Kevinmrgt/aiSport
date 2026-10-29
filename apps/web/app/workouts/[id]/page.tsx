@@ -24,7 +24,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutPageProps) {
   const session = await auth();
 
   if (!session?.user) {
-    redirect('/login');
+    redirect(`/login?callbackUrl=${encodeURIComponent(`/workouts/${id}`)}`);
   }
 
   let workout;
@@ -57,7 +57,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutPageProps) {
         perceivedEffort: payload.perceivedEffort,
         feedback: payload.feedback,
         completedAt: payload.completedAt,
-        ...(payload.painNotes ? { painNotes: payload.painNotes } : {}),
+        ...(payload.operationId ? { operationId: payload.operationId } : {}),
         ...(payload.notes ? { notes: payload.notes } : {}),
       });
       revalidatePath('/dashboard');

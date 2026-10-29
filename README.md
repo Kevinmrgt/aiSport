@@ -55,6 +55,10 @@ pnpm dev
 
 Configurer les fichiers copiés : même `SERVICE_SECRET` côté Web et API,
 OAuth côté Web et clé OpenAI uniquement côté API.
+Le script de migration verrouillé exige `DATABASE_URL` dans l'environnement
+du terminal ; sélectionner explicitement la base locale avant `pnpm db:migrate`.
+Le Compose utilise une configuration de développement pour ses adresses HTTP
+et sa base locale ; la validation stricte de production exige HTTPS et TLS.
 La connexion utilisateur se fait avec Google.
 `pnpm db:seed` est facultatif : ses données appartiennent à `demo@alcide.app`
 et ne sont pas automatiquement visibles depuis un autre compte.
@@ -83,6 +87,8 @@ authentifiés exigent une vraie session de test. Voir
 - [Déploiement](docs/deployment.md) et [CI/CD](docs/ci-cd.md)
 - [Maintenance et incidents](docs/maintenance.md)
 - [Tests et recette](docs/testing.md)
+- [Recette locale de production avec données synthétiques](docs/testing-local-production.md)
+- [Procédure de mise en production](docs/production-runbook.md)
 - [Accessibilité](docs/accessibility.md)
 - [Sécurité](docs/security/owasp-review.md)
 - [Travaux avant ouverture publique](docs/release-readiness.md)

@@ -20,7 +20,12 @@ function response(body: unknown, status = 200): Response {
 describe('serverApi', () => {
   beforeEach(() => {
     authMock.mockResolvedValue({
-      user: { id: 'user-1', email: 'sportif@example.test', name: 'Sportif Test' },
+      user: {
+        id: 'user-1',
+        email: 'sportif@example.test',
+        name: 'Sportif Test',
+        authIssuedAt: 1_798_000_000_000,
+      },
     } as never);
     vi.spyOn(console, 'info').mockImplementation(() => undefined);
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -60,8 +65,29 @@ describe('serverApi', () => {
       'x-internal-secret': 'secret-test',
       'x-user-id': 'user-1',
       'x-user-email': 'sportif@example.test',
-      'x-user-name': 'Sportif Test',
+      'x-user-name-encoded': 'Sportif%20Test',
+      'x-auth-issued-at': '1798000000000',
     });
+  });
+
+  it('transporte les noms Unicode dans un header ASCII sans erreur Fetch', async () => {
+    authMock.mockResolvedValue({
+      user: {
+        id: 'user-unicode',
+        email: 'synthetic@example.test',
+        name: '张伟 💪 Élodie',
+        authIssuedAt: Date.now(),
+      },
+    } as never);
+    const fetchMock = vi.fn((_url: string, options: RequestInit) => {
+      const headers = new Headers(options.headers);
+      expect(headers.has('x-user-name')).toBe(false);
+      expect(decodeURIComponent(headers.get('x-user-name-encoded')!)).toBe('张伟 💪 Élodie');
+      return Promise.resolve(response({}));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(serverApi.getStats()).resolves.toEqual({});
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 
   it('couvre les routes de seances, programmes, suivi et parametres', async () => {

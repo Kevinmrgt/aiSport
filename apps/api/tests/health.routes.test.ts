@@ -36,7 +36,7 @@ describe('healthRouter', () => {
   it('retourne 200 quand PostgreSQL et la configuration IA sont disponibles', async () => {
     vi.mocked(checkReadiness).mockResolvedValue({
       ready: true,
-      checks: { database: 'ok', aiConfiguration: 'ok' },
+      checks: { database: 'ok', schema: 'ok', aiConfiguration: 'ok' },
     });
 
     const response = await healthRouter.request('/ready');
@@ -44,17 +44,32 @@ describe('healthRouter', () => {
 
     expect(response.status).toBe(200);
     expect(body.status).toBe('ready');
-    expect(body.checks).toEqual({ database: 'ok', aiConfiguration: 'ok' });
+    expect(body.checks).toEqual({ database: 'ok', schema: 'ok', aiConfiguration: 'ok' });
   });
 
   it('retourne 503 si une dependance critique est indisponible', async () => {
     vi.mocked(checkReadiness).mockResolvedValue({
       ready: false,
-      checks: { database: 'unavailable', aiConfiguration: 'ok' },
+      checks: { database: 'unavailable', schema: 'missing', aiConfiguration: 'ok' },
     });
 
     const response = await healthRouter.request('/ready');
 
     expect(response.status).toBe(503);
+  });
+
+  it('expose uniquement une revision immuable valide', async () => {
+    const previous = process.env['APP_REVISION'];
+    try {
+      process.env['APP_REVISION'] = 'A'.repeat(40);
+      expect(await (await healthRouter.request('/')).json()).toMatchObject({
+        revision: 'a'.repeat(40),
+      });
+      process.env['APP_REVISION'] = 'main';
+      expect(await (await healthRouter.request('/')).json()).toMatchObject({ revision: null });
+    } finally {
+      if (previous === undefined) delete process.env['APP_REVISION'];
+      else process.env['APP_REVISION'] = previous;
+    }
   });
 });

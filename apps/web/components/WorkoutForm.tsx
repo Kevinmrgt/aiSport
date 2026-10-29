@@ -10,9 +10,10 @@ import { GlassPanel } from './PremiumPrimitives';
 import { GenerateWorkoutInputSchema } from '@alcide/shared';
 import type { GenerateWorkoutInput } from '@alcide/shared';
 import { isNextRedirectError } from '@/lib/next-navigation';
+import { useGenerationOperation, type GenerationResult } from '@/lib/generation-operation';
 
 interface WorkoutFormProps {
-  onSubmit: (data: GenerateWorkoutInput) => Promise<{ error?: string } | void>;
+  onSubmit: (data: GenerateWorkoutInput, operationId: string) => Promise<GenerationResult | void>;
 }
 
 const LEVEL_OPTIONS = [
@@ -25,6 +26,8 @@ export function WorkoutForm({ onSubmit }: WorkoutFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof GenerateWorkoutInput, string>>>({});
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const [canStartNewOperation, setCanStartNewOperation] = useState(false);
+  const operation = useGenerationOperation();
 
   const [formData, setFormData] = useState({
     sport: '',
@@ -36,8 +39,10 @@ export function WorkoutForm({ onSubmit }: WorkoutFormProps) {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (operation.submitting.current) return;
     setErrors({});
     setGlobalError(null);
+    setCanStartNewOperation(false);
 
     const parsed = GenerateWorkoutInputSchema.safeParse({
       ...formData,
@@ -59,11 +64,13 @@ export function WorkoutForm({ onSubmit }: WorkoutFormProps) {
       return;
     }
 
+    operation.submitting.current = true;
     setIsLoading(true);
     try {
-      const result = await onSubmit(parsed.data);
+      const result = await onSubmit(parsed.data, operation.key(parsed.data));
       if (result?.error) {
         setGlobalError(result.error);
+        setCanStartNewOperation(result.retryWithNewOperation === true);
       }
     } catch (error) {
       if (isNextRedirectError(error)) return;
@@ -72,6 +79,7 @@ export function WorkoutForm({ onSubmit }: WorkoutFormProps) {
       );
     } finally {
       setIsLoading(false);
+      operation.submitting.current = false;
     }
   };
 
@@ -109,6 +117,19 @@ export function WorkoutForm({ onSubmit }: WorkoutFormProps) {
           className="rounded-[1.25rem] border border-sport-orange/30 bg-sport-orange/10 p-4 text-sm text-sport-orange"
         >
           <strong>Erreur :</strong> {globalError}
+          {canStartNewOperation && (
+            <button
+              type="button"
+              className="mt-3 block font-bold underline"
+              onClick={() => {
+                operation.reset();
+                setCanStartNewOperation(false);
+                setGlobalError(null);
+              }}
+            >
+              Autoriser une nouvelle tentative
+            </button>
+          )}
         </div>
       )}
 
@@ -185,7 +206,7 @@ export function WorkoutForm({ onSubmit }: WorkoutFormProps) {
 
       <div className="flex flex-col gap-1">
         <label htmlFor="constraints" className="field-label">
-          Contraintes physiques{' '}
+          Matériel et espace disponibles{' '}
           <span className="text-xs font-normal text-zinc-400">(optionnel)</span>
         </label>
         <textarea
@@ -194,9 +215,21 @@ export function WorkoutForm({ onSubmit }: WorkoutFormProps) {
           value={formData.constraints}
           onChange={(e) => setFormData((prev) => ({ ...prev, constraints: e.target.value }))}
           rows={2}
-          placeholder="ex: douleur au genou gauche, pas de sauts..."
+          placeholder="ex: haltères, tapis, petit espace, entraînement sans matériel..."
+          aria-describedby={
+            errors.constraints ? 'constraints-hint constraints-error' : 'constraints-hint'
+          }
+          aria-invalid={errors.constraints ? true : undefined}
           className="field-control resize-y"
         />
+        <p id="constraints-hint" className="text-xs text-zinc-300">
+          N’indiquez aucune information de santé ou de blessure.
+        </p>
+        {errors.constraints && (
+          <p id="constraints-error" role="alert" className="text-xs text-sport-orange">
+            {errors.constraints}
+          </p>
+        )}
       </div>
 
       <Button

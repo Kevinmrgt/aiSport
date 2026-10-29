@@ -7,6 +7,13 @@ import { Button } from './ui/Button';
 import { Icon } from './ui/Icon';
 import { ProgressRing } from './PremiumPrimitives';
 import {
+  clearTimerProgress,
+  readTimerProgress,
+  timerSignature,
+  writeTimerProgress,
+  type TimerProgress,
+} from '@/lib/timer-storage';
+import {
   SessionCompletionForm,
   type SessionCompletionPayload,
   type TimerSessionMeta,
@@ -187,6 +194,9 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
   const activeStartedAtRef = useRef<number | null>(null);
   const accumulatedActiveMsRef = useRef(0);
   const fullscreenTriggerRef = useRef<HTMLElement | null>(null);
+  const storageContext = useRef({ scope: '', signature: '' });
+  const hasStartedRef = useRef(false);
+  const [savedProgress, setSavedProgress] = useState<TimerProgress | null>(null);
 
   const { playCountdown, playPhaseChange, playComplete } = useAudio();
   const currentStep = steps[currentIndex];
@@ -263,6 +273,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
 
   const goToStep = useCallback(
     (nextIndex: number, keepRunning = false) => {
+      hasStartedRef.current = true;
       const nextStep = steps[nextIndex];
 
       if (!nextStep) {
@@ -296,7 +307,44 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
     stepDeadlineRef.current = null;
     activeStartedAtRef.current = null;
     accumulatedActiveMsRef.current = 0;
+    hasStartedRef.current = false;
+    const scope = document.body.dataset.timerSession ?? '';
+    const durations = steps.map((step) => step.durationSeconds);
+    const signature = timerSignature(window.location.pathname, durations);
+    storageContext.current = { scope, signature };
+    setSavedProgress(readTimerProgress(scope, signature, durations));
   }, [exitFullscreen, steps]);
+
+  const persistProgress = useCallback(() => {
+    if (savedProgress || !hasStartedRef.current) return;
+    if (done) {
+      clearTimerProgress();
+      return;
+    }
+    const activeMs =
+      accumulatedActiveMsRef.current +
+      (activeStartedAtRef.current === null
+        ? 0
+        : Math.max(0, Date.now() - activeStartedAtRef.current));
+    const remaining =
+      stepDeadlineRef.current === null
+        ? secondsLeft
+        : Math.max(0, Math.ceil((stepDeadlineRef.current - Date.now()) / 1000));
+    writeTimerProgress({
+      version: 1,
+      ...storageContext.current,
+      savedAt: Date.now(),
+      index: currentIndex,
+      secondsLeft: remaining,
+      activeMs,
+    });
+  }, [currentIndex, done, savedProgress, secondsLeft]);
+
+  useEffect(() => {
+    persistProgress();
+    window.addEventListener('pagehide', persistProgress);
+    return () => window.removeEventListener('pagehide', persistProgress);
+  }, [persistProgress, isRunning]);
 
   useEffect(() => {
     const syncFullscreenState = () => {
@@ -425,6 +473,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
 
   const toggleTimer = useCallback(() => {
     if (secondsLeft === null) return;
+    hasStartedRef.current = true;
 
     if (isRunning) {
       if (stepDeadlineRef.current !== null) {
@@ -536,6 +585,42 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
       tabIndex={isFullscreen ? -1 : undefined}
       className={timerContainerClassName}
     >
+      {savedProgress && (
+        <div
+          role="status"
+          className="w-full rounded-xl border border-primary-300/30 bg-zinc-950 p-4 text-sm text-zinc-100"
+        >
+          <p>Une séance en cours a été retrouvée dans cet onglet. Elle reprendra en pause.</p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <button
+              type="button"
+              className="action-primary"
+              onClick={() => {
+                setCurrentIndex(savedProgress.index);
+                setSecondsLeft(savedProgress.secondsLeft);
+                accumulatedActiveMsRef.current = savedProgress.activeMs;
+                activeStartedAtRef.current = null;
+                stepDeadlineRef.current = null;
+                hasStartedRef.current = true;
+                setIsRunning(false);
+                setSavedProgress(null);
+              }}
+            >
+              Restaurer la séance en pause
+            </button>
+            <button
+              type="button"
+              className="action-secondary"
+              onClick={() => {
+                clearTimerProgress();
+                setSavedProgress(null);
+              }}
+            >
+              Recommencer depuis le début
+            </button>
+          </div>
+        </div>
+      )}
       {totalTimedSeconds > 0 && (
         <div className="w-full">
           <div className="mb-2 flex justify-between text-xs font-bold text-zinc-400">
@@ -624,6 +709,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
           variant="primary"
           size="lg"
           data-timer-fullscreen-trigger
+          disabled={savedProgress !== null}
           className="w-full sm:min-w-44"
           onClick={() => {
             if (hasStepTimer) {
@@ -642,6 +728,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
           <Button
             variant="secondary"
             size="lg"
+            disabled={savedProgress !== null}
             className="w-full sm:min-w-44"
             onClick={() => {
               goToStep(currentIndex + 1);

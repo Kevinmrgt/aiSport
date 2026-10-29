@@ -11,6 +11,12 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ### Changed
 
+- Identité Google stable, budgets de génération persistants et opérations
+  idempotentes ; contrôles renforcés des données et des réponses IA.
+- Export et effacement du compte, révocation des sessions, conservation
+  paramétrable, formulaires et minuterie fiabilisés.
+- Livraison liée au SHA, sauvegarde chiffrée et répétition des migrations
+  sur une copie isolée ; les informations légales restent à renseigner.
 - Documentation recentrée sur le produit, son exploitation et les travaux
   avant ouverture publique ; anciens livrables et outils de présentation retirés.
 - Authentification Google seule ; les cookies d'anciens fournisseurs sont refusés.
@@ -21,11 +27,11 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ### Security
 
-- Mise à jour de Hono vers `4.12.34` et des résolutions transitives de
-  `brace-expansion`, `js-yaml`, `nanoid` et `postcss` vers leurs versions
-  corrigées lors de leur introduction. L'audit du 29 octobre 2026 signale
-  de nouvelles alertes à traiter avant mise en ligne ; voir
-  `docs/release-readiness.md`.
+- Mise à jour des dépendances applicatives et outils : l'audit complet
+  du 29 octobre 2026 ne signale plus de vulnérabilité connue après corrections.
+- CSP à nonce pour les scripts, validation de l'environnement et des requêtes,
+  journaux expurgés et contrôle de la lignée des migrations avant écriture.
+  Les preuves et préconditions d'ouverture sont dans `docs/release-readiness.md`.
 
 ---
 

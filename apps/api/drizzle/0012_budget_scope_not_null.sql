@@ -1,0 +1,2 @@
+ALTER TABLE "generation_daily_budgets" DROP CONSTRAINT "generation_daily_budgets_scope_check";--> statement-breakpoint
+ALTER TABLE "generation_daily_budgets" ADD CONSTRAINT "generation_daily_budgets_scope_check" CHECK (("generation_daily_budgets"."scope" = 'global' and "generation_daily_budgets"."user_id" is null) or ("generation_daily_budgets"."user_id" is not null and "generation_daily_budgets"."scope" = 'user:' || "generation_daily_budgets"."user_id"::text));

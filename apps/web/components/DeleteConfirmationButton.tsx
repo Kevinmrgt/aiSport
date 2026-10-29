@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Icon } from './ui/Icon';
 
 interface DeleteConfirmationButtonProps {
@@ -16,6 +17,7 @@ export function DeleteConfirmationButton({
   itemType,
   onDelete,
 }: DeleteConfirmationButtonProps) {
+  const router = useRouter();
   const accessibleId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const confirmRef = useRef<HTMLButtonElement>(null);
@@ -61,6 +63,7 @@ export function DeleteConfirmationButton({
         return;
       }
       setShowConfirm(false);
+      router.refresh();
     } catch (deleteError) {
       setError(
         deleteError instanceof Error

@@ -1,35 +1,55 @@
 import { sql } from 'drizzle-orm';
-import { check, index, pgTable, text, timestamp, jsonb, uuid, integer } from 'drizzle-orm/pg-core';
+import {
+  check,
+  index,
+  uniqueIndex,
+  pgTable,
+  text,
+  timestamp,
+  jsonb,
+  uuid,
+  integer,
+} from 'drizzle-orm/pg-core';
 import type { Workout, TrainingProgram } from '@alcide/shared';
 
 // Table des utilisateurs — Auth.js compatible
-export const users = pgTable('users', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  name: text('name'),
-  email: text('email').notNull().unique(),
-  emailVerified: timestamp('email_verified', { withTimezone: true }),
-  image: text('image'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+export const users = pgTable(
+  'users',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name'),
+    email: text('email').notNull(),
+    emailVerified: timestamp('email_verified', { withTimezone: true }),
+    image: text('image'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('users_email_idx').on(table.email)],
+);
 
 // Comptes OAuth liés (Auth.js)
-export const accounts = pgTable('accounts', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  type: text('type').notNull(),
-  provider: text('provider').notNull(),
-  providerAccountId: text('provider_account_id').notNull(),
-  refreshToken: text('refresh_token'),
-  accessToken: text('access_token'),
-  expiresAt: integer('expires_at'),
-  tokenType: text('token_type'),
-  scope: text('scope'),
-  idToken: text('id_token'),
-  sessionState: text('session_state'),
-});
+export const accounts = pgTable(
+  'accounts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    type: text('type').notNull(),
+    provider: text('provider').notNull(),
+    providerAccountId: text('provider_account_id').notNull(),
+    refreshToken: text('refresh_token'),
+    accessToken: text('access_token'),
+    expiresAt: integer('expires_at'),
+    tokenType: text('token_type'),
+    scope: text('scope'),
+    idToken: text('id_token'),
+    sessionState: text('session_state'),
+  },
+  (table) => [
+    uniqueIndex('accounts_provider_subject_unique').on(table.provider, table.providerAccountId),
+  ],
+);
 
 // Sessions Auth.js
 export const sessions = pgTable('sessions', {
@@ -77,7 +97,22 @@ export const workouts = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index('workouts_user_created_idx').on(table.userId, table.createdAt)],
+  (table) => [
+    index('workouts_user_created_idx').on(table.userId, table.createdAt),
+    index('workouts_user_created_id_idx').on(table.userId, table.createdAt, table.id),
+    check(
+      'workouts_difficulty_valid',
+      sql`${table.difficulty} in ('beginner','intermediate','advanced')`,
+    ),
+    check(
+      'workouts_duration_positive',
+      sql`${table.durationMinutes} > 0 and ${table.durationMinutes} <= 180`,
+    ),
+    check(
+      'workouts_data_object',
+      sql`jsonb_typeof(${table.data}) = 'object' and ${table.data} ? 'exercises'`,
+    ),
+  ],
 );
 
 // Table des programmes multi-semaines
@@ -103,7 +138,26 @@ export const trainingPrograms = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index('training_programs_user_created_idx').on(table.userId, table.createdAt)],
+  (table) => [
+    index('training_programs_user_created_idx').on(table.userId, table.createdAt),
+    index('training_programs_user_created_id_idx').on(table.userId, table.createdAt, table.id),
+    check(
+      'training_programs_difficulty_valid',
+      sql`${table.difficulty} in ('beginner','intermediate','advanced')`,
+    ),
+    check(
+      'training_programs_counts_valid',
+      sql`${table.weeksCount} between 2 and 4 and ${table.sessionsPerWeek} between 2 and 5`,
+    ),
+    check(
+      'training_programs_duration_valid',
+      sql`${table.sessionDurationMinutes} between 20 and 60`,
+    ),
+    check(
+      'training_programs_data_object',
+      sql`jsonb_typeof(${table.data}) = 'object' and ${table.data} ? 'weeks'`,
+    ),
+  ],
 );
 
 // Journal d'execution des seances terminees
@@ -140,8 +194,20 @@ export const sessionLogs = pgTable(
   },
   (table) => [
     index('session_logs_user_completed_idx').on(table.userId, table.completedAt),
+    index('session_logs_user_completed_id_idx').on(table.userId, table.completedAt, table.id),
     index('session_logs_workout_idx').on(table.workoutId),
     index('session_logs_program_idx').on(table.programId),
+    check(
+      'session_logs_difficulty_valid',
+      sql`${table.difficulty} in ('beginner','intermediate','advanced')`,
+    ),
+    check('session_logs_feedback_valid', sql`${table.feedback} in ('too_easy','good','too_hard')`),
+    check('session_logs_source_valid', sql`${table.sourceType} in ('workout','program_session')`),
+    check('session_logs_effort_valid', sql`${table.perceivedEffort} between 1 and 10`),
+    check(
+      'session_logs_duration_valid',
+      sql`${table.durationSeconds} >= 0 and ${table.plannedDurationMinutes} > 0`,
+    ),
   ],
 );
 

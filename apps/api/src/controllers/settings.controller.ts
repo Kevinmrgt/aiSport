@@ -3,11 +3,16 @@ import { z } from 'zod';
 import { findSettingsByUser, upsertSettings } from '../repositories/settings.repository.js';
 import { AppError } from '../types/app-error.js';
 import type { AiProvider } from '../services/ai.service.js';
+import { generationPolicy } from '../services/generation-policy.js';
 
 const DEFAULT_AI_PROVIDER: AiProvider = 'openai';
-const DEFAULT_OPENAI_MODEL = 'gpt-5.4-mini';
-const ALLOWED_OPENAI_MODELS = ['gpt-5.4-mini', 'gpt-5.4', 'gpt-5.5'] as const;
-const OpenAiModelSchema = z.enum(ALLOWED_OPENAI_MODELS);
+const OpenAiModelSchema = z
+  .string()
+  .max(100)
+  .refine(
+    (value) => generationPolicy().allowedModels.includes(value),
+    'Ce modele ne fait pas partie de la politique du service',
+  );
 
 const SaveSettingsSchema = z.object({
   model: OpenAiModelSchema.optional(),
@@ -15,7 +20,7 @@ const SaveSettingsSchema = z.object({
 
 function normalizeOpenAiModel(model?: string | null): string {
   const parsed = OpenAiModelSchema.safeParse(model);
-  return parsed.success ? parsed.data : DEFAULT_OPENAI_MODEL;
+  return parsed.success ? parsed.data : generationPolicy().defaultModel;
 }
 
 export async function handleGetSettings(ctx: Context): Promise<Response> {
@@ -33,7 +38,7 @@ export async function handleGetSettings(ctx: Context): Promise<Response> {
     return ctx.json({
       provider: DEFAULT_AI_PROVIDER,
       hasApiKey: false,
-      model: DEFAULT_OPENAI_MODEL,
+      model: generationPolicy().defaultModel,
     });
   }
 }
@@ -54,8 +59,8 @@ export async function handleSaveSettings(ctx: Context): Promise<Response> {
     await upsertSettings(auth.userId, {
       aiModel: normalizeOpenAiModel(parsed.data.model),
     });
-  } catch (err) {
-    console.error('[Settings] Erreur upsertSettings:', err);
+  } catch {
+    console.error('[Settings]', { code: 'SETTINGS_WRITE_FAILED' });
     throw AppError.internal(
       'Impossible de sauvegarder les parametres. Reessayez dans quelques instants.',
     );
@@ -70,7 +75,7 @@ export async function resolveAiConfig(userId: string): Promise<{
   apiKey: string;
   model?: string;
 }> {
-  let model = DEFAULT_OPENAI_MODEL;
+  let model = generationPolicy().defaultModel;
 
   try {
     const row = await findSettingsByUser(userId);

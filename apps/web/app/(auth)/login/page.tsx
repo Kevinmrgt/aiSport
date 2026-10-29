@@ -1,12 +1,17 @@
 import { signIn } from '@/lib/auth';
 import { GlassPanel, IconBubble, MetricPill } from '@/components/PremiumPrimitives';
+import { loginDestination } from '@/lib/login-destination';
+
+export const metadata = { title: 'Connexion — Alcide', robots: { index: false, follow: false } };
 
 interface LoginPageProps {
-  searchParams: Promise<{ error?: string; code?: string }>;
+  searchParams: Promise<{ error?: string; code?: string; callbackUrl?: string }>;
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const error = (await searchParams)?.error;
+  const params = await searchParams;
+  const error = params?.error;
+  const destination = loginDestination(params?.callbackUrl);
 
   return (
     <div className="grid min-h-[72vh] items-center gap-8 lg:grid-cols-[0.9fr_1.1fr]">
@@ -26,7 +31,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <form
           action={async () => {
             'use server';
-            await signIn('google', { redirectTo: '/generate' });
+            await signIn('google', { redirectTo: destination });
           }}
           className="mt-8"
         >

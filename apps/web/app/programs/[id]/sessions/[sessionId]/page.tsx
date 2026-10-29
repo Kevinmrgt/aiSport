@@ -18,7 +18,7 @@ export default async function ProgramSessionPage({ params }: SessionPageProps) {
   const session = await auth();
 
   if (!session?.user) {
-    redirect('/login');
+    redirect(`/login?callbackUrl=${encodeURIComponent(`/programs/${id}/sessions/${sessionId}`)}`);
   }
 
   const parts = sessionId.split('-');
@@ -67,7 +67,7 @@ export default async function ProgramSessionPage({ params }: SessionPageProps) {
         perceivedEffort: payload.perceivedEffort,
         feedback: payload.feedback,
         completedAt: payload.completedAt,
-        ...(payload.painNotes ? { painNotes: payload.painNotes } : {}),
+        ...(payload.operationId ? { operationId: payload.operationId } : {}),
         ...(payload.notes ? { notes: payload.notes } : {}),
       });
       revalidatePath('/dashboard');

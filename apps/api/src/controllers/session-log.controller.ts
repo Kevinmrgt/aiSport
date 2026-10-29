@@ -56,7 +56,14 @@ export async function handleCreateSessionLog(ctx: Context): Promise<Response> {
     throw AppError.badRequest('Donnees invalides', parsed.error.flatten());
   }
 
+  if (parsed.data.painNotes?.trim()) {
+    throw AppError.badRequest(
+      'Les informations de santé ne sont pas collectées. Retirez la note de douleur.',
+    );
+  }
+
   const input = {
+    ...(parsed.data.operationId !== undefined && { operationId: parsed.data.operationId }),
     sourceType: parsed.data.sourceType,
     title: parsed.data.title,
     sport: parsed.data.sport,

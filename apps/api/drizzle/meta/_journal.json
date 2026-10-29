@@ -50,6 +50,48 @@
       "when": 1784796976103,
       "tag": "0006_spotty_kingpin",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793283337932,
+      "tag": "0007_stable_google_identity",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793283367901,
+      "tag": "0008_data_integrity",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793284571691,
+      "tag": "0009_persistent_generation_budget",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793284653441,
+      "tag": "0010_account_privacy",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793284984709,
+      "tag": "0011_session_log_idempotency",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793285084959,
+      "tag": "0012_budget_scope_not_null",
+      "breakpoints": true
     }
   ]
 }

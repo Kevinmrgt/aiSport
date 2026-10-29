@@ -1,12 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import {
-  GlassPanel,
-  HeroVisual,
-  IconBubble,
-  MetricPill,
-  ProgressRing,
-} from '@/components/PremiumPrimitives';
+import { GlassPanel, HeroVisual, IconBubble, MetricPill } from '@/components/PremiumPrimitives';
 
 export default function HomePage() {
   return (
@@ -62,7 +56,12 @@ export default function HomePage() {
           </div>
         </div>
 
-        <HeroVisual className="mx-auto w-full max-w-4xl" />
+        <figure className="mx-auto w-full max-w-4xl">
+          <HeroVisual />
+          <figcaption className="mt-3 text-center text-xs font-medium text-zinc-800">
+            Aperçu illustratif d’une séance.
+          </figcaption>
+        </figure>
       </div>
 
       <div className="space-y-6 px-4 pb-14 sm:px-6 lg:px-8">
@@ -87,7 +86,7 @@ export default function HomePage() {
                   exercices, durees, repos et intensite adaptee au niveau.
                 </p>
               </div>
-              <ProgressRing value={74} label="pret" size="lg" />
+              <IconBubble icon="timer" className="bg-primary-300 text-zinc-950" />
             </div>
           </GlassPanel>
 
@@ -145,14 +144,14 @@ export default function HomePage() {
 
         <div className="grid min-h-[70vh] items-center gap-6 rounded-[2rem] border border-white/15 bg-[#14200f]/45 p-5 shadow-2xl shadow-black/25 backdrop-blur-xl sm:p-8 lg:grid-cols-[0.78fr_1.22fr]">
           <div>
-            <p className="section-kicker mb-4">Scroll immersif</p>
+            <p className="section-kicker mb-4">Votre entraînement, étape par étape</p>
             <h2 className="text-4xl font-black leading-none text-white sm:text-5xl">
-              Le fond reste en place,
-              <span className="block text-primary-300">le contenu avance.</span>
+              Un objectif clair,
+              <span className="block text-primary-300">une séance à suivre.</span>
             </h2>
             <p className="mt-5 max-w-xl text-base leading-7 text-zinc-200">
-              La page d accueil presente maintenant l application avant de pousser vers la creation
-              : ce que fait Alcide, comment l utiliser, et pourquoi revenir suivre sa progression.
+              Décrivez votre objectif, consultez la proposition et lancez votre séance. Retrouvez
+              ensuite vos séances et vos retours dans votre historique.
             </p>
           </div>
 
@@ -168,7 +167,7 @@ export default function HomePage() {
               <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
               <div className="absolute bottom-5 left-5 right-5">
                 <p className="section-kicker mb-3">En action</p>
-                <h3 className="text-3xl font-black text-white">Suivre sans reflechir.</h3>
+                <h3 className="text-3xl font-black text-white">Gardez le rythme.</h3>
               </div>
             </div>
           </div>

@@ -1,7 +1,6 @@
 import { generateWorkout } from './workout-ai.service.js';
 import { resolveAiConfig } from '../controllers/settings.controller.js';
 import {
-  createWorkout,
   findWorkoutsByUser,
   findWorkoutById,
   deleteWorkout,
@@ -13,15 +12,27 @@ import type {
   WorkoutListResponse,
   WorkoutStats,
 } from '@alcide/shared';
+import { executeBudgetedGeneration } from './generation-budget.service.js';
+import { generationBudgetRepository } from '../repositories/generation-budget.repository.js';
 
 // Logique metier : ne connait pas HTTP ni Drizzle.
 export async function generateAndSaveWorkout(
   userId: string,
   input: GenerateWorkoutInput,
+  operationId?: string,
+  signal?: AbortSignal,
 ): Promise<WorkoutRecord> {
-  const aiConfig = await resolveAiConfig(userId);
-  const workout = await generateWorkout(input, aiConfig);
-  return createWorkout(userId, workout);
+  return executeBudgetedGeneration({
+    userId,
+    kind: 'workout',
+    input,
+    maxAttempts: 2,
+    ...(operationId !== undefined ? { operationId } : {}),
+    ...(signal ? { signal } : {}),
+    generate: async (execution) => generateWorkout(input, await resolveAiConfig(userId), execution),
+    replay: (resourceId) => findWorkoutById(resourceId, userId),
+    complete: (id, workout) => generationBudgetRepository.completeWorkout(id, userId, workout),
+  });
 }
 
 export async function getUserWorkouts(

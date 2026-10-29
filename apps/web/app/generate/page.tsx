@@ -1,32 +1,38 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { WorkoutForm } from '@/components/WorkoutForm';
-import { GlassPanel, MetricPill, ProgressRing } from '@/components/PremiumPrimitives';
-import { serverApi } from '@/lib/server-api';
+import { GlassPanel, MetricPill } from '@/components/PremiumPrimitives';
+import { serverApi, ServerApiError } from '@/lib/server-api';
+import type { GenerationResult } from '@/lib/generation-operation';
 import type { GenerateWorkoutInput } from '@alcide/shared';
 
 export default async function GeneratePage() {
   const session = await auth();
 
   if (!session?.user) {
-    redirect('/login');
+    redirect('/login?callbackUrl=%2Fgenerate');
   }
 
-  async function handleGenerate(data: GenerateWorkoutInput): Promise<{ error?: string } | void> {
+  async function handleGenerate(
+    data: GenerateWorkoutInput,
+    operationId: string,
+  ): Promise<GenerationResult | void> {
     'use server';
     let workoutId: string;
     try {
-      const workout = await serverApi.generateWorkout(data);
+      const workout = await serverApi.generateWorkout(data, operationId);
       workoutId = workout.id;
     } catch (error) {
       console.error('[GeneratePage] Erreur generation entrainement:', {
-        error: error instanceof Error ? error.message : error,
-        stack: error instanceof Error ? error.stack : undefined,
-        timestamp: new Date().toISOString(),
+        category: error instanceof Error ? error.name : 'UnknownError',
       });
       const message =
         error instanceof Error ? error.message : 'Erreur inattendue, veuillez reessayer';
-      return { error: message };
+      return {
+        error: message,
+        retryWithNewOperation:
+          error instanceof ServerApiError && error.code === 'GENERATION_RETRY_REQUIRES_NEW_KEY',
+      };
     }
     redirect(`/workouts/${workoutId}`);
   }
@@ -52,7 +58,9 @@ export default async function GeneratePage() {
                 </p>
                 <p className="mt-2 text-2xl font-black text-white">Session du jour</p>
               </div>
-              <ProgressRing value={62} label="pret" />
+              <span className="icon-bubble bg-primary-300 text-zinc-950" aria-hidden="true">
+                ✓
+              </span>
             </div>
             <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
               <MetricPill icon="activity" label="Sport" value="Libre" />

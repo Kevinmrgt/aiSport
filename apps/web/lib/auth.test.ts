@@ -7,21 +7,33 @@ describe('sessions Google Auth.js', () => {
       googleJwt({
         token: {},
         user: { id: 'google-user', email: 'sportif@example.test' },
-        account: { provider: 'google' },
+        account: { provider: 'google', providerAccountId: 'google-subject' },
       } as never),
-    ).toMatchObject({ userId: 'google-user', authMethod: 'google' });
+    ).toMatchObject({ userId: 'google-subject', authMethod: 'google', identityVersion: 2 });
   });
 
-  it('préserve les sessions Google existantes sans marqueur de fournisseur', () => {
-    expect(googleJwt({ token: { userId: 'existing-user' } } as never)).toEqual({
-      userId: 'existing-user',
-    });
+  it('impose une reconnexion aux anciennes sessions sans liaison sûre', () => {
+    expect(googleJwt({ token: { userId: 'existing-user' } } as never)).toBeNull();
+    expect(
+      googleJwt({ token: { userId: 'existing-user', authMethod: 'google' } } as never),
+    ).toBeNull();
   });
 
   it('préserve une session Google après la connexion', () => {
     expect(
-      googleJwt({ token: { userId: 'google-user', authMethod: 'google' } } as never),
+      googleJwt({
+        token: {
+          userId: 'google-user',
+          authMethod: 'google',
+          identityVersion: 2,
+          authIssuedAt: Date.now(),
+        },
+      } as never),
     ).toMatchObject({ userId: 'google-user' });
+  });
+
+  it('refuse une connexion sans sujet fournisseur stable', () => {
+    expect(googleJwt({ token: {}, account: { provider: 'google' } } as never)).toBeNull();
   });
 
   it.each(['credentials', 'temporary-access'])('révoque un ancien cookie %s', (authMethod) => {

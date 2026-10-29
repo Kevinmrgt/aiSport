@@ -10,9 +10,10 @@ import { GlassPanel, MetricPill } from './PremiumPrimitives';
 import { GenerateProgramInputSchema } from '@alcide/shared';
 import type { GenerateProgramInput } from '@alcide/shared';
 import { isNextRedirectError } from '@/lib/next-navigation';
+import { useGenerationOperation, type GenerationResult } from '@/lib/generation-operation';
 
 interface ProgramFormProps {
-  onSubmit: (data: GenerateProgramInput) => Promise<{ error?: string } | void>;
+  onSubmit: (data: GenerateProgramInput, operationId: string) => Promise<GenerationResult | void>;
 }
 
 const LEVEL_OPTIONS = [
@@ -45,6 +46,8 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof GenerateProgramInput, string>>>({});
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const [canStartNewOperation, setCanStartNewOperation] = useState(false);
+  const operation = useGenerationOperation();
 
   const [formData, setFormData] = useState({
     sport: '',
@@ -58,8 +61,10 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (operation.submitting.current) return;
     setErrors({});
     setGlobalError(null);
+    setCanStartNewOperation(false);
 
     const parsed = GenerateProgramInputSchema.safeParse({
       ...formData,
@@ -83,11 +88,13 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
       return;
     }
 
+    operation.submitting.current = true;
     setIsLoading(true);
     try {
-      const result = await onSubmit(parsed.data);
+      const result = await onSubmit(parsed.data, operation.key(parsed.data));
       if (result?.error) {
         setGlobalError(result.error);
+        setCanStartNewOperation(result.retryWithNewOperation === true);
       }
     } catch (error) {
       if (isNextRedirectError(error)) return;
@@ -96,6 +103,7 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
       );
     } finally {
       setIsLoading(false);
+      operation.submitting.current = false;
     }
   };
 
@@ -143,6 +151,19 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
           className="rounded-[1.25rem] border border-sport-orange/30 bg-sport-orange/10 p-4 text-sm text-sport-orange"
         >
           <strong>Erreur :</strong> {globalError}
+          {canStartNewOperation && (
+            <button
+              type="button"
+              className="mt-3 block font-bold underline"
+              onClick={() => {
+                operation.reset();
+                setCanStartNewOperation(false);
+                setGlobalError(null);
+              }}
+            >
+              Autoriser une nouvelle tentative
+            </button>
+          )}
         </div>
       )}
 
@@ -262,7 +283,7 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
 
       <div className="flex flex-col gap-1">
         <label htmlFor="program-constraints" className="field-label">
-          Contraintes physiques{' '}
+          Matériel et espace disponibles{' '}
           <span className="text-xs font-normal text-zinc-400">(optionnel)</span>
         </label>
         <textarea
@@ -271,9 +292,23 @@ export function ProgramForm({ onSubmit }: ProgramFormProps) {
           value={formData.constraints}
           onChange={(e) => setFormData((prev) => ({ ...prev, constraints: e.target.value }))}
           rows={2}
-          placeholder="ex: douleur au genou gauche, pas de sauts..."
+          placeholder="ex: haltères, tapis, petit espace, entraînement sans matériel..."
+          aria-describedby={
+            errors.constraints
+              ? 'program-constraints-hint program-constraints-error'
+              : 'program-constraints-hint'
+          }
+          aria-invalid={errors.constraints ? true : undefined}
           className="field-control resize-y"
         />
+        <p id="program-constraints-hint" className="text-xs text-zinc-300">
+          N’indiquez aucune information de santé ou de blessure.
+        </p>
+        {errors.constraints && (
+          <p id="program-constraints-error" role="alert" className="text-xs text-sport-orange">
+            {errors.constraints}
+          </p>
+        )}
       </div>
 
       <Button

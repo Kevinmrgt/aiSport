@@ -4,15 +4,14 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
-    include: ['tests/repositories.integration.test.ts'],
+    include: ['tests/**/*.integration.test.ts'],
+    // Suites share only synthetic global budget controls; run files sequentially.
+    fileParallelism: false,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov', 'html'],
       reportsDirectory: 'coverage/integration',
-      include: [
-        'src/repositories/**/*.ts',
-        'src/services/session-log.service.ts',
-      ],
+      include: ['src/repositories/**/*.ts', 'src/services/session-log.service.ts'],
       // Seuils fixes apres la mesure PostgreSQL reelle du 2026-07-20
       // (93,69 % lignes/statements, 80 % branches, 100 % fonctions).
       // Ils protegent une couverture majoritaire sans reutiliser les chiffres

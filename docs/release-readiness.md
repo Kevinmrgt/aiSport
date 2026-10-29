@@ -1,22 +1,28 @@
 # Travaux avant ouverture publique
 
-Le nettoyage du dépôt ne constitue pas une qualification d'ouverture
-commerciale. Cette liste conserve les risques et anomalies utiles au produit.
+La cible confirmée est le dépôt aiSport actuel sur `www.alcideai.fr`.
+L'[audit initial du 29 octobre 2026](audits/2026-10-29/README.md) décrit
+le candidat avant corrections ; ses alertes constituent un état historique.
+La [validation des corrections](audits/2026-10-29/remediation-validation.md)
+et la [contre-revue](audits/2026-10-29/remediation-review.md) donnent les
+preuves locales disponibles. Le site public n'est pas encore ce candidat.
 
-| Sujet                           | État et action attendue                                                                                                                                                                                                          |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dépendances                     | Audit du 29/10/2026 : 20 alertes de production (4 critiques, 7 élevées, 9 modérées) sur le lockfile antérieur inchangé. Corriger et qualifier les mises à jour avant mise en ligne ; le nettoyage ne traite pas cette migration. |
-| Budget de génération            | Les comptes Google n'ont pas de plafond total. Définir budget, limites par compte et suivi des coûts avant une ouverture large.                                                                                                  |
-| Limitation distribuée           | Le limiteur général utilise une mémoire de processus ; définir un contrôle cohérent entre instances.                                                                                                                             |
-| Données personnelles            | Définir durées de conservation, accès/export et suppression de compte ; vérifier les traitements annoncés, dont les notes de douleur.                                                                                            |
-| Sauvegardes                     | Documenter et tester une restauration PostgreSQL sur une cible distincte.                                                                                                                                                        |
-| Observabilité                   | Préparer corrélation, masquage et alertes adaptées ; le monitoring actuel ne teste que la santé Web/API.                                                                                                                         |
-| CSP                             | `unsafe-inline` reste un risque résiduel à réévaluer avec une politique à nonce.                                                                                                                                                 |
-| Accessibilité, suppression (P2) | Confirmer l'annonce de succès après suppression, son ordre et le retour du focus avec NVDA.                                                                                                                                      |
-| Accessibilité, déconnexion (P2) | Contre-recetter l'annonce du titre et le focus de destination ; ajouter une annonce de navigation si nécessaire.                                                                                                                 |
-| Infrastructure                  | Revoir offres, quotas et coûts réels pour l'usage prévu.                                                                                                                                                                         |
-| Recette finale                  | Vérifier OAuth réel, parcours IA et isolation des utilisateurs sur la révision livrée.                                                                                                                                           |
+| Domaine                   | Corrections disponibles                                                                                               | Preuve encore nécessaire avant ouverture                                                          |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Dépendances               | Versions et lockfile actualisés ; audit complet sans vulnérabilité connue lors du contrôle.                           | CI sur la révision livrée.                                                                        |
+| Identité et données       | Identité Google par sujet stable, absence de rapprochement automatique par email, validations et isolation SQL.       | Connexion Google réelle et décision explicite sur les comptes historiques à rattacher.            |
+| IA et coûts               | Validation des réponses, arrêt des erreurs permanentes, quotas persistants, réservations atomiques et idempotence.    | Génération avec le fournisseur réel, budget accepté et revue sportive des contenus.               |
+| Vie privée                | Export, suppression du compte, révocation des sessions, purge paramétrable et retrait des nouvelles notes de douleur. | Identité légale, base de traitement, transferts et durées approuvées ; contrats des prestataires. |
+| Sécurité Web              | CSP à nonce pour les scripts, limites de requête, erreurs et journaux expurgés.                                       | Vérification sur les domaines et variables effectifs de production.                               |
+| Sauvegardes et migrations | Archive chiffrée, restauration isolée, répétition des migrations et verrou PostgreSQL commun.                         | Restauration de la base cible, accès de secours à la clé et qualification du retour arrière.      |
+| Exploitation              | Santé Web/API avec SHA, contrôle des deux alias, préconditions de livraison et surveillance documentées.              | Correspondance projet/domaine/base, réception réelle des alertes et coûts/quotas des offres.      |
+| UX et accessibilité       | Formulaires, déconnexion mobile, minuterie restaurable, journal idempotent et pages légales.                          | Recette finale sur la révision déployée, dont OAuth et contrôle au lecteur d'écran.               |
 
-La table historique `generation_quotas` est conservée pour compatibilité des
-migrations ; elle ne plafonne plus aucun parcours. Sa suppression éventuelle
-sera une migration séparée avec sauvegarde, sans réécriture de l'historique.
+La [procédure de production](production-runbook.md) sépare la vérification
+en lecture seule, la répétition sur copie et l'application des migrations.
+Le mode `verify` ne modifie pas la base source. Les préconditions de livraison
+ne doivent pas être marquées satisfaites sans preuves réelles.
+
+La table historique `generation_quotas` reste présente pour compatibilité des
+migrations. Le nouveau contrôle repose sur les tables de budgets persistants ;
+supprimer l'ancienne table exige une migration distincte avec sauvegarde.

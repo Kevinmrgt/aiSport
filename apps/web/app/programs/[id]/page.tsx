@@ -23,7 +23,7 @@ export default async function ProgramDetailPage({ params }: ProgramDetailPagePro
   const session = await auth();
 
   if (!session?.user) {
-    redirect('/login');
+    redirect(`/login?callbackUrl=${encodeURIComponent(`/programs/${id}`)}`);
   }
 
   let program: Awaited<ReturnType<typeof serverApi.getProgram>>;

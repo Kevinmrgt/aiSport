@@ -35,6 +35,7 @@ export class ServerApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    readonly code?: string,
   ) {
     super(message);
     this.name = 'ServerApiError';
@@ -58,13 +59,11 @@ async function serverFetch<T>(
     throw new Error('Non authentifie');
   }
 
-  // OWASP A09: trace structuree de chaque appel API cote Next.js server
+  const requestId = crypto.randomUUID();
+  // Correlate services without logging account data, filters or payloads.
   console.info('[ServerAPI] Appel:', {
     method: options?.method ?? 'GET',
-    path,
-    userId: session.user.id,
-    apiUrl: API_URL,
-    timestamp: new Date().toISOString(),
+    requestId,
   });
 
   const timeoutController = new AbortController();
@@ -78,13 +77,23 @@ async function serverFetch<T>(
       ...options,
       signal: timeoutController.signal,
       headers: {
+        ...(options?.headers as Record<string, string>),
         'Content-Type': 'application/json',
         // OWASP A01: secret partage valide par le middleware Hono
         'x-internal-secret': process.env['SERVICE_SECRET'] ?? '',
         'x-user-id': session.user.id,
         'x-user-email': session.user.email ?? '',
-        'x-user-name': session.user.name ?? '',
-        ...(options?.headers as Record<string, string>),
+        'x-user-name-encoded': encodeURIComponent(
+          new TextDecoder()
+            .decode(new TextEncoder().encode((session.user.name ?? '').slice(0, 256)))
+            .split('')
+            .map((character) =>
+              character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127 ? ' ' : character,
+            )
+            .join(''),
+        ),
+        'x-request-id': requestId,
+        'x-auth-issued-at': String(session.user.authIssuedAt ?? ''),
       },
     });
   } catch (error) {
@@ -108,25 +117,27 @@ async function serverFetch<T>(
     };
     // OWASP A09: logger l'erreur API complete cote Next.js server (visible dans les logs Vercel)
     console.error('[ServerAPI] Erreur reponse API:', {
-      url: `${API_URL}${path}`,
+      requestId,
       status: response.status,
-      statusText: response.statusText,
-      apiError: err,
-      timestamp: new Date().toISOString(),
     });
-    throw new ServerApiError(err.message ?? `Erreur API: ${response.status}`, response.status);
+    throw new ServerApiError(
+      err.message ?? `Erreur API: ${response.status}`,
+      response.status,
+      err.error,
+    );
   }
 
   return response.json() as Promise<T>;
 }
 
 export const serverApi = {
-  generateWorkout: (input: GenerateWorkoutInput): Promise<WorkoutDetail> =>
+  generateWorkout: (input: GenerateWorkoutInput, operationId?: string): Promise<WorkoutDetail> =>
     serverFetch<WorkoutDetail>(
       '/workouts/generate',
       {
         method: 'POST',
         body: JSON.stringify(input),
+        ...(operationId ? { headers: { 'idempotency-key': operationId } } : {}),
       },
       GENERATION_TIMEOUT_MS,
     ),
@@ -155,12 +166,13 @@ export const serverApi = {
 
   // --- Programmes multi-semaines ---
 
-  generateProgram: (input: GenerateProgramInput): Promise<ProgramListItem> =>
+  generateProgram: (input: GenerateProgramInput, operationId?: string): Promise<ProgramListItem> =>
     serverFetch<ProgramListItem>(
       '/programs/generate',
       {
         method: 'POST',
         body: JSON.stringify(input),
+        ...(operationId ? { headers: { 'idempotency-key': operationId } } : {}),
       },
       GENERATION_TIMEOUT_MS,
     ),
@@ -201,5 +213,13 @@ export const serverApi = {
     serverFetch<{ ok: boolean }>('/settings', {
       method: 'PUT',
       body: JSON.stringify(input),
+    }),
+
+  exportAccount: (): Promise<unknown> => serverFetch<unknown>('/account/export'),
+
+  deleteAccount: (): Promise<{ ok: boolean }> =>
+    serverFetch<{ ok: boolean }>('/account', {
+      method: 'DELETE',
+      body: JSON.stringify({ confirmation: 'SUPPRIMER' }),
     }),
 };

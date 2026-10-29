@@ -5,8 +5,18 @@ import {
   getProgramDetail,
   removeProgram,
 } from '../src/services/program.service.js';
-import { getProgramSessionTimedSeconds } from '../src/services/program-duration.service.js';
 import { AppError } from '../src/types/app-error.js';
+const generationBudgetRepository = vi.hoisted(() => ({
+  begin: vi.fn(),
+  reserveAttempt: vi.fn(),
+  recordUsage: vi.fn(),
+  fail: vi.fn(),
+  completeWorkout: vi.fn(),
+  completeProgram: vi.fn(),
+}));
+vi.mock('../src/repositories/generation-budget.repository.js', () => ({
+  generationBudgetRepository,
+}));
 
 // Mock du service IA
 vi.mock('../src/services/program-ai.service.js', () => ({
@@ -109,20 +119,33 @@ const mockInput = {
 describe('ProgramService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    generationBudgetRepository.begin.mockResolvedValue({
+      operation: { id: 'operation-test', resourceId: 'program-abc' },
+      replay: false,
+    });
+    generationBudgetRepository.fail.mockResolvedValue(undefined);
   });
 
   describe('generateAndSaveProgram', () => {
     it('génère via le service IA et persiste en BDD', async () => {
       vi.mocked(generateWithAi).mockResolvedValue(mockProgramData);
-      vi.mocked(createProgram).mockResolvedValue(mockProgramRecord);
+      generationBudgetRepository.completeProgram.mockResolvedValue(mockProgramRecord);
 
       const result = await generateAndSaveProgram('user-123', mockInput);
 
       expect(generateWithAi).toHaveBeenCalledWith(
         mockInput,
         expect.objectContaining({ provider: 'openai' }),
+        expect.objectContaining({
+          onAttempt: expect.any(Function) as unknown,
+          onUsage: expect.any(Function) as unknown,
+        }),
       );
-      expect(createProgram).toHaveBeenCalledWith('user-123', mockProgramData);
+      expect(generationBudgetRepository.completeProgram).toHaveBeenCalledWith(
+        'operation-test',
+        'user-123',
+        mockProgramData,
+      );
       expect(result.id).toBe('program-abc');
     });
 
@@ -176,7 +199,9 @@ describe('ProgramService', () => {
 
       expect(findProgramById).toHaveBeenCalledWith('program-abc', 'user-123');
       expect(result.id).toBe('program-abc');
-      expect(getProgramSessionTimedSeconds(result.data.weeks[0]!.sessions[0]!)).toBe(30 * 60);
+      expect(result).toBe(mockProgramRecord);
+      expect(result.data.weeks[0]!.sessions[0]!.exercises[0]!.description).toBe('Courir');
+      expect(result.data.weeks[0]!.sessions[0]!.exercises[0]!.duration_seconds).toBe(600);
     });
 
     it("propage l'erreur 403 si ownership invalide", async () => {
