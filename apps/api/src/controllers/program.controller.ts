@@ -39,19 +39,15 @@ export async function handleGenerateProgram(ctx: Context): Promise<Response> {
     throw AppError.badRequest('Données invalides', parsed.error.flatten());
   }
 
-  const program = await generateAndSaveProgram(
-    auth.userId,
-    {
-      sport: parsed.data.sport,
-      level: parsed.data.level,
-      weeks_count: parsed.data.weeks_count,
-      sessions_per_week: parsed.data.sessions_per_week,
-      session_duration_minutes: parsed.data.session_duration_minutes,
-      goals: parsed.data.goals,
-      constraints: parsed.data.constraints,
-    },
-    auth.accessMode,
-  );
+  const program = await generateAndSaveProgram(auth.userId, {
+    sport: parsed.data.sport,
+    level: parsed.data.level,
+    weeks_count: parsed.data.weeks_count,
+    sessions_per_week: parsed.data.sessions_per_week,
+    session_duration_minutes: parsed.data.session_duration_minutes,
+    goals: parsed.data.goals,
+    constraints: parsed.data.constraints,
+  });
 
   return ctx.json(
     {

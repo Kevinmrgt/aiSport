@@ -18,12 +18,6 @@ vi.mock('../src/controllers/settings.controller.js', () => ({
   resolveAiConfig: vi.fn().mockResolvedValue({ provider: 'openai', apiKey: 'test-key' }),
 }));
 
-vi.mock('../src/services/generation-quota.service.js', () => ({
-  runWithGenerationQuota: vi.fn(
-    async (_userId: string, _accessMode: string, operation: () => Promise<unknown>) => operation(),
-  ),
-}));
-
 // Mock du repository (dépend de la BDD — testé en intégration)
 vi.mock('../src/repositories/program.repository.js', () => ({
   createProgram: vi.fn(),
@@ -39,7 +33,6 @@ import {
   findProgramById,
   deleteProgram,
 } from '../src/repositories/program.repository.js';
-import { runWithGenerationQuota } from '../src/services/generation-quota.service.js';
 
 const mockProgramData = {
   title: 'Programme Course — 2 semaines (Débutant)',
@@ -142,15 +135,6 @@ describe('ProgramService', () => {
         statusCode: 503,
       });
       expect(createProgram).not.toHaveBeenCalled();
-    });
-
-    it('applique le quota partage au compte jury', async () => {
-      vi.mocked(generateWithAi).mockResolvedValue(mockProgramData);
-      vi.mocked(createProgram).mockResolvedValue(mockProgramRecord);
-
-      await generateAndSaveProgram('user-123', mockInput, 'jury');
-
-      expect(runWithGenerationQuota).toHaveBeenCalledWith('user-123', 'jury', expect.any(Function));
     });
   });
 

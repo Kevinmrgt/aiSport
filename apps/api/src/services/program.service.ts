@@ -12,19 +12,15 @@ import type {
   TrainingProgramRecord,
   ProgramListResponse,
 } from '@alcide/shared';
-import { runWithGenerationQuota, type GenerationAccessMode } from './generation-quota.service.js';
 
 // Logique metier : ne connait pas HTTP ni Drizzle.
 export async function generateAndSaveProgram(
   userId: string,
   input: GenerateProgramInput,
-  accessMode: GenerationAccessMode = 'standard',
 ): Promise<TrainingProgramRecord> {
-  return runWithGenerationQuota(userId, accessMode, async () => {
-    const aiConfig = await resolveAiConfig(userId);
-    const program = await generateProgram(input, aiConfig);
-    return createProgram(userId, program);
-  });
+  const aiConfig = await resolveAiConfig(userId);
+  const program = await generateProgram(input, aiConfig);
+  return createProgram(userId, program);
 }
 
 export async function getUserPrograms(

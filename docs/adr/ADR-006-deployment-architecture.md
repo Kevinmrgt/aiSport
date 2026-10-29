@@ -9,11 +9,12 @@
 ## Contexte
 
 Alcide est un monorepo avec trois composants déployables :
+
 - **Frontend** : Next.js 14 (App Router, Server Components, Server Actions)
 - **API** : Hono sur Node.js 20
 - **Base de données** : PostgreSQL 16
 
-Le déploiement doit être reproductible, documenté, et conforme aux exigences RNCP Bloc 4 (livraison en production). Contrainte : hébergement **100% gratuit** sans limite de durée.
+Le déploiement doit être reproductible, documenté, et exploitable en production. Contrainte : hébergement **100% gratuit** sans limite de durée.
 
 ---
 
@@ -22,11 +23,13 @@ Le déploiement doit être reproductible, documenté, et conforme aux exigences 
 ### Option 1 — Vercel (web) + Fly.io (API) + Neon (DB) ✅ RETENUE
 
 **Architecture :**
+
 ```
 GitHub → Vercel (Next.js) ←→ Fly.io (Hono API) ←→ Neon (PostgreSQL serverless)
 ```
 
 **Avantages :**
+
 - **Fly.io** : machines toujours actives sur free tier (3 shared VMs), déploiement depuis Docker
 - **Neon** : PostgreSQL serverless gratuit, connexions poolées, branching DB, région EU
 - **Vercel** : optimise Next.js nativement (Edge Network, ISR), CD automatique depuis GitHub
@@ -34,6 +37,7 @@ GitHub → Vercel (Next.js) ←→ Fly.io (Hono API) ←→ Neon (PostgreSQL ser
 - Pas de limite de durée sur les free tiers
 
 **Inconvénients :**
+
 - Vendor lock-in (trois services différents)
 - Configuration initiale plus complexe que Railway
 
@@ -42,6 +46,7 @@ GitHub → Vercel (Next.js) ←→ Fly.io (Hono API) ←→ Neon (PostgreSQL ser
 **Avantages :** Setup simple, Railway gère PostgreSQL managé
 
 **Inconvénients :**
+
 - Railway a supprimé son free tier début 2024 — **non gratuit** (5$/mois minimum)
 - Éliminé pour cette raison
 
@@ -55,7 +60,7 @@ GitHub → Vercel (Next.js) ←→ Fly.io (Hono API) ←→ Neon (PostgreSQL ser
 
 **Avantages :** Simple, zéro coût
 
-**Inconvénients :** Pas de URL live — jury ne peut pas tester l'application
+**Inconvénients :** Pas de URL live — utilisateur ne peut pas tester l'application
 
 ---
 
@@ -67,7 +72,7 @@ GitHub → Vercel (Next.js) ←→ Fly.io (Hono API) ←→ Neon (PostgreSQL ser
 
 ### Justification
 
-- Priorité à la **disponibilité d'une URL live** pour la soutenance RNCP
+- Priorité à la **disponibilité d'une URL live** pour les essais utilisateurs
 - Fly.io déploie depuis le `Dockerfile` existant — aucun changement de code
 - Neon est PostgreSQL natif — compatible Drizzle ORM sans modification
 - Le `docker-compose.yml` full-stack garantit la portabilité si migration vers VPS
@@ -98,6 +103,7 @@ GitHub → Vercel (Next.js) ←→ Fly.io (Hono API) ←→ Neon (PostgreSQL ser
 ```
 
 **Communication web → API :**
+
 - En production : `NEXT_PUBLIC_API_URL=https://alcide-api.fly.dev`
 - Header `x-internal-secret` : variable d'env Fly.io (jamais exposée côté client)
 
@@ -107,24 +113,24 @@ GitHub → Vercel (Next.js) ←→ Fly.io (Hono API) ←→ Neon (PostgreSQL ser
 
 ### Vercel (Next.js)
 
-| Variable | Source | Description |
-|---|---|---|
-| `AUTH_SECRET` | Vercel Secrets | Signe les sessions JWT Auth.js |
-| `AUTH_GOOGLE_ID` | Google OAuth Client | Client ID OAuth |
-| `AUTH_GOOGLE_SECRET` | Google OAuth Client | Client Secret OAuth |
-| `NEXTAUTH_URL` | `https://alcide.vercel.app` | URL publique du frontend |
-| `NEXT_PUBLIC_API_URL` | `https://alcide-api.fly.dev` | URL publique de l'API |
-| `SERVICE_SECRET` | Partagé avec Fly.io | Secret interne service-to-service |
+| Variable              | Source                       | Description                       |
+| --------------------- | ---------------------------- | --------------------------------- |
+| `AUTH_SECRET`         | Vercel Secrets               | Signe les sessions JWT Auth.js    |
+| `AUTH_GOOGLE_ID`      | Google OAuth Client          | Client ID OAuth                   |
+| `AUTH_GOOGLE_SECRET`  | Google OAuth Client          | Client Secret OAuth               |
+| `NEXTAUTH_URL`        | `https://alcide.vercel.app`  | URL publique du frontend          |
+| `NEXT_PUBLIC_API_URL` | `https://alcide-api.fly.dev` | URL publique de l'API             |
+| `SERVICE_SECRET`      | Partagé avec Fly.io          | Secret interne service-to-service |
 
 ### Fly.io (API Hono)
 
-| Variable | Source | Description |
-|---|---|---|
-| `DATABASE_URL` | Neon Dashboard | URL PostgreSQL poolée (`postgres://...@ep-xxx.neon.tech/alcide?sslmode=require`) |
-| `MISTRAL_API_KEY` | Mistral Console | Clé API Mistral |
-| `SERVICE_SECRET` | Partagé avec Vercel | Secret interne service-to-service |
-| `FRONTEND_URL` | `https://alcide.vercel.app` | CORS — seule origine autorisée |
-| `NODE_ENV` | `production` | Mode production |
+| Variable          | Source                      | Description                                                                      |
+| ----------------- | --------------------------- | -------------------------------------------------------------------------------- |
+| `DATABASE_URL`    | Neon Dashboard              | URL PostgreSQL poolée (`postgres://...@ep-xxx.neon.tech/alcide?sslmode=require`) |
+| `MISTRAL_API_KEY` | Mistral Console             | Clé API Mistral                                                                  |
+| `SERVICE_SECRET`  | Partagé avec Vercel         | Secret interne service-to-service                                                |
+| `FRONTEND_URL`    | `https://alcide.vercel.app` | CORS — seule origine autorisée                                                   |
+| `NODE_ENV`        | `production`                | Mode production                                                                  |
 
 ---
 
@@ -143,14 +149,16 @@ pnpm db:migrate
 ## Conséquences
 
 **Positives :**
-- URL live disponible pour la soutenance RNCP
+
+- URL live disponible pour les essais utilisateurs
 - CD automatique sur chaque push vers `main` (Vercel)
 - Fly.io déploie le Dockerfile existant sans modification
 - PostgreSQL Neon compatible Drizzle, géo-répliqué EU
 - HTTPS automatique sur tous les services (OWASP A02)
 
 **Négatives / Risques :**
-- Fly.io free tier : 3 shared VMs max — suffisant pour RNCP
+
+- Fly.io free tier : 3 shared VMs max — suffisant pour le prototype
 - Neon free tier : 0.5 GB storage, 1 projet — suffisant pour prototype
 - Le `docker-compose.yml` full-stack doit être maintenu en sync avec les Dockerfiles
 

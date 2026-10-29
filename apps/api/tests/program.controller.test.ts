@@ -24,7 +24,7 @@ import {
   removeProgram,
 } from '../src/services/program.service.js';
 
-const mockAuth = { userId: 'user-123', email: 'test@example.com', accessMode: 'jury' as const };
+const mockAuth = { userId: 'user-123', email: 'test@example.com' };
 const programId = '22222222-2222-4222-8222-222222222222';
 const otherProgramId = '33333333-3333-4333-8333-333333333333';
 
@@ -126,7 +126,6 @@ describe('ProgramController', () => {
       expect(generateAndSaveProgram).toHaveBeenCalledWith(
         'user-123',
         expect.objectContaining({ sport: 'course' }),
-        'jury',
       );
     });
 

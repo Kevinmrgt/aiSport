@@ -12,7 +12,6 @@ import { AppError } from '../types/app-error.js';
 export interface AuthContext {
   userId: string;
   email: string;
-  accessMode: 'standard' | 'jury';
 }
 
 declare module 'hono' {
@@ -38,7 +37,6 @@ export async function authMiddleware(ctx: Context, next: Next): Promise<void> {
   const oauthId = ctx.req.header('x-user-id');
   const email = ctx.req.header('x-user-email') ?? '';
   const name = ctx.req.header('x-user-name') ?? null;
-  const accessMode = ctx.req.header('x-auth-method') === 'jury' ? 'jury' : 'standard';
 
   if (!oauthId || !email) {
     throw AppError.unauthorized('Identifiant utilisateur manquant');
@@ -61,6 +59,6 @@ export async function authMiddleware(ctx: Context, next: Next): Promise<void> {
     throw AppError.internal("Impossible de résoudre l'utilisateur en base");
   }
 
-  ctx.set('auth', { userId: user.id, email, accessMode });
+  ctx.set('auth', { userId: user.id, email });
   await next();
 }

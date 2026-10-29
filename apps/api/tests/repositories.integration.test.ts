@@ -8,10 +8,8 @@ const testDatabaseUrl = process.env['TEST_DATABASE_URL'];
 const describeWithDatabase = testDatabaseUrl ? describe : describe.skip;
 const ownerId = randomUUID();
 const otherUserId = randomUUID();
-const quotaOwnerId = randomUUID();
 const ownerEmail = `integration-${ownerId}@alcide.test`;
 const otherEmail = `integration-${otherUserId}@alcide.test`;
-const quotaOwnerEmail = `integration-quota-${quotaOwnerId}@alcide.test`;
 
 function workoutFixture(overrides: Partial<Workout> = {}): Workout {
   return {
@@ -19,12 +17,14 @@ function workoutFixture(overrides: Partial<Workout> = {}): Workout {
     sport: 'course',
     difficulty: 'beginner',
     duration_minutes: 30,
-    exercises: [{
-      name: 'Course',
-      description: 'Courir',
-      duration_seconds: 1_800,
-      rest_seconds: 0,
-    }],
+    exercises: [
+      {
+        name: 'Course',
+        description: 'Courir',
+        duration_seconds: 1_800,
+        rest_seconds: 0,
+      },
+    ],
     ...overrides,
   };
 }
@@ -35,12 +35,14 @@ function programFixture(overrides: Partial<TrainingProgram> = {}): TrainingProgr
     title: `Seance ${sessionNumber}`,
     focus: 'Technique',
     duration_minutes: 20,
-    exercises: [{
-      name: 'Exercice',
-      description: 'Mouvement controle',
-      duration_seconds: 1_200,
-      rest_seconds: 0,
-    }],
+    exercises: [
+      {
+        name: 'Exercice',
+        description: 'Mouvement controle',
+        duration_seconds: 1_200,
+        rest_seconds: 0,
+      },
+    ],
   });
 
   return {
@@ -68,7 +70,6 @@ describeWithDatabase('repositories PostgreSQL', () => {
     await db.insert(users).values([
       { id: ownerId, email: ownerEmail, name: 'Integration owner' },
       { id: otherUserId, email: otherEmail, name: 'Integration other' },
-      { id: quotaOwnerId, email: quotaOwnerEmail, name: 'Integration quota owner' },
     ]);
   });
 
@@ -76,37 +77,12 @@ describeWithDatabase('repositories PostgreSQL', () => {
     const { db, pool } = await import('../src/db/index.js');
     await db.delete(users).where(eq(users.id, ownerId));
     await db.delete(users).where(eq(users.id, otherUserId));
-    await db.delete(users).where(eq(users.id, quotaOwnerId));
     await pool.end();
   });
 
-  it('reserve au plus 30 generations meme avec 31 requetes concurrentes', async () => {
-    const {
-      getGenerationQuotaUsage,
-      releaseGenerationSlot,
-      reserveGenerationSlot,
-    } = await import('../src/repositories/generation-quota.repository.js');
-
-    const reservations = await Promise.all(
-      Array.from({ length: 31 }, () => reserveGenerationSlot(quotaOwnerId, 30)),
-    );
-
-    expect(reservations.filter((reservation) => reservation !== null)).toHaveLength(30);
-    expect(reservations.filter((reservation) => reservation === null)).toHaveLength(1);
-    await expect(getGenerationQuotaUsage(quotaOwnerId, 30)).resolves.toBe(30);
-
-    await releaseGenerationSlot(quotaOwnerId);
-    await expect(getGenerationQuotaUsage(quotaOwnerId, 30)).resolves.toBe(29);
-    await expect(reserveGenerationSlot(quotaOwnerId, 30)).resolves.toMatchObject({
-      used: 30,
-      remaining: 0,
-    });
-  });
-
   it('persiste, relit et protege une seance par son proprietaire', async () => {
-    const { createWorkout, findWorkoutById } = await import(
-      '../src/repositories/workout.repository.js'
-    );
+    const { createWorkout, findWorkoutById } =
+      await import('../src/repositories/workout.repository.js');
     const created = await createWorkout(ownerId, workoutFixture());
     await expect(findWorkoutById(created.id, ownerId)).resolves.toMatchObject({
       id: created.id,
@@ -120,20 +96,21 @@ describeWithDatabase('repositories PostgreSQL', () => {
   it('journalise uniquement une source appartenant a l utilisateur', async () => {
     const { createWorkout } = await import('../src/repositories/workout.repository.js');
     const { createOwnedSessionLog } = await import('../src/services/session-log.service.js');
-    const { findRecentSessionLogsByUser } = await import(
-      '../src/repositories/session-log.repository.js'
-    );
+    const { findRecentSessionLogsByUser } =
+      await import('../src/repositories/session-log.repository.js');
     const workout = await createWorkout(ownerId, {
       title: 'Seance a journaliser',
       sport: 'velo',
       difficulty: 'intermediate',
       duration_minutes: 20,
-      exercises: [{
-        name: 'Velo',
-        description: 'Pedaler',
-        duration_seconds: 1_200,
-        rest_seconds: 0,
-      }],
+      exercises: [
+        {
+          name: 'Velo',
+          description: 'Pedaler',
+          duration_seconds: 1_200,
+          rest_seconds: 0,
+        },
+      ],
     });
     const input = {
       sourceType: 'workout' as const,
@@ -164,9 +141,8 @@ describeWithDatabase('repositories PostgreSQL', () => {
   });
 
   it('persiste un programme coherent et controle son proprietaire', async () => {
-    const { createProgram, findProgramById } = await import(
-      '../src/repositories/program.repository.js'
-    );
+    const { createProgram, findProgramById } =
+      await import('../src/repositories/program.repository.js');
     const created = await createProgram(ownerId, programFixture());
     await expect(findProgramById(created.id, ownerId)).resolves.toMatchObject({
       id: created.id,
@@ -185,25 +161,36 @@ describeWithDatabase('repositories PostgreSQL', () => {
       findWorkoutsByUser,
       getWorkoutStatsByUser,
     } = await import('../src/repositories/workout.repository.js');
-    const first = await createWorkout(ownerId, workoutFixture({
-      title: 'Rameur debutant',
-      sport: 'rameur-integration',
-    }));
-    const second = await createWorkout(ownerId, workoutFixture({
-      title: 'Rameur avance',
-      sport: 'rameur-integration',
-      difficulty: 'advanced',
-    }));
-    await createWorkout(otherUserId, workoutFixture({
-      title: 'Rameur autre compte',
-      sport: 'rameur-integration',
-    }));
+    const first = await createWorkout(
+      ownerId,
+      workoutFixture({
+        title: 'Rameur debutant',
+        sport: 'rameur-integration',
+      }),
+    );
+    const second = await createWorkout(
+      ownerId,
+      workoutFixture({
+        title: 'Rameur avance',
+        sport: 'rameur-integration',
+        difficulty: 'advanced',
+      }),
+    );
+    await createWorkout(
+      otherUserId,
+      workoutFixture({
+        title: 'Rameur autre compte',
+        sport: 'rameur-integration',
+      }),
+    );
 
-    await expect(findWorkoutsByUser(ownerId, {
-      page: 1,
-      limit: 1,
-      sport: 'rameur-integration',
-    })).resolves.toMatchObject({ total: 2, page: 1, limit: 1, hasMore: true });
+    await expect(
+      findWorkoutsByUser(ownerId, {
+        page: 1,
+        limit: 1,
+        sport: 'rameur-integration',
+      }),
+    ).resolves.toMatchObject({ total: 2, page: 1, limit: 1, hasMore: true });
     const filtered = await findWorkoutsByUser(ownerId, {
       sport: 'rameur-integration',
       level: 'advanced',
@@ -224,12 +211,8 @@ describeWithDatabase('repositories PostgreSQL', () => {
   });
 
   it('pagine et supprime les programmes sans exposer ceux d un autre compte', async () => {
-    const {
-      createProgram,
-      deleteProgram,
-      findProgramById,
-      findProgramsByUser,
-    } = await import('../src/repositories/program.repository.js');
+    const { createProgram, deleteProgram, findProgramById, findProgramsByUser } =
+      await import('../src/repositories/program.repository.js');
     const first = await createProgram(ownerId, programFixture({ title: 'Programme A' }));
     await createProgram(ownerId, programFixture({ title: 'Programme B' }));
     await createProgram(otherUserId, programFixture({ title: 'Programme prive' }));
@@ -248,11 +231,8 @@ describeWithDatabase('repositories PostgreSQL', () => {
 
   it('calcule les statistiques de journaux et isole les comptes', async () => {
     const { createWorkout } = await import('../src/repositories/workout.repository.js');
-    const {
-      createSessionLog,
-      findRecentSessionLogsByUser,
-      getSessionLogStatsByUser,
-    } = await import('../src/repositories/session-log.repository.js');
+    const { createSessionLog, findRecentSessionLogsByUser, getSessionLogStatsByUser } =
+      await import('../src/repositories/session-log.repository.js');
     const workout = await createWorkout(ownerId, workoutFixture({ title: 'Stats journal' }));
     await createSessionLog(ownerId, {
       sourceType: 'workout',
@@ -312,20 +292,23 @@ describeWithDatabase('repositories PostgreSQL', () => {
       difficulty: program.difficulty,
       plannedDurationMinutes: 20,
     });
-    await expect(createOwnedSessionLog(ownerId, {
-      ...input,
-      programSessionNumber: 99,
-    })).rejects.toMatchObject({ statusCode: 400 });
-    await expect(createOwnedSessionLog(ownerId, {
-      ...input,
-      programId: undefined,
-    })).rejects.toMatchObject({ statusCode: 400 });
+    await expect(
+      createOwnedSessionLog(ownerId, {
+        ...input,
+        programSessionNumber: 99,
+      }),
+    ).rejects.toMatchObject({ statusCode: 400 });
+    await expect(
+      createOwnedSessionLog(ownerId, {
+        ...input,
+        programId: undefined,
+      }),
+    ).rejects.toMatchObject({ statusCode: 400 });
   });
 
   it('cree puis met a jour les reglages IA persistants', async () => {
-    const { findSettingsByUser, upsertSettings } = await import(
-      '../src/repositories/settings.repository.js'
-    );
+    const { findSettingsByUser, upsertSettings } =
+      await import('../src/repositories/settings.repository.js');
     await expect(findSettingsByUser(ownerId)).resolves.toBeNull();
     await upsertSettings(ownerId, { aiModel: 'gpt-integration-1' });
     await expect(findSettingsByUser(ownerId)).resolves.toEqual({

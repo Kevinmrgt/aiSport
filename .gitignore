@@ -52,11 +52,9 @@ Thumbs.db
 __pycache__/
 *.py[cod]
 
-# Document generation workspaces and packaged deliveries
+# Generated reports and local workspaces
 tmp/
-output/alcide-bloc2-rncp39583-*/
-output/alcide-bloc2-rncp39583-*.zip
-# PDF contenant les identifiants temporaires remis au jury.
-output/jury-private/
+output/
+outputs/
 
 .vercel

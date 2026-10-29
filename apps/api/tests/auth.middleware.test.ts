@@ -91,28 +91,9 @@ describe('authMiddleware', () => {
     const body = (await res.json()) as {
       userId: string;
       email: string;
-      accessMode: string;
     };
     expect(body.userId).toBe(MOCK_DB_UUID);
     expect(body.email).toBe('user@example.com');
-    expect(body.accessMode).toBe('standard');
-  });
-
-  it('propage le mode jury depuis le contexte service-to-service', async () => {
-    const app = createApp();
-    const res = await app.fetch(
-      new Request('http://localhost/protected', {
-        headers: {
-          'x-internal-secret': VALID_SECRET,
-          'x-user-id': 'jury-session',
-          'x-user-email': 'jury@alcide.invalid',
-          'x-auth-method': 'jury',
-        },
-      }),
-    );
-
-    expect(res.status).toBe(200);
-    expect((await res.json()) as object).toMatchObject({ accessMode: 'jury' });
   });
 
   it("retourne 401 si SERVICE_SECRET n'est pas configuré", async () => {

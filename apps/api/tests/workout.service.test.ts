@@ -17,12 +17,6 @@ vi.mock('../src/controllers/settings.controller.js', () => ({
   resolveAiConfig: vi.fn().mockResolvedValue({ provider: 'openai', apiKey: 'test-key' }),
 }));
 
-vi.mock('../src/services/generation-quota.service.js', () => ({
-  runWithGenerationQuota: vi.fn(
-    async (_userId: string, _accessMode: string, operation: () => Promise<unknown>) => operation(),
-  ),
-}));
-
 // Mock du repository (dépend de la BDD — testé en intégration)
 vi.mock('../src/repositories/workout.repository.js', () => ({
   createWorkout: vi.fn(),
@@ -39,7 +33,6 @@ import {
   findWorkoutById,
   deleteWorkout,
 } from '../src/repositories/workout.repository.js';
-import { runWithGenerationQuota } from '../src/services/generation-quota.service.js';
 
 const mockWorkoutData = {
   title: 'Séance Test',
@@ -95,15 +88,6 @@ describe('WorkoutService', () => {
 
       await expect(generateAndSaveWorkout('user-123', mockInput)).rejects.toThrow(AppError);
       expect(createWorkout).not.toHaveBeenCalled();
-    });
-
-    it('applique le quota partage au compte jury', async () => {
-      vi.mocked(generateWithAi).mockResolvedValue(mockWorkoutData);
-      vi.mocked(createWorkout).mockResolvedValue(mockWorkoutRecord);
-
-      await generateAndSaveWorkout('user-123', mockInput, 'jury');
-
-      expect(runWithGenerationQuota).toHaveBeenCalledWith('user-123', 'jury', expect.any(Function));
     });
   });
 

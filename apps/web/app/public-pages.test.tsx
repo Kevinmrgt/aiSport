@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 vi.mock('@/lib/auth', () => ({ signIn: vi.fn() }));
-vi.mock('@/lib/jury-auth', () => ({ isJuryAccessAvailable: () => true }));
 
 import ErrorPage from './error';
 import LoginPage from './(auth)/login/page';
@@ -39,13 +38,8 @@ describe('pages publiques et etats de chargement', () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const { rerender } = render(await LoginPage({ searchParams: Promise.resolve({}) }));
     expect(screen.getByRole('button', { name: /continuer avec google/i })).toBeTruthy();
-    expect(screen.getByRole('group', { name: /accès jury/i })).toBeTruthy();
-    expect(screen.getByLabelText(/identifiant jury/i).getAttribute('autocomplete')).toBe(
-      'username',
-    );
-    expect(screen.getByLabelText(/mot de passe/i).getAttribute('autocomplete')).toBe(
-      'current-password',
-    );
+    expect(screen.queryByRole('textbox')).toBeNull();
+    expect(document.querySelector('input[type="password"]')).toBeNull();
     rerender(<PrivacyPage />);
     expect(screen.getByRole('heading', { name: /confidentialit/i })).toBeTruthy();
     expect(screen.getByText(/Information mise/i).classList.contains('text-zinc-200')).toBe(true);
@@ -54,10 +48,10 @@ describe('pages publiques et etats de chargement', () => {
     consoleError.mockRestore();
   });
 
-  it('affiche une erreur jury générique sans révéler la cause', async () => {
+  it('affiche une erreur de connexion générique sans révéler la cause', async () => {
     render(
       await LoginPage({
-        searchParams: Promise.resolve({ error: 'CredentialsSignin', code: 'credentials' }),
+        searchParams: Promise.resolve({ error: 'OAuthCallbackError' }),
       }),
     );
     expect(screen.getByRole('alert').textContent).toMatch(/connexion impossible/i);

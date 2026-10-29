@@ -5,15 +5,12 @@ import { SessionCompletionForm } from './SessionCompletionForm';
 import { WorkoutForm } from './WorkoutForm';
 import type { SessionCompletionPayload } from './SessionCompletionForm';
 
-const unlimitedQuota = { limited: false, limit: null, used: 0, remaining: null } as const;
-const juryQuota = { limited: true, limit: 30, used: 12, remaining: 18 } as const;
-
 describe('formulaires metier', () => {
   afterEach(cleanup);
 
   it('bloque une generation de seance invalide puis soumet les donnees valides', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
-    render(<WorkoutForm onSubmit={onSubmit} generationQuota={unlimitedQuota} />);
+    render(<WorkoutForm onSubmit={onSubmit} />);
 
     fireEvent.click(screen.getByRole('button', { name: /generer la seance/i }));
     expect(await screen.findAllByRole('alert')).not.toHaveLength(0);
@@ -39,7 +36,7 @@ describe('formulaires metier', () => {
   });
 
   it('masque les informations techniques et tarifaires du formulaire de seance', () => {
-    render(<WorkoutForm onSubmit={vi.fn()} generationQuota={unlimitedQuota} />);
+    render(<WorkoutForm onSubmit={vi.fn()} />);
 
     const formText = screen
       .getByRole('form', { name: /construire le training/i })
@@ -57,7 +54,7 @@ describe('formulaires metier', () => {
       digest: 'NEXT_REDIRECT;push;/workouts/workout-1;303;',
     });
     const onSubmit = vi.fn().mockRejectedValue(redirectError);
-    render(<WorkoutForm onSubmit={onSubmit} generationQuota={unlimitedQuota} />);
+    render(<WorkoutForm onSubmit={onSubmit} />);
 
     fireEvent.change(screen.getByLabelText(/sport/i), { target: { value: 'course' } });
     fireEvent.change(screen.getByLabelText(/objectifs/i), {
@@ -74,7 +71,7 @@ describe('formulaires metier', () => {
       digest: 'NEXT_REDIRECT;push;/programs/program-1;303;',
     });
     const onSubmit = vi.fn().mockRejectedValue(redirectError);
-    render(<ProgramForm onSubmit={onSubmit} generationQuota={unlimitedQuota} />);
+    render(<ProgramForm onSubmit={onSubmit} />);
 
     fireEvent.change(screen.getByLabelText(/^sport/i), {
       target: { value: 'course' },
@@ -90,7 +87,7 @@ describe('formulaires metier', () => {
 
   it('affiche l erreur metier renvoyee pendant une generation de programme', async () => {
     const onSubmit = vi.fn().mockResolvedValue({ error: 'Service IA indisponible' });
-    render(<ProgramForm onSubmit={onSubmit} generationQuota={unlimitedQuota} />);
+    render(<ProgramForm onSubmit={onSubmit} />);
 
     fireEvent.click(screen.getByRole('button', { name: /generer le programme/i }));
     expect(await screen.findAllByRole('alert')).not.toHaveLength(0);
@@ -107,28 +104,6 @@ describe('formulaires metier', () => {
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({ sport: 'natation', weeks_count: 3, sessions_per_week: 3 }),
     );
-  });
-
-  it('affiche le solde commun du jury et bloque les generations lorsque le quota est atteint', () => {
-    const onSubmit = vi.fn().mockResolvedValue(undefined);
-    const { rerender } = render(<ProgramForm onSubmit={onSubmit} generationQuota={juryQuota} />);
-
-    expect(screen.getByRole('status').textContent).toContain('18 generations restantes sur 30');
-    expect(
-      screen.getByRole<HTMLButtonElement>('button', { name: /generer le programme/i }).disabled,
-    ).toBe(false);
-
-    rerender(
-      <ProgramForm
-        onSubmit={onSubmit}
-        generationQuota={{ limited: true, limit: 30, used: 30, remaining: 0 }}
-      />,
-    );
-
-    expect(screen.getByRole('alert').textContent).toContain('0 generations restantes sur 30');
-    expect(
-      screen.getByRole<HTMLButtonElement>('button', { name: /quota jury atteint/i }).disabled,
-    ).toBe(true);
   });
 
   it('enregistre un ressenti en normalisant les notes optionnelles', async () => {

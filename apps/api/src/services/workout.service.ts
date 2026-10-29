@@ -13,19 +13,15 @@ import type {
   WorkoutListResponse,
   WorkoutStats,
 } from '@alcide/shared';
-import { runWithGenerationQuota, type GenerationAccessMode } from './generation-quota.service.js';
 
 // Logique metier : ne connait pas HTTP ni Drizzle.
 export async function generateAndSaveWorkout(
   userId: string,
   input: GenerateWorkoutInput,
-  accessMode: GenerationAccessMode = 'standard',
 ): Promise<WorkoutRecord> {
-  return runWithGenerationQuota(userId, accessMode, async () => {
-    const aiConfig = await resolveAiConfig(userId);
-    const workout = await generateWorkout(input, aiConfig);
-    return createWorkout(userId, workout);
-  });
+  const aiConfig = await resolveAiConfig(userId);
+  const workout = await generateWorkout(input, aiConfig);
+  return createWorkout(userId, workout);
 }
 
 export async function getUserWorkouts(

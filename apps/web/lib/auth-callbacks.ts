@@ -1,30 +1,18 @@
 import type { NextAuthConfig } from 'next-auth';
-import { isJurySessionActive } from '@/lib/jury-auth';
 
 type JwtCallback = NonNullable<NonNullable<NextAuthConfig['callbacks']>['jwt']>;
 type JwtCallbackParameters = Parameters<JwtCallback>[0];
 
-export function juryAwareJwt({ token, user, account }: JwtCallbackParameters) {
-  if (account?.provider === 'jury' && user?.id) {
-    const juryUser = user as typeof user & {
-      juryAccessExpiresAt?: string;
-      juryAccessFingerprint?: string;
-    };
-    token.authMethod = 'jury';
-    token.userId = user.id;
-    token.juryAccessExpiresAt = juryUser.juryAccessExpiresAt;
-    token.juryAccessFingerprint = juryUser.juryAccessFingerprint;
+export function googleJwt({ token, user, account }: JwtCallbackParameters) {
+  if (account) {
+    if (account.provider !== 'google') return null;
+    token.authMethod = 'google';
   }
 
-  if (
-    token.authMethod === 'jury' &&
-    !isJurySessionActive(token.juryAccessExpiresAt, token.juryAccessFingerprint)
-  ) {
-    return null;
-  }
+  // Rejeter les anciens cookies issus d'un fournisseur désormais retiré.
+  // Les sessions Google antérieures à ce marqueur restent valides.
+  if (token.authMethod !== undefined && token.authMethod !== 'google') return null;
 
-  if (user?.id) {
-    token.userId = user.id;
-  }
+  if (user?.id) token.userId = user.id;
   return token;
 }

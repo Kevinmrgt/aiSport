@@ -32,7 +32,6 @@ app.use(
       'x-user-id',
       'x-user-email',
       'x-user-name',
-      'x-auth-method',
     ],
     credentials: true,
     maxAge: 86_400,

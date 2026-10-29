@@ -13,7 +13,6 @@ import type {
   ProgramListItem,
 } from '@alcide/shared';
 import type { CreateSessionLogInput, SessionLogListItem, SessionLogStats } from '@alcide/shared';
-import type { GenerationQuota } from '@alcide/shared';
 
 export interface UserAiSettings {
   provider: 'openai';
@@ -59,10 +58,6 @@ async function serverFetch<T>(
     throw new Error('Non authentifie');
   }
 
-  const juryEmail = process.env['JURY_ACCESS_EMAIL']?.trim().toLowerCase();
-  const authMethod =
-    juryEmail && session.user.email?.trim().toLowerCase() === juryEmail ? 'jury' : 'standard';
-
   // OWASP A09: trace structuree de chaque appel API cote Next.js server
   console.info('[ServerAPI] Appel:', {
     method: options?.method ?? 'GET',
@@ -89,8 +84,6 @@ async function serverFetch<T>(
         'x-user-id': session.user.id,
         'x-user-email': session.user.email ?? '',
         'x-user-name': session.user.name ?? '',
-        // Ce contexte est fiable car il voyage avec le secret service-to-service.
-        'x-auth-method': authMethod,
         ...(options?.headers as Record<string, string>),
       },
     });
@@ -128,9 +121,6 @@ async function serverFetch<T>(
 }
 
 export const serverApi = {
-  getGenerationQuota: (): Promise<GenerationQuota> =>
-    serverFetch<GenerationQuota>('/generation-quota'),
-
   generateWorkout: (input: GenerateWorkoutInput): Promise<WorkoutDetail> =>
     serverFetch<WorkoutDetail>(
       '/workouts/generate',

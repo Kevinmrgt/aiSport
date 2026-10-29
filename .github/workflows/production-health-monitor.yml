@@ -21,7 +21,7 @@ permissions:
 
 concurrency:
   # Keep a production run cancellable by a newer production run, but do not let
-  # the hourly schedule interrupt a manual RNCP alert/recovery demonstration.
+  # the hourly schedule interrupt a manual alert/recovery test.
   group: production-health-monitor-${{ inputs.check_mode || 'production' }}
   cancel-in-progress: true
 

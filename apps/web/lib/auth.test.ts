@@ -1,74 +1,40 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createJuryPasswordHash, loadJuryAccessConfig } from './jury-auth';
-import { juryAwareJwt } from './auth-callbacks';
+import { describe, expect, it } from 'vitest';
+import { googleJwt } from './auth-callbacks';
 
-const PASSWORD = 'jury-auth-callback-password';
+describe('sessions Google Auth.js', () => {
+  it('conserve l’identité Google lors de la connexion', () => {
+    expect(
+      googleJwt({
+        token: {},
+        user: { id: 'google-user', email: 'sportif@example.test' },
+        account: { provider: 'google' },
+      } as never),
+    ).toMatchObject({ userId: 'google-user', authMethod: 'google' });
+  });
 
-function enableJuryAccess() {
-  vi.stubEnv('JURY_ACCESS_ENABLED', 'true');
-  vi.stubEnv('JURY_ACCESS_IDENTIFIER', 'jury-callback');
-  vi.stubEnv(
-    'JURY_ACCESS_PASSWORD_HASH',
-    createJuryPasswordHash(PASSWORD, Buffer.from('callback-test-123')),
-  );
-  vi.stubEnv('JURY_ACCESS_USER_ID', 'jury-callback-user');
-  vi.stubEnv('JURY_ACCESS_EMAIL', 'jury-callback@alcide.invalid');
-  vi.stubEnv('JURY_ACCESS_NAME', 'Jury callback');
-  vi.stubEnv('JURY_ACCESS_EXPIRES_AT', '2099-12-31T23:59:59.000Z');
-  vi.stubEnv('JURY_ACCESS_SESSION_VERSION', 'callback-session-v1');
-}
-
-describe('callbacks Auth.js de l’accès jury', () => {
-  afterEach(() => vi.unstubAllEnvs());
-
-  it('marque la session jury et conserve son identité tant que la configuration est active', () => {
-    enableJuryAccess();
-    const config = loadJuryAccessConfig();
-    const token = juryAwareJwt({
-      token: {},
-      user: {
-        id: 'jury-callback-user',
-        email: 'jury-callback@alcide.invalid',
-        name: 'Jury callback',
-        juryAccessExpiresAt: config?.expiresAtIso,
-        juryAccessFingerprint: config?.fingerprint,
-      },
-      account: { provider: 'jury' },
-    } as never);
-
-    expect(token).toMatchObject({
-      authMethod: 'jury',
-      userId: 'jury-callback-user',
-      juryAccessExpiresAt: config?.expiresAtIso,
-      juryAccessFingerprint: config?.fingerprint,
+  it('préserve les sessions Google existantes sans marqueur de fournisseur', () => {
+    expect(googleJwt({ token: { userId: 'existing-user' } } as never)).toEqual({
+      userId: 'existing-user',
     });
   });
 
-  it('retourne null dès que le kill switch révoque une session jury existante', () => {
-    enableJuryAccess();
-    const config = loadJuryAccessConfig();
-    vi.stubEnv('JURY_ACCESS_ENABLED', 'false');
-
-    const token = juryAwareJwt({
-      token: {
-        authMethod: 'jury',
-        userId: 'jury-callback-user',
-        juryAccessExpiresAt: config?.expiresAtIso,
-        juryAccessFingerprint: config?.fingerprint,
-      },
-    } as never);
-
-    expect(token).toBeNull();
+  it('préserve une session Google après la connexion', () => {
+    expect(
+      googleJwt({ token: { userId: 'google-user', authMethod: 'google' } } as never),
+    ).toMatchObject({ userId: 'google-user' });
   });
 
-  it('laisse le parcours Google inchangé', () => {
-    const token = juryAwareJwt({
-      token: {},
-      user: { id: 'google-user', email: 'google@example.test' },
-      account: { provider: 'google' },
-    } as never);
+  it.each(['credentials', 'temporary-access'])('révoque un ancien cookie %s', (authMethod) => {
+    expect(googleJwt({ token: { userId: 'old-user', authMethod } } as never)).toBeNull();
+  });
 
-    expect(token).toMatchObject({ userId: 'google-user' });
-    expect(token).not.toHaveProperty('authMethod', 'jury');
+  it('refuse une connexion provenant d’un autre fournisseur', () => {
+    expect(
+      googleJwt({
+        token: {},
+        user: { id: 'old-user' },
+        account: { provider: 'credentials' },
+      } as never),
+    ).toBeNull();
   });
 });

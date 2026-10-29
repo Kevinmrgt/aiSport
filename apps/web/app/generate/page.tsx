@@ -12,8 +12,6 @@ export default async function GeneratePage() {
     redirect('/login');
   }
 
-  const generationQuota = await serverApi.getGenerationQuota();
-
   async function handleGenerate(data: GenerateWorkoutInput): Promise<{ error?: string } | void> {
     'use server';
     let workoutId: string;
@@ -65,7 +63,7 @@ export default async function GeneratePage() {
         </div>
       </header>
 
-      <WorkoutForm onSubmit={handleGenerate} generationQuota={generationQuota} />
+      <WorkoutForm onSubmit={handleGenerate} />
     </div>
   );
 }

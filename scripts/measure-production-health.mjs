@@ -40,7 +40,7 @@ const measure = async ({ name, url, expectedStatus }) => {
     try {
       const response = await fetch(url, {
         cache: 'no-store',
-        headers: { 'user-agent': 'alcide-rncp-performance-check/1.0' },
+        headers: { 'user-agent': 'alcide-performance-check/1.0' },
       });
       const payload = await response.json();
       durations.push(performance.now() - startedAt);

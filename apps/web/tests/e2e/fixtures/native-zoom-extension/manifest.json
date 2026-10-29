@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "RNCP Native Zoom Controller",
+  "name": "Alcide Native Zoom Controller",
   "version": "1.0.0",
-  "description": "Extension locale réservée au contrôle du zoom navigateur du dossier RNCP.",
+  "description": "Extension locale réservée au contrôle du zoom navigateur du dossier Alcide.",
   "permissions": ["tabs"],
   "background": {
     "service_worker": "background.js"
