@@ -10,6 +10,12 @@ La répétition des migrations candidates a échoué. La source est restée inta
 La correspondance avec la connexion configurée sur Vercel doit encore être
 établie ; une empreinte d'adresse serveur différente ne suffit pas, seule,
 à conclure qu'il s'agit de deux bases logiques distinctes.
+Le [diagnostic final en lecture seule](https://github.com/Kevinmrgt/aiSport/actions/runs/40910408866)
+a également inspecté la lignée de la connexion configurée sur Vercel :
+12 migrations appliquées, sept communes avec ce candidat, puis divergence.
+Les noms de base et rôles concordent entre connexions, leurs hôtes diffèrent.
+La compatibilité est donc refusée sur la connexion Vercel elle-même ;
+le problème ne repose pas uniquement sur le secret GitHub.
 
 ## Ce que le candidat permet déjà
 

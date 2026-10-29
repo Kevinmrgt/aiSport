@@ -98,7 +98,15 @@ stable chez un hébergeur. Ce résultat ne permet donc pas d'affirmer que la
 sauvegarde GitHub qualifie la base effectivement configurée sur Vercel.
 Le diagnostic compare également les configurations et inspecte la lignée
 Vercel en lecture seule, sans jamais exporter les URL ni les secrets.
-La correspondance doit être établie avant la bascule. Les anciens cookies
+Le [dernier diagnostic](https://github.com/Kevinmrgt/aiSport/actions/runs/40910408866),
+sur `bdcbd8b`, confirme aussi **12 migrations et sept communes sur la
+connexion configurée sur Vercel**. Les hôtes de connexion diffèrent, le nom
+de base et le rôle concordent ; cela ne prouve pas une identité logique
+commune et n'autorise pas à modifier les secrets pour les aligner d'office.
+La sauvegarde qualifiée reste celle de la connexion GitHub. La compatibilité
+SQL du candidat avec la connexion Vercel est refusée indépendamment de
+cette question d'identité. La correspondance stable et la conversion des
+données doivent être établies avant la bascule. Les anciens cookies
 de test et la réussite locale ne constituent pas ces preuves.
 
 `main` est désormais protégé : PR, six checks GitHub Actions identifiés,
