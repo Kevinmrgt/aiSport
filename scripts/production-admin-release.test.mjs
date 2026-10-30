@@ -91,6 +91,31 @@ test('ambiguous production values fail closed before decrypting one', async () =
   await assert.rejects(provider.variable('api', [1, 2].map((id) => ({ key: 'DATABASE_URL', id: String(id), target: ['production'] })), 'DATABASE_URL'), /ambiguous/);
 });
 
+test('plain variables accept metadata strings without requesting decryption', async () => {
+  const provider = new VercelProduction(env);
+  provider.request = async () => assert.fail('plain metadata should require no decryption request');
+  const original = { id: 'plain-id', key: 'FRONTEND_URL', type: 'plain', target: ['production'], value: 'https://frontend.example.test' };
+  assert.deepEqual(await provider.variable('api', [original], 'FRONTEND_URL'), original);
+});
+
+test('plain variables accept a per-ID string with decrypted false when metadata omits the value', async () => {
+  const provider = new VercelProduction(env);
+  provider.request = async () => ({ decrypted: false, value: 'https://frontend.example.test' });
+  const original = { id: 'plain-id', key: 'FRONTEND_URL', type: 'plain', target: ['production'] };
+  assert.equal((await provider.variable('api', [original], 'FRONTEND_URL')).value, 'https://frontend.example.test');
+});
+
+test('encrypted values require explicit decryption and write-only values never become readable metadata', async () => {
+  const provider = new VercelProduction(env);
+  provider.request = async () => ({ decrypted: false, value: 'not-decrypted-ciphertext' });
+  const encrypted = { id: 'encrypted-id', key: 'SERVICE_SECRET', type: 'encrypted', target: ['production'], value: 'ciphertext' };
+  await assert.rejects(provider.variable('api', [encrypted], 'SERVICE_SECRET'), /unreadable_service_secret/);
+  provider.request = async () => assert.fail('write-only variables must not be requested');
+  for (const type of ['sensitive', 'secret']) {
+    await assert.rejects(provider.variable('api', [{ ...encrypted, type }], 'SERVICE_SECRET'), /unreadable_service_secret/);
+  }
+});
+
 test('shared environment variables split production without altering preview values and compensate in reverse order', async () => {
   const provider = new VercelProduction(env);
   const calls = [];

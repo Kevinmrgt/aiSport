@@ -67,8 +67,12 @@ export class VercelProduction {
     if (optional && matches.length === 0) return null;
     if (matches.length !== 1 || !matches[0].id) fail(`missing_or_ambiguous_${key.toLowerCase()}`);
     const item = matches[0];
+    if (['sensitive', 'secret'].includes(item.type) || item.visibility === 'secret') fail(`unreadable_${key.toLowerCase()}`);
+    // Plain variables are already readable metadata. Vercel does not mark
+    // their per-ID response as decrypted because no decryption took place.
+    if (item.type === 'plain' && typeof item.value === 'string') return { ...item };
     const decrypted = await this.request(`/v1/projects/${encodeURIComponent(project)}/env/${encodeURIComponent(item.id)}`);
-    if (decrypted.decrypted !== true || typeof decrypted.value !== 'string') fail(`unreadable_${key.toLowerCase()}`);
+    if ((item.type !== 'plain' && decrypted.decrypted !== true) || typeof decrypted.value !== 'string') fail(`unreadable_${key.toLowerCase()}`);
     return { ...item, value: decrypted.value };
   }
   async snapshot(project, keys) {

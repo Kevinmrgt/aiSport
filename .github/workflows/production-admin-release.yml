@@ -83,7 +83,7 @@ jobs:
         run: node scripts/production-admin-release.mjs
 
       - name: Preserve encrypted source backup before production changes
-        if: inputs.mode != 'plan'
+        if: always() && inputs.mode != 'plan'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: closed-admin-backup-${{ github.run_id }}-${{ github.run_attempt }}
