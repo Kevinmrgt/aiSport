@@ -1,9 +1,12 @@
+import { generationPolicy } from './generation-policy.js';
+import { sessionDurationPrompt } from './session-duration-policy.js';
 import { WorkoutSchema } from '@alcide/shared';
 import type { Workout, GenerateWorkoutInput } from '@alcide/shared';
 import { AppError } from '../types/app-error.js';
 import {
   AiTimeoutError,
   callAiProvider,
+  getAiInputTokensUpperBound,
   assertTrainingRequestSafe,
   assertTrainingContentSafe,
   waitForAiRetry,
@@ -28,6 +31,7 @@ function buildPrompt(input: GenerateWorkoutInput): string {
 Sport : ${input.sport}
 Niveau : ${input.level}
 Créneau : ${input.duration_minutes} minutes
+${sessionDurationPrompt(input.duration_minutes, input.level)}
 Objectifs : ${input.goals}
 Contraintes et matériel : ${input.constraints ?? 'Aucune contrainte particulière.'}
 ${PRESCRIPTION_PROMPT}`;
@@ -42,6 +46,11 @@ export async function generateWorkout(
   const startTime = Date.now();
   const deadline = startTime + WORKOUT_REQUEST_DEADLINE_MS;
   const prompt = buildPrompt(input);
+  const jsonSchema = workoutOutputSchema(input);
+  const feedbackBytes = Math.max(
+    0,
+    generationPolicy().inputTokensPerAttempt - getAiInputTokensUpperBound(prompt, { jsonSchema }),
+  );
   let feedback = '';
   for (let attempt = 1; attempt <= 2; attempt++) {
     let previousJson = '';
@@ -59,7 +68,7 @@ export async function generateWorkout(
         timeoutMs,
         temperature: 0.2,
         maxTokens: 6000,
-        jsonSchema: workoutOutputSchema(input),
+        jsonSchema,
       });
       const json = raw.match(/\{[\s\S]*\}/)?.[0];
       if (!json) throw new Error('Réponds avec un objet JSON valide et complet.');
@@ -93,7 +102,7 @@ export async function generateWorkout(
           'Alcide met trop de temps à répondre, veuillez réessayer dans quelques instants',
         );
       if (error instanceof AppError) throw error;
-      feedback = correctionFeedback(error, previousJson);
+      feedback = correctionFeedback(error, previousJson, feedbackBytes);
       if (
         attempt === 2 ||
         !(await waitForAiRetry(

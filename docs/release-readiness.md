@@ -13,7 +13,10 @@ L'[audit initial du 29 octobre 2026](audits/2026-10-29/README.md) décrit
 le candidat avant corrections ; ses alertes constituent un état historique.
 La [validation des corrections](audits/2026-10-29/remediation-validation.md)
 et la [contre-revue](audits/2026-10-29/remediation-review.md) donnent les
-preuves locales disponibles. Le site public n'est pas encore ce candidat.
+preuves locales historiques. La production privée a été restaurée sur la
+référence produit demandée ; son état exact, le SHA servi et la recette
+fournisseur doivent être établis par les artefacts de chaque livraison.
+Une livraison technique réussie ne prouve pas une recette métier réussie.
 
 | Domaine                   | Corrections disponibles                                                                                               | Preuve encore nécessaire avant ouverture                                                          |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
