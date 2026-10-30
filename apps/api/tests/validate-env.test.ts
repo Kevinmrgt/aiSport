@@ -99,13 +99,18 @@ describe('validateEnv', () => {
   });
 
   it('applique les exigences TLS de production a la connexion applicative choisie', async () => {
-    vi.stubEnv('NODE_ENV', 'production'); vi.stubEnv('FRONTEND_URL', 'https://www.alcideai.fr');
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('FRONTEND_URL', 'https://www.alcideai.fr');
     vi.stubEnv('SERVICE_SECRET', 'a'.repeat(64));
     vi.stubEnv('DATABASE_URL', 'postgresql://localhost/legacy');
-    vi.stubEnv('ALCIDE_DATABASE_URL', 'postgresql://user:PRIVATE_OVERRIDE@db.example/selected?sslmode=disable');
+    vi.stubEnv(
+      'ALCIDE_DATABASE_URL',
+      'postgresql://user:PRIVATE_OVERRIDE@db.example/selected?sslmode=disable',
+    );
     const { validateEnv } = await import('../src/lib/validate-env.js');
     expect(() => validateEnv()).toThrow(/ALCIDE_DATABASE_URL.*TLS/);
-    process.env['ALCIDE_DATABASE_URL'] = 'postgresql://user:PRIVATE_OVERRIDE@db.example/selected?sslmode=require';
+    process.env['ALCIDE_DATABASE_URL'] =
+      'postgresql://user:PRIVATE_OVERRIDE@db.example/selected?sslmode=require';
     expect(() => validateEnv()).not.toThrow();
   });
 });

@@ -50,7 +50,7 @@ export function ActiveNavLink({ href, label, icon, compact = false }: ActiveNavL
         aria-current={active ? 'page' : undefined}
         aria-busy={isPending ? 'true' : undefined}
         onClick={handleClick}
-        className={`group grid min-w-0 place-items-center gap-1 rounded-full px-2 py-1.5 text-[0.62rem] font-bold transition ${
+        className={`group grid min-h-11 min-w-0 content-start place-items-center gap-1 rounded-full px-0.5 py-1 text-center text-[0.68rem] font-bold [overflow-wrap:anywhere] transition ${
           highlighted ? 'text-primary-200' : 'text-zinc-200 hover:text-white'
         }`}
       >
@@ -65,7 +65,7 @@ export function ActiveNavLink({ href, label, icon, compact = false }: ActiveNavL
         >
           <Icon name={icon} className="h-4 w-4" />
         </span>
-        <span className="truncate">{label}</span>
+        <span>{label}</span>
       </Link>
     );
   }
@@ -76,23 +76,9 @@ export function ActiveNavLink({ href, label, icon, compact = false }: ActiveNavL
       aria-current={active ? 'page' : undefined}
       aria-busy={isPending ? 'true' : undefined}
       onClick={handleClick}
-      className={`group relative flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-bold transition ${
-        highlighted ? 'text-primary-200' : 'text-zinc-200 hover:bg-white/[0.06] hover:text-white'
-      }`}
+      className={`nav-link ${highlighted ? 'text-primary-100' : ''}`}
     >
-      {highlighted && (
-        <span className="absolute inset-x-2 -bottom-0.5 hidden h-0.5 rounded-full bg-primary-300 lg:block" />
-      )}
-      <span
-        className={`grid h-8 w-8 place-items-center rounded-full transition ${
-          highlighted
-            ? `bg-primary-300 text-zinc-950 ${isPending ? 'animate-pulse' : ''}`
-            : 'bg-white/[0.06] text-zinc-200 group-hover:bg-white/[0.1] group-hover:text-white'
-        }`}
-      >
-        <Icon name={icon} className="h-3.5 w-3.5" />
-      </span>
-      <span className="hidden lg:block">{label}</span>
+      {label}
     </Link>
   );
 }

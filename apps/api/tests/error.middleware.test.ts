@@ -14,7 +14,7 @@ function createApp(throwError: Error) {
 }
 
 describe('handleError', () => {
-  it('retourne le statusCode et le code d\'une AppError', async () => {
+  it("retourne le statusCode et le code d'une AppError", async () => {
     // notFound('Ressource') → message = 'Ressource introuvable'
     const app = createApp(AppError.notFound('Ressource'));
     const res = await app.fetch(new Request('http://localhost/test'));

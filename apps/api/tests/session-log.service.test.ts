@@ -31,26 +31,28 @@ const baseInput = {
 describe('createOwnedSessionLog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(createSessionLog).mockImplementation((ownerId, input) => Promise.resolve({
-      id: '44444444-4444-4444-8444-444444444444',
-      userId: ownerId,
-      sourceType: input.sourceType,
-      workoutId: input.workoutId ?? null,
-      programId: input.programId ?? null,
-      programWeekNumber: input.programWeekNumber ?? null,
-      programSessionNumber: input.programSessionNumber ?? null,
-      title: input.title,
-      sport: input.sport,
-      difficulty: input.difficulty,
-      plannedDurationMinutes: input.plannedDurationMinutes,
-      completedAt: input.completedAt,
-      durationSeconds: input.durationSeconds,
-      perceivedEffort: input.perceivedEffort,
-      feedback: input.feedback,
-      painNotes: null,
-      notes: null,
-      createdAt: new Date('2026-07-20T10:01:00.000Z'),
-    }));
+    vi.mocked(createSessionLog).mockImplementation((ownerId, input) =>
+      Promise.resolve({
+        id: '44444444-4444-4444-8444-444444444444',
+        userId: ownerId,
+        sourceType: input.sourceType,
+        workoutId: input.workoutId ?? null,
+        programId: input.programId ?? null,
+        programWeekNumber: input.programWeekNumber ?? null,
+        programSessionNumber: input.programSessionNumber ?? null,
+        title: input.title,
+        sport: input.sport,
+        difficulty: input.difficulty,
+        plannedDurationMinutes: input.plannedDurationMinutes,
+        completedAt: input.completedAt,
+        durationSeconds: input.durationSeconds,
+        perceivedEffort: input.perceivedEffort,
+        feedback: input.feedback,
+        painNotes: null,
+        notes: null,
+        createdAt: new Date('2026-07-20T10:01:00.000Z'),
+      }),
+    );
   });
 
   it("verifie l'appartenance d'une seance et utilise ses metadonnees de confiance", async () => {
@@ -66,12 +68,14 @@ describe('createOwnedSessionLog', () => {
         sport: 'course',
         difficulty: 'beginner',
         duration_minutes: 30,
-        exercises: [{
-          name: 'Course',
-          description: 'Courir',
-          duration_seconds: 1_800,
-          rest_seconds: 0,
-        }],
+        exercises: [
+          {
+            name: 'Course',
+            description: 'Courir',
+            duration_seconds: 1_800,
+            rest_seconds: 0,
+          },
+        ],
       },
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -80,13 +84,16 @@ describe('createOwnedSessionLog', () => {
     await createOwnedSessionLog(userId, { ...baseInput, sourceType: 'workout', workoutId });
 
     expect(findWorkoutById).toHaveBeenCalledWith(workoutId, userId);
-    expect(createSessionLog).toHaveBeenCalledWith(userId, expect.objectContaining({
-      title: 'Seance officielle',
-      sport: 'course',
-      difficulty: 'beginner',
-      plannedDurationMinutes: 30,
-      programId: null,
-    }));
+    expect(createSessionLog).toHaveBeenCalledWith(
+      userId,
+      expect.objectContaining({
+        title: 'Seance officielle',
+        sport: 'course',
+        difficulty: 'beginner',
+        plannedDurationMinutes: 30,
+        programId: null,
+      }),
+    );
   });
 
   it("refuse une seance de programme qui n'existe pas", async () => {
@@ -113,13 +120,15 @@ describe('createOwnedSessionLog', () => {
       updatedAt: new Date(),
     });
 
-    await expect(createOwnedSessionLog(userId, {
-      ...baseInput,
-      sourceType: 'program_session',
-      programId,
-      programWeekNumber: 1,
-      programSessionNumber: 1,
-    })).rejects.toMatchObject({ statusCode: 400 });
+    await expect(
+      createOwnedSessionLog(userId, {
+        ...baseInput,
+        sourceType: 'program_session',
+        programId,
+        programWeekNumber: 1,
+        programSessionNumber: 1,
+      }),
+    ).rejects.toMatchObject({ statusCode: 400 });
     expect(createSessionLog).not.toHaveBeenCalled();
   });
 
@@ -128,11 +137,13 @@ describe('createOwnedSessionLog', () => {
       Object.assign(new Error('Acces refuse'), { statusCode: 403 }),
     );
 
-    await expect(createOwnedSessionLog(userId, {
-      ...baseInput,
-      sourceType: 'workout',
-      workoutId,
-    })).rejects.toMatchObject({ statusCode: 403 });
+    await expect(
+      createOwnedSessionLog(userId, {
+        ...baseInput,
+        sourceType: 'workout',
+        workoutId,
+      }),
+    ).rejects.toMatchObject({ statusCode: 403 });
     expect(createSessionLog).not.toHaveBeenCalled();
   });
 });

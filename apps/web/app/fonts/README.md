@@ -15,3 +15,15 @@ Both families are distributed under the SIL Open Font License 1.1. Original copy
 | BarlowCondensed-ExtraBold.ttf | [ofl/barlowcondensed/BarlowCondensed-ExtraBold.ttf](https://raw.githubusercontent.com/google/fonts/6157dfaa640ca5738b4d1a7070fe389c3036d7fc/ofl/barlowcondensed/BarlowCondensed-ExtraBold.ttf) | 110296 | 724c9c25952d5f4a2d87185d9767aa006144c5f0d944dc05bf7d5d603551c260 |
 | BarlowCondensed-Black.ttf | [ofl/barlowcondensed/BarlowCondensed-Black.ttf](https://raw.githubusercontent.com/google/fonts/6157dfaa640ca5738b4d1a7070fe389c3036d7fc/ofl/barlowcondensed/BarlowCondensed-Black.ttf) | 110828 | e74b750df582c608f35db467b711b2b60d2217618e85e60b72b42dfd00446cab |
 | BarlowCondensed-OFL.txt | [ofl/barlowcondensed/OFL.txt](https://raw.githubusercontent.com/google/fonts/6157dfaa640ca5738b4d1a7070fe389c3036d7fc/ofl/barlowcondensed/OFL.txt) | 4377 | 186d750eb496a4c17a76385f82be6aea2ac1cf2de074a811d63786cf374ea73f |
+
+## Restored September display font
+
+The September interface uses Barlow, whose normal static 600/700/800/900 weights are vendored from the official Google Fonts repository (ofl/barlow) and selected in the root layout. Barlow Condensed remains archived here but is not loaded. Barlow-OFL.txt accompanies the restored fonts. No remote font request is made.
+
+| File | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Barlow-Black.ttf | 111116 | fc4f74e8475b181003f7597450c62d630622b417e367a6842972b286c49f9440 |
+| Barlow-Bold.ttf | 108220 | 84e6a4d61e7c3e21f3c50ea6a4f7e5303a3467864c038be6ea3759bab8d547f9 |
+| Barlow-ExtraBold.ttf | 110228 | 5234d91030e1bb89525cbaccc4386892c3fe005a0582c705264ce3572d96a1a1 |
+| Barlow-OFL.txt | 4377 | 186d750eb496a4c17a76385f82be6aea2ac1cf2de074a811d63786cf374ea73f |
+| Barlow-SemiBold.ttf | 108348 | 86577cb32f8abe3673db53ca0f4221e6856751a4f6730c867e00f720f8bb1fc5 |

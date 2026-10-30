@@ -35,7 +35,7 @@ export function summarizeRecipeFlight({ method, status, contentType, body }) {
     flight: typeof contentType === 'string' && contentType.includes('text/x-component'),
     fixtureWorkoutPresent: typeof body === 'string' && body.includes('Séance de recette locale'),
     emptyWorkoutHistoryPresent:
-      typeof body === 'string' && body.includes('Aucune seance pour l instant'),
+      typeof body === 'string' && (body.includes('Aucune séance') || body.includes('Aucune seance')),
   };
 }
 
@@ -137,6 +137,8 @@ export async function runLocalRecipes() {
     AUTH_GOOGLE_SECRET: 'local-fixture-secret',
     FRONTEND_URL: 'https://www.alcideai.fr',
     LOCAL_FIXTURE_COUNTER_FILE: counterFile,
+    PRODUCTION_ACCESS_MODE: 'public',
+    ADMIN_EMAILS: identities[0].email,
     AI_USER_DAILY_ATTEMPTS: '16',
     AI_GLOBAL_DAILY_ATTEMPTS: '200',
     AI_USER_DAILY_TOKENS: '160000',
@@ -230,6 +232,7 @@ export async function runLocalRecipes() {
           userId: identity.subject,
           name: `Recette ${identity.label}`,
           email: identity.email,
+          googleEmailVerified: true,
           authMethod: 'google',
           identityVersion: 2,
           authIssuedAt: issuedAt,
@@ -299,6 +302,46 @@ export async function runLocalRecipes() {
       responseTasks.add(task);
       void task.finally(() => responseTasks.delete(task));
     });
+    await check('september_home_offers_navigation_and_admin', async () => {
+      const anonymous = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+      const publicPage = await anonymous.newPage();
+      await publicPage.goto(origin);
+      await expect(publicPage.getByRole('heading', { level: 1, name: 'Créer une séance' })).toBeVisible();
+      await publicPage.screenshot({ path: resolve(output, 'restored-fd-home-local.png'), fullPage: true });
+      const navigation = publicPage.getByRole('navigation', { name: 'Navigation principale' });
+      await expect(navigation.getByRole('link', { name: 'Les offres' })).toHaveAttribute('href', '/tarifs');
+      await navigation.getByRole('link', { name: 'Les offres' }).click();
+      await expect(publicPage.getByRole('heading', { level: 1 })).toBeVisible();
+      await expect(publicPage.getByText(/9,99/).first()).toBeVisible();
+      await publicPage.goto(`${origin}/admin`);
+      await publicPage.waitForURL(/\/login(?:\?|$)/);
+      await anonymous.close();
+      await page.goto(`${origin}/admin`);
+      await expect(page.getByRole('navigation', { name: /administration/i })).toBeVisible();
+      await page.screenshot({ path: resolve(output, 'restored-fd-admin-local.png'), fullPage: true });
+      await expect(page.getByRole('link', { name: 'Tous les membres' }).first()).toHaveAttribute('href', '/admin/membres');
+      await expect(page.getByRole('link', { name: 'Abonnements', exact: true }).first()).toHaveAttribute('href', '/admin/abonnements');
+      const memberContext = contexts[1];
+      const memberPage = await memberContext.newPage();
+      await memberPage.goto(`${origin}/admin`);
+      await memberPage.waitForURL(/\/dashboard$/);
+      await memberPage.close();
+      const fixtureUser = await pool.query('select id from users where email=$1', [identities[0].email]);
+      assert.equal(fixtureUser.rows.length, 1);
+      const grant = await fetch(`${apiOrigin}/admin/members/${fixtureUser.rows[0].id}/credits`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-internal-secret': serviceSecret,
+          'x-user-id': identities[0].subject,
+          'x-user-email': identities[0].email,
+          'x-email-verified': 'true',
+          'x-auth-issued-at': String(issuedAt),
+        },
+        body: JSON.stringify({ amount: 10, reason: 'Recette locale isolée', requestId: randomUUID() }),
+      });
+      assert.equal(grant.status, 200);
+    });
     let workoutUrl;
     await check('authenticated_workout_generation_via_server_action', async () => {
       await page.goto(`${origin}/generate`);
@@ -306,7 +349,7 @@ export async function runLocalRecipes() {
       await page.locator('input[name="sport"]').fill('marche');
       await page.locator('input[name="duration_minutes"]').fill('15');
       await page.locator('textarea[name="goals"]').fill('Pratiquer une activité régulière');
-      await page.getByRole('button', { name: 'Generer la seance', exact: true }).click();
+      await page.getByRole('button', { name: 'Générer la séance', exact: true }).click();
       await page.waitForURL(/\/workouts\/[a-f0-9-]{36}$/, { timeout: 30_000 });
       workoutUrl = page.url();
       await expect(
@@ -328,6 +371,7 @@ export async function runLocalRecipes() {
           'x-internal-secret': serviceSecret,
           'x-user-id': identities[1].subject,
           'x-user-email': identities[1].email,
+          'x-email-verified': 'true',
           'x-auth-issued-at': String(issuedAt),
         },
       });
@@ -336,7 +380,7 @@ export async function runLocalRecipes() {
     });
     await check('timer_journal_and_dashboard', async () => {
       detail = 'start_timer';
-      await page.getByRole('button', { name: 'Demarrer', exact: true }).click();
+      await page.getByRole('button', { name: 'Démarrer', exact: true }).click();
       await page.waitForTimeout(1_100);
       for (let step = 0; step < 8; step += 1) {
         detail = `complete_timer_step_${step}`;
@@ -371,7 +415,7 @@ export async function runLocalRecipes() {
       detail = 'submit_journal';
       await page.getByRole('button', { name: 'Enregistrer le retour', exact: true }).click();
       detail = 'confirm_journal_saved';
-      await expect(page.getByText('Retour enregistre.', { exact: true })).toBeVisible();
+      await expect(page.getByText('Retour enregistré.', { exact: true })).toBeVisible();
       detail = 'verify_journal_in_postgresql';
       const result = await pool.query(
         'select count(*)::int as count from session_logs l join users u on u.id=l.user_id where u.email=$1',
@@ -381,7 +425,7 @@ export async function runLocalRecipes() {
       await page.goto(`${origin}/dashboard`);
       detail = 'show_dashboard';
       await expect(
-        page.getByRole('heading', { name: 'Votre progression', exact: true }),
+        page.getByRole('heading', { name: 'Ma progression', exact: true }),
       ).toBeVisible();
     });
     if (scope === 'all')
@@ -392,7 +436,7 @@ export async function runLocalRecipes() {
         await page.locator('select[name="sessions_per_week"]').selectOption('2');
         await page.locator('select[name="session_duration_minutes"]').selectOption('20');
         await page.locator('textarea[name="goals"]').fill('Pratiquer une activité régulière');
-        await page.getByRole('button', { name: 'Generer le programme', exact: true }).click();
+        await page.getByRole('button', { name: 'Générer le programme', exact: true }).click();
         await page.waitForURL(/\/programs\/[a-f0-9-]{36}$/, { timeout: 30_000 });
         await page.reload();
         await expect(page.getByRole('heading', { level: 1 })).toContainText(
@@ -412,11 +456,14 @@ export async function runLocalRecipes() {
         await page.goto(`${origin}/generate`);
         await page.locator('input[name="sport"]').fill('marche');
         await page.locator('textarea[name="goals"]').fill('fixture-indisponible');
-        await page.getByRole('button', { name: 'Generer la seance', exact: true }).click();
+        await page.getByRole('button', { name: 'Générer la séance', exact: true }).click();
         detail = 'announce_provider_failure';
         await expect(
           page.locator('form[aria-labelledby="form-title"]').getByRole('alert'),
-        ).toContainText('ne peut pas générer', { timeout: 30_000 });
+        ).toContainText('Alcide n’a pas réussi à finaliser cette séance.', { timeout: 30_000 });
+        await expect(page.locator('form[aria-labelledby="form-title"]')).toBeVisible();
+        await expect(page.locator('input[name="sport"]')).toHaveValue('marche');
+        await expect(page.getByRole('button', { name: 'Générer la séance', exact: true })).toBeEnabled();
         await expect(page.locator('textarea[name="goals"]')).toHaveValue('fixture-indisponible');
         detail = 'verify_failure_did_not_persist';
         const result = await pool.query(
@@ -470,10 +517,15 @@ export async function runLocalRecipes() {
           : 'assertion_failed',
     };
     if (currentPage) {
+      await currentPage.screenshot({ path: resolve(root, 'tmp/fd-local-failure.png'), fullPage: true }).catch(() => undefined);
       report.failure.ui = await currentPage
         .evaluate(() => ({
+          generationFormPresent: Boolean(document.querySelector('form[aria-labelledby="form-title"]')),
+          generationPending: Boolean(document.getElementById('generation-heading')),
+          failureGoalRetained: document.querySelector('textarea[name="goals"]')?.value === 'fixture-indisponible',
+          generationFailureAlertPresent: Array.from(document.querySelectorAll('[role="alert"]')).some((alert) => alert.textContent?.includes('n’a pas réussi à finaliser cette séance')),
           timerCompleted: Boolean(document.getElementById('session-complete-title')),
-          journalSaved: document.body.textContent?.includes('Retour enregistre.') ?? false,
+          journalSaved: document.body.textContent?.includes('Retour enregistré.') ?? false,
           articleCount: document.querySelectorAll('[role="article"]').length,
           fixtureWorkoutPresent:
             document.body.textContent?.includes('Séance de recette locale') ?? false,

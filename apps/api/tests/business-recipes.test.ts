@@ -1,3 +1,8 @@
+vi.mock('../src/services/generation-quota.service.js', () => ({
+  runWithGenerationQuota: vi.fn(
+    async (_userId: string, _mode: string, work: () => Promise<unknown>) => work(),
+  ),
+}));
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Hono } from 'hono';
 import { handleGenerateWorkout } from '../src/controllers/workout.controller.js';

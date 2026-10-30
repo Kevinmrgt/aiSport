@@ -4,11 +4,10 @@ import type {
   SessionSourceType,
 } from '../schemas/session-log.schema.js';
 
-export interface SessionLogRecord
-  extends Omit<
-    CreateSessionLogInput,
-    'completedAt' | 'workoutId' | 'programId' | 'painNotes' | 'notes'
-  > {
+export interface SessionLogRecord extends Omit<
+  CreateSessionLogInput,
+  'completedAt' | 'workoutId' | 'programId' | 'painNotes' | 'notes'
+> {
   id: string;
   userId: string;
   workoutId: string | null;

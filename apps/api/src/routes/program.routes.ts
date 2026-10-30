@@ -1,3 +1,4 @@
+import { betaPasswordChangedMiddleware } from '../middleware/beta-password.middleware.js';
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { rateLimitMiddleware } from '../middleware/rate-limit.middleware.js';
@@ -11,7 +12,7 @@ import {
 const programRouter = new Hono();
 
 // OWASP A01: toutes les routes programme nécessitent une session valide
-programRouter.use('*', authMiddleware);
+programRouter.use('*', authMiddleware, betaPasswordChangedMiddleware);
 
 // POST /programs/generate — OWASP A04: rate limit (même politique que /workouts/generate)
 programRouter.post('/generate', rateLimitMiddleware, handleGenerateProgram);

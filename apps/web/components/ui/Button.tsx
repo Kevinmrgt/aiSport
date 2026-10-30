@@ -10,10 +10,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 // - État loading annoncé aux lecteurs d'écran via aria-busy
 // - Désactivé correctement avec aria-disabled
 const variantClasses: Record<NonNullable<ButtonProps['variant']>, string> = {
-  primary:
-    'bg-primary-300 text-zinc-950 shadow-2xl shadow-primary-400/25 hover:bg-primary-200 focus-visible:ring-primary-300',
-  secondary:
-    'border border-white/[0.15] bg-zinc-950/[0.56] text-zinc-100 shadow-xl shadow-black/20 backdrop-blur-xl hover:bg-zinc-950/[0.68] focus-visible:ring-primary-300',
+  primary: 'action-primary focus-visible:ring-primary-300',
+  secondary: 'action-secondary focus-visible:ring-primary-300',
   danger:
     'bg-sport-orange text-zinc-950 shadow-xl shadow-black/30 hover:bg-primary-300 focus-visible:ring-sport-orange',
 };
@@ -57,8 +55,19 @@ export function Button({
       )}
       {isLoading && (
         <svg aria-hidden="true" className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          />
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+          />
         </svg>
       )}
       {children}

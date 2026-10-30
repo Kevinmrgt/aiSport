@@ -53,6 +53,7 @@ export async function handleGenerateWorkout(ctx: Context): Promise<Response> {
     },
     ctx.req.header('idempotency-key'),
     ctx.req.raw.signal,
+    auth.accessMode,
   );
 
   return ctx.json(
@@ -62,6 +63,7 @@ export async function handleGenerateWorkout(ctx: Context): Promise<Response> {
       sport: workout.sport,
       difficulty: workout.difficulty,
       durationMinutes: workout.durationMinutes,
+      planning_version: workout.data.planning_version,
       exercises: workout.data.exercises,
       warmup: workout.data.warmup,
       cooldown: workout.data.cooldown,

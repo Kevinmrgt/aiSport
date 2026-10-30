@@ -1,5 +1,16 @@
 # Livraison du candidat de production — 29 octobre 2026
 
+**Correction de cible du 30 octobre :** le propriétaire a identifié
+`fd750f0c6ca9a8bf06bf38c0f03d6a08534d8f5f` comme la version produit attendue.
+Le candidat décrit ci-dessous était issu d'une base d'août et sa livraison a
+remplacé à tort les fonctionnalités de septembre. Le merge `815a830` avait
+conservé l'historique distant sans en intégrer le contenu. Ses contrôles de
+santé et de sécurité ne prouvaient donc pas la conformité du produit livré.
+La correction restaure le produit de septembre, conserve les protections
+acquises et ajoute son schéma à la base active sans réécrire les migrations
+déjà appliquées. Le présent rapport reste un historique de la première
+tentative ; il ne valide pas cette nouvelle livraison.
+
 **Mise à jour du 30 octobre :** le propriétaire a choisi de ne conserver que
 son compte administrateur et a demandé la livraison. La procédure de
 [production fermée](production-admin-release.md) décrit la nouvelle base,

@@ -1,3 +1,4 @@
+import { betaPasswordChangedMiddleware } from '../middleware/beta-password.middleware.js';
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { rateLimitMiddleware } from '../middleware/rate-limit.middleware.js';
@@ -12,7 +13,7 @@ import {
 const workoutRouter = new Hono();
 
 // OWASP A01: toutes les routes workout nécessitent une session valide
-workoutRouter.use('*', authMiddleware);
+workoutRouter.use('*', authMiddleware, betaPasswordChangedMiddleware);
 
 // POST /workouts/generate — OWASP A04: rate limit 5 req/min par utilisateur
 workoutRouter.post('/generate', rateLimitMiddleware, handleGenerateWorkout);

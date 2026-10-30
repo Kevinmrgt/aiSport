@@ -1,3 +1,5 @@
+import { and, eq } from 'drizzle-orm';
+import { users } from '../db/schema.js';
 import type { Context, Next } from 'hono';
 import { timingSafeEqual } from 'node:crypto';
 import { resolveGoogleIdentity } from '../repositories/identity.repository.js';
@@ -16,11 +18,15 @@ export interface AuthContext {
   userId: string;
   email: string;
   subject?: string;
+  accessMode: 'standard' | 'jury' | 'beta';
+  mustChangePassword: boolean;
+  generationBalance: number | null;
 }
 
 declare module 'hono' {
   interface ContextVariableMap {
     auth: AuthContext;
+    accountSuspended: boolean;
   }
 }
 
@@ -45,7 +51,7 @@ export async function authMiddleware(ctx: Context, next: Next): Promise<void> {
 
   const oauthId = ctx.req.header('x-user-id');
   const email = ctx.req.header('x-user-email') ?? '';
-  const encodedName = ctx.req.header('x-user-name-encoded');
+  const encodedName = ctx.req.header('x-user-name-encoded') ?? ctx.req.header('x-user-name-utf8');
   let name = ctx.req.header('x-user-name') ?? null;
   if (encodedName !== undefined) {
     if (encodedName.length > 4096) throw AppError.badRequest('Nom utilisateur invalide');
@@ -69,6 +75,8 @@ export async function authMiddleware(ctx: Context, next: Next): Promise<void> {
     throw AppError.unauthorized('Identifiant utilisateur manquant');
   }
 
+  const method = ctx.req.header('x-auth-method');
+  const mode = method === 'jury' || method === 'beta' ? method : 'standard';
   const accessMode = process.env['PRODUCTION_ACCESS_MODE'] ?? 'public';
   if (accessMode !== 'public') {
     const allowedEmails = (process.env['ADMIN_EMAILS'] ?? '')
@@ -77,6 +85,7 @@ export async function authMiddleware(ctx: Context, next: Next): Promise<void> {
       .filter(Boolean);
     if (
       accessMode !== 'admin-only' ||
+      mode !== 'standard' ||
       ctx.req.header('x-email-verified') !== 'true' ||
       !allowedEmails.includes(email.trim().toLowerCase())
     ) {
@@ -85,15 +94,61 @@ export async function authMiddleware(ctx: Context, next: Next): Promise<void> {
     }
   }
 
-  const issuedAt = parseSessionIssuedAt(ctx.req.header('x-auth-issued-at'));
-  await assertGoogleSessionActive(oauthId, issuedAt);
-  const userId = await resolveGoogleIdentity({
-    subject: oauthId,
+  let userId: string;
+  let mustChangePassword = false;
+  let generationBalance: number | null = null;
+  if (mode === 'beta') {
+    const { db } = await import('../db/index.js');
+    const { assertActiveBetaSession } = await import('../services/beta-tester.service.js');
+    if (!/^[0-9a-f-]{36}$/i.test(oauthId)) throw AppError.unauthorized('Session bêta invalide');
+    const [betaUser] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.id, oauthId), eq(users.email, email)))
+      .limit(1);
+    const sessionVersion = ctx.req.header('x-beta-session-version');
+    if (!betaUser || !sessionVersion) throw AppError.unauthorized('Session bêta invalide');
+    const beta = await assertActiveBetaSession(betaUser.id, sessionVersion);
+    userId = betaUser.id;
+    mustChangePassword = beta.mustChangePassword === 1;
+    generationBalance = beta.generationBalance;
+  } else {
+    const issuedAt = parseSessionIssuedAt(ctx.req.header('x-auth-issued-at'));
+    await assertGoogleSessionActive(oauthId, issuedAt);
+    userId = await resolveGoogleIdentity({
+      subject: oauthId,
+      email,
+      name,
+      issuedAt,
+      verifiedEmail: ctx.req.header('x-email-verified') === 'true',
+    });
+  }
+  const { db } = await import('../db/index.js');
+  const [user] = await db
+    .select({ suspendedAt: users.suspendedAt })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  const suspended = user?.suspendedAt != null;
+  ctx.set('accountSuspended', suspended);
+  ctx.set('auth', {
+    userId,
     email,
-    name,
-    issuedAt,
-    verifiedEmail: ctx.req.header('x-email-verified') === 'true',
+    ...(mode === 'standard' ? { subject: oauthId } : {}),
+    accessMode: mode,
+    mustChangePassword,
+    generationBalance,
   });
-  ctx.set('auth', { userId, email, subject: oauthId });
+  const allowedWhileSuspended =
+    (ctx.req.method === 'GET' &&
+      ['/account/status', '/billing/status', '/account/export'].includes(ctx.req.path)) ||
+    (ctx.req.method === 'POST' && ctx.req.path === '/billing/portal') ||
+    (ctx.req.method === 'DELETE' && ctx.req.path === '/account');
+  if (suspended && !allowedWhileSuspended)
+    throw new AppError(
+      403,
+      'ACCOUNT_SUSPENDED',
+      'Votre compte est suspendu. La gestion de votre abonnement reste accessible.',
+    );
   await next();
 }

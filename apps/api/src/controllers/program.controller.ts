@@ -52,6 +52,7 @@ export async function handleGenerateProgram(ctx: Context): Promise<Response> {
     },
     ctx.req.header('idempotency-key'),
     ctx.req.raw.signal,
+    auth.accessMode,
   );
 
   return ctx.json(

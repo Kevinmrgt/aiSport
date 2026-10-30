@@ -1,7 +1,8 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { userSettings } from '../db/schema.js';
+import { platformSettings, userSettings } from '../db/schema.js';
 import type { AiProvider } from '../services/ai.service.js';
+import { writeAdminAudit } from './admin-audit.repository.js';
 
 const OPENAI_PROVIDER: AiProvider = 'openai';
 
@@ -12,11 +13,7 @@ export interface SettingsRow {
 }
 
 export async function findSettingsByUser(userId: string): Promise<SettingsRow | null> {
-  const rows = await db
-    .select()
-    .from(userSettings)
-    .where(eq(userSettings.userId, userId))
-    .limit(1);
+  const rows = await db.select().from(userSettings).where(eq(userSettings.userId, userId)).limit(1);
 
   const row = rows[0];
   if (!row) return null;
@@ -52,4 +49,57 @@ export async function upsertSettings(
         updatedAt: new Date(),
       },
     });
+}
+
+export async function findPlatformSettings(): Promise<{
+  defaultAiModel: string;
+  defaultBetaGenerationBalance: number;
+} | null> {
+  const [row] = await db
+    .select({
+      defaultAiModel: platformSettings.defaultAiModel,
+      defaultBetaGenerationBalance: platformSettings.defaultBetaGenerationBalance,
+    })
+    .from(platformSettings)
+    .where(eq(platformSettings.id, 'default'))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function upsertPlatformSettings(
+  input: {
+    defaultAiModel: string;
+    defaultBetaGenerationBalance: number;
+  },
+  adminEmail?: string,
+): Promise<void> {
+  await db.transaction(async (tx) => {
+    await tx.insert(platformSettings).values({ id: 'default' }).onConflictDoNothing();
+    const before = await tx.execute(
+      sql`SELECT default_ai_model AS "defaultAiModel",default_beta_generation_balance AS "defaultBetaGenerationBalance" FROM platform_settings WHERE id='default' FOR UPDATE`,
+    );
+    await tx
+      .insert(platformSettings)
+      .values({
+        id: 'default',
+        defaultAiModel: input.defaultAiModel,
+        defaultBetaGenerationBalance: input.defaultBetaGenerationBalance,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: platformSettings.id,
+        set: {
+          defaultAiModel: input.defaultAiModel,
+          defaultBetaGenerationBalance: input.defaultBetaGenerationBalance,
+          updatedAt: new Date(),
+        },
+      });
+    if (adminEmail)
+      await writeAdminAudit(tx, {
+        actorEmail: adminEmail,
+        action: 'platform.settings',
+        reason: 'Modification des réglages de la plateforme',
+        changes: { before: before.rows[0], after: input },
+      });
+  });
 }

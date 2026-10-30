@@ -196,19 +196,29 @@ describe('readiness dependency bounds', () => {
     client.query.mockResolvedValueOnce({ rows: [{ schema_ready: false }] });
     client.query.mockResolvedValueOnce({ rows: [{ database_name: 'PRIVATE_DATABASE_SENTINEL' }] });
     client.query.mockResolvedValueOnce({ rows: [{ table_name: 'public.generation_operations' }] });
-    client.query.mockResolvedValueOnce({ rows: [{ migration_count: '12', latest_migration_timestamp: '1789130400000' }] });
-    expect(await checkReadiness()).toMatchObject({ ready: false, checks: { database: 'ok', schema: 'missing' } });
+    client.query.mockResolvedValueOnce({
+      rows: [{ migration_count: '12', latest_migration_timestamp: '1789130400000' }],
+    });
+    expect(await checkReadiness()).toMatchObject({
+      ready: false,
+      checks: { database: 'ok', schema: 'missing' },
+    });
     expect(log).toHaveBeenCalledExactlyOnceWith('[Readiness] Schema diagnostic', {
-      event: 'readiness_schema_missing', complete: true,
+      event: 'readiness_schema_missing',
+      complete: true,
       databaseNameSha256: createHash('sha256').update('PRIVATE_DATABASE_SENTINEL').digest('hex'),
       configuredDatabaseNameSha256: createHash('sha256').update('health_test').digest('hex'),
       databaseNameMatchesConfigured: false,
       schemaReady: { type: 'boolean', value: false, isTrue: false },
       migrationsReady: { type: 'undefined', value: null, isTrue: false },
-      missingTables: ['public.generation_operations'], migrationTablePresent: true,
-      migrationCount: 12, latestMigrationTimestamp: 1789130400000,
+      missingTables: ['public.generation_operations'],
+      migrationTablePresent: true,
+      migrationCount: 12,
+      latestMigrationTimestamp: 1789130400000,
     });
-    expect(JSON.stringify(log.mock.calls)).not.toMatch(/PRIVATE_DATABASE_SENTINEL|synthetic:synthetic|synthetic-key/);
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(
+      /PRIVATE_DATABASE_SENTINEL|synthetic:synthetic|synthetic-key/,
+    );
     expect(client.end).toHaveBeenCalledOnce();
   });
 
@@ -218,28 +228,66 @@ describe('readiness dependency bounds', () => {
     client.query.mockResolvedValueOnce({ rows: [{ migrations_ready: 'PRIVATE_STRING_BOOLEAN' }] });
     client.query.mockResolvedValueOnce({ rows: [{ database_name: 'PRIVATE_DATABASE_SENTINEL' }] });
     client.query.mockResolvedValueOnce({ rows: [] });
-    client.query.mockResolvedValueOnce({ rows: [{ migration_count: '13', latest_migration_timestamp: String(READINESS_MIGRATION_TIMESTAMP) }] });
-    expect(await checkReadiness()).toMatchObject({ ready: false, checks: { database: 'ok', schema: 'missing' } });
-    expect(log).toHaveBeenCalledWith('[Readiness] Schema diagnostic', expect.objectContaining({
-      complete: true, schemaReady: { type: 'boolean', value: true, isTrue: true },
-      migrationsReady: { type: 'string', value: null, isTrue: false }, missingTables: [],
-      migrationCount: 13, latestMigrationTimestamp: READINESS_MIGRATION_TIMESTAMP,
-    }));
-    expect(JSON.stringify(log.mock.calls)).not.toMatch(/PRIVATE_STRING_BOOLEAN|PRIVATE_DATABASE_SENTINEL/);
+    client.query.mockResolvedValueOnce({
+      rows: [
+        {
+          migration_count: '13',
+          latest_migration_timestamp: String(READINESS_MIGRATION_TIMESTAMP),
+        },
+      ],
+    });
+    expect(await checkReadiness()).toMatchObject({
+      ready: false,
+      checks: { database: 'ok', schema: 'missing' },
+    });
+    expect(log).toHaveBeenCalledWith(
+      '[Readiness] Schema diagnostic',
+      expect.objectContaining({
+        complete: true,
+        schemaReady: { type: 'boolean', value: true, isTrue: true },
+        migrationsReady: { type: 'string', value: null, isTrue: false },
+        missingTables: [],
+        migrationCount: 13,
+        latestMigrationTimestamp: READINESS_MIGRATION_TIMESTAMP,
+      }),
+    );
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(
+      /PRIVATE_STRING_BOOLEAN|PRIVATE_DATABASE_SENTINEL/,
+    );
   });
 
   it('a string schema boolean stays missing even when diagnostic tables and migration metadata are complete', async () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    client.query.mockResolvedValueOnce({ rows: [{ schema_ready: 'PRIVATE_STRING_SCHEMA_BOOLEAN' }] });
+    client.query.mockResolvedValueOnce({
+      rows: [{ schema_ready: 'PRIVATE_STRING_SCHEMA_BOOLEAN' }],
+    });
     client.query.mockResolvedValueOnce({ rows: [{ database_name: 'PRIVATE_DATABASE_SENTINEL' }] });
     client.query.mockResolvedValueOnce({ rows: [] });
-    client.query.mockResolvedValueOnce({ rows: [{ migration_count: '13', latest_migration_timestamp: String(READINESS_MIGRATION_TIMESTAMP) }] });
-    expect(await checkReadiness()).toMatchObject({ ready: false, checks: { database: 'ok', schema: 'missing' } });
-    expect(log).toHaveBeenCalledWith('[Readiness] Schema diagnostic', expect.objectContaining({
-      schemaReady: { type: 'string', value: null, isTrue: false }, complete: true,
-      missingTables: [], migrationCount: 13, latestMigrationTimestamp: READINESS_MIGRATION_TIMESTAMP,
-    }));
-    expect(JSON.stringify(log.mock.calls)).not.toMatch(/PRIVATE_STRING_SCHEMA_BOOLEAN|PRIVATE_DATABASE_SENTINEL/);
+    client.query.mockResolvedValueOnce({
+      rows: [
+        {
+          migration_count: '13',
+          latest_migration_timestamp: String(READINESS_MIGRATION_TIMESTAMP),
+        },
+      ],
+    });
+    expect(await checkReadiness()).toMatchObject({
+      ready: false,
+      checks: { database: 'ok', schema: 'missing' },
+    });
+    expect(log).toHaveBeenCalledWith(
+      '[Readiness] Schema diagnostic',
+      expect.objectContaining({
+        schemaReady: { type: 'string', value: null, isTrue: false },
+        complete: true,
+        missingTables: [],
+        migrationCount: 13,
+        latestMigrationTimestamp: READINESS_MIGRATION_TIMESTAMP,
+      }),
+    );
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(
+      /PRIVATE_STRING_SCHEMA_BOOLEAN|PRIVATE_DATABASE_SENTINEL/,
+    );
   });
 
   it('does not query an absent migration table or emit extra diagnostics for a healthy probe', async () => {
@@ -249,21 +297,35 @@ describe('readiness dependency bounds', () => {
     client.query.mockResolvedValueOnce({ rows: [{ table_name: 'drizzle.__drizzle_migrations' }] });
     expect((await checkReadiness()).ready).toBe(false);
     expect(client.query).toHaveBeenCalledTimes(3);
-    expect(log).toHaveBeenCalledWith('[Readiness] Schema diagnostic', expect.objectContaining({
-      complete: true, migrationTablePresent: false, migrationCount: null, latestMigrationTimestamp: null,
-      missingTables: ['drizzle.__drizzle_migrations'],
-    }));
-    log.mockClear(); client.query.mockClear();
+    expect(log).toHaveBeenCalledWith(
+      '[Readiness] Schema diagnostic',
+      expect.objectContaining({
+        complete: true,
+        migrationTablePresent: false,
+        migrationCount: null,
+        latestMigrationTimestamp: null,
+        missingTables: ['drizzle.__drizzle_migrations'],
+      }),
+    );
+    log.mockClear();
+    client.query.mockClear();
     expect((await checkReadiness()).ready).toBe(true);
-    expect(client.query).toHaveBeenCalledTimes(2); expect(log).not.toHaveBeenCalled();
+    expect(client.query).toHaveBeenCalledTimes(2);
+    expect(log).not.toHaveBeenCalled();
   });
 
   it('an unavailable diagnostic neither exposes driver data nor changes the missing schema verdict', async () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     client.query.mockResolvedValueOnce({ rows: [{ schema_ready: false }] });
     client.query.mockRejectedValueOnce(new Error('PRIVATE_URL_PASSWORD_USER_ROW'));
-    expect(await checkReadiness()).toMatchObject({ ready: false, checks: { database: 'ok', schema: 'missing' } });
-    expect(log).toHaveBeenCalledExactlyOnceWith('[Readiness] Schema diagnostic', expect.objectContaining({ complete: false }));
+    expect(await checkReadiness()).toMatchObject({
+      ready: false,
+      checks: { database: 'ok', schema: 'missing' },
+    });
+    expect(log).toHaveBeenCalledExactlyOnceWith(
+      '[Readiness] Schema diagnostic',
+      expect.objectContaining({ complete: false }),
+    );
     expect(JSON.stringify(log.mock.calls)).not.toContain('PRIVATE_URL_PASSWORD_USER_ROW');
     expect(client.end).toHaveBeenCalledOnce();
   });
@@ -274,46 +336,78 @@ describe('readiness dependency bounds', () => {
     client.query.mockResolvedValueOnce({ rows: [{ database_name: 'PRIVATE_DATABASE_SENTINEL' }] });
     client.query.mockResolvedValueOnce({ rows: [{ table_name: 'PRIVATE_NONCANONICAL_TABLE' }] });
     expect((await checkReadiness()).ready).toBe(false);
-    expect(log).toHaveBeenCalledWith('[Readiness] Schema diagnostic', expect.objectContaining({ complete: false, missingTables: [] }));
-    expect(JSON.stringify(log.mock.calls)).not.toMatch(/PRIVATE_NONCANONICAL_TABLE|PRIVATE_DATABASE_SENTINEL/);
+    expect(log).toHaveBeenCalledWith(
+      '[Readiness] Schema diagnostic',
+      expect.objectContaining({ complete: false, missingTables: [] }),
+    );
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(
+      /PRIVATE_NONCANONICAL_TABLE|PRIVATE_DATABASE_SENTINEL/,
+    );
   });
 
   it('compares SQL identity with the exact connection string passed to Client rather than rereading global env', async () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    vi.stubEnv('DATABASE_URL', 'postgresql://PRIVATE_USER:PRIVATE_PASSWORD@private.invalid/PRIVATE_CONFIGURED_DB?sslmode=require');
+    vi.stubEnv(
+      'DATABASE_URL',
+      'postgresql://PRIVATE_USER:PRIVATE_PASSWORD@private.invalid/PRIVATE_CONFIGURED_DB?sslmode=require',
+    );
     client.connect.mockImplementationOnce(() => {
-      vi.stubEnv('DATABASE_URL', 'postgresql://PRIVATE_OTHER:PRIVATE_OTHER_PASSWORD@other.invalid/PRIVATE_CHANGED_DB');
+      vi.stubEnv(
+        'DATABASE_URL',
+        'postgresql://PRIVATE_OTHER:PRIVATE_OTHER_PASSWORD@other.invalid/PRIVATE_CHANGED_DB',
+      );
       return Promise.resolve();
     });
     client.query.mockResolvedValueOnce({ rows: [{ schema_ready: false }] });
     client.query.mockResolvedValueOnce({ rows: [{ database_name: 'PRIVATE_CONFIGURED_DB' }] });
     client.query.mockResolvedValueOnce({ rows: [{ table_name: 'drizzle.__drizzle_migrations' }] });
     expect((await checkReadiness()).ready).toBe(false);
-    expect(client.options).toHaveBeenCalledWith(expect.objectContaining({
-      connectionString: 'postgresql://PRIVATE_USER:PRIVATE_PASSWORD@private.invalid/PRIVATE_CONFIGURED_DB?sslmode=verify-full',
-    }));
-    expect(log).toHaveBeenCalledWith('[Readiness] Schema diagnostic', expect.objectContaining({
-      databaseNameSha256: createHash('sha256').update('PRIVATE_CONFIGURED_DB').digest('hex'),
-      configuredDatabaseNameSha256: createHash('sha256').update('PRIVATE_CONFIGURED_DB').digest('hex'),
-      databaseNameMatchesConfigured: true,
-    }));
-    expect(JSON.stringify(log.mock.calls)).not.toMatch(/PRIVATE_|private\.invalid|other\.invalid|postgresql/);
+    expect(client.options).toHaveBeenCalledWith(
+      expect.objectContaining({
+        connectionString:
+          'postgresql://PRIVATE_USER:PRIVATE_PASSWORD@private.invalid/PRIVATE_CONFIGURED_DB?sslmode=verify-full',
+      }),
+    );
+    expect(log).toHaveBeenCalledWith(
+      '[Readiness] Schema diagnostic',
+      expect.objectContaining({
+        databaseNameSha256: createHash('sha256').update('PRIVATE_CONFIGURED_DB').digest('hex'),
+        configuredDatabaseNameSha256: createHash('sha256')
+          .update('PRIVATE_CONFIGURED_DB')
+          .digest('hex'),
+        databaseNameMatchesConfigured: true,
+      }),
+    );
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(
+      /PRIVATE_|private\.invalid|other\.invalid|postgresql/,
+    );
   });
 
   it('uses the dedicated application URL for readiness even when DATABASE_URL points elsewhere', async () => {
-    vi.stubEnv('ALCIDE_DATABASE_URL', 'postgresql://user:PRIVATE_OVERRIDE@dedicated.invalid/selected?sslmode=require');
+    vi.stubEnv(
+      'ALCIDE_DATABASE_URL',
+      'postgresql://user:PRIVATE_OVERRIDE@dedicated.invalid/selected?sslmode=require',
+    );
     expect((await checkReadiness()).ready).toBe(true);
-    expect(client.options).toHaveBeenCalledWith(expect.objectContaining({
-      connectionString: 'postgresql://user:PRIVATE_OVERRIDE@dedicated.invalid/selected?sslmode=verify-full',
-    }));
+    expect(client.options).toHaveBeenCalledWith(
+      expect.objectContaining({
+        connectionString:
+          'postgresql://user:PRIVATE_OVERRIDE@dedicated.invalid/selected?sslmode=verify-full',
+      }),
+    );
   });
 
   it.each(['', 'PRIVATE_INVALID_OVERRIDE', 'https://wrong.invalid/selected'])(
-    'an invalid dedicated URL never connects using DATABASE_URL: %s', async (override) => {
+    'an invalid dedicated URL never connects using DATABASE_URL: %s',
+    async (override) => {
       const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
       vi.stubEnv('ALCIDE_DATABASE_URL', override);
-      expect(await checkReadiness()).toMatchObject({ ready: false, checks: { database: 'unavailable' } });
-      expect(client.options).not.toHaveBeenCalled(); expect(client.connect).not.toHaveBeenCalled();
+      expect(await checkReadiness()).toMatchObject({
+        ready: false,
+        checks: { database: 'unavailable' },
+      });
+      expect(client.options).not.toHaveBeenCalled();
+      expect(client.connect).not.toHaveBeenCalled();
       expect(JSON.stringify(log.mock.calls)).not.toContain('PRIVATE_INVALID_OVERRIDE');
     },
   );

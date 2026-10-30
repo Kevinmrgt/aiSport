@@ -1,3 +1,10 @@
+vi.mock('../src/db/index.js', () => ({
+  db: {
+    select: () => ({
+      from: () => ({ where: () => ({ limit: () => Promise.resolve([{ suspendedAt: null }]) }) }),
+    }),
+  },
+}));
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Hono } from 'hono';
 import { authMiddleware } from '../src/middleware/auth.middleware.js';

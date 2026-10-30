@@ -85,6 +85,18 @@ describe('sessions Google Auth.js', () => {
       expect(googleJwt(input as never)).toBeNull();
     });
   });
+  it('refuse le provider bêta et ses cookies quand l’accès est réservé aux administrateurs', async () => {
+    vi.stubEnv('PRODUCTION_ACCESS_MODE', 'admin-only');
+    expect(await googleSignIn({ account: { provider: 'beta' } } as never)).toBe(false);
+    expect(googleJwt({ token: {}, account: { provider: 'beta' }, user: { id: 'beta-user', betaSessionVersion: 'v1' } } as never)).toBeNull();
+    expect(googleJwt({ token: { userId: 'beta-user', authMethod: 'beta', identityVersion: 2, betaSessionVersion: 'v1', authIssuedAt: Date.now() } } as never)).toBeNull();
+  });
+
+  it('conserve le parcours bêta hors mode réservé et le sépare des droits Google', async () => {
+    expect(await googleSignIn({ account: { provider: 'beta' } } as never)).toBe(true);
+    expect(googleJwt({ token: {}, account: { provider: 'beta' }, user: { id: 'beta-user', betaSessionVersion: 'v1', betaMustChangePassword: true } } as never)).toMatchObject({ userId: 'beta-user', authMethod: 'beta', googleEmailVerified: false, betaSessionVersion: 'v1', betaMustChangePassword: true });
+  });
+
   it('conserve l’identité Google lors de la connexion', () => {
     expect(
       googleJwt({

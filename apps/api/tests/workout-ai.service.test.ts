@@ -22,8 +22,15 @@ const validWorkoutResponse = {
     {
       name: 'Footing léger',
       description: 'Course à allure confortable',
-      duration_seconds: 1_320,
-      rest_seconds: 60,
+      prescription: {
+        version: 2,
+        category: 'cardio',
+        mode: 'continuous',
+        sets: 1,
+        work_seconds: 1380,
+        rest_seconds: 0,
+        transition_seconds: 0,
+      },
       tips: 'Respiration nasale',
     },
   ],
@@ -34,7 +41,9 @@ const validWorkoutResponse = {
       description: 'Rotation des articulations',
     },
   ],
-  cooldown: [{ name: 'Retour au calme', duration_seconds: 120, description: 'Marche confortable' }],
+  cooldown: [
+    { name: 'Marche lente', description: 'Ralentir progressivement', duration_seconds: 120 },
+  ],
 };
 
 const validApiResponse = {
@@ -71,6 +80,11 @@ describe('WorkoutAiService', () => {
       expect(result.difficulty).toBe('beginner');
       expect(result.duration_minutes).toBe(30);
       expect(result.exercises).toHaveLength(1);
+      const request = JSON.parse((mockFetch.mock.calls[0]![1] as { body: string }).body) as {
+        response_format: { type: string; json_schema: { strict: boolean } };
+      };
+      expect(request.response_format.type).toBe('json_schema');
+      expect(request.response_format.json_schema.strict).toBe(true);
     });
 
     it('extrait le JSON quand le provider ajoute du texte autour', async () => {
@@ -85,6 +99,22 @@ describe('WorkoutAiService', () => {
 
       const result = await generateWorkout(defaultInput, mockAiConfig);
       expect(result.title).toBe('Séance Course à Pied Débutant');
+    });
+
+    it('normalise les champs optionnels null sans consommer la tentative de correction', async () => {
+      const response = structuredClone(validWorkoutResponse);
+      Object.assign(response.exercises[0]!.prescription, { reps: null, circuit_id: null });
+      Object.assign(response.exercises[0]!, { tips: null });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(response) } }],
+          }),
+      });
+      const result = await generateWorkout(defaultInput, mockAiConfig);
+      expect(result.exercises[0]!.prescription!.reps).toBeUndefined();
+      expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
     it('retente une fois si la validation Zod échoue', async () => {
@@ -111,10 +141,15 @@ describe('WorkoutAiService', () => {
       expect(result.exercises).toHaveLength(1);
     });
 
-    it('retente si la duree detaillee ne correspond pas a la duree demandee', async () => {
+    it('retente avec un diagnostic précis si les repos sont incohérents', async () => {
       const inconsistentWorkout = {
         ...validWorkoutResponse,
-        exercises: [{ ...validWorkoutResponse.exercises[0], duration_seconds: 600 }],
+        exercises: [
+          {
+            ...validWorkoutResponse.exercises[0],
+            prescription: { ...validWorkoutResponse.exercises[0]!.prescription, rest_seconds: 101 },
+          },
+        ],
       };
       mockFetch
         .mockResolvedValueOnce({
@@ -137,7 +172,14 @@ describe('WorkoutAiService', () => {
       const result = await generateWorkout(defaultInput, mockAiConfig);
 
       expect(mockFetch).toHaveBeenCalledTimes(2);
-      expect(result.exercises[0]?.duration_seconds).toBe(1_320);
+      expect(result.exercises[0]?.duration_seconds).toBe(1380);
+      expect(String((mockFetch.mock.calls[1]?.[1] as { body: string }).body)).toContain(
+        'repos hors des paliers',
+      );
+      const retry = JSON.parse((mockFetch.mock.calls[1]![1] as { body: string }).body) as {
+        messages: { content: string }[];
+      };
+      expect(retry.messages[1]!.content).toContain(JSON.stringify(inconsistentWorkout));
     });
 
     it('lance AppError.serviceUnavailable après 2 échecs de parsing', async () => {

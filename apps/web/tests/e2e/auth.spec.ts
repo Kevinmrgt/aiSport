@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 // Tests E2E — Authentification et protection des routes (OWASP A01)
+const accessRestricted = (process.env['PRODUCTION_ACCESS_MODE'] ?? 'public') !== 'public';
 
 test.describe('Page de connexion', () => {
   test.beforeEach(async ({ page }) => {
@@ -15,11 +16,22 @@ test.describe('Page de connexion', () => {
     await expect(googleBtn.first()).toBeVisible();
   });
 
-  test('propose uniquement Google et aucun formulaire de mot de passe', async ({ page }) => {
-    await expect(page.locator('input[type="password"]')).toHaveCount(0);
+  test('respecte les fournisseurs autorisés en mode public ou réservé', async ({ page }) => {
     const response = await page.request.get('/api/auth/providers');
     expect(response.ok()).toBe(true);
-    expect(Object.keys(await response.json())).toEqual(['google']);
+    const configuredProviders = await response.json() as Record<string, unknown>;
+    const providers = Object.keys(configuredProviders).sort();
+    expect(providers).toEqual(accessRestricted ? ['google'] : ['beta', 'google']);
+    await expect(page.locator('input[type="password"]')).toHaveCount(accessRestricted ? 0 : 1);
+    if (accessRestricted) {
+      await expect(page.getByRole('group', { name: 'Accès bêta' })).toHaveCount(0);
+    } else {
+      await expect(page.getByRole('group', { name: 'Accès bêta' })).toBeVisible();
+      await expect(page.getByLabel('Adresse e-mail', { exact: true })).toBeVisible();
+      await expect(page.getByLabel('Mot de passe bêta', { exact: true })).toBeVisible();
+    }
+    await expect(page.getByRole('group', { name: /jury/i })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /explorer l’aperçu/i })).toHaveCount(0);
   });
 
   test('RGAA 4.1 — le bouton Google a un aria-label ou texte explicite', async ({ page }) => {
@@ -31,6 +43,11 @@ test.describe('Page de connexion', () => {
 });
 
 test.describe('Protection des routes (OWASP A01)', () => {
+  test('/admin redirige vers /login sans session', async ({ page }) => {
+    await page.goto('/admin');
+    await expect(page).toHaveURL(/\/login/);
+  });
+
   test('/generate redirige vers /login sans session', async ({ page }) => {
     await page.goto('/generate');
     // Next.js redirect → on doit atterrir sur /login

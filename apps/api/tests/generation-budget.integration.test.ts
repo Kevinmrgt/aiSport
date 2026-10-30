@@ -325,7 +325,7 @@ suite('PostgreSQL persistent generation budgets', () => {
     await repositoryA.recordUsage(
       operation.id,
       userIds[0]!,
-      { model: attempt.model, inputTokens: 23_000, outputTokens: 2000, totalTokens: 25_000 },
+      { model: attempt.model, inputTokens: 35_000, outputTokens: 2000, totalTokens: 37_000 },
       policy,
     );
     const program: TrainingProgram = {
@@ -356,7 +356,7 @@ suite('PostgreSQL persistent generation budgets', () => {
       .from(generationOperations)
       .where(eq(generationOperations.id, operation.id));
     expect(stored?.status).toBe('succeeded');
-    expect(stored?.reservedTokens).toBe(25_000);
-    expect(stored?.inputTokens).toBe(23_000);
+    expect(stored?.reservedTokens).toBe(37_000);
+    expect(stored?.inputTokens).toBe(35_000);
   });
 });

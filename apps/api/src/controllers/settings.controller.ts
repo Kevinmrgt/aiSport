@@ -1,6 +1,10 @@
 import type { Context } from 'hono';
 import { z } from 'zod';
-import { findSettingsByUser, upsertSettings } from '../repositories/settings.repository.js';
+import {
+  findSettingsByUser,
+  upsertSettings,
+  findPlatformSettings,
+} from '../repositories/settings.repository.js';
 import { AppError } from '../types/app-error.js';
 import type { AiProvider } from '../services/ai.service.js';
 import { generationPolicy } from '../services/generation-policy.js';
@@ -79,7 +83,8 @@ export async function resolveAiConfig(userId: string): Promise<{
 
   try {
     const row = await findSettingsByUser(userId);
-    model = normalizeOpenAiModel(row?.aiModel);
+    const platform = row?.aiModel ? null : await findPlatformSettings();
+    model = normalizeOpenAiModel(row?.aiModel ?? platform?.defaultAiModel);
   } catch {
     console.warn('[resolveAiConfig] user_settings table inaccessible, fallback cle serveur');
   }

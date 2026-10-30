@@ -1,3 +1,4 @@
+import type { CreditPersistence } from '../repositories/billing.repository.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { generationBudgetRepository } from '../repositories/generation-budget.repository.js';
 import type { GenerationKind } from '../repositories/generation-budget.repository.js';
@@ -35,7 +36,8 @@ export async function executeBudgetedGeneration<Content, Record>(options: {
   maxAttempts: number;
   generate: (execution: AiExecutionOptions) => Promise<Content>;
   replay: (resourceId: string) => Promise<Record>;
-  complete: (operationId: string, content: Content) => Promise<Record>;
+  complete: (operationId: string, content: Content, persist?: CreditPersistence) => Promise<Record>;
+  withEntitlement?: (work: (persist?: CreditPersistence) => Promise<Record>) => Promise<Record>;
 }): Promise<Record> {
   if (
     !Number.isSafeInteger(options.maxAttempts) ||
@@ -83,8 +85,11 @@ export async function executeBudgetedGeneration<Content, Record>(options: {
         await generationBudgetRepository.recordUsage(operationId, options.userId, usage, policy);
       },
     };
-    const content = await options.generate(execution);
-    return await options.complete(operationId, content);
+    const work = async (persist?: CreditPersistence) => {
+      const content = await options.generate(execution);
+      return options.complete(operationId, content, persist);
+    };
+    return await (options.withEntitlement ? options.withEntitlement(work) : work());
   } catch (error) {
     try {
       await generationBudgetRepository.fail(operationId, options.userId);

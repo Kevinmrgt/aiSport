@@ -9,6 +9,12 @@ import {
   userSettings,
   generationQuotas,
   sessions,
+  billingAccounts,
+  billingSubscriptions,
+  billingCreditGrants,
+  billingCreditReservations,
+  betaTesters,
+  betaCreditAdjustments,
 } from '../db/schema.js';
 import { accountRevocations } from '../db/privacy.schema.js';
 import {
@@ -40,6 +46,39 @@ export async function exportOwnedAccount(userId: string) {
         .where(eq(userSettings.userId, userId));
       return {
         formatVersion: 1,
+        billingAccounts: await tx
+          .select()
+          .from(billingAccounts)
+          .where(eq(billingAccounts.userId, userId)),
+        billingSubscriptions: await tx
+          .select()
+          .from(billingSubscriptions)
+          .where(eq(billingSubscriptions.userId, userId)),
+        billingCreditGrants: await tx
+          .select()
+          .from(billingCreditGrants)
+          .where(eq(billingCreditGrants.userId, userId)),
+        billingCreditReservations: await tx
+          .select()
+          .from(billingCreditReservations)
+          .where(eq(billingCreditReservations.userId, userId)),
+        betaAccess: await tx
+          .select({
+            generationBalance: betaTesters.generationBalance,
+            active: betaTesters.active,
+            createdAt: betaTesters.createdAt,
+            updatedAt: betaTesters.updatedAt,
+          })
+          .from(betaTesters)
+          .where(eq(betaTesters.userId, userId)),
+        betaCreditAdjustments: await tx
+          .select({
+            amount: betaCreditAdjustments.amount,
+            balanceAfter: betaCreditAdjustments.balanceAfter,
+            createdAt: betaCreditAdjustments.createdAt,
+          })
+          .from(betaCreditAdjustments)
+          .where(eq(betaCreditAdjustments.betaUserId, userId)),
         exportedAt: new Date().toISOString(),
         user,
         identities,

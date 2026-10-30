@@ -26,7 +26,7 @@ test.describe('RGAA 4.1 — Accessibilité globale', () => {
 
     test(`${url} — structure sémantique : header, main, footer`, async ({ page }) => {
       await page.goto(url);
-      await expect(page.locator('header')).toBeVisible();
+      await expect(page.getByRole('banner')).toBeVisible();
       await expect(page.locator('main')).toBeVisible();
       await expect(page.locator('footer')).toBeVisible();
     });

@@ -6,3 +6,8 @@ export const accountRouter = new Hono();
 accountRouter.use('*', authMiddleware);
 accountRouter.get('/export', handleExportAccount);
 accountRouter.delete('/', handleDeleteAccount);
+
+accountRouter.get('/status', (ctx) => {
+  ctx.header('Cache-Control', 'no-store');
+  return ctx.json({ suspended: ctx.get('accountSuspended') });
+});
