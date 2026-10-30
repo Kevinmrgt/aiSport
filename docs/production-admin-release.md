@@ -94,6 +94,85 @@ restent obligatoires. L'API reçoit `AI_MAX_COMPLETION_TOKENS=11000` pour la
 capacité du planificateur de septembre ; les budgets quotidiens et globaux ne
 sont pas augmentés par ce workflow.
 
+## Alias et retour arrière vérifié
+
+Avant de modifier les paramètres Vercel, le workflow relève chaque alias public
+par `GET /v4/aliases/{hostname}?projectId=...`. Il vérifie le projet, le déploiement
+READY, sa métadonnée `sourceRevision` et la santé publique au même SHA. Cette
+référence peut avoir une révision différente entre API et Web au départ. Le
+champ `projects.targets.production` n'est pas une preuve d'alias servi et n'est
+plus utilisé pour choisir le rollback.
+
+Après promotion, une réponse saine portant exactement l'ancien SHA capturé
+peut être réessayée ; le contrôle de l'affectation peut aussi attendre exactement
+l'ancien déploiement. Les attentes sont 1, 2, 4, 8, 15, 15 et 15 secondes, avec
+huit essais maximum et une échéance de 90 secondes avant un nouvel essai.
+L'essai déjà engagé reste borné par la lecture d'alias (30 secondes) et la
+requête de santé (20 secondes) ; aucune attente n'est illimitée. Un troisième SHA,
+HTTP 500/503, du JSON invalide ou une readiness incorrecte bloque immédiatement.
+Ces attentes concernent seulement les alias publics, jamais les URL candidates.
+Les deux alias sont revérifiés au SHA qualifié après les deux promotions ; un
+couple de versions différentes ne constitue pas une livraison complète.
+
+En cas d'échec, les compensations restaurent les paramètres et vérifient leur
+valeur, type, portée et absence initiale. Le rollback réaffecte les références
+capturées, Web avant API, pour les composants dont la promotion a été tentée,
+puis contrôle l'affectation et la santé de chacun au SHA antérieur propre à ce
+composant. Les jetons temporaires créés par le workflow sont révoqués avant la
+première promotion, avec compensation idempotente en cas d'erreur.
+
+`rollbackComplete` exige ces vérifications. En cas de valeur `false`, consulter
+`rollback.api` et `rollback.web` : échec de commande, convergence de l'alias,
+lecture de l'environnement et nettoyage du jeton sont distingués sans valeurs
+privées. Utiliser les `previousAliasReferences` vérifiées pour la reprise ; ne
+pas sélectionner un déploiement d'après son seul statut production. Une commande
+de promotion expirée peut continuer côté fournisseur : le succès de la commande
+ou son erreur ne remplace donc pas la vérification des alias servis.
+
+Contrats officiels : [Get an Alias](https://vercel.com/docs/rest-api/aliases/get-an-alias)
+et [Vercel promote](https://vercel.com/docs/cli/promote).
+
+## Recette API optionnelle avec le fournisseur réel
+
+L'entrée `qualification_confirm` reste vide par défaut. Seule la valeur exacte
+`one-workout-one-program-existing-admin`, avec un mode `deploy` ou `update`,
+active la recette après la réussite des deux promotions. La validation des
+entrées refuse les autres combinaisons avant toute modification distante.
+
+La recette relit la CI du SHA, les deux configurations fermées, les affectations
+réelles des domaines et les révisions publiques. Elle exige l'unique compte
+administrateur épinglé avec sa liaison Google déjà présente ; elle ne crée ni
+identité, ni session, ni JWT. Son authentification est un appel administratif
+service-à-service avec le secret existant. Le nom stocké est réémis exactement
+pour préserver le profil lors de la résolution d'identité.
+
+Cette vérification est explicitement différente d'une nouvelle connexion Google
+et d'un parcours navigateur : le rapport indique `googleFreshLoginTested=false`
+et `browserInteractionTested=false`. Les identifiants d'alias/projet/déploiement
+et le SHA sont contrôlés avant chaque transport privilégié, sans suivre de
+redirection vers un autre hôte.
+
+Le script envoie au maximum une demande de séance de marche de quinze minutes
+et une demande de programme de deux semaines, deux séances de vingt minutes
+par semaine. Les reprises internes du fournisseur restent soumises aux mêmes
+budgets et limites applicatives. Un échec arrête les nouvelles demandes ; les
+clés restent identiques lors d'une relance GitHub du même run pour empêcher un
+nouvel appel payé involontaire.
+
+Les contenus restent en mémoire privée. Les contrats de prescriptions v2,
+durées prévues, persistance et comptabilité sont vérifiés. Le nettoyage ne vise
+que les ressources rattachées en lecture seule aux deux clés de cette recette.
+La restitution des crédits virtuels passe par l'API d'administration normale,
+avec audit et clé idempotente, uniquement lorsque le débit et la suppression
+sont prouvés. Les coûts IA réellement consommés et les tentatives ne sont pas
+annulés. Toute incertitude ou activité concurrente empêche une dotation aveugle
+et produit `manualCleanupRequired`.
+
+Le rapport expurgé `admin-production-recipe.json` est borné à `RUNNER_TEMP` et
+joint aux preuves du workflow. Il ne contient aucun nom, sujet Google, secret,
+URL de base, prompt, contenu généré ou erreur brute. Le script ne demande aucun
+secret OpenAI, Google ou Stripe supplémentaire et n'exécute aucun SQL d'écriture.
+
 ## Exploitation et reliquat
 
 L'adresse est fournie par le secret GitHub `BOOTSTRAP_ADMIN_EMAIL` ; elle n'est
@@ -109,13 +188,16 @@ Avant réactivation, synchroniser ses connexions avec la nouvelle cible et
 satisfaire son préflight. Aucune validation juridique ou sportive, connexion
 Google réelle ou réception d'alerte n'est inventée.
 
-Le propriétaire doit effectuer sa première connexion Google, vérifier une
-séance et un programme réels, puis fournir les informations de l'éditeur et
+Lors d'une première initialisation, le propriétaire effectue sa connexion
+Google ; les mises à jour conservent ensuite cette liaison. La vérification
+navigateur et une connexion neuve restent distinguées de la recette API.
+Avant l'ouverture, il faut fournir les informations de l'éditeur et
 du contact public, les traitements/transferts et durées de conservation retenus.
 Contrats prestataires, budget, alertes, conservation indépendante des sauvegardes
 et de leur clé et qualification sportive restent à confirmer avant ouverture.
 
-L'ancienne intégration imposait des clés Stripe de test. Aucune facturation
-n'est reprise et aucune opération Stripe distante n'est exécutée. Le propriétaire
-conserve la vérification de son tableau de bord et le nettoyage des données de
-test éventuelles.
+Le produit restauré de référence `fd750f0` contient les offres, abonnements et
+crédits en mode Stripe de test. Les anciennes données de facturation ne sont pas
+importées dans la base active. La recette API ne lance ni Checkout ni paiement
+Stripe ; sa restitution porte uniquement sur ses crédits virtuels prouvés.
+L'activation d'encaissements réels reste une décision et une livraison séparées.

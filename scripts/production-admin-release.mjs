@@ -5,7 +5,7 @@ import { join, resolve, sep } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { runAdminBootstrap, targetDatabaseUrl, readSelectedAdminId } from './production-admin-bootstrap.mjs';
 import { Client, databaseUrl, readDatabaseIdentity, fileHash, migrationFingerprint, require, migrationsFolder, quoteIdentifier } from './db-operations.mjs';
-import { checkHealth } from './cd-health-check.mjs';
+import { checkHealth, validateHealthPayload } from './cd-health-check.mjs';
 import { inspectDatabaseMigrationLineage, readCandidateLineage } from './db-migration-lineage.mjs';
 
 class ReleaseError extends Error {
@@ -18,7 +18,7 @@ const mutableKeys = new Set(['DATABASE_URL', 'ALCIDE_DATABASE_URL', 'PRODUCTION_
 const releaseStages = new Set(['input_validation', 'ci_verification', 'configuration_read', 'bootstrap_plan', 'source_reference', 'backup', 'rehearsal',
   'diagnostic_input', 'diagnostic_deployment_lookup', 'diagnostic_environment_pull', 'diagnostic_project_environment_pull', 'diagnostic_project_database_read', 'diagnostic_database_sql',
   'prepared_backup_verification', 'live_target_verification', 'additive_live_migration', 'api_reference', 'web_reference', 'bootstrap_apply', 'admin_lookup_source', 'admin_lookup_target', 'admin_identity_comparison',
-  ...['api', 'web'].flatMap((project) => ['env_readback', 'cleanup', 'pull', 'build', 'function_environment', 'build_artifacts', 'deploy', 'health', 'oauth_configuration', 'automation_bypass_create', 'automation_bypass_revoke', 'denied_probe', 'promote', 'alias_health', 'alias_denied_probe',
+  ...['api', 'web'].flatMap((project) => ['env_readback', 'cleanup', 'pull', 'build', 'function_environment', 'build_artifacts', 'deploy', 'health', 'oauth_configuration', 'automation_bypass_create', 'automation_bypass_revoke', 'denied_probe', 'promote', 'alias_health', 'final_alias_health', 'alias_denied_probe', 'rollback_environment', 'rollback_alias',
     ...[...mutableKeys].map((key) => `env_${key}`)].map((action) => `${project}_${action}`))]);
 const bootstrapFailureReasons = new Set(['admin_not_unique', 'admin_identity_lookup_failed', 'admin_identity_mismatch', 'explicit_admin_email_required']);
 const healthFailureReasons = new Map([
@@ -30,6 +30,10 @@ const healthFailureReasons = new Map([
 ]);
 const safeHealthChecks = (checks) => Object.fromEntries(['database', 'schema', 'aiConfiguration']
   .filter((key) => ['ok', 'missing', 'unavailable'].includes(checks?.[key])).map((key) => [key, checks[key]]));
+const productionAliases = {
+  api: { origin: 'https://ai-sport-api.vercel.app', path: '/health/ready', service: 'alcide-api', status: 'ready' },
+  web: { origin: 'https://www.alcideai.fr', path: '/api/health', service: 'alcide-web', status: 'ok' },
+};
 
 export function safeVercelValidation(payload) {
   const error = payload?.error ?? payload;
@@ -60,7 +64,7 @@ export function safeReleaseFailure(error, stage) {
   const pgCodes = new Set(['42501', '42P04', '3D000', '28P01', '28000', '08000', '08001', '08003', '08004', '08006', '08007', '08P01', '53300', '53400', '57014', '57P01', '57P02', '57P03', '55006', 'XX000']);
   const networkCodes = new Set(['ECONNRESET', 'ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', 'EAI_AGAIN', 'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_HEADERS_TIMEOUT', 'UND_ERR_SOCKET', 'CERT_HAS_EXPIRED', 'UNABLE_TO_VERIFY_LEAF_SIGNATURE']);
   const code = [error?.code, error?.cause?.code].find((value) => pgCodes.has(value) || networkCodes.has(value));
-  const healthStage = ['api_health', 'web_health', 'api_alias_health', 'web_alias_health'].includes(stage);
+  const healthStage = ['api_health', 'web_health', 'api_alias_health', 'web_alias_health', 'api_final_alias_health', 'web_final_alias_health', 'api_rollback_alias', 'web_rollback_alias'].includes(stage);
   const healthHttp = healthStage && /^Health HTTP \d{3}$/.test(error?.message ?? '');
   const httpStatus = (error instanceof ReleaseError && /^vercel_http_\d{3}$/.test(error.message)) || healthHttp ? Number(error.message.slice(-3)) :
     Number.isInteger(error?.status) && error.status >= 100 && error.status <= 599 ? error.status : undefined;
@@ -77,6 +81,7 @@ export function safeReleaseFailure(error, stage) {
     ...(healthStage && Object.keys(safeHealthChecks(error?.healthChecks)).length ? { healthChecks: safeHealthChecks(error.healthChecks) } : {}),
     ...(error instanceof ReleaseError && error.diagnostics ? { command: error.diagnostics } : {}),
     ...(error instanceof ReleaseError && error.providerValidation ? { providerValidation: error.providerValidation } : {}),
+    ...(error instanceof ReleaseError && error.aliasConvergence ? { aliasConvergence: error.aliasConvergence } : {}),
   };
 }
 
@@ -162,10 +167,34 @@ export class VercelProduction {
     return Object.fromEntries(entries);
   }
   async previousDeployment(project) {
-    const result = await this.request(`/v9/projects/${encodeURIComponent(project)}`);
-    const url = result.targets?.production?.url;
-    if (typeof url !== 'string' || !/^[a-z0-9.-]+\.vercel\.app$/.test(url)) fail('previous_production_deployment_required');
-    return `https://${url}`;
+    const current = await this.aliasDeployment(project);
+    const deployment = await this.request(`/v13/deployments/${encodeURIComponent(current.deploymentId)}`);
+    if (deployment.projectId !== project || deployment.id !== current.deploymentId || deployment.url !== current.url.slice(8) ||
+        deployment.readyState !== 'READY' || !/^[a-f0-9]{40}$/.test(deployment.meta?.sourceRevision ?? '')) fail('previous_alias_deployment_not_qualified');
+    const revision = deployment.meta.sourceRevision;
+    const policy = productionAliases[current.component];
+    await checkReleaseHealth(`${policy.origin}${policy.path}`, { service: policy.service, status: policy.status, revision }, { fetcher: this.fetcher });
+    return { ...current, revision, servedRevisionVerified: true };
+  }
+  async aliasDeployment(project) {
+    const component = project === this.env.VERCEL_API_PROJECT_ID ? 'api' : project === this.env.VERCEL_WEB_PROJECT_ID ? 'web' : null;
+    if (!component) fail('production_alias_project_required');
+    const alias = new URL(productionAliases[component].origin).hostname;
+    const result = await this.request(`/v4/aliases/${encodeURIComponent(alias)}?projectId=${encodeURIComponent(project)}`);
+    const deploymentId = result.deploymentId;
+    const url = result.deployment?.url;
+    if (result.alias !== alias || result.projectId !== project || result.redirect || result.deletedAt ||
+        !/^dpl_[a-zA-Z0-9]+$/.test(deploymentId ?? '') || result.deployment?.id !== deploymentId ||
+        typeof url !== 'string' || !/^[a-z0-9-]+\.vercel\.app$/.test(url)) fail('production_alias_deployment_unverifiable');
+    return { component, alias, deploymentId, url: `https://${url}` };
+  }
+  async verifyAliasDeployment(project, expectedUrl, previousUrl) {
+    const assigned = await this.aliasDeployment(project);
+    if (assigned.url !== expectedUrl) {
+      if (previousUrl && assigned.url === previousUrl) { const error = new ReleaseError('alias_assignment_pending'); error.aliasAssignmentPending = true; throw error; }
+      fail('alias_deployment_mismatch');
+    }
+    return { assignmentVerified: true };
   }
   async temporaryAutomationBypass(project, undo) {
     // Vercel's official provider validates /^[a-zA-Z0-9]{32}$/ for custom
@@ -734,6 +763,14 @@ export async function checkReleaseHealth(url, expected, { bypassSecret, fetcher 
     // Never forward automation credentials to another origin after a redirect.
     if (new URL(target).origin !== origin) fail('health_cross_origin_redirect_refused');
     const response = await fetchWithAutomationPropagation(target, options, { bypassSecret, fetcher, pauseImpl });
+    if (response.ok && response.headers.get('content-type')?.includes('application/json') && expected.revision) {
+      let observed;
+      try { observed = validateHealthPayload(await response.clone().json(), { ...expected, revision: undefined }); }
+      catch { /* Keep the ordinary JSON/readiness validation and its fixed failure. */ }
+      if (observed && observed.revision !== expected.revision.toLowerCase()) {
+        const error = new ReleaseError('health_revision_mismatch'); error.observedRevision = observed.revision; throw error;
+      }
+    }
     if (!response.ok && response.headers.get('content-type')?.includes('application/json')) {
       let payload;
       try { payload = await response.clone().json(); } catch { /* The ordinary JSON/status checks still fail closed. */ }
@@ -746,6 +783,53 @@ export async function checkReleaseHealth(url, expected, { bypassSecret, fetcher 
     }
     return response;
   } });
+}
+
+export async function checkAliasConvergence(url, expected, { previousRevision, health = checkReleaseHealth,
+  verifyAssignment = async () => {}, pause: pauseImpl = pause, now = Date.now,
+} = {}) {
+  if (!Object.values(productionAliases).some((policy) => url === `${policy.origin}${policy.path}`) ||
+      !/^[a-f0-9]{40}$/.test(expected.revision ?? '') || !/^[a-f0-9]{40}$/.test(previousRevision ?? '')) fail('alias_convergence_reference_required');
+  const delays = [1000, 2000, 4000, 8000, 15000, 15000, 15000];
+  const startedAt = now(); const deadline = startedAt + 90_000; let waitedMs = 0;
+  for (let attempt = 0; ; attempt += 1) {
+    // Observe both planes on every attempt. An old control-plane assignment
+    // must never conceal an unhealthy runtime behind a propagation retry.
+    const [assignment, observedHealth] = await Promise.allSettled([
+      Promise.resolve().then(verifyAssignment), Promise.resolve().then(() => health(url, expected)),
+    ]);
+    const healthFailed = observedHealth.status === 'rejected'; const assignmentFailed = assignment.status === 'rejected';
+    const healthError = healthFailed ? observedHealth.reason : null;
+    const assignmentError = assignmentFailed ? assignment.reason : null;
+    const previousServed = healthError instanceof ReleaseError && healthError.message === 'health_revision_mismatch' && healthError.observedRevision === previousRevision;
+    const assignmentPending = assignmentError instanceof ReleaseError && assignmentError.aliasAssignmentPending === true;
+    if (healthFailed && !previousServed) throw healthError;
+    if (assignmentFailed && !assignmentPending) throw assignmentError;
+    if (!healthFailed && !assignmentFailed) {
+      return { complete: true, revision: expected.revision, attempts: attempt + 1, waitedMs, elapsedMs: Math.max(0, now() - startedAt), assignmentVerified: true };
+    }
+    // Only a healthy previous/candidate revision AND the exact previous/
+    // candidate assignment are allowed to wait. Completion requires both new.
+    const delay = delays[attempt];
+    if (delay === undefined || now() + delay >= deadline) {
+      const timeout = new ReleaseError('alias_convergence_timeout');
+      timeout.aliasConvergence = { attempts: attempt + 1, waitedMs, elapsedMs: Math.max(0, now() - startedAt),
+        deadlineMs: 90000, previousRevisionObserved: previousServed, previousAssignmentObserved: assignmentPending };
+      throw timeout;
+    }
+    await pauseImpl(delay); waitedMs += delay;
+  }
+}
+
+export async function verifyRestoredConfiguration(project, original, keys, provider) {
+  const actual = await provider.snapshot(project, keys);
+  const targets = (item) => (Array.isArray(item?.target) ? [...item.target] : item?.target ? [item.target] : []).sort();
+  for (const key of keys) {
+    const old = original[key]; const current = actual[key];
+    if (old == null ? current != null : current == null || current.value !== old.value || current.type !== old.type ||
+        JSON.stringify(targets(current)) !== JSON.stringify(targets(old))) fail('rollback_environment_readback_mismatch');
+  }
+  return { complete: true, keysVerified: keys.length };
 }
 
 export async function checkWebOAuthConfiguration(base, { bypassSecret, fetcher = fetch, pause: pauseImpl = pause } = {}) {
@@ -963,9 +1047,13 @@ export async function bindVercelFunctionEnvironment(env, { component = 'api', ex
 export async function deployClosedProduction(env, configuration, provider, { bootstrap = runAdminBootstrap, command = privateCommand, health = checkReleaseHealth,
   verifyConfiguration = verifyReleaseConfiguration, artifactInspector = inspectVercelBuildArtifacts, functionEnvironmentBinder = bindVercelFunctionEnvironment,
   oauthConfiguration = checkWebOAuthConfiguration, liveVerifier = verifyLiveAdminProduction,
+  aliasConvergence = checkAliasConvergence, restoredConfiguration = verifyRestoredConfiguration, pause: pauseImpl = pause,
   selectedAdminId = readSelectedAdminId, denied = checkUnauthenticatedApiDenied, cleanup = () => cleanupVercelCheckout(env) } = {}) {
   const undo = [];
   const previous = [];
+  const references = [];
+  const changedKeys = { api: new Set(), web: new Set() };
+  const tagCompensation = (offset, component, key) => { for (const action of undo.slice(offset)) { action.component = component; action.key = key; } };
   const releaseValuesByProject = new Map();
   let failedStage = 'api_reference';
   const cli = (project, args, action = args[0]) => command('npx', ['--yes', 'vercel@54.17.2', ...args, '--token', env.VERCEL_TOKEN], { ...env, ...releaseValuesByProject.get(project), VERCEL_PROJECT_ID: project, VERCEL_TELEMETRY_DISABLED: '1', VERCEL_FORCE_BUILD: '1', APP_REVISION: env.RELEASE_REVISION }, 1_200_000,
@@ -975,11 +1063,17 @@ export async function deployClosedProduction(env, configuration, provider, { boo
   let bootstrapResult;
   let liveTargetEvidence;
   let webOAuthConfiguration;
-  let promotionAttempted = false;
+  const promoted = new Set();
+  const aliasVerification = {};
+  const automation = { temporaryTokenUsed: false, revokedBeforePromotion: false };
   try {
-    previous.push(await provider.previousDeployment(env.VERCEL_API_PROJECT_ID));
-    failedStage = 'web_reference';
-    previous.push(await provider.previousDeployment(env.VERCEL_WEB_PROJECT_ID));
+    for (const [index, project] of [env.VERCEL_API_PROJECT_ID, env.VERCEL_WEB_PROJECT_ID].entries()) {
+      failedStage = index === 0 ? 'api_reference' : 'web_reference';
+      const reference = await provider.previousDeployment(project);
+      if (!reference?.servedRevisionVerified || !/^[a-f0-9]{40}$/.test(reference.revision ?? '') ||
+          !/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(reference.url ?? '')) fail('verified_previous_alias_reference_required');
+      references.push(reference); previous.push(reference.url);
+    }
     let newDatabase; let adminId;
     if (env.RELEASE_MODE === 'update') {
       failedStage = 'live_target_verification';
@@ -1009,7 +1103,10 @@ export async function deployClosedProduction(env, configuration, provider, { boo
       const component = index === 0 ? 'api' : 'web';
       for (const [key, value] of Object.entries(values[index])) {
         failedStage = `${component}_env_${key}`;
-        await provider.replace(project, index === 0 ? configuration.api[key] : configuration.web[key], key, value, undo);
+        changedKeys[component].add(key);
+        const offset = undo.length;
+        try { await provider.replace(project, index === 0 ? configuration.api[key] : configuration.web[key], key, value, undo); }
+        finally { tagCompensation(offset, component, key); }
       }
       failedStage = `${component}_env_readback`;
       await verifyConfiguration(project, values[index], provider);
@@ -1040,7 +1137,9 @@ export async function deployClosedProduction(env, configuration, provider, { boo
         bypassSecret = env.VERCEL_AUTOMATION_BYPASS_SECRET;
         if (!bypassSecret) {
           failedStage = 'web_automation_bypass_create';
-          temporaryBypass = await provider.temporaryAutomationBypass(project, undo);
+          const offset = undo.length; automation.temporaryTokenUsed = true;
+          try { temporaryBypass = await provider.temporaryAutomationBypass(project, undo); }
+          finally { tagCompensation(offset, 'web', 'automationToken'); }
           bypassSecret = temporaryBypass.secret;
         }
       }
@@ -1050,31 +1149,81 @@ export async function deployClosedProduction(env, configuration, provider, { boo
       else {
         failedStage = 'web_oauth_configuration';
         webOAuthConfiguration = await oauthConfiguration(url, { bypassSecret });
-        if (temporaryBypass) { failedStage = 'web_automation_bypass_revoke'; await temporaryBypass.revoke(); }
+        if (temporaryBypass) { failedStage = 'web_automation_bypass_revoke'; await temporaryBypass.revoke(); automation.revokedBeforePromotion = true; }
       }
     }
     for (const [index, project] of [env.VERCEL_API_PROJECT_ID, env.VERCEL_WEB_PROJECT_ID].entries()) {
       const component = index === 0 ? 'api' : 'web';
       failedStage = `${component}_promote`;
-      promotionAttempted = true;
+      await provider.verifyAliasDeployment(project, previous[index]);
+      promoted.add(component);
       cli(project, ['promote', urls[index], '--yes']);
       failedStage = `${component}_alias_health`;
-      await health(index === 0 ? 'https://ai-sport-api.vercel.app/health/ready' : 'https://www.alcideai.fr/api/health', { service: index === 0 ? 'alcide-api' : 'alcide-web', status: index === 0 ? 'ready' : 'ok', revision: env.RELEASE_REVISION });
+      const policy = productionAliases[component];
+      aliasVerification[component] = await aliasConvergence(`${policy.origin}${policy.path}`, { service: policy.service, status: policy.status, revision: env.RELEASE_REVISION }, {
+        previousRevision: references[index].revision, health, pause: pauseImpl,
+        verifyAssignment: () => provider.verifyAliasDeployment(project, urls[index], previous[index]),
+      });
       if (index === 0) { failedStage = 'api_alias_denied_probe'; await denied('https://ai-sport-api.vercel.app'); }
     }
+    // Recheck the pair after both promotions; independent earlier successes do
+    // not qualify a mixed final release.
+    for (const [index, component] of ['api', 'web'].entries()) {
+      failedStage = `${component}_final_alias_health`;
+      const project = [env.VERCEL_API_PROJECT_ID, env.VERCEL_WEB_PROJECT_ID][index]; const policy = productionAliases[component];
+      aliasVerification[component].finalVerification = await aliasConvergence(`${policy.origin}${policy.path}`, { service: policy.service, status: policy.status, revision: env.RELEASE_REVISION }, {
+        previousRevision: references[index].revision, health, pause: pauseImpl,
+        verifyAssignment: () => provider.verifyAliasDeployment(project, urls[index], previous[index]),
+      });
+    }
     return { complete: true, access: 'admin-only', revision: env.RELEASE_REVISION, reuseExistingRequested: env.BOOTSTRAP_REUSE_EXISTING === 'verified-admin-copy', deploymentUrls: urls, previousDeploymentUrls: previous, unauthenticatedProtectedApiStatus: 401,
+      previousAliasReferences: references, aliasVerification, automation,
       ...(liveTargetEvidence ? { existingLiveTargetVerified: true, liveTarget: liveTargetEvidence } : { bootstrap: bootstrapResult }), buildArtifactDiagnostics, webOAuthConfiguration };
   } catch (error) {
     let rollbackComplete = true;
-    if (promotionAttempted) {
-      // Roll back Web before API to stop new callers using the new API policy.
-      for (const index of [1, 0]) {
-        try { cli([env.VERCEL_API_PROJECT_ID, env.VERCEL_WEB_PROJECT_ID][index], ['promote', previous[index], '--yes'], 'rollback'); } catch { rollbackComplete = false; }
+    const rollback = { api: { environment: {}, alias: {} }, web: { environment: {}, alias: {}, automation: {} } };
+    for (const compensate of [...undo].reverse()) {
+      try { await compensate(); if (compensate.key === 'automationToken') rollback.web.automation.compensated = true; }
+      catch (compensationError) {
+        rollbackComplete = false;
+        const component = compensate.component === 'api' ? 'api' : 'web';
+        const details = compensate.key === 'automationToken' ? rollback.web.automation : rollback[component].environment;
+        details.compensationFailed = true;
+        details.compensationFailure = safeReleaseFailure(compensationError, `${component}_rollback_environment`);
       }
     }
-    for (const compensate of undo.reverse()) { try { await compensate(); } catch { rollbackComplete = false; } }
+    for (const [index, component] of ['api', 'web'].entries()) {
+      if (!changedKeys[component].size) continue;
+      try {
+        rollback[component].environment = { ...rollback[component].environment,
+          ...await restoredConfiguration([env.VERCEL_API_PROJECT_ID, env.VERCEL_WEB_PROJECT_ID][index], configuration[component], [...changedKeys[component]], provider) };
+      } catch (restorationError) {
+        rollbackComplete = false; rollback[component].environment.complete = false;
+        rollback[component].environment.failure = safeReleaseFailure(restorationError, `${component}_rollback_environment`);
+      }
+    }
+    if (promoted.size) {
+      // Restore Web before API. Even an unpromoted Web alias is checked against
+      // its own captured reference, independently of the API's prior revision.
+      for (const index of [1, 0]) {
+        const component = index === 0 ? 'api' : 'web'; const policy = productionAliases[component];
+        const project = [env.VERCEL_API_PROJECT_ID, env.VERCEL_WEB_PROJECT_ID][index];
+        const details = rollback[component].alias; details.promotionAttempted = promoted.has(component);
+        if (promoted.has(component)) {
+          try { cli(project, ['promote', previous[index], '--yes'], 'rollback'); details.commandSucceeded = true; }
+          catch (rollbackError) { rollbackComplete = false; details.commandSucceeded = false; details.commandFailure = safeReleaseFailure(rollbackError, `${component}_rollback_alias`); }
+        }
+        try {
+          details.verification = await aliasConvergence(`${policy.origin}${policy.path}`, { service: policy.service, status: policy.status, revision: references[index].revision }, {
+            previousRevision: env.RELEASE_REVISION, health, pause: pauseImpl,
+            verifyAssignment: () => provider.verifyAliasDeployment(project, previous[index], urls[index]),
+          });
+        } catch (rollbackError) { rollbackComplete = false; details.failure = safeReleaseFailure(rollbackError, `${component}_rollback_alias`); }
+      }
+    }
     return { complete: false, reason: rollbackComplete ? 'release_failed_rollback_completed' : 'release_failed_manual_rollback_required', rollbackComplete,
       failure: safeReleaseFailure(error, failedStage),
+      rollback, previousAliasReferences: references, aliasVerification, automation,
       stagedDeploymentUrls: urls,
       buildArtifactDiagnostics,
       newDatabaseRetained: bootstrapResult?.targetCreated === true, existingDatabaseRetained: Boolean(liveTargetEvidence) || bootstrapResult?.targetReused === true, previousDeploymentUrls: previous };
