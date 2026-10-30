@@ -1,144 +1,33 @@
 name: Production - Closed admin release
-
 on:
   workflow_dispatch:
-    inputs:
-      mode:
-        description: Plan, isolated rehearsal, initial release or preserve-data update
-        type: choice
-        options: [plan, rehearse, deploy, update]
-        default: plan
-      revision:
-        description: Full immutable SHA with successful CI (deploy/update)
-        required: true
-        type: string
-      target_database_name:
-        description: Initial copy target, or current live database for update
-        required: true
-        type: string
-      reuse_existing:
-        description: Initial release only, reuse a strictly verified account-only target
-        type: boolean
-        default: false
-      bootstrap_confirm:
-        description: For deploy only, selective-admin-copy-to-new-database
-        type: string
-        default: ''
-      update_confirm:
-        description: For update only, preserve-live-admin-production
-        type: string
-        default: ''
-      qualification_confirm:
-        description: Optional real API recipe, one-workout-one-program-existing-admin
-        type: string
-        default: ''
-
 permissions:
   contents: read
-  actions: read
-
-concurrency:
-  group: production-database-release
-  cancel-in-progress: false
-
 jobs:
-  closed-admin-release:
+  readonly-runtime-diagnostics:
     runs-on: ubuntu-latest
     environment: production
-    timeout-minutes: 55
+    timeout-minutes: 6
     env:
-      RELEASE_MODE: ${{ inputs.mode }}
-      RELEASE_REVISION: ${{ inputs.revision }}
-      TARGET_DATABASE_NAME: ${{ inputs.target_database_name }}
-      BOOTSTRAP_CONFIRM: ${{ inputs.bootstrap_confirm }}
-      UPDATE_CONFIRM: ${{ inputs.update_confirm }}
-      BOOTSTRAP_REUSE_EXISTING: ${{ inputs.reuse_existing && 'verified-admin-copy' || '' }}
-      BOOTSTRAP_ADMIN_EMAIL: ${{ secrets.BOOTSTRAP_ADMIN_EMAIL }}
-      ADMIN_IMPORT_POLICY: account-only
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_API_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
-      VERCEL_WEB_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
-      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-      BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
-      ADMIN_RECIPE_CONFIRM: ${{ inputs.qualification_confirm }}
-      GITHUB_TOKEN: ${{ github.token }}
       VERCEL_TELEMETRY_DISABLED: '1'
+      DIAGNOSTIC_FILE: ${{ runner.temp }}/generation-runtime-diagnostics.json
     steps:
-      - name: Validate immutable revision before checkout
-        run: |
-          node -e 'if (!/^[a-f0-9]{40}$/.test(process.env.RELEASE_REVISION || "")) process.exit(1)'
-          node -e 'const c=process.env.ADMIN_RECIPE_CONFIRM || ""; if(c && (c!=="one-workout-one-program-existing-admin" || !["deploy","update"].includes(process.env.RELEASE_MODE))) process.exit(1)'
-
-      - name: Checkout immutable candidate
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ inputs.revision }}
           persist-credentials: false
-
-      - name: Verify checkout matches candidate
-        run: test "$(git rev-parse HEAD)" = "$RELEASE_REVISION"
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24'
-          cache: pnpm
-
-      - name: Install locked dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build shared validation schemas
-        run: pnpm --filter shared build
-
-      - name: Plan or prepare encrypted full backup and isolated candidate rehearsal
-        env:
-          RELEASE_PHASE: prepare
-          ADMIN_RELEASE_EVIDENCE_FILE: ${{ runner.temp }}/admin-release-prepare.json
-        run: node scripts/production-admin-release.mjs
-
-      - name: Preserve encrypted source backup before production changes
-        if: always() && inputs.mode != 'plan'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - name: Read bounded runtime logs and export application diagnostics only
+        run: node scripts/read-runtime-diagnostics.mjs
+      - name: Preserve sanitized diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: closed-admin-backup-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            ${{ runner.temp }}/alcide-admin-release/release.dump.enc
-            ${{ runner.temp }}/alcide-admin-release/release.dump.manifest.json
-            ${{ runner.temp }}/alcide-admin-release/restore.json
-            ${{ runner.temp }}/alcide-admin-release/rehearsal.json
+          name: generation-runtime-diagnostics
+          path: ${{ runner.temp }}/generation-runtime-diagnostics.json
           if-no-files-found: error
-          retention-days: 30
-
-      - name: Verify rehearsed additive update or initial copy, then stage, verify and promote
-        if: inputs.mode == 'deploy' || inputs.mode == 'update'
-        env:
-          RELEASE_PHASE: release
-          ADMIN_RELEASE_EVIDENCE_FILE: ${{ runner.temp }}/admin-release-final.json
-        run: node scripts/production-admin-release.mjs
-
-      - name: Qualify the existing owner API with the real provider and clean up recipe data
-        if: (inputs.mode == 'deploy' || inputs.mode == 'update') && inputs.qualification_confirm == 'one-workout-one-program-existing-admin'
-        env:
-          ADMIN_RECIPE_EVIDENCE_FILE: ${{ runner.temp }}/admin-production-recipe.json
-        run: node apps/api/scripts/qualify-production-admin.mjs
-
-      - name: Preserve sanitized technical evidence
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: closed-admin-evidence-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            ${{ runner.temp }}/admin-release-*.json
-            ${{ runner.temp }}/admin-production-recipe.json
-          if-no-files-found: warn
-          retention-days: 30
-
-      - name: Remove runner-local decrypted environment and backup material
-        if: always()
-        shell: bash
-        run: |
-          node --input-type=module -e 'import {rm} from "node:fs/promises"; import {resolve} from "node:path"; const root=resolve(process.cwd()); const local=resolve(root,".vercel"); if (!local.startsWith(root+"/")) process.exit(1); await rm(local,{recursive:true,force:true}); await rm(resolve(process.env.RUNNER_TEMP,"alcide-admin-release"),{recursive:true,force:true});'
+          retention-days: 7
