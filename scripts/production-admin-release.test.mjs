@@ -3,7 +3,7 @@ import test from 'node:test';
 import { access, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand, safeReleaseFailure, verifyReleaseConfiguration, checkReleaseHealth, inspectDeploymentDatabase, safeVercelValidation, cleanupVercelCheckout } from './production-admin-release.mjs';
+import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand, safeReleaseFailure, verifyReleaseConfiguration, checkReleaseHealth, inspectDeploymentDatabase, safeVercelValidation, cleanupVercelCheckout, inspectVercelBuildArtifacts } from './production-admin-release.mjs';
 
 const revision = 'a'.repeat(40);
 const privateAdminId = 'd72a58b7-6d4f-4187-90f7-9c763cfe2975';
@@ -507,6 +507,58 @@ test('cache cleanup is limited to the three verified paths inside an explicitly 
     for (const path of ['.vercel', 'apps/api/.vercel', 'apps/web/.vercel']) await assert.rejects(access(join(checkout, path)), { code: 'ENOENT' });
     assert.equal(await readFile(join(directory, 'preserve.fixture'), 'utf8'), 'preserve');
   } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test('local build diagnostics identify function overrides, bundled database literals and separate output roots without revealing values', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'alcide-artifact-inspect-'));
+  const expectedUrl = new URL(source); expectedUrl.pathname = '/alcide_admin_test'; expectedUrl.searchParams.set('sslmode', 'verify-full');
+  const expected = { DATABASE_URL: expectedUrl.toString(), PRODUCTION_ACCESS_MODE: 'admin-only', BOOTSTRAP_ADMIN_USER_ID: privateAdminId };
+  const gha = { ...env, GITHUB_ACTIONS: 'true', GITHUB_WORKSPACE: root };
+  try {
+    const cache = join(root, '.vercel'); const func = join(cache, 'output/functions/api/index.func');
+    await mkdir(func, { recursive: true });
+    await writeFile(join(cache, 'project.json'), JSON.stringify({ projectId: 'api', settings: { rootDirectory: 'apps/api' } }));
+    await writeFile(join(cache, '.env.production.local'), `DATABASE_URL="${source}"\nPRODUCTION_ACCESS_MODE="admin-only"\n`);
+    await writeFile(join(cache, 'output/builds.json'), JSON.stringify({ target: 'production', cliVersion: '54.17.2' }));
+    await writeFile(join(func, '.vc-config.json'), JSON.stringify({ environment: { DATABASE_URL: source, PRODUCTION_ACCESS_MODE: 'public', PRIVATE_KEY: 'private-extra-secret' } }));
+    await writeFile(join(func, 'index.js'), `const database = process.env['DATABASE_URL']; const oldExample = '${source}'; const newExample = '${expected.DATABASE_URL}';`);
+    await mkdir(join(root, 'apps/api/.vercel/output'), { recursive: true });
+    const result = await inspectVercelBuildArtifacts(gha, { cwd: root, component: 'api', expectedValues: expected, sourceDatabaseUrl: source });
+    assert.equal(result.complete, true); assert.equal(result.processEnvironmentObserved, false);
+    assert.equal(result.onlyOneOutputDirectory, false); assert.equal(result.outputs.length, 2);
+    const output = result.outputs[0];
+    assert.equal(output.projectIdMatches, true); assert.equal(output.projectRootDirectoryMatches, true);
+    assert.equal(output.productionBuildTarget, true); assert.equal(output.cliVersionMatches, true);
+    assert.equal(output.pulledEnvironmentPresent, true); assert.deepEqual(output.pulledEnvironmentMismatchedKeys, ['DATABASE_URL']);
+    assert.equal(output.functionConfigurations, 1); assert.equal(output.filesWithDatabaseEnvironmentReference, 1);
+    assert.deepEqual(output.conflictingOverrideKeys, ['DATABASE_URL', 'PRODUCTION_ACCESS_MODE']);
+    assert.deepEqual(output.databaseLiterals, { expected: 1, source: 1, other: 0 });
+    assert.equal(result.environmentOverridesConsistent, false);
+    for (const value of ['private-extra-secret', 'private_user', 'private_password', privateAdminId]) assert.equal(JSON.stringify(result).includes(value), false);
+    await writeFile(join(func, '.vc-config.json'), JSON.stringify({ environment: expected }));
+    assert.equal((await inspectVercelBuildArtifacts(gha, { cwd: root, expectedValues: expected })).environmentOverridesConsistent, true);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test('artifact capture refuses a local checkout and survives a failed staged health check in the release report', async () => {
+  assert.equal((await inspectVercelBuildArtifacts(env)).reason, 'artifact_capture_requires_github_checkout');
+  const provider = providerFixture(); provider.replace = async () => {};
+  let captured = false;
+  const result = await deployClosedProduction(env, { ...configuration(), source }, provider, {
+    bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }), selectedAdminId: async () => privateAdminId,
+    verifyConfiguration: async () => {}, cleanup: async () => {},
+    command: (_command, args) => args.includes('deploy') ? 'https://inspected-candidate.vercel.app' : '',
+    artifactInspector: async (child, options) => {
+      assert.equal(child.PRODUCTION_ACCESS_MODE, 'admin-only'); assert.equal(options.component, 'api');
+      assert.equal(new URL(options.expectedValues.DATABASE_URL).pathname, '/alcide_admin_test');
+      captured = true; return { complete: true, readOnly: true, environmentOverridesConsistent: true, outputs: [] };
+    },
+    health: async () => { assert.equal(captured, true); throw new Error('private-intentional-probe-stop'); },
+  });
+  assert.equal(result.complete, false); assert.equal(result.rollbackComplete, true);
+  assert.equal(result.buildArtifactDiagnostics.api.complete, true);
+  assert.deepEqual(result.stagedDeploymentUrls, ['https://inspected-candidate.vercel.app']);
+  assert.equal(JSON.stringify(result).includes('private-intentional'), false);
 });
 
 test('vendor validation reveals only a bounded machine code and static message categories', () => {

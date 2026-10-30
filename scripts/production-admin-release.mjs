@@ -1,10 +1,10 @@
 import { spawnSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
-import { mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
-import { resolve, sep } from 'node:path';
+import { lstat, mkdir, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
+import { join, resolve, sep } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { runAdminBootstrap, targetDatabaseUrl, readSelectedAdminId } from './production-admin-bootstrap.mjs';
-import { Client, databaseUrl, readDatabaseIdentity, fileHash, migrationFingerprint } from './db-operations.mjs';
+import { Client, databaseUrl, readDatabaseIdentity, fileHash, migrationFingerprint, require } from './db-operations.mjs';
 import { checkHealth } from './cd-health-check.mjs';
 
 class ReleaseError extends Error {
@@ -17,7 +17,7 @@ const mutableKeys = new Set(['DATABASE_URL', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EM
 const releaseStages = new Set(['input_validation', 'ci_verification', 'configuration_read', 'bootstrap_plan', 'source_reference', 'backup', 'rehearsal',
   'diagnostic_input', 'diagnostic_deployment_lookup', 'diagnostic_environment_pull', 'diagnostic_project_environment_pull', 'diagnostic_project_database_read', 'diagnostic_database_sql',
   'prepared_backup_verification', 'api_reference', 'web_reference', 'bootstrap_apply', 'admin_lookup_source', 'admin_lookup_target', 'admin_identity_comparison',
-  ...['api', 'web'].flatMap((project) => ['env_readback', 'cleanup', 'pull', 'build', 'deploy', 'health', 'denied_probe', 'promote', 'alias_health', 'alias_denied_probe',
+  ...['api', 'web'].flatMap((project) => ['env_readback', 'cleanup', 'pull', 'build', 'build_artifacts', 'deploy', 'health', 'denied_probe', 'promote', 'alias_health', 'alias_denied_probe',
     ...[...mutableKeys].map((key) => `env_${key}`)].map((action) => `${project}_${action}`))]);
 const bootstrapFailureReasons = new Set(['admin_not_unique', 'admin_identity_lookup_failed', 'admin_identity_mismatch', 'explicit_admin_email_required']);
 const healthFailureReasons = new Map([
@@ -419,8 +419,108 @@ export async function cleanupVercelCheckout(env, { cwd = process.cwd() } = {}) {
   }
 }
 
+export async function inspectVercelBuildArtifacts(env, { component = 'api', expectedValues, sourceDatabaseUrl, cwd = process.cwd() } = {}) {
+  const report = { scope: 'local-vercel-build-artifacts', readOnly: true, complete: false, processEnvironmentObserved: false, outputs: [] };
+  try {
+    const root = resolve(cwd);
+    if (!['api', 'web'].includes(component) || env.GITHUB_ACTIONS !== 'true' || !env.GITHUB_WORKSPACE || resolve(env.GITHUB_WORKSPACE) !== root) fail('artifact_capture_requires_github_checkout');
+    const expected = expectedValues ?? Object.fromEntries([...mutableKeys].filter((key) => typeof env[key] === 'string').map((key) => [key, env[key]]));
+    const keys = Object.keys(expected);
+    if (!keys.length || keys.some((key) => !mutableKeys.has(key) || typeof expected[key] !== 'string') || (component === 'api' && !expected.DATABASE_URL)) fail('artifact_expected_configuration_required');
+    const projectId = component === 'api' ? env.VERCEL_API_PROJECT_ID : env.VERCEL_WEB_PROJECT_ID;
+    const actualRoot = await realpath(root);
+    const confined = async (path) => {
+      const actual = await realpath(path);
+      if (!actual.startsWith(`${actualRoot}${sep}`)) fail('artifact_path_outside_checkout');
+      return actual;
+    };
+    const privateJson = async (path) => {
+      try {
+        await confined(path);
+        const metadata = await lstat(path);
+        if (metadata.size > 2 * 1024 * 1024) fail('artifact_json_limit_exceeded');
+        return JSON.parse(await readFile(path, 'utf8'));
+      } catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+    };
+    const canonicalDatabase = (value) => {
+      try { return directSourceUrl(value).value; } catch { return null; }
+    };
+    const expectedDatabase = expected.DATABASE_URL ? canonicalDatabase(expected.DATABASE_URL) : null;
+    const sourceDatabase = sourceDatabaseUrl ? canonicalDatabase(sourceDatabaseUrl) : null;
+    report.repositoryLinkConfigurationPresent = Boolean(await privateJson(join(root, '.vercel/repo.json')));
+    let scannedFiles = 0; let scannedBytes = 0;
+    for (const cache of ['.vercel', 'apps/api/.vercel', 'apps/web/.vercel']) {
+      const outputPath = join(root, cache, 'output');
+      try { await confined(outputPath); } catch (error) { if (error.code === 'ENOENT') continue; throw error; }
+      const project = await privateJson(join(root, cache, 'project.json'));
+      const manifest = await privateJson(join(outputPath, 'builds.json'));
+      const output = { location: `${cache}/output`, projectConfigurationPresent: Boolean(project),
+        projectIdMatches: Boolean(project && project.projectId === projectId),
+        projectRootDirectoryMatches: Boolean(project && project.settings?.rootDirectory === `apps/${component}`),
+        productionBuildTarget: manifest?.target === 'production', cliVersionMatches: manifest?.cliVersion === '54.17.2',
+        functionConfigurations: 0, functionsWithEnvironmentOverrides: 0, conflictingOverrideKeys: [],
+        pulledEnvironmentPresent: false, pulledEnvironmentComparedKeys: [], pulledEnvironmentMismatchedKeys: [],
+        filesWithDatabaseEnvironmentReference: 0, databaseLiterals: { expected: 0, source: 0, other: 0 },
+      };
+      try {
+        const pulledPath = join(root, cache, '.env.production.local');
+        await confined(pulledPath);
+        if ((await lstat(pulledPath)).size > 2 * 1024 * 1024) fail('artifact_environment_limit_exceeded');
+        const pulled = require('dotenv').parse(await readFile(pulledPath, 'utf8'));
+        output.pulledEnvironmentPresent = true;
+        output.pulledEnvironmentComparedKeys = keys.filter((key) => Object.hasOwn(pulled, key));
+        output.pulledEnvironmentMismatchedKeys = output.pulledEnvironmentComparedKeys.filter((key) => pulled[key] !== expected[key]);
+      } catch (error) { if (error.code !== 'ENOENT') throw error; }
+      const conflicts = new Set();
+      const visit = async (directory, depth = 0) => {
+        if (depth > 30) fail('artifact_directory_limit_exceeded');
+        await confined(directory);
+        for (const entry of await readdir(directory, { withFileTypes: true })) {
+          if (++scannedFiles > 20_000) fail('artifact_file_limit_exceeded');
+          if (entry.isSymbolicLink() || entry.name === 'node_modules') continue;
+          const path = join(directory, entry.name);
+          if (entry.isDirectory()) { await visit(path, depth + 1); continue; }
+          if (!entry.isFile()) continue;
+          if (entry.name === '.vc-config.json') {
+            const configuration = await privateJson(path);
+            output.functionConfigurations += 1;
+            if (configuration?.environment && typeof configuration.environment === 'object') {
+              output.functionsWithEnvironmentOverrides += 1;
+              for (const key of keys) if (Object.hasOwn(configuration.environment, key) && configuration.environment[key] !== expected[key]) conflicts.add(key);
+            }
+            continue;
+          }
+          if (!/\.(?:[cm]?js|ts)$/.test(entry.name)) continue;
+          const metadata = await lstat(path);
+          if (metadata.size > 2 * 1024 * 1024) { output.largeCodeFilesSkipped = (output.largeCodeFilesSkipped ?? 0) + 1; continue; }
+          scannedBytes += metadata.size;
+          if (scannedBytes > 32 * 1024 * 1024) fail('artifact_code_limit_exceeded');
+          await confined(path);
+          const code = await readFile(path, 'utf8');
+          if (/process\s*\.\s*env\s*(?:\.\s*DATABASE_URL|\[\s*['"]DATABASE_URL['"]\s*\])/.test(code)) output.filesWithDatabaseEnvironmentReference += 1;
+          for (const literal of code.match(/postgres(?:ql)?:\/\/[^\s"'`\\<>),}]+/gi) ?? []) {
+            const canonical = canonicalDatabase(literal);
+            const type = canonical && canonical === expectedDatabase ? 'expected' : canonical && canonical === sourceDatabase ? 'source' : 'other';
+            output.databaseLiterals[type] += 1;
+          }
+        }
+      };
+      try { await visit(join(outputPath, 'functions')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+      output.conflictingOverrideKeys = [...conflicts].sort();
+      report.outputs.push(output);
+    }
+    report.component = component; report.expectedKeysCompared = keys;
+    report.complete = report.outputs.length > 0;
+    report.environmentOverridesConsistent = report.outputs.every((output) => output.conflictingOverrideKeys.length === 0);
+    report.onlyOneOutputDirectory = report.outputs.length === 1;
+    report.scannedFiles = scannedFiles; report.scannedCodeBytes = scannedBytes;
+    if (!report.complete) report.reason = 'build_output_not_found';
+  } catch (error) { report.reason = error instanceof ReleaseError ? error.message : 'private_artifact_diagnostics_required'; }
+  return report;
+}
+
 export async function deployClosedProduction(env, configuration, provider, { bootstrap = runAdminBootstrap, command = privateCommand, health = checkReleaseHealth,
-  verifyConfiguration = verifyReleaseConfiguration,
+  verifyConfiguration = verifyReleaseConfiguration, artifactInspector = inspectVercelBuildArtifacts,
   selectedAdminId = readSelectedAdminId, denied = checkUnauthenticatedApiDenied, cleanup = () => cleanupVercelCheckout(env) } = {}) {
   const undo = [];
   const previous = [];
@@ -429,6 +529,7 @@ export async function deployClosedProduction(env, configuration, provider, { boo
   const cli = (project, args, action = args[0]) => command('npx', ['--yes', 'vercel@54.17.2', ...args, '--token', env.VERCEL_TOKEN], { ...env, ...releaseValuesByProject.get(project), VERCEL_PROJECT_ID: project, VERCEL_TELEMETRY_DISABLED: '1', VERCEL_FORCE_BUILD: '1', APP_REVISION: env.RELEASE_REVISION }, 1_200_000,
     { stage: `${project === env.VERCEL_API_PROJECT_ID ? 'api' : 'web'}_${action}` });
   const urls = [];
+  const buildArtifactDiagnostics = {};
   let bootstrapResult;
   let promotionAttempted = false;
   try {
@@ -466,6 +567,8 @@ export async function deployClosedProduction(env, configuration, provider, { boo
       cli(project, ['pull', '--yes', '--environment=production']);
       failedStage = `${component}_build`;
       cli(project, ['build', '--prod']);
+      failedStage = `${component}_build_artifacts`;
+      buildArtifactDiagnostics[component] = await artifactInspector({ ...env, ...values[index] }, { component, expectedValues: values[index], sourceDatabaseUrl: configuration.source });
       failedStage = `${component}_deploy`;
       // Bare --env KEY makes the pinned CLI read the value from child env.
       // Secret values never become command arguments or persisted CLI logs.
@@ -487,7 +590,7 @@ export async function deployClosedProduction(env, configuration, provider, { boo
       await health(index === 0 ? 'https://ai-sport-api.vercel.app/health/ready' : 'https://www.alcideai.fr/api/health', { service: index === 0 ? 'alcide-api' : 'alcide-web', status: index === 0 ? 'ready' : 'ok', revision: env.RELEASE_REVISION });
       if (index === 0) { failedStage = 'api_alias_denied_probe'; await denied('https://ai-sport-api.vercel.app'); }
     }
-    return { complete: true, access: 'admin-only', revision: env.RELEASE_REVISION, reuseExistingRequested: env.BOOTSTRAP_REUSE_EXISTING === 'verified-admin-copy', deploymentUrls: urls, previousDeploymentUrls: previous, unauthenticatedProtectedApiStatus: 401, bootstrap: bootstrapResult };
+    return { complete: true, access: 'admin-only', revision: env.RELEASE_REVISION, reuseExistingRequested: env.BOOTSTRAP_REUSE_EXISTING === 'verified-admin-copy', deploymentUrls: urls, previousDeploymentUrls: previous, unauthenticatedProtectedApiStatus: 401, bootstrap: bootstrapResult, buildArtifactDiagnostics };
   } catch (error) {
     let rollbackComplete = true;
     if (promotionAttempted) {
@@ -500,6 +603,7 @@ export async function deployClosedProduction(env, configuration, provider, { boo
     return { complete: false, reason: rollbackComplete ? 'release_failed_rollback_completed' : 'release_failed_manual_rollback_required', rollbackComplete,
       failure: safeReleaseFailure(error, failedStage),
       stagedDeploymentUrls: urls,
+      buildArtifactDiagnostics,
       newDatabaseRetained: bootstrapResult?.targetCreated === true, existingDatabaseRetained: bootstrapResult?.targetReused === true, previousDeploymentUrls: previous };
   } finally { await cleanup(); }
 }

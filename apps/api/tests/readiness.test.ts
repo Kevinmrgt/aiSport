@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 
 const client = vi.hoisted(() => ({
   connect: vi.fn(),
@@ -187,5 +188,90 @@ describe('readiness dependency bounds', () => {
     expect(READINESS_MIGRATION_TIMESTAMP).toBe(
       Math.max(...journal.entries.map((entry) => entry.when)),
     );
+  });
+
+  it('logs only hashed SQL identity, canonical missing tables and migration metadata when schema is missing', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    client.query.mockResolvedValueOnce({ rows: [{ schema_ready: false }] });
+    client.query.mockResolvedValueOnce({ rows: [{ database_name: 'PRIVATE_DATABASE_SENTINEL' }] });
+    client.query.mockResolvedValueOnce({ rows: [{ table_name: 'public.generation_operations' }] });
+    client.query.mockResolvedValueOnce({ rows: [{ migration_count: '12', latest_migration_timestamp: '1789130400000' }] });
+    expect(await checkReadiness()).toMatchObject({ ready: false, checks: { database: 'ok', schema: 'missing' } });
+    expect(log).toHaveBeenCalledExactlyOnceWith('[Readiness] Schema diagnostic', {
+      event: 'readiness_schema_missing', complete: true,
+      databaseNameSha256: createHash('sha256').update('PRIVATE_DATABASE_SENTINEL').digest('hex'),
+      schemaReady: { type: 'boolean', value: false, isTrue: false },
+      migrationsReady: { type: 'undefined', value: null, isTrue: false },
+      missingTables: ['public.generation_operations'], migrationTablePresent: true,
+      migrationCount: 12, latestMigrationTimestamp: 1789130400000,
+    });
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(/PRIVATE_DATABASE_SENTINEL|synthetic:synthetic|synthetic-key/);
+    expect(client.end).toHaveBeenCalledOnce();
+  });
+
+  it('records string boolean parser mismatches without treating them as ready', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    client.query.mockResolvedValueOnce({ rows: [{ schema_ready: true }] });
+    client.query.mockResolvedValueOnce({ rows: [{ migrations_ready: 'PRIVATE_STRING_BOOLEAN' }] });
+    client.query.mockResolvedValueOnce({ rows: [{ database_name: 'PRIVATE_DATABASE_SENTINEL' }] });
+    client.query.mockResolvedValueOnce({ rows: [] });
+    client.query.mockResolvedValueOnce({ rows: [{ migration_count: '13', latest_migration_timestamp: String(READINESS_MIGRATION_TIMESTAMP) }] });
+    expect(await checkReadiness()).toMatchObject({ ready: false, checks: { database: 'ok', schema: 'missing' } });
+    expect(log).toHaveBeenCalledWith('[Readiness] Schema diagnostic', expect.objectContaining({
+      complete: true, schemaReady: { type: 'boolean', value: true, isTrue: true },
+      migrationsReady: { type: 'string', value: null, isTrue: false }, missingTables: [],
+      migrationCount: 13, latestMigrationTimestamp: READINESS_MIGRATION_TIMESTAMP,
+    }));
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(/PRIVATE_STRING_BOOLEAN|PRIVATE_DATABASE_SENTINEL/);
+  });
+
+  it('a string schema boolean stays missing even when diagnostic tables and migration metadata are complete', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    client.query.mockResolvedValueOnce({ rows: [{ schema_ready: 'PRIVATE_STRING_SCHEMA_BOOLEAN' }] });
+    client.query.mockResolvedValueOnce({ rows: [{ database_name: 'PRIVATE_DATABASE_SENTINEL' }] });
+    client.query.mockResolvedValueOnce({ rows: [] });
+    client.query.mockResolvedValueOnce({ rows: [{ migration_count: '13', latest_migration_timestamp: String(READINESS_MIGRATION_TIMESTAMP) }] });
+    expect(await checkReadiness()).toMatchObject({ ready: false, checks: { database: 'ok', schema: 'missing' } });
+    expect(log).toHaveBeenCalledWith('[Readiness] Schema diagnostic', expect.objectContaining({
+      schemaReady: { type: 'string', value: null, isTrue: false }, complete: true,
+      missingTables: [], migrationCount: 13, latestMigrationTimestamp: READINESS_MIGRATION_TIMESTAMP,
+    }));
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(/PRIVATE_STRING_SCHEMA_BOOLEAN|PRIVATE_DATABASE_SENTINEL/);
+  });
+
+  it('does not query an absent migration table or emit extra diagnostics for a healthy probe', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    client.query.mockResolvedValueOnce({ rows: [{ schema_ready: false }] });
+    client.query.mockResolvedValueOnce({ rows: [{ database_name: 'PRIVATE_DATABASE_SENTINEL' }] });
+    client.query.mockResolvedValueOnce({ rows: [{ table_name: 'drizzle.__drizzle_migrations' }] });
+    expect((await checkReadiness()).ready).toBe(false);
+    expect(client.query).toHaveBeenCalledTimes(3);
+    expect(log).toHaveBeenCalledWith('[Readiness] Schema diagnostic', expect.objectContaining({
+      complete: true, migrationTablePresent: false, migrationCount: null, latestMigrationTimestamp: null,
+      missingTables: ['drizzle.__drizzle_migrations'],
+    }));
+    log.mockClear(); client.query.mockClear();
+    expect((await checkReadiness()).ready).toBe(true);
+    expect(client.query).toHaveBeenCalledTimes(2); expect(log).not.toHaveBeenCalled();
+  });
+
+  it('an unavailable diagnostic neither exposes driver data nor changes the missing schema verdict', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    client.query.mockResolvedValueOnce({ rows: [{ schema_ready: false }] });
+    client.query.mockRejectedValueOnce(new Error('PRIVATE_URL_PASSWORD_USER_ROW'));
+    expect(await checkReadiness()).toMatchObject({ ready: false, checks: { database: 'ok', schema: 'missing' } });
+    expect(log).toHaveBeenCalledExactlyOnceWith('[Readiness] Schema diagnostic', expect.objectContaining({ complete: false }));
+    expect(JSON.stringify(log.mock.calls)).not.toContain('PRIVATE_URL_PASSWORD_USER_ROW');
+    expect(client.end).toHaveBeenCalledOnce();
+  });
+
+  it('rejects noncanonical table diagnostic rows rather than logging arbitrary strings', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    client.query.mockResolvedValueOnce({ rows: [{ schema_ready: false }] });
+    client.query.mockResolvedValueOnce({ rows: [{ database_name: 'PRIVATE_DATABASE_SENTINEL' }] });
+    client.query.mockResolvedValueOnce({ rows: [{ table_name: 'PRIVATE_NONCANONICAL_TABLE' }] });
+    expect((await checkReadiness()).ready).toBe(false);
+    expect(log).toHaveBeenCalledWith('[Readiness] Schema diagnostic', expect.objectContaining({ complete: false, missingTables: [] }));
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(/PRIVATE_NONCANONICAL_TABLE|PRIVATE_DATABASE_SENTINEL/);
   });
 });
