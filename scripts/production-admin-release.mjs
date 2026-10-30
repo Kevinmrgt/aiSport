@@ -13,7 +13,7 @@ class ReleaseError extends Error {
 const fail = (message) => { throw new ReleaseError(message); };
 const production = (item) => !item.gitBranch && (Array.isArray(item.target) ? item.target : [item.target]).includes('production');
 const safeKey = (key) => /^[A-Z][A-Z0-9_]+$/.test(key);
-const mutableKeys = new Set(['DATABASE_URL', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'API_URL', 'NEXT_PUBLIC_API_URL', 'FRONTEND_URL', 'AUTH_URL', 'NEXTAUTH_URL']);
+const mutableKeys = new Set(['DATABASE_URL', 'ALCIDE_DATABASE_URL', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'API_URL', 'NEXT_PUBLIC_API_URL', 'FRONTEND_URL', 'AUTH_URL', 'NEXTAUTH_URL']);
 const releaseStages = new Set(['input_validation', 'ci_verification', 'configuration_read', 'bootstrap_plan', 'source_reference', 'backup', 'rehearsal',
   'diagnostic_input', 'diagnostic_deployment_lookup', 'diagnostic_environment_pull', 'diagnostic_project_environment_pull', 'diagnostic_project_database_read', 'diagnostic_database_sql',
   'prepared_backup_verification', 'api_reference', 'web_reference', 'bootstrap_apply', 'admin_lookup_source', 'admin_lookup_target', 'admin_identity_comparison',
@@ -185,7 +185,7 @@ export class VercelProduction {
 }
 
 export async function inspectConfiguration(env, provider) {
-  const apiKeys = ['DATABASE_URL', 'SERVICE_SECRET', 'AUTH_SECRET', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'FRONTEND_URL'];
+  const apiKeys = ['DATABASE_URL', 'ALCIDE_DATABASE_URL', 'SERVICE_SECRET', 'AUTH_SECRET', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'FRONTEND_URL'];
   const webKeys = ['SERVICE_SECRET', 'AUTH_SECRET', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'APP_REVISION', 'API_URL', 'NEXT_PUBLIC_API_URL', 'AUTH_URL', 'NEXTAUTH_URL'];
   const [api, web, webMetadata] = await Promise.all([provider.snapshot(env.VERCEL_API_PROJECT_ID, apiKeys), provider.snapshot(env.VERCEL_WEB_PROJECT_ID, webKeys), provider.list(env.VERCEL_WEB_PROJECT_ID)]);
   const checks = {
@@ -195,10 +195,12 @@ export async function inspectConfiguration(env, provider) {
     authAndServiceDistinct: Boolean(web.AUTH_SECRET?.value) && web.AUTH_SECRET.value !== web.SERVICE_SECRET?.value,
     googleConfigurationPresent: ['AUTH_GOOGLE_ID', 'AUTH_GOOGLE_SECRET'].every((key) => webMetadata.filter((item) => item.key === key && production(item)).length === 1),
   };
-  if (!api.DATABASE_URL?.value) fail('missing_production_database_url');
-  const direct = directSourceUrl(api.DATABASE_URL.value);
+  const applicationOverrideSelected = api.ALCIDE_DATABASE_URL !== null && api.ALCIDE_DATABASE_URL !== undefined;
+  const effective = applicationOverrideSelected ? api.ALCIDE_DATABASE_URL : api.DATABASE_URL;
+  if (!effective?.value) fail('missing_production_database_url');
+  const direct = directSourceUrl(effective.value);
   targetDatabaseUrl(direct.value, env.TARGET_DATABASE_NAME);
-  return { api, web, source: direct.value, sourceDirectDerived: direct.sourceDirectDerived, checks, ready: Object.values(checks).every(Boolean) };
+  return { api, web, source: direct.value, sourceDirectDerived: direct.sourceDirectDerived, applicationOverrideSelected, checks, ready: Object.values(checks).every(Boolean) };
 }
 
 export async function requireSuccessfulCi(env, fetcher = fetch) {
@@ -347,23 +349,29 @@ export async function inspectDeploymentDatabase(env, { provider = new VercelProd
         try {
           const current = await provider.request(`/v3/env/pull/${encodeURIComponent(env.VERCEL_API_PROJECT_ID)}/production?source=vercel-cli%3Apull`);
           control.complete = true;
-          control.databaseConfigurationPresent = typeof current.env?.DATABASE_URL === 'string';
-          if (control.databaseConfigurationPresent) control.databaseNameMatchesTarget = decodeURIComponent(databaseUrl(current.env.DATABASE_URL).pathname.slice(1)) === env.TARGET_DATABASE_NAME;
+          const currentValue = current.env?.ALCIDE_DATABASE_URL !== undefined ? current.env.ALCIDE_DATABASE_URL : current.env?.DATABASE_URL;
+          control.applicationOverrideSelected = current.env?.ALCIDE_DATABASE_URL !== undefined;
+          control.databaseConfigurationPresent = typeof currentValue === 'string' && Boolean(currentValue);
+          if (control.databaseConfigurationPresent) control.databaseNameMatchesTarget = decodeURIComponent(databaseUrl(currentValue).pathname.slice(1)) === env.TARGET_DATABASE_NAME;
         } catch (controlError) { control.failure = safeReleaseFailure(controlError, 'diagnostic_project_environment_pull'); }
         report.projectEnvironmentPullDiagnostic = control;
       }
       throw error;
     }
     failedStage = 'diagnostic_project_database_read';
-    const configured = await provider.snapshot(env.VERCEL_API_PROJECT_ID, ['DATABASE_URL']);
-    if (typeof resolved.env?.DATABASE_URL !== 'string' || !configured.DATABASE_URL?.value) fail('deployment_runtime_database_unavailable');
-    const runtime = databaseUrl(directSourceUrl(resolved.env.DATABASE_URL).value);
-    const source = databaseUrl(directSourceUrl(configured.DATABASE_URL.value).value);
+    const configured = await provider.snapshot(env.VERCEL_API_PROJECT_ID, ['DATABASE_URL', 'ALCIDE_DATABASE_URL']);
+    const runtimeOverrideSelected = resolved.env?.ALCIDE_DATABASE_URL !== undefined;
+    const runtimeValue = runtimeOverrideSelected ? resolved.env.ALCIDE_DATABASE_URL : resolved.env?.DATABASE_URL;
+    const configuredValue = configured.ALCIDE_DATABASE_URL !== undefined && configured.ALCIDE_DATABASE_URL !== null ? configured.ALCIDE_DATABASE_URL?.value : configured.DATABASE_URL?.value;
+    if (typeof runtimeValue !== 'string' || !runtimeValue || !configuredValue) fail('deployment_runtime_database_unavailable');
+    const runtime = databaseUrl(directSourceUrl(runtimeValue).value);
+    const source = databaseUrl(directSourceUrl(configuredValue).value);
     const expected = new URL(source); expected.pathname = `/${env.TARGET_DATABASE_NAME}`;
     const runtimeName = decodeURIComponent(runtime.pathname.slice(1));
     failedStage = 'diagnostic_database_sql';
     const sql = await databaseInspector(runtime.toString());
     Object.assign(report, { complete: true, deploymentUrl: candidate,
+      applicationDatabaseOverrideSelected: runtimeOverrideSelected,
       runtimeDatabaseNameSha256: createHash('sha256').update(runtimeName).digest('hex'),
       runtimeDatabaseNameMatchesTarget: runtimeName === env.TARGET_DATABASE_NAME,
       runtimeDatabaseNameMatchesCurrentProject: runtimeName === decodeURIComponent(source.pathname.slice(1)),
@@ -372,7 +380,7 @@ export async function inspectDeploymentDatabase(env, { provider = new VercelProd
       runtimeConnectionMatchesTarget: runtime.toString() === expected.toString(),
       runtimeAccessModeAdminOnly: resolved.env.PRODUCTION_ACCESS_MODE === 'admin-only',
       runtimeRevisionMatchesExpected: typeof env.RELEASE_REVISION === 'string' && /^[a-f0-9]{40}$/.test(env.RELEASE_REVISION) && resolved.env.APP_REVISION === env.RELEASE_REVISION,
-      buildDatabaseConfigurationPresent: typeof resolved.buildEnv?.DATABASE_URL === 'string',
+      buildDatabaseConfigurationPresent: typeof (resolved.buildEnv?.ALCIDE_DATABASE_URL !== undefined ? resolved.buildEnv.ALCIDE_DATABASE_URL : resolved.buildEnv?.DATABASE_URL) === 'string',
       sql: { databaseNameMatchesEnvironment: sql.databaseNameMatchesEnvironment === true,
         migrationTablePresent: sql.migrationTablePresent === true,
         migrationCount: Number.isSafeInteger(sql.migrationCount) && sql.migrationCount >= 0 ? sql.migrationCount : null,
@@ -426,7 +434,7 @@ export async function inspectVercelBuildArtifacts(env, { component = 'api', expe
     if (!['api', 'web'].includes(component) || env.GITHUB_ACTIONS !== 'true' || !env.GITHUB_WORKSPACE || resolve(env.GITHUB_WORKSPACE) !== root) fail('artifact_capture_requires_github_checkout');
     const expected = expectedValues ?? Object.fromEntries([...mutableKeys].filter((key) => typeof env[key] === 'string').map((key) => [key, env[key]]));
     const keys = Object.keys(expected);
-    if (!keys.length || keys.some((key) => !mutableKeys.has(key) || typeof expected[key] !== 'string') || (component === 'api' && !expected.DATABASE_URL)) fail('artifact_expected_configuration_required');
+    if (!keys.length || keys.some((key) => !mutableKeys.has(key) || typeof expected[key] !== 'string') || (component === 'api' && !(expected.ALCIDE_DATABASE_URL !== undefined ? expected.ALCIDE_DATABASE_URL : expected.DATABASE_URL))) fail('artifact_expected_configuration_required');
     const projectId = component === 'api' ? env.VERCEL_API_PROJECT_ID : env.VERCEL_WEB_PROJECT_ID;
     const actualRoot = await realpath(root);
     const confined = async (path) => {
@@ -445,7 +453,8 @@ export async function inspectVercelBuildArtifacts(env, { component = 'api', expe
     const canonicalDatabase = (value) => {
       try { return directSourceUrl(value).value; } catch { return null; }
     };
-    const expectedDatabase = expected.DATABASE_URL ? canonicalDatabase(expected.DATABASE_URL) : null;
+    const expectedDatabaseValue = expected.ALCIDE_DATABASE_URL !== undefined ? expected.ALCIDE_DATABASE_URL : expected.DATABASE_URL;
+    const expectedDatabase = expectedDatabaseValue ? canonicalDatabase(expectedDatabaseValue) : null;
     const sourceDatabase = sourceDatabaseUrl ? canonicalDatabase(sourceDatabaseUrl) : null;
     report.repositoryLinkConfigurationPresent = Boolean(await privateJson(join(root, '.vercel/repo.json')));
     let scannedFiles = 0; let scannedBytes = 0;
@@ -460,7 +469,7 @@ export async function inspectVercelBuildArtifacts(env, { component = 'api', expe
         productionBuildTarget: manifest?.target === 'production', cliVersionMatches: manifest?.cliVersion === '54.17.2',
         functionConfigurations: 0, functionsWithEnvironmentOverrides: 0, conflictingOverrideKeys: [],
         pulledEnvironmentPresent: false, pulledEnvironmentComparedKeys: [], pulledEnvironmentMismatchedKeys: [],
-        filesWithDatabaseEnvironmentReference: 0, databaseLiterals: { expected: 0, source: 0, other: 0 },
+        filesWithDatabaseEnvironmentReference: 0, filesWithApplicationDatabaseEnvironmentReference: 0, databaseLiterals: { expected: 0, source: 0, other: 0 },
       };
       try {
         const pulledPath = join(root, cache, '.env.production.local');
@@ -497,7 +506,8 @@ export async function inspectVercelBuildArtifacts(env, { component = 'api', expe
           if (scannedBytes > 32 * 1024 * 1024) fail('artifact_code_limit_exceeded');
           await confined(path);
           const code = await readFile(path, 'utf8');
-          if (/process\s*\.\s*env\s*(?:\.\s*DATABASE_URL|\[\s*['"]DATABASE_URL['"]\s*\])/.test(code)) output.filesWithDatabaseEnvironmentReference += 1;
+          if (/process\s*\.\s*env\s*(?:\.\s*(?:ALCIDE_)?DATABASE_URL|\[\s*['"](?:ALCIDE_)?DATABASE_URL['"]\s*\])/.test(code)) output.filesWithDatabaseEnvironmentReference += 1;
+          if (/process\s*\.\s*env\s*(?:\.\s*ALCIDE_DATABASE_URL|\[\s*['"]ALCIDE_DATABASE_URL['"]\s*\])/.test(code)) output.filesWithApplicationDatabaseEnvironmentReference += 1;
           for (const literal of code.match(/postgres(?:ql)?:\/\/[^\s"'`\\<>),}]+/gi) ?? []) {
             const canonical = canonicalDatabase(literal);
             const type = canonical && canonical === expectedDatabase ? 'expected' : canonical && canonical === sourceDatabase ? 'source' : 'other';
@@ -525,7 +535,7 @@ export async function bindVercelFunctionEnvironment(env, { component = 'api', ex
   const root = resolve(cwd);
   if (!['api', 'web'].includes(component) || env.GITHUB_ACTIONS !== 'true' || !env.GITHUB_WORKSPACE || resolve(env.GITHUB_WORKSPACE) !== root) fail('function_binding_requires_github_checkout');
   const keys = Object.keys(expectedValues ?? {});
-  if (!keys.length || keys.some((key) => !mutableKeys.has(key) || typeof expectedValues[key] !== 'string') || (component === 'api' && !expectedValues.DATABASE_URL)) fail('function_binding_expected_values_required');
+  if (!keys.length || keys.some((key) => !mutableKeys.has(key) || typeof expectedValues[key] !== 'string') || (component === 'api' && !(expectedValues.ALCIDE_DATABASE_URL !== undefined ? expectedValues.ALCIDE_DATABASE_URL : expectedValues.DATABASE_URL))) fail('function_binding_expected_values_required');
   const projectId = component === 'api' ? env.VERCEL_API_PROJECT_ID : env.VERCEL_WEB_PROJECT_ID;
   if (!projectId) fail('function_binding_project_required');
   const actualRoot = await realpath(root);
@@ -628,7 +638,7 @@ export async function deployClosedProduction(env, configuration, provider, { boo
     failedStage = 'admin_identity_comparison';
     if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(adminId ?? '') || adminId !== copiedAdminId) fail('copied_admin_identity_mismatch');
     const values = [
-      { DATABASE_URL: newDatabase, PRODUCTION_ACCESS_MODE: 'admin-only', ADMIN_EMAILS: env.BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_USER_ID: adminId, APP_REVISION: env.RELEASE_REVISION, FRONTEND_URL: 'https://www.alcideai.fr' },
+      { DATABASE_URL: newDatabase, ALCIDE_DATABASE_URL: newDatabase, PRODUCTION_ACCESS_MODE: 'admin-only', ADMIN_EMAILS: env.BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_USER_ID: adminId, APP_REVISION: env.RELEASE_REVISION, FRONTEND_URL: 'https://www.alcideai.fr' },
       { PRODUCTION_ACCESS_MODE: 'admin-only', ADMIN_EMAILS: env.BOOTSTRAP_ADMIN_EMAIL, APP_REVISION: env.RELEASE_REVISION, API_URL: 'https://ai-sport-api.vercel.app', NEXT_PUBLIC_API_URL: 'https://ai-sport-api.vercel.app', AUTH_URL: 'https://www.alcideai.fr', NEXTAUTH_URL: 'https://www.alcideai.fr' },
     ];
     for (const [index, project] of [env.VERCEL_API_PROJECT_ID, env.VERCEL_WEB_PROJECT_ID].entries()) {
@@ -702,7 +712,7 @@ export async function runProductionAdminRelease(input, { provider, bootstrap = r
     if (mode === 'deploy') { failedStage = 'ci_verification'; report.ci = await requireSuccessfulCi(env, fetcher); }
     failedStage = 'configuration_read';
     const configuration = await inspectConfiguration(env, client);
-    report.configuration = configuration.checks; report.sourceDirectDerived = configuration.sourceDirectDerived;
+    report.configuration = configuration.checks; report.sourceDirectDerived = configuration.sourceDirectDerived; report.applicationDatabaseOverrideSelected = configuration.applicationOverrideSelected;
     failedStage = 'bootstrap_plan';
     report.bootstrap = await bootstrap({ ...env, SOURCE_DATABASE_URL: configuration.source, BOOTSTRAP_MODE: 'plan' });
     if (!report.bootstrap.complete || !report.bootstrap.ready || !configuration.ready) { report.reason = 'production_preconditions_failed'; return report; }

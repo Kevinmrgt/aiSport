@@ -21,6 +21,14 @@ Le callback Google attendu est
 `https://www.alcideai.fr/api/auth/callback/google`. Les URI OAuth déjà autorisées
 sont conservées ; la configuration Google réelle doit autoriser ce callback.
 
+L'API utilise la connexion dédiée `ALCIDE_DATABASE_URL` lorsqu'elle est présente,
+sinon `DATABASE_URL`. Une connexion dédiée vide ou invalide bloque le démarrage ;
+elle ne provoque aucun repli vers l'ancienne base. La validation, le pool et la
+sonde de santé partagent cette résolution. La livraison relit les variables et
+les fixe dans les configurations privées des fonctions Node construites ; les
+fonctions Edge conservent leur format. Aucun secret de ces fichiers n'est
+archivé dans les preuves.
+
 ## Première connexion et contrôle d'accès
 
 Les deux services reçoivent `PRODUCTION_ACCESS_MODE=admin-only` et une

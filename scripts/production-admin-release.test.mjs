@@ -88,6 +88,18 @@ test('critical service secrets must be strong, identical and distinct from auth'
   assert.equal(result.checks.serviceSecretStrong, false);
 });
 
+test('application database configuration takes priority and an empty or invalid override never falls back', async () => {
+  const vars = configuration(); const provider = providerFixture();
+  provider.snapshot = async (project) => vars[project];
+  vars.api.ALCIDE_DATABASE_URL = { value: source.replace('/legacy', '/application_selected') };
+  const configured = await inspectConfiguration(env, provider);
+  assert.equal(new URL(configured.source).pathname, '/application_selected'); assert.equal(configured.applicationOverrideSelected, true);
+  for (const value of ['', 'private-invalid-url']) {
+    vars.api.ALCIDE_DATABASE_URL = { value };
+    await assert.rejects(inspectConfiguration(env, provider));
+  }
+});
+
 test('only documented Neon pooler hostnames derive a direct URL, preserving credentials and database', () => {
   const pooled = 'postgresql://user:password@ep-fixture-pooler.eu-west-1.aws.neon.tech/legacy?sslmode=require&channel_binding=require';
   const direct = directSourceUrl(pooled);
@@ -419,6 +431,25 @@ test('deployment diagnostics fail closed for foreign projects and omit every enc
   assert.equal(report.complete, false); assert.equal(report.reason, 'diagnostic_deployment_project_mismatch');
 });
 
+test('deployment diagnostics use the application override even when the legacy variable names the source database', async () => {
+  const preferred = new URL(source); preferred.pathname = `/${env.TARGET_DATABASE_NAME}`;
+  for (const override of [preferred.toString(), '']) {
+    const report = await inspectDeploymentDatabase({ ...env, DIAGNOSTIC_DEPLOYMENT_URL: 'https://candidate-fixture.vercel.app' }, {
+      provider: {
+        snapshot: async () => ({ DATABASE_URL: { value: source } }),
+        request: async (path) => path.startsWith('/v13/') ? { id: 'dpl_fixture', projectId: 'api', url: 'candidate-fixture.vercel.app' } :
+          { env: { DATABASE_URL: source, ALCIDE_DATABASE_URL: override }, buildEnv: {} },
+      },
+      databaseInspector: async (value) => {
+        assert.notEqual(override, ''); assert.equal(new URL(value).pathname, `/${env.TARGET_DATABASE_NAME}`);
+        return { databaseNameMatchesEnvironment: true, migrationTablePresent: true, migrationCount: 13 };
+      },
+    });
+    if (override) { assert.equal(report.complete, true); assert.equal(report.applicationDatabaseOverrideSelected, true); assert.equal(report.runtimeDatabaseNameMatchesTarget, true); assert.equal(report.sql.migrationCount, 13); }
+    else { assert.equal(report.complete, false); assert.equal(report.reason, 'deployment_runtime_database_unavailable'); }
+  }
+});
+
 test('diagnostics accept an explicit deployment ID and expose the failing read stage without private errors', async () => {
   const calls = [];
   const provider = new VercelProduction(env);
@@ -469,8 +500,11 @@ test('build and deploy receive exact release values in child env and deploy argu
         for (const privateValue of [env.BOOTSTRAP_ADMIN_EMAIL, privateAdminId, 'private_password']) assert.equal(args.some((arg) => arg.includes(privateValue)), false);
         if (child.VERCEL_PROJECT_ID === 'api') {
           assert.equal(new URL(child.DATABASE_URL).pathname, `/${env.TARGET_DATABASE_NAME}`);
+          assert.equal(child.ALCIDE_DATABASE_URL, child.DATABASE_URL);
           assert.equal(child.BOOTSTRAP_ADMIN_USER_ID, privateAdminId);
-          if (args.includes('deploy')) assert.ok(args.some((arg, index) => arg === '--env' && args[index + 1] === 'DATABASE_URL'));
+          if (args.includes('deploy')) {
+            for (const key of ['DATABASE_URL', 'ALCIDE_DATABASE_URL']) assert.ok(args.some((arg, index) => arg === '--env' && args[index + 1] === key));
+          }
         } else {
           assert.equal(child.API_URL, 'https://ai-sport-api.vercel.app');
           assert.equal(child.AUTH_URL, 'https://www.alcideai.fr'); assert.equal(child.NEXTAUTH_URL, 'https://www.alcideai.fr');
@@ -513,7 +547,7 @@ test('cache cleanup is limited to the three verified paths inside an explicitly 
 test('local build diagnostics identify function overrides, bundled database literals and separate output roots without revealing values', async () => {
   const root = await mkdtemp(join(tmpdir(), 'alcide-artifact-inspect-'));
   const expectedUrl = new URL(source); expectedUrl.pathname = '/alcide_admin_test'; expectedUrl.searchParams.set('sslmode', 'verify-full');
-  const expected = { DATABASE_URL: expectedUrl.toString(), PRODUCTION_ACCESS_MODE: 'admin-only', BOOTSTRAP_ADMIN_USER_ID: privateAdminId };
+  const expected = { DATABASE_URL: expectedUrl.toString(), ALCIDE_DATABASE_URL: expectedUrl.toString(), PRODUCTION_ACCESS_MODE: 'admin-only', BOOTSTRAP_ADMIN_USER_ID: privateAdminId };
   const gha = { ...env, GITHUB_ACTIONS: 'true', GITHUB_WORKSPACE: root };
   try {
     const cache = join(root, '.vercel'); const func = join(cache, 'output/functions/api/index.func');
@@ -521,8 +555,8 @@ test('local build diagnostics identify function overrides, bundled database lite
     await writeFile(join(cache, 'project.json'), JSON.stringify({ projectId: 'api', settings: { rootDirectory: 'apps/api' } }));
     await writeFile(join(cache, '.env.production.local'), `DATABASE_URL="${source}"\nPRODUCTION_ACCESS_MODE="admin-only"\n`);
     await writeFile(join(cache, 'output/builds.json'), JSON.stringify({ target: 'production', cliVersion: '54.17.2' }));
-    await writeFile(join(func, '.vc-config.json'), JSON.stringify({ environment: { DATABASE_URL: source, PRODUCTION_ACCESS_MODE: 'public', PRIVATE_KEY: 'private-extra-secret' } }));
-    await writeFile(join(func, 'index.js'), `const database = process.env['DATABASE_URL']; const oldExample = '${source}'; const newExample = '${expected.DATABASE_URL}';`);
+    await writeFile(join(func, '.vc-config.json'), JSON.stringify({ environment: { DATABASE_URL: source, ALCIDE_DATABASE_URL: source, PRODUCTION_ACCESS_MODE: 'public', PRIVATE_KEY: 'private-extra-secret' } }));
+    await writeFile(join(func, 'index.js'), `const database = process.env['ALCIDE_DATABASE_URL'] ?? process.env['DATABASE_URL']; const oldExample = '${source}'; const newExample = '${expected.DATABASE_URL}';`);
     await mkdir(join(root, 'apps/api/.vercel/output'), { recursive: true });
     const result = await inspectVercelBuildArtifacts(gha, { cwd: root, component: 'api', expectedValues: expected, sourceDatabaseUrl: source });
     assert.equal(result.complete, true); assert.equal(result.processEnvironmentObserved, false);
@@ -532,7 +566,8 @@ test('local build diagnostics identify function overrides, bundled database lite
     assert.equal(output.productionBuildTarget, true); assert.equal(output.cliVersionMatches, true);
     assert.equal(output.pulledEnvironmentPresent, true); assert.deepEqual(output.pulledEnvironmentMismatchedKeys, ['DATABASE_URL']);
     assert.equal(output.functionConfigurations, 1); assert.equal(output.filesWithDatabaseEnvironmentReference, 1);
-    assert.deepEqual(output.conflictingOverrideKeys, ['DATABASE_URL', 'PRODUCTION_ACCESS_MODE']);
+    assert.equal(output.filesWithApplicationDatabaseEnvironmentReference, 1);
+    assert.deepEqual(output.conflictingOverrideKeys, ['ALCIDE_DATABASE_URL', 'DATABASE_URL', 'PRODUCTION_ACCESS_MODE']);
     assert.deepEqual(output.databaseLiterals, { expected: 1, source: 1, other: 0 });
     assert.equal(result.environmentOverridesConsistent, false);
     for (const value of ['private-extra-secret', 'private_user', 'private_password', privateAdminId]) assert.equal(JSON.stringify(result).includes(value), false);
@@ -567,7 +602,7 @@ test('function binding pins Node release values, preserves unrelated env, skips 
   const cache = join(root, '.vercel'); const functions = join(cache, 'output/functions');
   const node = join(functions, 'api.func'); const edge = join(functions, 'middleware.func');
   const gha = { ...env, GITHUB_ACTIONS: 'true', GITHUB_WORKSPACE: root };
-  const expected = { DATABASE_URL: 'postgresql://fixture:private-new@db.example.test/alcide_admin_test', PRODUCTION_ACCESS_MODE: 'admin-only', BOOTSTRAP_ADMIN_USER_ID: privateAdminId, APP_REVISION: revision };
+  const expected = { DATABASE_URL: 'postgresql://fixture:private-new@db.example.test/alcide_admin_test', ALCIDE_DATABASE_URL: 'postgresql://fixture:private-new@db.example.test/alcide_admin_test', PRODUCTION_ACCESS_MODE: 'admin-only', BOOTSTRAP_ADMIN_USER_ID: privateAdminId, APP_REVISION: revision };
   try {
     await mkdir(node, { recursive: true }); await mkdir(edge, { recursive: true });
     await writeFile(join(cache, 'project.json'), JSON.stringify({ projectId: 'api', settings: { rootDirectory: 'apps/api' } }));

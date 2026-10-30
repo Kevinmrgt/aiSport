@@ -39,6 +39,7 @@ describe('readiness dependency bounds', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv('DATABASE_URL', 'postgresql://synthetic:synthetic@localhost/health_test');
+    vi.stubEnv('ALCIDE_DATABASE_URL', undefined);
     vi.stubEnv('OPENAI_API_KEY', 'synthetic-key');
     client.connect.mockResolvedValue(undefined);
     client.end.mockResolvedValue(undefined);
@@ -298,4 +299,22 @@ describe('readiness dependency bounds', () => {
     }));
     expect(JSON.stringify(log.mock.calls)).not.toMatch(/PRIVATE_|private\.invalid|other\.invalid|postgresql/);
   });
+
+  it('uses the dedicated application URL for readiness even when DATABASE_URL points elsewhere', async () => {
+    vi.stubEnv('ALCIDE_DATABASE_URL', 'postgresql://user:PRIVATE_OVERRIDE@dedicated.invalid/selected?sslmode=require');
+    expect((await checkReadiness()).ready).toBe(true);
+    expect(client.options).toHaveBeenCalledWith(expect.objectContaining({
+      connectionString: 'postgresql://user:PRIVATE_OVERRIDE@dedicated.invalid/selected?sslmode=verify-full',
+    }));
+  });
+
+  it.each(['', 'PRIVATE_INVALID_OVERRIDE', 'https://wrong.invalid/selected'])(
+    'an invalid dedicated URL never connects using DATABASE_URL: %s', async (override) => {
+      const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      vi.stubEnv('ALCIDE_DATABASE_URL', override);
+      expect(await checkReadiness()).toMatchObject({ ready: false, checks: { database: 'unavailable' } });
+      expect(client.options).not.toHaveBeenCalled(); expect(client.connect).not.toHaveBeenCalled();
+      expect(JSON.stringify(log.mock.calls)).not.toContain('PRIVATE_INVALID_OVERRIDE');
+    },
+  );
 });

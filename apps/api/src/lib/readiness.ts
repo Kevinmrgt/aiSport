@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { normalizeDatabaseUrl } from '../db/database-url.js';
+import { resolveDatabaseUrl } from '../db/database-url.js';
 
 export interface ReadinessResult {
   ready: boolean;
@@ -107,12 +107,10 @@ async function inspectDatabase(): Promise<DatabaseChecks> {
   try {
     // Import differe : /health reste une sonde de vie sans acces aux dependances.
     const { Client } = await import('pg');
-    const url = process.env['DATABASE_URL'];
-    if (!url) throw new Error('MissingDatabaseConfiguration');
     // A dedicated, bounded connection is closed on every path. The timeout
     // cancels the server statement as well as bounding a lost network response;
     // no Promise.race leaves a background pooled query running after the probe.
-    const connectionString = normalizeDatabaseUrl(url);
+    const connectionString = resolveDatabaseUrl();
     const client = new Client({
       connectionString,
       connectionTimeoutMillis: 3_000,
