@@ -1,10 +1,10 @@
 import { spawnSync } from 'node:child_process';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { runAdminBootstrap, targetDatabaseUrl, readSelectedAdminId } from './production-admin-bootstrap.mjs';
-import { databaseUrl, readDatabaseIdentity, fileHash, migrationFingerprint } from './db-operations.mjs';
+import { Client, databaseUrl, readDatabaseIdentity, fileHash, migrationFingerprint } from './db-operations.mjs';
 import { checkHealth } from './cd-health-check.mjs';
 
 class ReleaseError extends Error {
@@ -16,9 +16,18 @@ const safeKey = (key) => /^[A-Z][A-Z0-9_]+$/.test(key);
 const mutableKeys = new Set(['DATABASE_URL', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'API_URL', 'NEXT_PUBLIC_API_URL', 'FRONTEND_URL']);
 const releaseStages = new Set(['input_validation', 'ci_verification', 'configuration_read', 'bootstrap_plan', 'source_reference', 'backup', 'rehearsal',
   'prepared_backup_verification', 'api_reference', 'web_reference', 'bootstrap_apply', 'admin_lookup_source', 'admin_lookup_target', 'admin_identity_comparison',
-  ...['api', 'web'].flatMap((project) => ['cleanup', 'pull', 'build', 'deploy', 'health', 'denied_probe', 'promote', 'alias_health', 'alias_denied_probe',
+  ...['api', 'web'].flatMap((project) => ['env_readback', 'cleanup', 'pull', 'build', 'deploy', 'health', 'denied_probe', 'promote', 'alias_health', 'alias_denied_probe',
     ...[...mutableKeys].map((key) => `env_${key}`)].map((action) => `${project}_${action}`))]);
 const bootstrapFailureReasons = new Set(['admin_not_unique', 'admin_identity_lookup_failed', 'admin_identity_mismatch', 'explicit_admin_email_required']);
+const healthFailureReasons = new Map([
+  ['Health JSON object required', 'health_payload_invalid'], ['Unexpected health service or status', 'health_service_or_status_mismatch'],
+  ['Missing immutable revision', 'health_revision_missing'], ['Served revision differs from candidate', 'health_revision_mismatch'],
+  ['Stale or invalid health timestamp', 'health_timestamp_invalid'], ['Required readiness check failed', 'health_readiness_failed'],
+  ['Health response is not JSON', 'health_response_not_json'], ['Health redirect without destination', 'health_redirect_invalid'],
+  ['Too many health redirects', 'health_redirect_limit'],
+]);
+const safeHealthChecks = (checks) => Object.fromEntries(['database', 'schema', 'aiConfiguration']
+  .filter((key) => ['ok', 'missing', 'unavailable'].includes(checks?.[key])).map((key) => [key, checks[key]]));
 
 export function safeReleaseFailure(error, stage) {
   const classes = new Set(['Error', 'TypeError', 'RangeError', 'SyntaxError', 'DOMException', 'AbortError', 'TimeoutError', 'AggregateError', 'ReleaseError', 'BootstrapError']);
@@ -27,16 +36,21 @@ export function safeReleaseFailure(error, stage) {
   const pgCodes = new Set(['42501', '42P04', '3D000', '28P01', '28000', '08000', '08001', '08003', '08004', '08006', '08007', '08P01', '53300', '53400', '57014', '57P01', '57P02', '57P03', '55006', 'XX000']);
   const networkCodes = new Set(['ECONNRESET', 'ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', 'EAI_AGAIN', 'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_HEADERS_TIMEOUT', 'UND_ERR_SOCKET', 'CERT_HAS_EXPIRED', 'UNABLE_TO_VERIFY_LEAF_SIGNATURE']);
   const code = [error?.code, error?.cause?.code].find((value) => pgCodes.has(value) || networkCodes.has(value));
-  const httpStatus = error instanceof ReleaseError && /^vercel_http_\d{3}$/.test(error.message) ? Number(error.message.slice(-3)) :
+  const healthStage = ['api_health', 'web_health', 'api_alias_health', 'web_alias_health'].includes(stage);
+  const healthHttp = healthStage && /^Health HTTP \d{3}$/.test(error?.message ?? '');
+  const httpStatus = (error instanceof ReleaseError && /^vercel_http_\d{3}$/.test(error.message)) || healthHttp ? Number(error.message.slice(-3)) :
     Number.isInteger(error?.status) && error.status >= 100 && error.status <= 599 ? error.status : undefined;
   return {
     failedStage: releaseStages.has(stage) ? stage : 'unknown_stage', errorClass,
-    reason: error instanceof ReleaseError ? error.message : errorClass === 'BootstrapError' && bootstrapFailureReasons.has(error.reason) ? error.reason : 'private_diagnostics_required',
+    reason: error instanceof ReleaseError ? error.message : errorClass === 'BootstrapError' && bootstrapFailureReasons.has(error.reason) ? error.reason :
+      healthHttp ? 'health_http_error' : healthStage && healthFailureReasons.has(error?.message) ? healthFailureReasons.get(error.message) :
+        healthStage && errorClass === 'SyntaxError' ? 'health_json_invalid' : 'private_diagnostics_required',
     category: errorClass === 'TimeoutError' || ['ETIMEDOUT', 'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_HEADERS_TIMEOUT'].includes(code) ? 'timeout' :
       errorClass === 'AbortError' ? 'aborted' : pgCodes.has(code) ? 'postgresql' : networkCodes.has(code) ? 'network' :
         httpStatus >= 500 ? 'http_server_error' : httpStatus >= 400 ? 'http_client_error' : 'private_failure',
     ...(pgCodes.has(code) ? { pgCode: code } : {}), ...(networkCodes.has(code) ? { networkCode: code } : {}),
     ...(httpStatus === undefined ? {} : { httpStatus }),
+    ...(healthStage && Object.keys(safeHealthChecks(error?.healthChecks)).length ? { healthChecks: safeHealthChecks(error.healthChecks) } : {}),
     ...(error instanceof ReleaseError && error.diagnostics ? { command: error.diagnostics } : {}),
   };
 }
@@ -258,7 +272,90 @@ export async function checkUnauthenticatedApiDenied(base, { fetcher = fetch, byp
   return { unauthenticatedProtectedApiStatus: 401 };
 }
 
-export async function deployClosedProduction(env, configuration, provider, { bootstrap = runAdminBootstrap, command = privateCommand, health = checkHealth,
+export async function verifyReleaseConfiguration(project, expected, provider) {
+  const keys = Object.keys(expected);
+  const actual = await provider.snapshot(project, keys);
+  if (keys.some((key) => actual[key]?.value !== expected[key])) fail('release_environment_readback_mismatch');
+  return { matched: true, keysVerified: keys.length };
+}
+
+async function inspectResolvedDatabase(value) {
+  const client = new Client({ connectionString: databaseUrl(value).toString(), connectionTimeoutMillis: 15_000, statement_timeout: 15_000, query_timeout: 20_000 });
+  try {
+    await client.connect();
+    await client.query('begin isolation level repeatable read read only');
+    const database = (await client.query('select current_database() as name')).rows[0]?.name;
+    const present = (await client.query("select to_regclass('drizzle.__drizzle_migrations') is not null as present")).rows[0]?.present === true;
+    const history = present ? (await client.query('select count(*)::int as count, max(created_at)::text as latest from drizzle.__drizzle_migrations')).rows[0] : null;
+    await client.query('rollback');
+    return { databaseNameMatchesEnvironment: database === decodeURIComponent(databaseUrl(value).pathname.slice(1)),
+      migrationTablePresent: present, migrationCount: Number.isSafeInteger(history?.count) ? history.count : null,
+      latestMigrationTimestamp: history?.latest && /^\d{1,16}$/.test(history.latest) ? Number(history.latest) : null };
+  } finally { await client.end().catch(() => undefined); }
+}
+
+// Vercel CLI 54.17.2 pulls fully resolved deployment env with GET /v3/env/pull/dpl_*:
+// https://github.com/vercel/vercel/blob/vercel%4054.17.2/packages/cli/src/util/env/get-env-records.ts
+// Read these values only in memory. Never serialize the provider response.
+export async function inspectDeploymentDatabase(env, { provider = new VercelProduction(env), databaseInspector = inspectResolvedDatabase } = {}) {
+  const report = { scope: 'immutable-deployment-database-configuration', readOnly: true, complete: false,
+    environmentSource: 'vercel-resolved-deployment-environment', functionEnvironmentOverridesInspected: false };
+  try {
+    const candidate = env.DIAGNOSTIC_DEPLOYMENT_URL;
+    if (!/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(candidate ?? '')) fail('invalid_created_deployment_url');
+    if (!/^[a-z][a-z0-9_]{2,62}$/.test(env.TARGET_DATABASE_NAME ?? '') || !env.VERCEL_API_PROJECT_ID) fail('diagnostic_configuration_required');
+    const deployment = await provider.request(`/v13/deployments/${encodeURIComponent(new URL(candidate).hostname)}`);
+    if (!/^dpl_[a-zA-Z0-9]+$/.test(deployment.id ?? '') || deployment.projectId !== env.VERCEL_API_PROJECT_ID || deployment.url !== new URL(candidate).hostname) fail('diagnostic_deployment_project_mismatch');
+    const [resolved, configured] = await Promise.all([
+      provider.request(`/v3/env/pull/${encodeURIComponent(deployment.id)}`), provider.snapshot(env.VERCEL_API_PROJECT_ID, ['DATABASE_URL']),
+    ]);
+    if (typeof resolved.env?.DATABASE_URL !== 'string' || !configured.DATABASE_URL?.value) fail('deployment_runtime_database_unavailable');
+    const runtime = databaseUrl(directSourceUrl(resolved.env.DATABASE_URL).value);
+    const source = databaseUrl(directSourceUrl(configured.DATABASE_URL.value).value);
+    const expected = new URL(source); expected.pathname = `/${env.TARGET_DATABASE_NAME}`;
+    const runtimeName = decodeURIComponent(runtime.pathname.slice(1));
+    const sql = await databaseInspector(runtime.toString());
+    Object.assign(report, { complete: true, deploymentUrl: candidate,
+      runtimeDatabaseNameSha256: createHash('sha256').update(runtimeName).digest('hex'),
+      runtimeDatabaseNameMatchesTarget: runtimeName === env.TARGET_DATABASE_NAME,
+      runtimeDatabaseNameMatchesCurrentProject: runtimeName === decodeURIComponent(source.pathname.slice(1)),
+      runtimeEndpointMatchesCurrentProject: runtime.hostname === source.hostname && runtime.port === source.port,
+      runtimeRoleMatchesCurrentProject: runtime.username === source.username,
+      runtimeConnectionMatchesTarget: runtime.toString() === expected.toString(),
+      runtimeAccessModeAdminOnly: resolved.env.PRODUCTION_ACCESS_MODE === 'admin-only',
+      runtimeRevisionMatchesExpected: typeof env.RELEASE_REVISION === 'string' && /^[a-f0-9]{40}$/.test(env.RELEASE_REVISION) && resolved.env.APP_REVISION === env.RELEASE_REVISION,
+      buildDatabaseConfigurationPresent: typeof resolved.buildEnv?.DATABASE_URL === 'string',
+      sql: { databaseNameMatchesEnvironment: sql.databaseNameMatchesEnvironment === true,
+        migrationTablePresent: sql.migrationTablePresent === true,
+        migrationCount: Number.isSafeInteger(sql.migrationCount) && sql.migrationCount >= 0 ? sql.migrationCount : null,
+        latestMigrationTimestamp: Number.isSafeInteger(sql.latestMigrationTimestamp) && sql.latestMigrationTimestamp >= 0 ? sql.latestMigrationTimestamp : null },
+    });
+  } catch (error) { report.reason = error instanceof ReleaseError ? error.message : 'private_diagnostics_required'; }
+  return report;
+}
+
+export async function checkReleaseHealth(url, expected, { bypassSecret, fetcher = fetch } = {}) {
+  const origin = new URL(url).origin;
+  return checkHealth(url, expected, { bypassSecret, fetchImpl: async (target, options) => {
+    // Never forward automation credentials to another origin after a redirect.
+    if (new URL(target).origin !== origin) fail('health_cross_origin_redirect_refused');
+    const response = await fetcher(target, options);
+    if (!response.ok && response.headers.get('content-type')?.includes('application/json')) {
+      let payload;
+      try { payload = await response.clone().json(); } catch { /* The ordinary JSON/status checks still fail closed. */ }
+      if (payload?.service === expected.service && payload?.checks) {
+        const checks = safeHealthChecks(payload.checks);
+        const reason = checks.schema === 'missing' ? 'health_schema_missing' : checks.database === 'unavailable' ? 'health_database_unavailable' :
+          checks.aiConfiguration === 'missing' ? 'health_ai_configuration_missing' : 'health_http_error';
+        const error = new ReleaseError(reason); error.status = response.status; error.healthChecks = checks; throw error;
+      }
+    }
+    return response;
+  } });
+}
+
+export async function deployClosedProduction(env, configuration, provider, { bootstrap = runAdminBootstrap, command = privateCommand, health = checkReleaseHealth,
+  verifyConfiguration = verifyReleaseConfiguration,
   selectedAdminId = readSelectedAdminId, denied = checkUnauthenticatedApiDenied, cleanup = () => rm(resolve('.vercel'), { force: true, recursive: true }) } = {}) {
   const undo = [];
   const previous = [];
@@ -293,6 +390,8 @@ export async function deployClosedProduction(env, configuration, provider, { boo
         failedStage = `${component}_env_${key}`;
         await provider.replace(project, index === 0 ? configuration.api[key] : configuration.web[key], key, value, undo);
       }
+      failedStage = `${component}_env_readback`;
+      await verifyConfiguration(project, values[index], provider);
       // Each project must get an independent pull/build cache.
       failedStage = `${component}_cleanup`;
       await cleanup();
@@ -330,6 +429,7 @@ export async function deployClosedProduction(env, configuration, provider, { boo
     for (const compensate of undo.reverse()) { try { await compensate(); } catch { rollbackComplete = false; } }
     return { complete: false, reason: rollbackComplete ? 'release_failed_rollback_completed' : 'release_failed_manual_rollback_required', rollbackComplete,
       failure: safeReleaseFailure(error, failedStage),
+      stagedDeploymentUrls: urls,
       newDatabaseRetained: bootstrapResult?.targetCreated === true, existingDatabaseRetained: bootstrapResult?.targetReused === true, previousDeploymentUrls: previous };
   } finally { await cleanup(); }
 }

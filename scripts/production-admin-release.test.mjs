@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
-import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand, safeReleaseFailure } from './production-admin-release.mjs';
+import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand, safeReleaseFailure, verifyReleaseConfiguration, checkReleaseHealth, inspectDeploymentDatabase } from './production-admin-release.mjs';
 
 const revision = 'a'.repeat(40);
 const privateAdminId = 'd72a58b7-6d4f-4187-90f7-9c763cfe2975';
@@ -197,7 +197,7 @@ test('failed staged deployment restores values without promotion and retains the
       }
       return '';
     },
-    health: async () => assert.fail('health before deployment'), cleanup: async () => {},
+    health: async () => assert.fail('health before deployment'), cleanup: async () => {}, verifyConfiguration: async () => {},
   });
   assert.equal(result.complete, false); assert.equal(result.rollbackComplete, true);
   assert.equal(result.newDatabaseRetained, true); assert.equal(undone, calls.length);
@@ -229,7 +229,7 @@ test('promotion failure rolls back both projects and reports incomplete compensa
   let deployCount = 0;
   const result = await deployClosedProduction(env, { ...configuration(), source }, provider, {
     bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }), selectedAdminId: async () => privateAdminId,
-    cleanup: async () => {}, health: async () => {}, denied: async () => {},
+    cleanup: async () => {}, health: async () => {}, denied: async () => {}, verifyConfiguration: async () => {},
     command: (_command, args) => {
       if (args.includes('deploy')) return `https://new-${deployCount++}.vercel.app\n`;
       if (args.includes('promote')) {
@@ -273,7 +273,7 @@ test('a strictly verified reused target can deploy without falsely claiming data
       assert.equal(input.BOOTSTRAP_REUSE_EXISTING, 'verified-admin-copy');
       return { ...ready, targetExists: true, targetReused: true, existingTargetVerified: true, targetCreated: false, adminCopyVerified: true };
     },
-    selectedAdminId: async () => privateAdminId, cleanup: async () => {}, health: async () => {}, denied: async () => {},
+    selectedAdminId: async () => privateAdminId, cleanup: async () => {}, health: async () => {}, denied: async () => {}, verifyConfiguration: async () => {},
     command: (_command, args) => args.includes('deploy') ? `https://verified-reuse-${deployments++}.vercel.app` : '',
   });
   assert.equal(result.complete, true); assert.equal(result.reuseExistingRequested, true);
@@ -323,6 +323,93 @@ test('diagnostics reject untrusted stage, class, code and message text', () => {
   const result = safeReleaseFailure({ name: 'private-class', code: 'private-code', message: 'private-message', stack: 'private-stack', cause: { code: 'private-cause' } }, 'private-stage');
   assert.equal(result.failedStage, 'unknown_stage'); assert.equal(result.errorClass, 'UnknownError');
   assert.equal(JSON.stringify(result).includes('private-'), false);
+});
+
+test('release environment readback requires exact database, access mode and admin UUID before any build', async () => {
+  const expected = { DATABASE_URL: 'private-new-database-url', PRODUCTION_ACCESS_MODE: 'admin-only', BOOTSTRAP_ADMIN_USER_ID: privateAdminId };
+  const snapshot = { snapshot: async (_project, keys) => { assert.deepEqual(keys, Object.keys(expected)); return Object.fromEntries(keys.map((key) => [key, { value: expected[key] }])); } };
+  assert.deepEqual(await verifyReleaseConfiguration('api', expected, snapshot), { matched: true, keysVerified: 3 });
+  for (const key of Object.keys(expected)) {
+    await assert.rejects(verifyReleaseConfiguration('api', expected, { snapshot: async () => Object.fromEntries(Object.entries(expected).map(([name, value]) => [name, { value: name === key ? 'private-stale-value' : value }])) }), /release_environment_readback_mismatch/);
+  }
+  const provider = providerFixture(); provider.replace = async () => {};
+  const result = await deployClosedProduction(env, { ...configuration(), source }, provider, {
+    bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }), selectedAdminId: async () => privateAdminId,
+    command: () => assert.fail('a stale readback must prevent pull/build/deploy'), cleanup: async () => {},
+  });
+  assert.equal(result.complete, false); assert.equal(result.failure.failedStage, 'api_env_readback');
+  assert.equal(result.failure.reason, 'release_environment_readback_mismatch');
+  assert.equal(JSON.stringify(result).includes(privateAdminId), false);
+});
+
+test('staged schema failure retains only validated deployment URLs and safe health facts without promoting', async () => {
+  const provider = providerFixture(); provider.replace = async () => {};
+  const fetcher = async () => new Response(JSON.stringify({ status: 'not_ready', service: 'alcide-api', revision,
+    checks: { database: 'ok', schema: 'missing', aiConfiguration: 'ok', privateExtra: 'private-readiness-detail' },
+    privateExtra: 'private-payload', timestamp: new Date().toISOString() }), { status: 503, headers: { 'content-type': 'application/json' } });
+  const result = await deployClosedProduction(env, { ...configuration(), source }, provider, {
+    bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }), selectedAdminId: async () => privateAdminId,
+    verifyConfiguration: async () => {}, cleanup: async () => {},
+    health: (url, expected) => checkReleaseHealth(url, expected, { fetcher }),
+    command: (_command, args) => { assert.equal(args.includes('promote'), false); return args.includes('deploy') ? 'https://safe-candidate.vercel.app' : ''; },
+  });
+  assert.equal(result.complete, false); assert.equal(result.failure.failedStage, 'api_health');
+  assert.equal(result.failure.reason, 'health_schema_missing'); assert.equal(result.failure.httpStatus, 503);
+  assert.deepEqual(result.failure.healthChecks, { database: 'ok', schema: 'missing', aiConfiguration: 'ok' });
+  assert.deepEqual(result.stagedDeploymentUrls, ['https://safe-candidate.vercel.app']);
+  assert.equal(JSON.stringify(result).includes('private-payload'), false); assert.equal(JSON.stringify(result).includes('private-readiness'), false);
+});
+
+test('health diagnostics whitelist fixed messages and statuses while rejecting arbitrary provider text', () => {
+  for (const [message, reason] of [['Health HTTP 401', 'health_http_error'], ['Health response is not JSON', 'health_response_not_json'],
+    ['Served revision differs from candidate', 'health_revision_mismatch'], ['Stale or invalid health timestamp', 'health_timestamp_invalid']]) {
+    const result = safeReleaseFailure(new Error(message), 'api_health'); assert.equal(result.reason, reason);
+    if (message === 'Health HTTP 401') assert.equal(result.httpStatus, 401);
+  }
+  assert.equal(safeReleaseFailure(new Error('Health HTTP 401 private-url'), 'api_health').reason, 'private_diagnostics_required');
+});
+
+test('a health redirect never transfers an existing automation header to a different host', async () => {
+  let calls = 0;
+  await assert.rejects(checkReleaseHealth('https://safe-candidate.vercel.app/health/ready', { service: 'alcide-api', status: 'ready', revision }, {
+    bypassSecret: 'private-existing-header', fetcher: async (_url, request) => {
+      calls += 1; assert.equal(request.headers['x-vercel-protection-bypass'], 'private-existing-header');
+      return new Response(null, { status: 302, headers: { location: 'https://other-candidate.vercel.app/health/ready' } });
+    },
+  }), /health_cross_origin_redirect_refused/);
+  assert.equal(calls, 1);
+});
+
+test('the immutable deployment diagnostic reads its resolved env privately and distinguishes an old database', async () => {
+  const calls = [];
+  const input = { ...env, DIAGNOSTIC_DEPLOYMENT_URL: 'https://candidate-fixture.vercel.app' };
+  const provider = {
+    snapshot: async () => ({ DATABASE_URL: { value: source } }),
+    request: async (path) => {
+      calls.push(path);
+      return path.startsWith('/v13/') ? { id: 'dpl_fixture', projectId: 'api', url: 'candidate-fixture.vercel.app' } :
+        { env: { DATABASE_URL: source, APP_REVISION: revision, PRODUCTION_ACCESS_MODE: 'admin-only', PRIVATE_KEY: 'never-persist-this-value' }, buildEnv: {} };
+    },
+  };
+  const report = await inspectDeploymentDatabase(input, { provider, databaseInspector: async (value) => {
+    assert.equal(new URL(value).pathname, '/legacy');
+    return { databaseNameMatchesEnvironment: true, migrationTablePresent: true, migrationCount: 12, latestMigrationTimestamp: 1793284984709, privateExtra: 'never-persist-this-value' };
+  } });
+  assert.equal(report.complete, true); assert.equal(report.readOnly, true);
+  assert.equal(report.runtimeDatabaseNameMatchesTarget, false); assert.equal(report.runtimeDatabaseNameMatchesCurrentProject, true);
+  assert.equal(report.runtimeConnectionMatchesTarget, false); assert.equal(report.sql.migrationCount, 12);
+  assert.equal(report.runtimeRevisionMatchesExpected, true); assert.equal(report.functionEnvironmentOverridesInspected, false);
+  assert.deepEqual(calls, ['/v13/deployments/candidate-fixture.vercel.app', '/v3/env/pull/dpl_fixture']);
+  for (const value of ['never-persist-this-value', 'private_user', 'private_password', '/legacy']) assert.equal(JSON.stringify(report).includes(value), false);
+});
+
+test('deployment diagnostics fail closed for foreign projects and omit every encrypted provider error detail', async () => {
+  const input = { ...env, DIAGNOSTIC_DEPLOYMENT_URL: 'https://candidate-fixture.vercel.app' };
+  const report = await inspectDeploymentDatabase(input, { provider: {
+    request: async () => ({ id: 'dpl_fixture', projectId: 'foreign', url: 'candidate-fixture.vercel.app' }),
+    snapshot: async () => assert.fail('a foreign deployment must not resolve secrets'),
+  }, databaseInspector: async () => assert.fail('a foreign deployment must not connect') });
+  assert.equal(report.complete, false); assert.equal(report.reason, 'diagnostic_deployment_project_mismatch');
 });
 
 test('protected API must deny an unauthenticated request even when health is green', async () => {
