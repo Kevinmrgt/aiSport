@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { WorkoutSchema } from '@alcide/shared';
 import {
   qualifyProductionAdmin,
   readRecipeSnapshot,
@@ -24,6 +25,21 @@ const DB =
   'postgresql://private_user:private_password@db.invalid/alcide_recipe_test?sslmode=require';
 const clone = (value) => structuredClone(value);
 const response = (body, status = 200) => Response.json(body, { status });
+// Synthetic JSONB object-key order: arrays and every stored JSON value stay intact.
+const jsonbKeyOrder = (value) => {
+  if (Array.isArray(value)) return value.map(jsonbKeyOrder);
+  if (value !== null && typeof value === 'object')
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(
+          ([a], [b]) =>
+            Buffer.byteLength(a) - Buffer.byteLength(b) ||
+            Buffer.compare(Buffer.from(a), Buffer.from(b)),
+        )
+        .map(([key, item]) => [key, jsonbKeyOrder(item)]),
+    );
+  return value;
+};
 function session(minutes, session_number = 1) {
   const work = minutes * 60 - 300;
   return {
@@ -170,6 +186,17 @@ function fixture(options = {}) {
     durationMinutes: 15,
     ...session(15),
   };
+  if (options.twoWorkoutMovements)
+    workout.exercises = [1, 2].map((number) => ({
+      ...clone(workout.exercises[0]),
+      name: `Marche ${number}`,
+      duration_seconds: 300,
+      prescription: { ...workout.exercises[0].prescription, work_seconds: 300 },
+    }));
+  if (options.jsonbStorage) {
+    const stored = jsonbKeyOrder(WorkoutSchema.parse(workout));
+    for (const key of ['exercises', 'warmup', 'cooldown']) workout[key] = stored[key];
+  }
   const programData = {
     planning_version: 2,
     title: 'Programme privé',
@@ -370,7 +397,24 @@ function fixture(options = {}) {
       if (init.method === 'GET' && ['workouts', 'programs'].includes(path.split('/')[1])) {
         if (!privateBodies.has(id)) return response({ error: 'NOT_FOUND' }, 404);
         const body = clone(privateBodies.get(id));
-        if (path.startsWith('/workouts/')) delete body.planning_version;
+        if (path.startsWith('/workouts/')) {
+          if (options.jsonbStorage) {
+            // POST returns INSERT RETURNING JSONB; GET validates it through the shared schema.
+            const validated = WorkoutSchema.parse(body);
+            assert.notEqual(JSON.stringify(body.exercises), JSON.stringify(validated.exercises));
+            assert.deepEqual(body.exercises, validated.exercises);
+            for (const key of ['exercises', 'warmup', 'cooldown']) body[key] = validated[key];
+          }
+          if (options.changedPersistedValue) body.exercises[0].description = 'Autre technique';
+          if (options.changedPersistedNumber) {
+            body.exercises[0].duration_seconds = 360;
+            body.exercises[0].prescription.work_seconds = 360;
+          }
+          if (options.permutedPersistedArray) body.exercises.reverse();
+          if (options.addedPersistedField) body.exercises[0].unexpected = 'extra';
+          if (options.nullPersistedField) body.exercises[0].tips = null;
+          delete body.planning_version;
+        }
         return response(body);
       }
       throw new Error('Unexpected private route ' + SECRET);
@@ -460,6 +504,33 @@ test('exactly two generation POSTs, v2/timing/persistence, exact-ID cleanup and 
   ])
     assert.ok(!publicEvidence.includes(secret));
 });
+
+test('POST JSONB order and GET shared-schema order preserve the same complete workout content', async () => {
+  const f = fixture({ jsonbStorage: true }),
+    report = await f.run();
+  assert.equal(report.complete, true, JSON.stringify(report.failure));
+  assert.equal(report.checks.v2PrescriptionsTimingAndPersistence, true);
+  assert.deepEqual(report.generationPosts, { workout: 1, program: 1 });
+  assert.deepEqual(f.deleted, [WORKOUT, PROGRAM]);
+  assert.deepEqual(report.credits, { initial: 5, committed: 3, restored: 3 });
+});
+
+for (const [name, option, code] of [
+  ['changed string value', 'changedPersistedValue', 'workout_persistence_invalid'],
+  ['changed numeric prescription', 'changedPersistedNumber', 'workout_persistence_invalid'],
+  ['permuted exercise array', 'permutedPersistedArray', 'workout_persistence_invalid'],
+  ['added object field', 'addedPersistedField', 'workout_persistence_invalid'],
+  ['absent versus null', 'nullPersistedField', 'v2_contract_invalid'],
+])
+  test(`JSONB key-order tolerance still rejects ${name}`, async () => {
+    const f = fixture({ jsonbStorage: true, twoWorkoutMovements: true, [option]: true }),
+      report = await f.run();
+    assert.equal(report.complete, false);
+    assert.equal(report.failure.code, code);
+    assert.deepEqual(report.generationPosts, { workout: 1, program: 0 });
+    assert.deepEqual(f.deleted, [WORKOUT]);
+    assert.deepEqual(report.credits, { initial: 5, committed: 1, restored: 1 });
+  });
 
 test('a failed first generation stops the programme and does not grant credits that were never debited', async () => {
   const f = fixture({ failWorkout: true }),

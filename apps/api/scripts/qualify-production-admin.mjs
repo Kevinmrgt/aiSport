@@ -73,6 +73,19 @@ const invariant = (condition, code) => {
   if (!condition) fail(code);
 };
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const canonicalJson = (value) => {
+  if (Array.isArray(value)) return value.map(canonicalJson);
+  if (value !== null && typeof value === 'object')
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, canonicalJson(value[key])]),
+    );
+  return value;
+};
+// JSONB and shared-schema parsing can reorder object keys. Values and array order stay strict.
+const sameJsonContent = (a, b) =>
+  JSON.stringify(canonicalJson(a)) === JSON.stringify(canonicalJson(b));
 const number = (value) => {
   const parsed = Number(value);
   invariant(Number.isSafeInteger(parsed) && parsed >= 0, 'invalid_accounting_metadata');
@@ -511,7 +524,7 @@ function validateContent(job, body, operation, posted) {
   if (job.kind === 'workout')
     invariant(
       posted?.planning_version === 2 &&
-        same(
+        sameJsonContent(
           [posted.exercises, posted.warmup, posted.cooldown],
           [body.exercises, body.warmup, body.cooldown],
         ) &&
