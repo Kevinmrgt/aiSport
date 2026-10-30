@@ -498,28 +498,35 @@ export async function inspectDeploymentDatabase(env, { provider = new VercelProd
   return report;
 }
 
+function isVercelSsoRedirect(response, target) {
+  if (![302, 303, 307, 308].includes(response.status)) return false;
+  const location = response.headers.get('location');
+  if (!location) return false;
+  try {
+    const redirect = new URL(location, target);
+    return !redirect.username && !redirect.password && redirect.origin === 'https://vercel.com' && redirect.pathname === '/sso-api';
+  } catch { return false; }
+}
+
+async function fetchWithAutomationPropagation(target, options, { bypassSecret, fetcher, pauseImpl }) {
+  const request = { ...options, redirect: 'manual' };
+  let response = await fetcher(target, request);
+  // Both health and OAuth discovery observe the same token propagation window.
+  // Never follow SSO: retry this exact original URL with the same header only.
+  for (const delay of [1000, 2000, 4000, 8000]) {
+    if (!bypassSecret || !isVercelSsoRedirect(response, target)) break;
+    await pauseImpl(delay);
+    response = await fetcher(target, request);
+  }
+  return response;
+}
+
 export async function checkReleaseHealth(url, expected, { bypassSecret, fetcher = fetch, pause: pauseImpl = pause } = {}) {
   const origin = new URL(url).origin;
   return checkHealth(url, expected, { bypassSecret, fetchImpl: async (target, options) => {
     // Never forward automation credentials to another origin after a redirect.
     if (new URL(target).origin !== origin) fail('health_cross_origin_redirect_refused');
-    let response = await fetcher(target, options);
-    const automationPropagationRedirect = (candidate) => {
-      if (!bypassSecret || ![302, 303, 307, 308].includes(candidate.status)) return false;
-      const location = candidate.headers.get('location');
-      if (!location) return false;
-      try {
-        const redirect = new URL(location, target);
-        return !redirect.username && !redirect.password && redirect.origin === 'https://vercel.com' && redirect.pathname === '/sso-api';
-      } catch { return false; }
-    };
-    // A newly registered automation token can take a few seconds to propagate.
-    // Retry only the provider's exact SSO redirect, always on this original URL.
-    for (const delay of [1000, 2000, 4000, 8000]) {
-      if (!automationPropagationRedirect(response)) break;
-      await pauseImpl(delay);
-      response = await fetcher(target, options);
-    }
+    const response = await fetchWithAutomationPropagation(target, options, { bypassSecret, fetcher, pauseImpl });
     if (!response.ok && response.headers.get('content-type')?.includes('application/json')) {
       let payload;
       try { payload = await response.clone().json(); } catch { /* The ordinary JSON/status checks still fail closed. */ }
@@ -534,13 +541,14 @@ export async function checkReleaseHealth(url, expected, { bypassSecret, fetcher 
   } });
 }
 
-export async function checkWebOAuthConfiguration(base, { bypassSecret, fetcher = fetch } = {}) {
+export async function checkWebOAuthConfiguration(base, { bypassSecret, fetcher = fetch, pause: pauseImpl = pause } = {}) {
   if (!/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(base ?? '')) fail('invalid_created_deployment_url');
   const url = new URL('/api/auth/providers', base);
   const headers = { 'cache-control': 'no-cache' };
   if (bypassSecret) headers['x-vercel-protection-bypass'] = bypassSecret;
-  const response = await fetcher(url, { headers, redirect: 'manual', signal: AbortSignal.timeout(20_000) });
-  if ([301, 302, 303, 307, 308].includes(response.status)) fail('web_oauth_configuration_redirect_refused');
+  const response = await fetchWithAutomationPropagation(url, { headers, signal: AbortSignal.timeout(20_000) }, { bypassSecret, fetcher, pauseImpl });
+  if ([301, 302, 303, 307, 308].includes(response.status)) fail(isVercelSsoRedirect(response, url) ?
+    'web_oauth_configuration_sso_redirect_refused' : 'web_oauth_configuration_redirect_refused');
   if (!response.ok) { const error = new ReleaseError('web_oauth_configuration_http_error'); error.status = response.status; throw error; }
   if (!response.headers.get('content-type')?.includes('application/json')) fail('web_oauth_configuration_not_json');
   let providers;

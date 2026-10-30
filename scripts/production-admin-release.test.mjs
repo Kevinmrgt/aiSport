@@ -1053,7 +1053,71 @@ test('Web OAuth configuration requires the exact canonical callback and refuses 
   } });
   assert.equal(result.canonicalCallbackVerified, true); assert.equal(calls, 1);
   await assert.rejects(checkWebOAuthConfiguration('https://web-validation.vercel.app', { fetcher: async () => response('https://ai-sport-web.vercel.app/api/auth/callback/google') }), /canonical_callback_mismatch/);
-  await assert.rejects(checkWebOAuthConfiguration('https://web-validation.vercel.app', { bypassSecret: 'private-bypass', fetcher: async () => new Response(null, { status: 302, headers: { location: 'https://vercel.com/sso-api' } }) }), /redirect_refused/);
+  await assert.rejects(checkWebOAuthConfiguration('https://web-validation.vercel.app', { bypassSecret: 'private-bypass', pause: async () => {}, fetcher: async () => new Response(null, { status: 302, headers: { location: 'https://vercel.com/sso-api' } }) }), /sso_redirect_refused/);
+});
+
+test('OAuth provider discovery waits for the same bounded automation propagation as health then validates the canonical callback', async () => {
+  for (const status of [302, 303, 307, 308]) {
+    const delays = []; const requests = []; let elapsed = 0;
+    const result = await checkWebOAuthConfiguration('https://web-validation.vercel.app', {
+      bypassSecret: 'private-ephemeral-bypass', pause: async (ms) => { delays.push(ms); elapsed += ms; },
+      fetcher: async (url, options) => {
+        requests.push(String(url));
+        assert.equal(url.origin, 'https://web-validation.vercel.app'); assert.equal(url.pathname, '/api/auth/providers'); assert.equal(url.search, '');
+        assert.equal(options.redirect, 'manual'); assert.equal(options.headers['x-vercel-protection-bypass'], 'private-ephemeral-bypass');
+        if (elapsed < 2000) return new Response(null, { status, headers: { location: 'https://vercel.com/sso-api?nonce=private-provider-detail' } });
+        return new Response(JSON.stringify({ google: { id: 'google', callbackUrl: 'https://www.alcideai.fr/api/auth/callback/google' } }), { headers: { 'content-type': 'application/json' } });
+      },
+    });
+    assert.deepEqual(delays, [1000, 2000]); assert.equal(requests.length, 3); assert.equal(new Set(requests).size, 1);
+    assert.deepEqual(result, { googleProviderConfigured: true, canonicalCallbackVerified: true }); assert.equal(JSON.stringify(result).includes('private'), false);
+  }
+});
+
+test('permanent OAuth provider SSO fails with a static safe reason after the shared backoff and never follows the redirect', async () => {
+  const delays = []; let requests = 0; let failure;
+  try {
+    await checkWebOAuthConfiguration('https://web-validation.vercel.app', {
+      bypassSecret: 'private-ephemeral-bypass', pause: async (ms) => delays.push(ms),
+      fetcher: async (url, options) => {
+        requests += 1; assert.equal(url.origin, 'https://web-validation.vercel.app'); assert.equal(url.pathname, '/api/auth/providers');
+        assert.equal(options.redirect, 'manual'); assert.equal(options.headers['x-vercel-protection-bypass'], 'private-ephemeral-bypass');
+        return new Response(null, { status: 302, headers: { location: 'https://vercel.com/sso-api?private=private-provider-detail' } });
+      },
+    });
+    assert.fail('permanent SSO must not qualify OAuth configuration');
+  } catch (error) { failure = safeReleaseFailure(error, 'web_oauth_configuration'); }
+  assert.deepEqual(delays, [1000, 2000, 4000, 8000]); assert.equal(requests, 5);
+  assert.equal(failure.reason, 'web_oauth_configuration_sso_redirect_refused'); assert.equal(failure.failedStage, 'web_oauth_configuration');
+  for (const value of ['private-ephemeral-bypass', 'private-provider-detail']) assert.equal(JSON.stringify(failure).includes(value), false);
+});
+
+test('OAuth discovery never retries application failures, other redirects, absent bypass or an invalid canonical callback', async () => {
+  for (const [status, location, bypassSecret, callbackUrl] of [
+    [500, undefined, 'private-bypass'], [503, undefined, 'private-bypass'], [401, undefined, 'private-bypass'],
+    [302, 'https://other.example.test/sso-api', 'private-bypass'], [302, 'https://vercel.com/other-path', 'private-bypass'],
+    [302, 'https://vercel.com.evil.test/sso-api', 'private-bypass'], [302, 'https://private:password@vercel.com/sso-api', 'private-bypass'],
+    [301, 'https://vercel.com/sso-api', 'private-bypass'], [302, 'https://vercel.com/sso-api', undefined],
+    [200, undefined, 'private-bypass', 'https://foreign.example.test/api/auth/callback/google'],
+  ]) {
+    let requests = 0; let failure;
+    try {
+      await checkWebOAuthConfiguration('https://web-validation.vercel.app', { bypassSecret,
+        pause: async () => assert.fail('application response or unrelated redirect must not be retried'),
+        fetcher: async (url, options) => {
+          requests += 1; assert.equal(url.origin, 'https://web-validation.vercel.app'); assert.equal(options.redirect, 'manual');
+          assert.equal(options.headers['x-vercel-protection-bypass'], bypassSecret);
+          if (location) return new Response(null, { status, headers: { location } });
+          return new Response(JSON.stringify(callbackUrl ? { google: { id: 'google', callbackUrl } } : { error: 'private-application-detail' }), { status, headers: { 'content-type': 'application/json' } });
+        },
+      });
+      assert.fail('unqualified OAuth configuration must fail');
+    } catch (error) { failure = safeReleaseFailure(error, 'web_oauth_configuration'); }
+    assert.equal(requests, 1);
+    assert.equal(failure.reason, location ? (location === 'https://vercel.com/sso-api' && status !== 301 ? 'web_oauth_configuration_sso_redirect_refused' : 'web_oauth_configuration_redirect_refused') : callbackUrl ? 'web_oauth_canonical_callback_mismatch' : 'web_oauth_configuration_http_error');
+    if (!location && !callbackUrl) assert.equal(failure.httpStatus, status);
+    for (const value of ['private-bypass', 'private-application-detail', 'password']) assert.equal(JSON.stringify(failure).includes(value), false);
+  }
 });
 
 test('secret length validation exposes only fixed length constraint signals', () => {
