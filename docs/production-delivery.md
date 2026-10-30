@@ -4,7 +4,10 @@
 son compte administrateur et a demandé la livraison. La procédure de
 [production fermée](production-admin-release.md) décrit la nouvelle base,
 l'import du compte seul et la liaison Google contrôlée. Le rapport ci-dessous
-conserve les preuves et constats de l'audit précédent.
+conserve les preuves et constats de l'audit précédent. Une recette ultérieure
+a reproduit une liste périmée après suppression malgré une réponse RSC correcte :
+le bouton exécute désormais la mutation dans une Action React et s'appuie sur
+la réponse du serveur, sans rafraîchissement concurrent supplémentaire.
 
 La cible choisie est le code local aiSport sur www.alcideai.fr.
 Ce document rassemble la préparation technique ; il ne certifie pas

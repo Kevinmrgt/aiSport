@@ -422,12 +422,28 @@ export async function inspectDeploymentDatabase(env, { provider = new VercelProd
   return report;
 }
 
-export async function checkReleaseHealth(url, expected, { bypassSecret, fetcher = fetch } = {}) {
+export async function checkReleaseHealth(url, expected, { bypassSecret, fetcher = fetch, pause: pauseImpl = pause } = {}) {
   const origin = new URL(url).origin;
   return checkHealth(url, expected, { bypassSecret, fetchImpl: async (target, options) => {
     // Never forward automation credentials to another origin after a redirect.
     if (new URL(target).origin !== origin) fail('health_cross_origin_redirect_refused');
-    const response = await fetcher(target, options);
+    let response = await fetcher(target, options);
+    const automationPropagationRedirect = (candidate) => {
+      if (!bypassSecret || ![302, 303, 307, 308].includes(candidate.status)) return false;
+      const location = candidate.headers.get('location');
+      if (!location) return false;
+      try {
+        const redirect = new URL(location, target);
+        return !redirect.username && !redirect.password && redirect.origin === 'https://vercel.com' && redirect.pathname === '/sso-api';
+      } catch { return false; }
+    };
+    // A newly registered automation token can take a few seconds to propagate.
+    // Retry only the provider's exact SSO redirect, always on this original URL.
+    for (const delay of [1000, 2000, 4000, 8000]) {
+      if (!automationPropagationRedirect(response)) break;
+      await pauseImpl(delay);
+      response = await fetcher(target, options);
+    }
     if (!response.ok && response.headers.get('content-type')?.includes('application/json')) {
       let payload;
       try { payload = await response.clone().json(); } catch { /* The ordinary JSON/status checks still fail closed. */ }

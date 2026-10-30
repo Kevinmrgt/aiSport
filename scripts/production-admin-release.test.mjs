@@ -402,6 +402,61 @@ test('a health redirect never transfers an existing automation header to a diffe
   assert.equal(calls, 1);
 });
 
+test('fresh automation propagation retries only the exact provider SSO redirect and then validates real health JSON', async () => {
+  for (const status of [302, 303, 307, 308]) {
+    let elapsed = 0; const delays = []; const requests = [];
+    const result = await checkReleaseHealth('https://web-propagation.vercel.app/api/health', { service: 'alcide-web', status: 'ok', revision }, {
+      bypassSecret: 'private-ephemeral-bypass', pause: async (ms) => { delays.push(ms); elapsed += ms; },
+      fetcher: async (url, options) => {
+        requests.push(String(url));
+        assert.equal(new URL(url).origin, 'https://web-propagation.vercel.app');
+        assert.equal(String(url).includes('private-ephemeral'), false);
+        assert.equal(options.redirect, 'manual'); assert.equal(options.headers['x-vercel-protection-bypass'], 'private-ephemeral-bypass');
+        if (elapsed < 2000) return new Response(null, { status, headers: { location: 'https://vercel.com/sso-api?nonce=private-provider-detail' } });
+        return new Response(JSON.stringify({ service: 'alcide-web', status: 'ok', revision, timestamp: new Date().toISOString() }), { headers: { 'content-type': 'application/json' } });
+      },
+    });
+    assert.deepEqual(delays, [1000, 2000]); assert.equal(requests.length, 3);
+    assert.equal(new Set(requests).size, 1); assert.equal(result.revision, revision);
+    assert.equal(JSON.stringify(result).includes('private'), false);
+  }
+});
+
+test('permanent provider SSO stops after the bounded backoff without following or disclosing the redirect', async () => {
+  const delays = []; let requests = 0; let failure;
+  try {
+    await checkReleaseHealth('https://web-propagation.vercel.app/api/health', { service: 'alcide-web', status: 'ok', revision }, {
+      bypassSecret: 'private-ephemeral-bypass', pause: async (ms) => delays.push(ms), fetcher: async (url, options) => {
+        requests += 1; assert.equal(new URL(url).origin, 'https://web-propagation.vercel.app');
+        assert.equal(options.headers['x-vercel-protection-bypass'], 'private-ephemeral-bypass');
+        return new Response(null, { status: 302, headers: { location: 'https://vercel.com/sso-api?nonce=private-provider-detail' } });
+      },
+    });
+    assert.fail('permanent SSO must not qualify a deployment');
+  } catch (error) { failure = safeReleaseFailure(error, 'web_health'); }
+  assert.deepEqual(delays, [1000, 2000, 4000, 8000]); assert.equal(requests, 5);
+  assert.equal(failure.reason, 'health_cross_origin_redirect_refused');
+  for (const value of ['private-ephemeral-bypass', 'private-provider-detail']) assert.equal(JSON.stringify(failure).includes(value), false);
+});
+
+test('automation propagation does not retry application errors, unrecognized redirects or unauthenticated requests', async () => {
+  for (const [status, location, bypassSecret] of [
+    [503, undefined, 'private-bypass'], [401, undefined, 'private-bypass'],
+    [301, 'https://vercel.com/sso-api', 'private-bypass'], [302, 'https://other.example.test/sso-api', 'private-bypass'],
+    [302, 'https://vercel.com/other-path', 'private-bypass'], [302, 'https://vercel.com/sso-api', undefined],
+  ]) {
+    let requests = 0;
+    await assert.rejects(checkReleaseHealth('https://web-propagation.vercel.app/api/health', { service: 'alcide-web', status: 'ok', revision }, {
+      bypassSecret, pause: async () => assert.fail('this response must not be retried'), fetcher: async (url) => {
+        requests += 1; assert.equal(new URL(url).origin, 'https://web-propagation.vercel.app');
+        return location ? new Response(null, { status, headers: { location } }) :
+          new Response(JSON.stringify({ error: 'private-application-error' }), { status, headers: { 'content-type': 'application/json' } });
+      },
+    }));
+    assert.equal(requests, 1);
+  }
+});
+
 test('the immutable deployment diagnostic reads its resolved env privately and distinguishes an old database', async () => {
   const calls = [];
   const input = { ...env, DIAGNOSTIC_DEPLOYMENT_URL: 'https://candidate-fixture.vercel.app' };

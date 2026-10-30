@@ -32,7 +32,9 @@ archivé dans les preuves.
 Pour vérifier les URL Web protégées par Vercel, la livraison crée si nécessaire
 un accès d'automatisation temporaire, transmis uniquement par en-tête au candidat.
 Elle vérifie aussi le callback Google canonique et révoque cet accès avant toute
-promotion. Un échec déclenche également sa révocation ; la protection du projet
+promotion. Les redirections SSO provisoires de Vercel sont réessayées pendant
+au plus 15 secondes de délai cumulé ; les contrôles JSON et de révision restent
+stricts. Un échec déclenche également sa révocation ; la protection du projet
 et les accès préexistants ne sont pas désactivés.
 
 ## Première connexion et contrôle d'accès
