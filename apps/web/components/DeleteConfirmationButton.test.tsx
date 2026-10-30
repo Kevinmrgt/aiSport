@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { useOptimistic } from 'react';
 import { DeleteConfirmationButton } from './DeleteConfirmationButton';
 
 const { refreshMock } = vi.hoisted(() => ({ refreshMock: vi.fn() }));
@@ -8,6 +9,56 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: refreshMock }) 
 describe('DeleteConfirmationButton', () => {
   beforeEach(() => vi.clearAllMocks());
   afterEach(cleanup);
+
+  it('execute la mutation dans une React Action et conserve son etat pendant la revalidation', async () => {
+    let resolveDelete!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      resolveDelete = resolve;
+    });
+    const onDelete = vi.fn<(id: string) => Promise<void>>(() => pending);
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    function ActionProbe() {
+      const [optimisticPending, setOptimisticPending] = useOptimistic(false);
+      return (
+        <>
+          <p role="status">{optimisticPending ? 'Mise a jour en cours' : 'Au repos'}</p>
+          <DeleteConfirmationButton
+            id="workout-action"
+            itemLabel="Seance privee"
+            itemType="l'entraînement"
+            onDelete={async (id) => {
+              setOptimisticPending(true);
+              await onDelete(id);
+            }}
+          />
+        </>
+      );
+    }
+    render(<ActionProbe />);
+    fireEvent.click(screen.getByRole('button', { name: /supprimer l'entraînement/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmer' }));
+    try {
+      expect(screen.getByRole('status').textContent).toBe('Mise a jour en cours');
+      expect(
+        screen.getByRole<HTMLButtonElement>('button', { name: 'Suppression...' }).disabled,
+      ).toBe(true);
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(screen.getByRole('group')).toBeTruthy();
+      expect(onDelete).toHaveBeenCalledExactlyOnceWith('workout-action');
+      expect(
+        errors.mock.calls
+          .flat()
+          .some((value) => typeof value === 'string' && value.includes('outside a transition')),
+      ).toBe(false);
+    } finally {
+      await act(async () => {
+        resolveDelete();
+        await pending;
+      });
+      errors.mockRestore();
+    }
+    await waitFor(() => expect(screen.queryByRole('group')).toBeNull());
+  });
 
   it('ouvre un dialogue, place le focus et annule avec Echap', async () => {
     render(
@@ -49,7 +100,12 @@ describe('DeleteConfirmationButton', () => {
 
     await waitFor(() => expect(onDelete).toHaveBeenCalledWith('program-1'));
     await waitFor(() => expect(screen.queryByRole('group')).toBeNull());
-    expect(refreshMock).toHaveBeenCalledExactlyOnceWith();
+    expect(refreshMock).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole('button', { name: /supprimer le programme/i }),
+      ),
+    );
   });
 
   it('conserve le dialogue et annonce une erreur de suppression', async () => {

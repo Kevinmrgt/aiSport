@@ -4,16 +4,11 @@ import * as schema from './schema.js';
 import * as generationSchema from './generation-budget.schema.js';
 import * as privacySchema from './privacy.schema.js';
 import * as sessionOperationSchema from './session-operation.schema.js';
-import { normalizeDatabaseUrl } from './database-url.js';
+import { resolveDatabaseUrl } from './database-url.js';
 
 // OWASP A02: connexion via variable d'env uniquement, jamais hardcodée
-const databaseUrl = process.env['DATABASE_URL'];
-if (!databaseUrl) {
-  throw new Error('DATABASE_URL est requise');
-}
-
 const pool = new Pool({
-  connectionString: normalizeDatabaseUrl(databaseUrl),
+  connectionString: resolveDatabaseUrl(),
   // Serverless-optimisé : peu de connexions, expiration rapide
   max: 3,
   idleTimeoutMillis: 5_000,

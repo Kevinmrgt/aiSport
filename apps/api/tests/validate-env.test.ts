@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // OWASP A05: tests du fail-fast sur les variables d'environnement obligatoires
 describe('validateEnv', () => {
-  const REQUIRED_VARS = ['DATABASE_URL', 'SERVICE_SECRET'];
+  const REQUIRED_VARS = ['DATABASE_URL', 'ALCIDE_DATABASE_URL', 'SERVICE_SECRET'];
   const OPTIONAL_VARS = ['OPENAI_API_KEY'];
 
   beforeEach(() => {
@@ -84,5 +84,28 @@ describe('validateEnv', () => {
     } catch (error) {
       expect(JSON.stringify(error)).not.toContain('PRIVATE_SECRET_SENTINEL');
     }
+  });
+
+  it('accepte la connexion applicative prioritaire sans DATABASE_URL et refuse tout override vide/invalide', async () => {
+    process.env['SERVICE_SECRET'] = 'test-service-secret';
+    process.env['ALCIDE_DATABASE_URL'] = 'postgresql://localhost/selected';
+    const { validateEnv } = await import('../src/lib/validate-env.js');
+    expect(() => validateEnv()).not.toThrow();
+    process.env['DATABASE_URL'] = 'postgresql://localhost/legacy';
+    for (const value of ['', 'PRIVATE_INVALID_OVERRIDE', 'https://db.example/selected']) {
+      process.env['ALCIDE_DATABASE_URL'] = value;
+      expect(() => validateEnv()).toThrow(/ALCIDE_DATABASE_URL/);
+    }
+  });
+
+  it('applique les exigences TLS de production a la connexion applicative choisie', async () => {
+    vi.stubEnv('NODE_ENV', 'production'); vi.stubEnv('FRONTEND_URL', 'https://www.alcideai.fr');
+    vi.stubEnv('SERVICE_SECRET', 'a'.repeat(64));
+    vi.stubEnv('DATABASE_URL', 'postgresql://localhost/legacy');
+    vi.stubEnv('ALCIDE_DATABASE_URL', 'postgresql://user:PRIVATE_OVERRIDE@db.example/selected?sslmode=disable');
+    const { validateEnv } = await import('../src/lib/validate-env.js');
+    expect(() => validateEnv()).toThrow(/ALCIDE_DATABASE_URL.*TLS/);
+    process.env['ALCIDE_DATABASE_URL'] = 'postgresql://user:PRIVATE_OVERRIDE@db.example/selected?sslmode=require';
+    expect(() => validateEnv()).not.toThrow();
   });
 });

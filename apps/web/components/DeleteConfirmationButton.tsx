@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useId, useRef, useState, useTransition } from 'react';
 import { Icon } from './ui/Icon';
 
 interface DeleteConfirmationButtonProps {
@@ -17,13 +16,12 @@ export function DeleteConfirmationButton({
   itemType,
   onDelete,
 }: DeleteConfirmationButtonProps) {
-  const router = useRouter();
   const accessibleId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const confirmRef = useRef<HTMLButtonElement>(null);
   const isPendingRef = useRef(false);
   const shouldRestoreFocusRef = useRef(false);
-  const [isPending, setIsPending] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +29,7 @@ export function DeleteConfirmationButton({
 
   useEffect(() => {
     if (!showConfirm) {
-      if (shouldRestoreFocusRef.current) {
+      if (shouldRestoreFocusRef.current && !isPending) {
         triggerRef.current?.focus();
         shouldRestoreFocusRef.current = false;
       }
@@ -51,28 +49,28 @@ export function DeleteConfirmationButton({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [showConfirm]);
+  }, [isPending, showConfirm]);
 
-  const handleDelete = async () => {
-    setIsPending(true);
+  const handleDelete = () => {
+    if (isPendingRef.current) return;
+    isPendingRef.current = true;
     setError(null);
-    try {
-      const result = await onDelete(id);
-      if (result?.error) {
-        setError(result.error);
-        return;
+    startTransition(async () => {
+      try {
+        const result = await onDelete(id);
+        if (result?.error) {
+          setError(result.error);
+          return;
+        }
+        setShowConfirm(false);
+      } catch (deleteError) {
+        setError(
+          deleteError instanceof Error
+            ? deleteError.message
+            : `Impossible de supprimer ${itemType} pour le moment.`,
+        );
       }
-      setShowConfirm(false);
-      router.refresh();
-    } catch (deleteError) {
-      setError(
-        deleteError instanceof Error
-          ? deleteError.message
-          : `Impossible de supprimer ${itemType} pour le moment.`,
-      );
-    } finally {
-      setIsPending(false);
-    }
+    });
   };
 
   if (showConfirm) {
@@ -105,9 +103,7 @@ export function DeleteConfirmationButton({
           <button
             ref={confirmRef}
             type="button"
-            onClick={() => {
-              void handleDelete();
-            }}
+            onClick={handleDelete}
             disabled={isPending}
             aria-busy={isPending}
             className="rounded-full bg-sport-orange px-3 py-1.5 text-xs font-black text-zinc-950 hover:bg-primary-300 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-sport-orange"
@@ -136,6 +132,7 @@ export function DeleteConfirmationButton({
         setShowConfirm(true);
       }}
       aria-label={`Supprimer ${itemType} : ${itemLabel}`}
+      disabled={isPending}
       className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold text-zinc-300 transition-colors hover:bg-sport-orange/15 hover:text-sport-orange focus:outline-none focus:ring-2 focus:ring-sport-orange"
     >
       <Icon name="trash" className="h-3.5 w-3.5" />

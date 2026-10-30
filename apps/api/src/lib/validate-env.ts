@@ -1,7 +1,8 @@
 // Validation des variables d'environnement obligatoires au demarrage.
 // OWASP A05: fail-fast si la configuration critique est incomplete.
+import { resolveDatabaseUrl } from '../db/database-url.js';
 
-const REQUIRED_ENV_VARS = ['DATABASE_URL', 'SERVICE_SECRET'] as const;
+const REQUIRED_ENV_VARS = ['SERVICE_SECRET'] as const;
 
 // Optional au boot : la generation IA sera indisponible sans cle serveur.
 const OPTIONAL_ENV_VARS = ['OPENAI_API_KEY'] as const;
@@ -21,15 +22,7 @@ export function validateEnv(): void {
     throw new Error(`Variables d'environnement manquantes : ${missing.join(', ')}`);
   }
 
-  let databaseUrl: URL;
-  try {
-    databaseUrl = new URL(process.env['DATABASE_URL']!);
-  } catch {
-    throw new Error('DATABASE_URL invalide');
-  }
-  if (!['postgres:', 'postgresql:'].includes(databaseUrl.protocol)) {
-    throw new Error('DATABASE_URL doit utiliser PostgreSQL');
-  }
+  resolveDatabaseUrl();
   if (process.env['NODE_ENV'] === 'production') {
     const secret = process.env['SERVICE_SECRET']!;
     if (secret.length < 32 || /generate|change.?me|your_|example/i.test(secret)) {
@@ -53,15 +46,6 @@ export function validateEnv(): void {
       frontend.pathname !== '/'
     ) {
       throw new Error('FRONTEND_URL doit etre une origine HTTPS exacte');
-    }
-    if (!['localhost', '127.0.0.1', '::1', '[::1]'].includes(databaseUrl.hostname)) {
-      if (
-        !['require', 'verify-full', 'verify-ca', 'prefer'].includes(
-          databaseUrl.searchParams.get('sslmode') ?? '',
-        )
-      ) {
-        throw new Error('DATABASE_URL distante exige une verification TLS en production');
-      }
     }
   }
 

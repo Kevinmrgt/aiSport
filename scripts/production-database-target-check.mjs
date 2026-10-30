@@ -56,7 +56,8 @@ export async function checkProductionDatabaseTarget(env, {
   const base = { performedAt: new Date().toISOString(), readOnly: true, scope: 'configured-production-api-database' };
   let comparisons = {};
   try {
-    if (!env.VERCEL_TOKEN || !env.VERCEL_ORG_ID || !env.VERCEL_API_PROJECT_ID || !env.DATABASE_URL) {
+    const referenceValue = env.ALCIDE_DATABASE_URL !== undefined ? env.ALCIDE_DATABASE_URL : env.DATABASE_URL;
+    if (!env.VERCEL_TOKEN || !env.VERCEL_ORG_ID || !env.VERCEL_API_PROJECT_ID || !referenceValue) {
       return { ...base, complete: false, reason: 'missing_configuration' };
     }
     const get = async (path) => {
@@ -70,23 +71,25 @@ export async function checkProductionDatabaseTarget(env, {
     };
     const project = encodeURIComponent(env.VERCEL_API_PROJECT_ID);
     const metadata = await get(`/v10/projects/${project}/env?decrypt=false`);
-    const matches = (metadata.envs ?? []).filter((item) => item.key === 'DATABASE_URL' &&
-      (Array.isArray(item.target) ? item.target : [item.target]).includes('production') && !item.gitBranch);
+    const production = (item) => (Array.isArray(item.target) ? item.target : [item.target]).includes('production') && !item.gitBranch;
+    const overrides = (metadata.envs ?? []).filter((item) => item.key === 'ALCIDE_DATABASE_URL' && production(item));
+    const matches = overrides.length ? overrides : (metadata.envs ?? []).filter((item) => item.key === 'DATABASE_URL' && production(item));
     if (matches.length !== 1) return { ...base, complete: false, reason: 'missing_or_ambiguous_database_configuration' };
     const variable = matches[0];
     if (!variable.id || variable.visibility === 'secret' || variable.type === 'sensitive' || variable.type === 'secret') {
       return { ...base, complete: false, reason: 'database_configuration_not_readable' };
     }
-    const decrypted = await get(`/v1/projects/${project}/env/${encodeURIComponent(variable.id)}`);
-    if (decrypted.decrypted !== true || typeof decrypted.value !== 'string' || !decrypted.value) {
+    const decrypted = variable.type === 'plain' && typeof variable.value === 'string' ? variable :
+      await get(`/v1/projects/${project}/env/${encodeURIComponent(variable.id)}`);
+    if ((variable.type !== 'plain' && decrypted.decrypted !== true) || typeof decrypted.value !== 'string' || !decrypted.value) {
       return { ...base, complete: false, reason: 'database_configuration_not_readable' };
     }
-    comparisons = connectionComparisons(env.DATABASE_URL, decrypted.value);
+    comparisons = connectionComparisons(referenceValue, decrypted.value);
     const [source, configured] = await Promise.all([
-      identityReader(env.DATABASE_URL), inspectConfiguredDatabase(decrypted.value, { clientFactory, identityInspector, lineageInspector }),
+      identityReader(referenceValue), inspectConfiguredDatabase(decrypted.value, { clientFactory, identityInspector, lineageInspector }),
     ]);
     const sameDatabase = source.sourceIdentity === configured.sourceIdentity && source.databaseMajor === configured.databaseMajor;
-    return { ...base, ...comparisons, complete: true, sameDatabase, databaseMajor: configured.databaseMajor,
+    return { ...base, ...comparisons, complete: true, sameDatabase, databaseMajor: configured.databaseMajor, configuredApplicationOverride: overrides.length === 1,
       configuredMigrationLineage: configured.migrationLineage };
   } catch (error) {
     const reason = /^http_\d{3}$/.test(error?.message ?? '') ? error.message : 'private_diagnostics_required';

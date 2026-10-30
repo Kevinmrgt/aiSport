@@ -1,10 +1,10 @@
 import { spawnSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
-import { mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
-import { resolve, sep } from 'node:path';
+import { lstat, mkdir, readFile, readdir, realpath, rename, rm, unlink, writeFile } from 'node:fs/promises';
+import { join, resolve, sep } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { runAdminBootstrap, targetDatabaseUrl, readSelectedAdminId } from './production-admin-bootstrap.mjs';
-import { Client, databaseUrl, readDatabaseIdentity, fileHash, migrationFingerprint } from './db-operations.mjs';
+import { Client, databaseUrl, readDatabaseIdentity, fileHash, migrationFingerprint, require } from './db-operations.mjs';
 import { checkHealth } from './cd-health-check.mjs';
 
 class ReleaseError extends Error {
@@ -13,11 +13,11 @@ class ReleaseError extends Error {
 const fail = (message) => { throw new ReleaseError(message); };
 const production = (item) => !item.gitBranch && (Array.isArray(item.target) ? item.target : [item.target]).includes('production');
 const safeKey = (key) => /^[A-Z][A-Z0-9_]+$/.test(key);
-const mutableKeys = new Set(['DATABASE_URL', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'API_URL', 'NEXT_PUBLIC_API_URL', 'FRONTEND_URL', 'AUTH_URL', 'NEXTAUTH_URL']);
+const mutableKeys = new Set(['DATABASE_URL', 'ALCIDE_DATABASE_URL', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'API_URL', 'NEXT_PUBLIC_API_URL', 'FRONTEND_URL', 'AUTH_URL', 'NEXTAUTH_URL']);
 const releaseStages = new Set(['input_validation', 'ci_verification', 'configuration_read', 'bootstrap_plan', 'source_reference', 'backup', 'rehearsal',
   'diagnostic_input', 'diagnostic_deployment_lookup', 'diagnostic_environment_pull', 'diagnostic_project_environment_pull', 'diagnostic_project_database_read', 'diagnostic_database_sql',
   'prepared_backup_verification', 'api_reference', 'web_reference', 'bootstrap_apply', 'admin_lookup_source', 'admin_lookup_target', 'admin_identity_comparison',
-  ...['api', 'web'].flatMap((project) => ['env_readback', 'cleanup', 'pull', 'build', 'deploy', 'health', 'denied_probe', 'promote', 'alias_health', 'alias_denied_probe',
+  ...['api', 'web'].flatMap((project) => ['env_readback', 'cleanup', 'pull', 'build', 'function_environment', 'build_artifacts', 'deploy', 'health', 'oauth_configuration', 'automation_bypass_create', 'automation_bypass_revoke', 'denied_probe', 'promote', 'alias_health', 'alias_denied_probe',
     ...[...mutableKeys].map((key) => `env_${key}`)].map((action) => `${project}_${action}`))]);
 const bootstrapFailureReasons = new Set(['admin_not_unique', 'admin_identity_lookup_failed', 'admin_identity_mismatch', 'explicit_admin_email_required']);
 const healthFailureReasons = new Map([
@@ -38,6 +38,11 @@ export function safeVercelValidation(payload) {
     signals: {
       mentionsDeployment: /deployment/.test(message), mentionsSource: /\bsource\b/.test(message),
       mentionsProjectId: /project.?id/.test(message), mentionsTeamId: /team.?id/.test(message),
+      mentionsSecret: /secret/.test(message),
+      secretLengthConstraint: /secret/.test(message) && /length|characters?|minimum|maximum/.test(message),
+      mentionsMinLength: /min.?length|minimum|at least|shorter than/.test(message),
+      mentionsMaxLength: /max.?length|maximum|at most|longer than/.test(message),
+      mentions32: /\b32\b/.test(message),
       unsupported: /unsupported|not supported/.test(message), invalidId: /invalid.{0,80}\bid\b|invalid.{0,80}deployment/.test(message),
       invalidParameter: /invalid.{0,80}(parameter|query|property)|invalid request/.test(message),
       requiredParameter: /required|missing.{0,40}(parameter|property)/.test(message),
@@ -159,6 +164,30 @@ export class VercelProduction {
     if (typeof url !== 'string' || !/^[a-z0-9.-]+\.vercel\.app$/.test(url)) fail('previous_production_deployment_required');
     return `https://${url}`;
   }
+  async temporaryAutomationBypass(project, undo) {
+    // Vercel's official provider validates /^[a-zA-Z0-9]{32}$/ for custom
+    // automation secrets. Sixteen random bytes become 32 valid hex chars.
+    const secret = randomBytes(16).toString('hex');
+    const projectPath = `/v9/projects/${encodeURIComponent(project)}`;
+    const bypassPath = `/v1/projects/${encodeURIComponent(project)}/protection-bypass`;
+    let finished = false;
+    const revoke = async () => {
+      if (finished) return;
+      const current = await this.request(projectPath);
+      if (!Object.hasOwn(current.protectionBypass ?? {}, secret)) { finished = true; return; }
+      const result = await this.request(bypassPath, 'PATCH', { revoke: { secret, regenerate: false } });
+      const remaining = result.protectionBypass ?? (await this.request(projectPath)).protectionBypass;
+      if (Object.hasOwn(remaining ?? {}, secret)) fail('automation_bypass_revocation_not_verified');
+      finished = true;
+    };
+    // Compensate even when a timed-out generation request actually succeeded.
+    undo.push(revoke);
+    const run = /^\d+$/.test(this.env.GITHUB_RUN_ID ?? '') ? this.env.GITHUB_RUN_ID : 'manual';
+    const attempt = /^\d+$/.test(this.env.GITHUB_RUN_ATTEMPT ?? '') ? this.env.GITHUB_RUN_ATTEMPT : '1';
+    const result = await this.request(bypassPath, 'PATCH', { generate: { secret, note: `Alcide closed release validation ${run}-${attempt}` } });
+    if (result.protectionBypass?.[secret]?.scope !== 'automation-bypass') fail('automation_bypass_generation_not_verified');
+    return { secret, revoke };
+  }
   async replace(project, original, key, value, undo) {
     if (!mutableKeys.has(key)) fail('environment_write_not_allowlisted');
     const base = `/v9/projects/${encodeURIComponent(project)}/env`;
@@ -185,7 +214,7 @@ export class VercelProduction {
 }
 
 export async function inspectConfiguration(env, provider) {
-  const apiKeys = ['DATABASE_URL', 'SERVICE_SECRET', 'AUTH_SECRET', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'FRONTEND_URL'];
+  const apiKeys = ['DATABASE_URL', 'ALCIDE_DATABASE_URL', 'SERVICE_SECRET', 'AUTH_SECRET', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'FRONTEND_URL'];
   const webKeys = ['SERVICE_SECRET', 'AUTH_SECRET', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'APP_REVISION', 'API_URL', 'NEXT_PUBLIC_API_URL', 'AUTH_URL', 'NEXTAUTH_URL'];
   const [api, web, webMetadata] = await Promise.all([provider.snapshot(env.VERCEL_API_PROJECT_ID, apiKeys), provider.snapshot(env.VERCEL_WEB_PROJECT_ID, webKeys), provider.list(env.VERCEL_WEB_PROJECT_ID)]);
   const checks = {
@@ -195,10 +224,12 @@ export async function inspectConfiguration(env, provider) {
     authAndServiceDistinct: Boolean(web.AUTH_SECRET?.value) && web.AUTH_SECRET.value !== web.SERVICE_SECRET?.value,
     googleConfigurationPresent: ['AUTH_GOOGLE_ID', 'AUTH_GOOGLE_SECRET'].every((key) => webMetadata.filter((item) => item.key === key && production(item)).length === 1),
   };
-  if (!api.DATABASE_URL?.value) fail('missing_production_database_url');
-  const direct = directSourceUrl(api.DATABASE_URL.value);
+  const applicationOverrideSelected = api.ALCIDE_DATABASE_URL !== null && api.ALCIDE_DATABASE_URL !== undefined;
+  const effective = applicationOverrideSelected ? api.ALCIDE_DATABASE_URL : api.DATABASE_URL;
+  if (!effective?.value) fail('missing_production_database_url');
+  const direct = directSourceUrl(effective.value);
   targetDatabaseUrl(direct.value, env.TARGET_DATABASE_NAME);
-  return { api, web, source: direct.value, sourceDirectDerived: direct.sourceDirectDerived, checks, ready: Object.values(checks).every(Boolean) };
+  return { api, web, source: direct.value, sourceDirectDerived: direct.sourceDirectDerived, applicationOverrideSelected, checks, ready: Object.values(checks).every(Boolean) };
 }
 
 export async function requireSuccessfulCi(env, fetcher = fetch) {
@@ -347,23 +378,29 @@ export async function inspectDeploymentDatabase(env, { provider = new VercelProd
         try {
           const current = await provider.request(`/v3/env/pull/${encodeURIComponent(env.VERCEL_API_PROJECT_ID)}/production?source=vercel-cli%3Apull`);
           control.complete = true;
-          control.databaseConfigurationPresent = typeof current.env?.DATABASE_URL === 'string';
-          if (control.databaseConfigurationPresent) control.databaseNameMatchesTarget = decodeURIComponent(databaseUrl(current.env.DATABASE_URL).pathname.slice(1)) === env.TARGET_DATABASE_NAME;
+          const currentValue = current.env?.ALCIDE_DATABASE_URL !== undefined ? current.env.ALCIDE_DATABASE_URL : current.env?.DATABASE_URL;
+          control.applicationOverrideSelected = current.env?.ALCIDE_DATABASE_URL !== undefined;
+          control.databaseConfigurationPresent = typeof currentValue === 'string' && Boolean(currentValue);
+          if (control.databaseConfigurationPresent) control.databaseNameMatchesTarget = decodeURIComponent(databaseUrl(currentValue).pathname.slice(1)) === env.TARGET_DATABASE_NAME;
         } catch (controlError) { control.failure = safeReleaseFailure(controlError, 'diagnostic_project_environment_pull'); }
         report.projectEnvironmentPullDiagnostic = control;
       }
       throw error;
     }
     failedStage = 'diagnostic_project_database_read';
-    const configured = await provider.snapshot(env.VERCEL_API_PROJECT_ID, ['DATABASE_URL']);
-    if (typeof resolved.env?.DATABASE_URL !== 'string' || !configured.DATABASE_URL?.value) fail('deployment_runtime_database_unavailable');
-    const runtime = databaseUrl(directSourceUrl(resolved.env.DATABASE_URL).value);
-    const source = databaseUrl(directSourceUrl(configured.DATABASE_URL.value).value);
+    const configured = await provider.snapshot(env.VERCEL_API_PROJECT_ID, ['DATABASE_URL', 'ALCIDE_DATABASE_URL']);
+    const runtimeOverrideSelected = resolved.env?.ALCIDE_DATABASE_URL !== undefined;
+    const runtimeValue = runtimeOverrideSelected ? resolved.env.ALCIDE_DATABASE_URL : resolved.env?.DATABASE_URL;
+    const configuredValue = configured.ALCIDE_DATABASE_URL !== undefined && configured.ALCIDE_DATABASE_URL !== null ? configured.ALCIDE_DATABASE_URL?.value : configured.DATABASE_URL?.value;
+    if (typeof runtimeValue !== 'string' || !runtimeValue || !configuredValue) fail('deployment_runtime_database_unavailable');
+    const runtime = databaseUrl(directSourceUrl(runtimeValue).value);
+    const source = databaseUrl(directSourceUrl(configuredValue).value);
     const expected = new URL(source); expected.pathname = `/${env.TARGET_DATABASE_NAME}`;
     const runtimeName = decodeURIComponent(runtime.pathname.slice(1));
     failedStage = 'diagnostic_database_sql';
     const sql = await databaseInspector(runtime.toString());
     Object.assign(report, { complete: true, deploymentUrl: candidate,
+      applicationDatabaseOverrideSelected: runtimeOverrideSelected,
       runtimeDatabaseNameSha256: createHash('sha256').update(runtimeName).digest('hex'),
       runtimeDatabaseNameMatchesTarget: runtimeName === env.TARGET_DATABASE_NAME,
       runtimeDatabaseNameMatchesCurrentProject: runtimeName === decodeURIComponent(source.pathname.slice(1)),
@@ -372,7 +409,7 @@ export async function inspectDeploymentDatabase(env, { provider = new VercelProd
       runtimeConnectionMatchesTarget: runtime.toString() === expected.toString(),
       runtimeAccessModeAdminOnly: resolved.env.PRODUCTION_ACCESS_MODE === 'admin-only',
       runtimeRevisionMatchesExpected: typeof env.RELEASE_REVISION === 'string' && /^[a-f0-9]{40}$/.test(env.RELEASE_REVISION) && resolved.env.APP_REVISION === env.RELEASE_REVISION,
-      buildDatabaseConfigurationPresent: typeof resolved.buildEnv?.DATABASE_URL === 'string',
+      buildDatabaseConfigurationPresent: typeof (resolved.buildEnv?.ALCIDE_DATABASE_URL !== undefined ? resolved.buildEnv.ALCIDE_DATABASE_URL : resolved.buildEnv?.DATABASE_URL) === 'string',
       sql: { databaseNameMatchesEnvironment: sql.databaseNameMatchesEnvironment === true,
         migrationTablePresent: sql.migrationTablePresent === true,
         migrationCount: Number.isSafeInteger(sql.migrationCount) && sql.migrationCount >= 0 ? sql.migrationCount : null,
@@ -385,12 +422,28 @@ export async function inspectDeploymentDatabase(env, { provider = new VercelProd
   return report;
 }
 
-export async function checkReleaseHealth(url, expected, { bypassSecret, fetcher = fetch } = {}) {
+export async function checkReleaseHealth(url, expected, { bypassSecret, fetcher = fetch, pause: pauseImpl = pause } = {}) {
   const origin = new URL(url).origin;
   return checkHealth(url, expected, { bypassSecret, fetchImpl: async (target, options) => {
     // Never forward automation credentials to another origin after a redirect.
     if (new URL(target).origin !== origin) fail('health_cross_origin_redirect_refused');
-    const response = await fetcher(target, options);
+    let response = await fetcher(target, options);
+    const automationPropagationRedirect = (candidate) => {
+      if (!bypassSecret || ![302, 303, 307, 308].includes(candidate.status)) return false;
+      const location = candidate.headers.get('location');
+      if (!location) return false;
+      try {
+        const redirect = new URL(location, target);
+        return !redirect.username && !redirect.password && redirect.origin === 'https://vercel.com' && redirect.pathname === '/sso-api';
+      } catch { return false; }
+    };
+    // A newly registered automation token can take a few seconds to propagate.
+    // Retry only the provider's exact SSO redirect, always on this original URL.
+    for (const delay of [1000, 2000, 4000, 8000]) {
+      if (!automationPropagationRedirect(response)) break;
+      await pauseImpl(delay);
+      response = await fetcher(target, options);
+    }
     if (!response.ok && response.headers.get('content-type')?.includes('application/json')) {
       let payload;
       try { payload = await response.clone().json(); } catch { /* The ordinary JSON/status checks still fail closed. */ }
@@ -403,6 +456,21 @@ export async function checkReleaseHealth(url, expected, { bypassSecret, fetcher 
     }
     return response;
   } });
+}
+
+export async function checkWebOAuthConfiguration(base, { bypassSecret, fetcher = fetch } = {}) {
+  if (!/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(base ?? '')) fail('invalid_created_deployment_url');
+  const url = new URL('/api/auth/providers', base);
+  const headers = { 'cache-control': 'no-cache' };
+  if (bypassSecret) headers['x-vercel-protection-bypass'] = bypassSecret;
+  const response = await fetcher(url, { headers, redirect: 'manual', signal: AbortSignal.timeout(20_000) });
+  if ([301, 302, 303, 307, 308].includes(response.status)) fail('web_oauth_configuration_redirect_refused');
+  if (!response.ok) { const error = new ReleaseError('web_oauth_configuration_http_error'); error.status = response.status; throw error; }
+  if (!response.headers.get('content-type')?.includes('application/json')) fail('web_oauth_configuration_not_json');
+  let providers;
+  try { providers = await response.json(); } catch { fail('web_oauth_configuration_invalid_json'); }
+  if (providers?.google?.id !== 'google' || providers.google.callbackUrl !== 'https://www.alcideai.fr/api/auth/callback/google') fail('web_oauth_canonical_callback_mismatch');
+  return { googleProviderConfigured: true, canonicalCallbackVerified: true };
 }
 
 export async function cleanupVercelCheckout(env, { cwd = process.cwd() } = {}) {
@@ -419,8 +487,191 @@ export async function cleanupVercelCheckout(env, { cwd = process.cwd() } = {}) {
   }
 }
 
+export async function inspectVercelBuildArtifacts(env, { component = 'api', expectedValues, sourceDatabaseUrl, cwd = process.cwd() } = {}) {
+  const report = { scope: 'local-vercel-build-artifacts', readOnly: true, complete: false, processEnvironmentObserved: false, outputs: [] };
+  try {
+    const root = resolve(cwd);
+    if (!['api', 'web'].includes(component) || env.GITHUB_ACTIONS !== 'true' || !env.GITHUB_WORKSPACE || resolve(env.GITHUB_WORKSPACE) !== root) fail('artifact_capture_requires_github_checkout');
+    const expected = expectedValues ?? Object.fromEntries([...mutableKeys].filter((key) => typeof env[key] === 'string').map((key) => [key, env[key]]));
+    const keys = Object.keys(expected);
+    if (!keys.length || keys.some((key) => !mutableKeys.has(key) || typeof expected[key] !== 'string') || (component === 'api' && !(expected.ALCIDE_DATABASE_URL !== undefined ? expected.ALCIDE_DATABASE_URL : expected.DATABASE_URL))) fail('artifact_expected_configuration_required');
+    const projectId = component === 'api' ? env.VERCEL_API_PROJECT_ID : env.VERCEL_WEB_PROJECT_ID;
+    const actualRoot = await realpath(root);
+    const confined = async (path) => {
+      const actual = await realpath(path);
+      if (!actual.startsWith(`${actualRoot}${sep}`)) fail('artifact_path_outside_checkout');
+      return actual;
+    };
+    const privateJson = async (path) => {
+      try {
+        await confined(path);
+        const metadata = await lstat(path);
+        if (metadata.size > 2 * 1024 * 1024) fail('artifact_json_limit_exceeded');
+        return JSON.parse(await readFile(path, 'utf8'));
+      } catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+    };
+    const canonicalDatabase = (value) => {
+      try { return directSourceUrl(value).value; } catch { return null; }
+    };
+    const expectedDatabaseValue = expected.ALCIDE_DATABASE_URL !== undefined ? expected.ALCIDE_DATABASE_URL : expected.DATABASE_URL;
+    const expectedDatabase = expectedDatabaseValue ? canonicalDatabase(expectedDatabaseValue) : null;
+    const sourceDatabase = sourceDatabaseUrl ? canonicalDatabase(sourceDatabaseUrl) : null;
+    report.repositoryLinkConfigurationPresent = Boolean(await privateJson(join(root, '.vercel/repo.json')));
+    let scannedFiles = 0; let scannedBytes = 0;
+    for (const cache of ['.vercel', 'apps/api/.vercel', 'apps/web/.vercel']) {
+      const outputPath = join(root, cache, 'output');
+      try { await confined(outputPath); } catch (error) { if (error.code === 'ENOENT') continue; throw error; }
+      const project = await privateJson(join(root, cache, 'project.json'));
+      const manifest = await privateJson(join(outputPath, 'builds.json'));
+      const output = { location: `${cache}/output`, projectConfigurationPresent: Boolean(project),
+        projectIdMatches: Boolean(project && project.projectId === projectId),
+        projectRootDirectoryMatches: Boolean(project && project.settings?.rootDirectory === `apps/${component}`),
+        productionBuildTarget: manifest?.target === 'production', cliVersionMatches: manifest?.cliVersion === '54.17.2',
+        functionConfigurations: 0, functionsWithEnvironmentOverrides: 0, conflictingOverrideKeys: [],
+        pulledEnvironmentPresent: false, pulledEnvironmentComparedKeys: [], pulledEnvironmentMismatchedKeys: [],
+        filesWithDatabaseEnvironmentReference: 0, filesWithApplicationDatabaseEnvironmentReference: 0, databaseLiterals: { expected: 0, source: 0, other: 0 },
+      };
+      try {
+        const pulledPath = join(root, cache, '.env.production.local');
+        await confined(pulledPath);
+        if ((await lstat(pulledPath)).size > 2 * 1024 * 1024) fail('artifact_environment_limit_exceeded');
+        const pulled = require('dotenv').parse(await readFile(pulledPath, 'utf8'));
+        output.pulledEnvironmentPresent = true;
+        output.pulledEnvironmentComparedKeys = keys.filter((key) => Object.hasOwn(pulled, key));
+        output.pulledEnvironmentMismatchedKeys = output.pulledEnvironmentComparedKeys.filter((key) => pulled[key] !== expected[key]);
+      } catch (error) { if (error.code !== 'ENOENT') throw error; }
+      const conflicts = new Set();
+      const visit = async (directory, depth = 0) => {
+        if (depth > 30) fail('artifact_directory_limit_exceeded');
+        await confined(directory);
+        for (const entry of await readdir(directory, { withFileTypes: true })) {
+          if (++scannedFiles > 20_000) fail('artifact_file_limit_exceeded');
+          if (entry.isSymbolicLink() || entry.name === 'node_modules') continue;
+          const path = join(directory, entry.name);
+          if (entry.isDirectory()) { await visit(path, depth + 1); continue; }
+          if (!entry.isFile()) continue;
+          if (entry.name === '.vc-config.json') {
+            const configuration = await privateJson(path);
+            output.functionConfigurations += 1;
+            if (configuration?.environment && typeof configuration.environment === 'object') {
+              output.functionsWithEnvironmentOverrides += 1;
+              for (const key of keys) if (Object.hasOwn(configuration.environment, key) && configuration.environment[key] !== expected[key]) conflicts.add(key);
+            }
+            continue;
+          }
+          if (!/\.(?:[cm]?js|ts)$/.test(entry.name)) continue;
+          const metadata = await lstat(path);
+          if (metadata.size > 2 * 1024 * 1024) { output.largeCodeFilesSkipped = (output.largeCodeFilesSkipped ?? 0) + 1; continue; }
+          scannedBytes += metadata.size;
+          if (scannedBytes > 32 * 1024 * 1024) fail('artifact_code_limit_exceeded');
+          await confined(path);
+          const code = await readFile(path, 'utf8');
+          if (/process\s*\.\s*env\s*(?:\.\s*(?:ALCIDE_)?DATABASE_URL|\[\s*['"](?:ALCIDE_)?DATABASE_URL['"]\s*\])/.test(code)) output.filesWithDatabaseEnvironmentReference += 1;
+          if (/process\s*\.\s*env\s*(?:\.\s*ALCIDE_DATABASE_URL|\[\s*['"]ALCIDE_DATABASE_URL['"]\s*\])/.test(code)) output.filesWithApplicationDatabaseEnvironmentReference += 1;
+          for (const literal of code.match(/postgres(?:ql)?:\/\/[^\s"'`\\<>),}]+/gi) ?? []) {
+            const canonical = canonicalDatabase(literal);
+            const type = canonical && canonical === expectedDatabase ? 'expected' : canonical && canonical === sourceDatabase ? 'source' : 'other';
+            output.databaseLiterals[type] += 1;
+          }
+        }
+      };
+      try { await visit(join(outputPath, 'functions')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+      output.conflictingOverrideKeys = [...conflicts].sort();
+      report.outputs.push(output);
+    }
+    report.component = component; report.expectedKeysCompared = keys;
+    report.complete = report.outputs.length > 0;
+    report.environmentOverridesConsistent = report.outputs.every((output) => output.conflictingOverrideKeys.length === 0);
+    report.onlyOneOutputDirectory = report.outputs.length === 1;
+    report.scannedFiles = scannedFiles; report.scannedCodeBytes = scannedBytes;
+    if (!report.complete) report.reason = 'build_output_not_found';
+  } catch (error) { report.reason = error instanceof ReleaseError ? error.message : 'private_artifact_diagnostics_required'; }
+  return report;
+}
+
+// Build Output API: environment is a Node.js Function config property. It is
+// intentionally not added to Edge configs, which use envVarsInUse instead.
+export async function bindVercelFunctionEnvironment(env, { component = 'api', expectedValues, cwd = process.cwd() } = {}) {
+  const root = resolve(cwd);
+  if (!['api', 'web'].includes(component) || env.GITHUB_ACTIONS !== 'true' || !env.GITHUB_WORKSPACE || resolve(env.GITHUB_WORKSPACE) !== root) fail('function_binding_requires_github_checkout');
+  const keys = Object.keys(expectedValues ?? {});
+  if (!keys.length || keys.some((key) => !mutableKeys.has(key) || typeof expectedValues[key] !== 'string') || (component === 'api' && !(expectedValues.ALCIDE_DATABASE_URL !== undefined ? expectedValues.ALCIDE_DATABASE_URL : expectedValues.DATABASE_URL))) fail('function_binding_expected_values_required');
+  const projectId = component === 'api' ? env.VERCEL_API_PROJECT_ID : env.VERCEL_WEB_PROJECT_ID;
+  if (!projectId) fail('function_binding_project_required');
+  const actualRoot = await realpath(root);
+  const confined = async (path, boundary = actualRoot) => {
+    const actual = await realpath(path);
+    if (!actual.startsWith(`${boundary}${sep}`)) fail('function_binding_path_outside_checkout');
+    return actual;
+  };
+  const regularJson = async (path) => {
+    await confined(path);
+    const metadata = await lstat(path);
+    if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size > 2 * 1024 * 1024) fail('function_binding_invalid_config_file');
+    try { return JSON.parse(await readFile(path, 'utf8')); } catch { fail('function_binding_invalid_config_json'); }
+  };
+  const outputs = [];
+  for (const cache of ['.vercel', 'apps/api/.vercel', 'apps/web/.vercel']) {
+    const outputPath = join(root, cache, 'output');
+    try {
+      await confined(outputPath);
+      const metadata = await lstat(outputPath);
+      if (!metadata.isDirectory() || metadata.isSymbolicLink()) fail('function_binding_invalid_output_directory');
+      outputs.push({ cache, outputPath });
+    } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  }
+  if (outputs.length !== 1) fail('function_binding_single_active_output_required');
+  const { cache, outputPath } = outputs[0];
+  const project = await regularJson(join(root, cache, 'project.json'));
+  if (project.projectId !== projectId || project.settings?.rootDirectory !== `apps/${component}`) fail('function_binding_project_mismatch');
+  const manifest = await regularJson(join(outputPath, 'builds.json'));
+  if (manifest.target !== 'production') fail('function_binding_production_build_required');
+  const functionsPath = join(outputPath, 'functions');
+  const actualFunctions = await confined(functionsPath);
+  if ((await lstat(functionsPath)).isSymbolicLink()) fail('function_binding_invalid_functions_directory');
+  const canonicalFunctions = new Set(); const aliases = []; const changes = [];
+  let entries = 0; let edgeSkippedCount = 0;
+  const visit = async (directory, depth = 0) => {
+    if (depth > 25) fail('function_binding_directory_limit_exceeded');
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      if (++entries > 20_000) fail('function_binding_file_limit_exceeded');
+      const path = join(directory, entry.name);
+      if (entry.isSymbolicLink()) {
+        aliases.push(await confined(path, actualFunctions));
+        continue;
+      }
+      if (!entry.isDirectory()) continue;
+      await confined(path, actualFunctions);
+      if (!entry.name.endsWith('.func')) { await visit(path, depth + 1); continue; }
+      const actualFunction = await realpath(path);
+      canonicalFunctions.add(actualFunction);
+      const configPath = join(path, '.vc-config.json');
+      const configuration = await regularJson(configPath);
+      if (configuration.runtime === 'edge') { edgeSkippedCount += 1; continue; }
+      if (!/^nodejs\d+\.x$/.test(configuration.runtime ?? '')) fail('function_binding_unsupported_runtime');
+      if (configuration.environment !== undefined && (configuration.environment === null || typeof configuration.environment !== 'object' || Array.isArray(configuration.environment))) fail('function_binding_invalid_environment');
+      changes.push({ path: configPath, configuration: { ...configuration, environment: { ...configuration.environment, ...expectedValues } } });
+    }
+  };
+  await visit(functionsPath);
+  if (aliases.some((target) => !canonicalFunctions.has(target))) fail('function_binding_alias_target_not_selected');
+  if (component === 'api' && changes.length === 0) fail('function_binding_node_function_required');
+  for (const change of changes) {
+    const temporary = `${change.path}.release-${randomBytes(8).toString('hex')}.tmp`;
+    try {
+      await writeFile(temporary, `${JSON.stringify(change.configuration, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
+      await rename(temporary, change.path);
+    } finally { await unlink(temporary).catch(() => undefined); }
+    const copied = await regularJson(change.path);
+    if (keys.some((key) => copied.environment?.[key] !== expectedValues[key])) fail('function_binding_readback_mismatch');
+  }
+  return { complete: true, selectedOutput: `${cache}/output`, expectedProjectMatches: true, expectedRootDirectoryMatches: true,
+    nodeBoundCount: changes.length, edgeSkippedCount, internalAliasesSkippedCount: aliases.length, verifiedKeys: keys, readbackVerified: true };
+}
+
 export async function deployClosedProduction(env, configuration, provider, { bootstrap = runAdminBootstrap, command = privateCommand, health = checkReleaseHealth,
-  verifyConfiguration = verifyReleaseConfiguration,
+  verifyConfiguration = verifyReleaseConfiguration, artifactInspector = inspectVercelBuildArtifacts, functionEnvironmentBinder = bindVercelFunctionEnvironment,
+  oauthConfiguration = checkWebOAuthConfiguration,
   selectedAdminId = readSelectedAdminId, denied = checkUnauthenticatedApiDenied, cleanup = () => cleanupVercelCheckout(env) } = {}) {
   const undo = [];
   const previous = [];
@@ -429,7 +680,9 @@ export async function deployClosedProduction(env, configuration, provider, { boo
   const cli = (project, args, action = args[0]) => command('npx', ['--yes', 'vercel@54.17.2', ...args, '--token', env.VERCEL_TOKEN], { ...env, ...releaseValuesByProject.get(project), VERCEL_PROJECT_ID: project, VERCEL_TELEMETRY_DISABLED: '1', VERCEL_FORCE_BUILD: '1', APP_REVISION: env.RELEASE_REVISION }, 1_200_000,
     { stage: `${project === env.VERCEL_API_PROJECT_ID ? 'api' : 'web'}_${action}` });
   const urls = [];
+  const buildArtifactDiagnostics = {};
   let bootstrapResult;
+  let webOAuthConfiguration;
   let promotionAttempted = false;
   try {
     previous.push(await provider.previousDeployment(env.VERCEL_API_PROJECT_ID));
@@ -447,7 +700,7 @@ export async function deployClosedProduction(env, configuration, provider, { boo
     failedStage = 'admin_identity_comparison';
     if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(adminId ?? '') || adminId !== copiedAdminId) fail('copied_admin_identity_mismatch');
     const values = [
-      { DATABASE_URL: newDatabase, PRODUCTION_ACCESS_MODE: 'admin-only', ADMIN_EMAILS: env.BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_USER_ID: adminId, APP_REVISION: env.RELEASE_REVISION, FRONTEND_URL: 'https://www.alcideai.fr' },
+      { DATABASE_URL: newDatabase, ALCIDE_DATABASE_URL: newDatabase, PRODUCTION_ACCESS_MODE: 'admin-only', ADMIN_EMAILS: env.BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_USER_ID: adminId, APP_REVISION: env.RELEASE_REVISION, FRONTEND_URL: 'https://www.alcideai.fr' },
       { PRODUCTION_ACCESS_MODE: 'admin-only', ADMIN_EMAILS: env.BOOTSTRAP_ADMIN_EMAIL, APP_REVISION: env.RELEASE_REVISION, API_URL: 'https://ai-sport-api.vercel.app', NEXT_PUBLIC_API_URL: 'https://ai-sport-api.vercel.app', AUTH_URL: 'https://www.alcideai.fr', NEXTAUTH_URL: 'https://www.alcideai.fr' },
     ];
     for (const [index, project] of [env.VERCEL_API_PROJECT_ID, env.VERCEL_WEB_PROJECT_ID].entries()) {
@@ -466,6 +719,11 @@ export async function deployClosedProduction(env, configuration, provider, { boo
       cli(project, ['pull', '--yes', '--environment=production']);
       failedStage = `${component}_build`;
       cli(project, ['build', '--prod']);
+      failedStage = `${component}_function_environment`;
+      const functionEnvironmentBinding = await functionEnvironmentBinder({ ...env, ...values[index] }, { component, expectedValues: values[index] });
+      buildArtifactDiagnostics[component] = { functionEnvironmentBinding };
+      failedStage = `${component}_build_artifacts`;
+      buildArtifactDiagnostics[component] = { ...await artifactInspector({ ...env, ...values[index] }, { component, expectedValues: values[index], sourceDatabaseUrl: configuration.source }), functionEnvironmentBinding };
       failedStage = `${component}_deploy`;
       // Bare --env KEY makes the pinned CLI read the value from child env.
       // Secret values never become command arguments or persisted CLI logs.
@@ -474,9 +732,24 @@ export async function deployClosedProduction(env, configuration, provider, { boo
       const url = output.trim().split(/\r?\n/).at(-1)?.trim();
       if (!/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(url ?? '')) fail('invalid_created_deployment_url');
       urls.push(url);
+      let bypassSecret;
+      let temporaryBypass;
+      if (index === 1) {
+        bypassSecret = env.VERCEL_AUTOMATION_BYPASS_SECRET;
+        if (!bypassSecret) {
+          failedStage = 'web_automation_bypass_create';
+          temporaryBypass = await provider.temporaryAutomationBypass(project, undo);
+          bypassSecret = temporaryBypass.secret;
+        }
+      }
       failedStage = `${component}_health`;
-      await health(`${url}${index === 0 ? '/health/ready' : '/api/health'}`, { service: index === 0 ? 'alcide-api' : 'alcide-web', status: index === 0 ? 'ready' : 'ok', revision: env.RELEASE_REVISION }, { bypassSecret: env.VERCEL_AUTOMATION_BYPASS_SECRET });
-      if (index === 0) { failedStage = 'api_denied_probe'; await denied(url, { bypassSecret: env.VERCEL_AUTOMATION_BYPASS_SECRET }); }
+      await health(`${url}${index === 0 ? '/health/ready' : '/api/health'}`, { service: index === 0 ? 'alcide-api' : 'alcide-web', status: index === 0 ? 'ready' : 'ok', revision: env.RELEASE_REVISION }, { bypassSecret });
+      if (index === 0) { failedStage = 'api_denied_probe'; await denied(url); }
+      else {
+        failedStage = 'web_oauth_configuration';
+        webOAuthConfiguration = await oauthConfiguration(url, { bypassSecret });
+        if (temporaryBypass) { failedStage = 'web_automation_bypass_revoke'; await temporaryBypass.revoke(); }
+      }
     }
     for (const [index, project] of [env.VERCEL_API_PROJECT_ID, env.VERCEL_WEB_PROJECT_ID].entries()) {
       const component = index === 0 ? 'api' : 'web';
@@ -487,7 +760,7 @@ export async function deployClosedProduction(env, configuration, provider, { boo
       await health(index === 0 ? 'https://ai-sport-api.vercel.app/health/ready' : 'https://www.alcideai.fr/api/health', { service: index === 0 ? 'alcide-api' : 'alcide-web', status: index === 0 ? 'ready' : 'ok', revision: env.RELEASE_REVISION });
       if (index === 0) { failedStage = 'api_alias_denied_probe'; await denied('https://ai-sport-api.vercel.app'); }
     }
-    return { complete: true, access: 'admin-only', revision: env.RELEASE_REVISION, reuseExistingRequested: env.BOOTSTRAP_REUSE_EXISTING === 'verified-admin-copy', deploymentUrls: urls, previousDeploymentUrls: previous, unauthenticatedProtectedApiStatus: 401, bootstrap: bootstrapResult };
+    return { complete: true, access: 'admin-only', revision: env.RELEASE_REVISION, reuseExistingRequested: env.BOOTSTRAP_REUSE_EXISTING === 'verified-admin-copy', deploymentUrls: urls, previousDeploymentUrls: previous, unauthenticatedProtectedApiStatus: 401, bootstrap: bootstrapResult, buildArtifactDiagnostics, webOAuthConfiguration };
   } catch (error) {
     let rollbackComplete = true;
     if (promotionAttempted) {
@@ -500,6 +773,7 @@ export async function deployClosedProduction(env, configuration, provider, { boo
     return { complete: false, reason: rollbackComplete ? 'release_failed_rollback_completed' : 'release_failed_manual_rollback_required', rollbackComplete,
       failure: safeReleaseFailure(error, failedStage),
       stagedDeploymentUrls: urls,
+      buildArtifactDiagnostics,
       newDatabaseRetained: bootstrapResult?.targetCreated === true, existingDatabaseRetained: bootstrapResult?.targetReused === true, previousDeploymentUrls: previous };
   } finally { await cleanup(); }
 }
@@ -515,7 +789,7 @@ export async function runProductionAdminRelease(input, { provider, bootstrap = r
     if (mode === 'deploy') { failedStage = 'ci_verification'; report.ci = await requireSuccessfulCi(env, fetcher); }
     failedStage = 'configuration_read';
     const configuration = await inspectConfiguration(env, client);
-    report.configuration = configuration.checks; report.sourceDirectDerived = configuration.sourceDirectDerived;
+    report.configuration = configuration.checks; report.sourceDirectDerived = configuration.sourceDirectDerived; report.applicationDatabaseOverrideSelected = configuration.applicationOverrideSelected;
     failedStage = 'bootstrap_plan';
     report.bootstrap = await bootstrap({ ...env, SOURCE_DATABASE_URL: configuration.source, BOOTSTRAP_MODE: 'plan' });
     if (!report.bootstrap.complete || !report.bootstrap.ready || !configuration.ready) { report.reason = 'production_preconditions_failed'; return report; }

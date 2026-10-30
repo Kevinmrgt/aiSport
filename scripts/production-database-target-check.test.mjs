@@ -123,3 +123,44 @@ test('configured connection is closed when its inspection fails', async () => {
   assert.equal(result.complete, false); assert.equal(calls.at(-1), 'end');
   assertSafe(result);
 });
+
+test('the explicit application database wins over the legacy provider variable and reference URL', async () => {
+  const override = { ...record, id: 'application-config', key: 'ALCIDE_DATABASE_URL' };
+  const reference = sourceUrl.replace('/private-database', '/application-database');
+  const configured = configuredUrl.replace('/private-database', '/application-database');
+  const requests = [];
+  const { dependencies } = mocks({
+    fetcher: async (url) => {
+      requests.push(url.pathname);
+      return { ok: true, json: async () => url.pathname.startsWith('/v10/') ? { envs: [record, override] } : { decrypted: true, value: configured } };
+    },
+    identityReader: async (url) => { assert.equal(url, reference); return { sourceIdentity: 'private-identity', databaseMajor: 17 }; },
+  });
+  const result = await checkProductionDatabaseTarget({ ...env, ALCIDE_DATABASE_URL: reference }, dependencies);
+  assert.equal(result.complete, true); assert.equal(result.configuredApplicationOverride, true);
+  assert.equal(result.databaseNameMatches, true); assert.equal(result.sameDatabase, true);
+  assert.deepEqual(requests, ['/v10/projects/api/env', '/v1/projects/api/env/application-config']);
+  assertSafe(result);
+});
+
+test('ambiguous, unreadable, empty or invalid application overrides never fall back to the legacy database', async () => {
+  const override = { ...record, id: 'application-config', key: 'ALCIDE_DATABASE_URL' };
+  for (const [records, decrypted] of [
+    [[record, override, override], { decrypted: true, value: configuredUrl }],
+    [[record, { ...override, type: 'sensitive' }], { decrypted: true, value: configuredUrl }],
+    [[record, override], { decrypted: false, value: configuredUrl }],
+    [[record, override], { decrypted: true, value: '' }],
+    [[record, override], { decrypted: true, value: 'private-invalid-url' }],
+  ]) {
+    const requests = [];
+    const { dependencies } = mocks({
+      fetcher: async (url) => { requests.push(url.pathname); return { ok: true, json: async () => url.pathname.startsWith('/v10/') ? { envs: records } : decrypted }; },
+      identityReader: async () => assert.fail('an invalid preferred variable must not inspect the legacy database'),
+    });
+    const result = await checkProductionDatabaseTarget(env, dependencies);
+    assert.equal(result.complete, false); assert.equal(result.sameDatabase, undefined);
+    assert.equal(requests.includes('/v1/projects/api/env/database-config'), false); assertSafe(result);
+  }
+  const result = await checkProductionDatabaseTarget({ ...env, ALCIDE_DATABASE_URL: '' });
+  assert.equal(result.complete, false); assert.equal(result.reason, 'missing_configuration'); assertSafe(result);
+});
