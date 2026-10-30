@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { buildSessionSchedule } from '@alcide/shared';
 import {
   assertLocalTestDatabase,
   fixtureContent,
@@ -46,16 +47,8 @@ test('local recipe refuses remote and ambiguously named databases', () => {
 });
 
 function total(session) {
-  return (
-    [...session.warmup, ...session.cooldown].reduce(
-      (sum, phase) => sum + phase.duration_seconds,
-      0,
-    ) +
-    session.exercises.reduce(
-      (sum, exercise) => sum + exercise.duration_seconds + exercise.rest_seconds,
-      0,
-    )
-  );
+  return buildSessionSchedule(session.exercises, session.warmup, session.cooldown)
+    .reduce((sum, step) => sum + step.plannedSeconds, 0);
 }
 
 test('workout fixture preserves the requested sport, level and exact duration', () => {

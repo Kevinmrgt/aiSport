@@ -61,12 +61,38 @@ avec `reuse_existing=false` et sans confirmation de copie.
 
 Ce mode vérifie en lecture seule la connexion applicative dédiée, le nom SQL,
 le compte administrateur et son UUID, les politiques fermées et la lignée
-exacte sans migration en attente. Il sauvegarde la base active entière et
-vérifie sa restauration, puis déploie sur cette même connexion. Les séances,
-programmes, identités, réglages et compteurs sont conservés ; aucune copie
-sélective, réinitialisation ou migration de la source n'est exécutée.
-Les contrôles de candidats, de callback et de révision et le retour arrière
-restent applicables.
+appliquée exacte. Un suffixe en attente est accepté uniquement par la grammaire
+additive fermée : nouvelles tables avec types primitifs et défauts constants,
+index et clés étrangères sur ces nouvelles tables, colonnes nullables sans
+défaut ajoutées aux tables existantes. Aucune modification des treize premières
+migrations, DML, suppression, changement de type ou contrainte ajoutée aux
+anciennes tables n'est autorisé.
+
+Avant toute écriture sur la base active, la préparation sauvegarde son contenu
+entier en AES-256-GCM et restaure toutes les tables sur PostgreSQL isolé de même
+version majeure. Les comptes de lignes doivent correspondre au manifeste.
+Le suffixe candidat est ensuite appliqué à cette copie sous le verrou SQL
+commun. Dans une transaction unique, les comptes et empreintes SHA-256 de
+toutes les lignes et colonnes préexistantes, les contraintes, index, déclencheurs,
+politiques, propriétaire et identité Google sont vérifiés avant commit.
+Les empreintes de données restent en mémoire. La preuve publique contient les
+résultats, les hashes SQL exacts du suffixe, le SHA candidat et le lien SHA-256
+vers la preuve de restauration.
+
+La phase release exige cette preuve fraîche, le backup chiffré intact et la CI
+verte du SHA exact. Elle applique le même suffixe sur la même base active sous
+le verrou `pg_advisory_lock(1946010371, 1)` et répète les contrôles avant commit,
+puis construit et vérifie les candidats. Aucun bootstrap, import sélectif,
+reset, remplacement de base ou baselining n'intervient. Les séances, programmes,
+identités, réglages et compteurs sont conservés.
+
+Le rollback applicatif restaure les paramètres et alias précédents. Les ajouts
+SQL validés restent en place, compatibles avec l'ancien déploiement ; aucune
+restauration automatique sur la base active ne peut écraser des données créées
+après la sauvegarde. Les contrôles de candidats, de callback et de révision
+restent obligatoires. L'API reçoit `AI_MAX_COMPLETION_TOKENS=11000` pour la
+capacité du planificateur de septembre ; les budgets quotidiens et globaux ne
+sont pas augmentés par ce workflow.
 
 ## Exploitation et reliquat
 

@@ -1,3 +1,4 @@
+import { runWithGenerationQuota, type GenerationAccessMode } from './generation-quota.service.js';
 import { generateProgram } from './program-ai.service.js';
 import { resolveAiConfig } from '../controllers/settings.controller.js';
 import {
@@ -19,6 +20,7 @@ export async function generateAndSaveProgram(
   input: GenerateProgramInput,
   operationId?: string,
   signal?: AbortSignal,
+  accessMode: GenerationAccessMode = 'standard',
 ): Promise<TrainingProgramRecord> {
   return executeBudgetedGeneration({
     userId,
@@ -29,7 +31,11 @@ export async function generateAndSaveProgram(
     ...(signal ? { signal } : {}),
     generate: async (execution) => generateProgram(input, await resolveAiConfig(userId), execution),
     replay: (resourceId) => findProgramById(resourceId, userId),
-    complete: (id, program) => generationBudgetRepository.completeProgram(id, userId, program),
+    withEntitlement: (work) => runWithGenerationQuota(userId, accessMode, work, input.weeks_count),
+    complete: (id, program, persist) =>
+      persist
+        ? persist((tx) => generationBudgetRepository.completeProgram(id, userId, program, tx))
+        : generationBudgetRepository.completeProgram(id, userId, program),
   });
 }
 

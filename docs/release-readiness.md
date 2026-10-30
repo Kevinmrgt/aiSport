@@ -1,6 +1,14 @@
 # Travaux avant ouverture publique
 
 La cible confirmée est le dépôt aiSport actuel sur `www.alcideai.fr`.
+Le propriétaire a précisé le 30 octobre que la référence produit attendue
+est `fd750f0`, avec la refonte, l'administration et les offres de septembre.
+La première livraison reposait à tort sur une base locale d'août : ses tests
+techniques réussis ne validaient pas la bonne version du produit. La correction
+réintègre cette référence en conservant les protections récentes et la base
+active. Les constats d'audit ci-dessous sont historiques ; les preuves de la
+nouvelle livraison doivent établir aussi la conformité visuelle et fonctionnelle
+à `fd750f0`.
 L'[audit initial du 29 octobre 2026](audits/2026-10-29/README.md) décrit
 le candidat avant corrections ; ses alertes constituent un état historique.
 La [validation des corrections](audits/2026-10-29/remediation-validation.md)

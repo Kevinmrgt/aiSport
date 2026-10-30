@@ -3,7 +3,7 @@ import test from 'node:test';
 import { access, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand, safeReleaseFailure, verifyReleaseConfiguration, checkReleaseHealth, inspectDeploymentDatabase, safeVercelValidation, cleanupVercelCheckout, inspectVercelBuildArtifacts, bindVercelFunctionEnvironment, checkWebOAuthConfiguration, verifyLiveAdminProduction, rehearse, verifyPreparedBackup } from './production-admin-release.mjs';
+import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand, safeReleaseFailure, verifyReleaseConfiguration, checkReleaseHealth, inspectDeploymentDatabase, safeVercelValidation, cleanupVercelCheckout, inspectVercelBuildArtifacts, bindVercelFunctionEnvironment, checkWebOAuthConfiguration, verifyLiveAdminProduction, rehearse, verifyPreparedBackup, validateAdditiveMigrationSql, readAdditiveUpdatePlan, applyAdditiveLiveUpdate } from './production-admin-release.mjs';
 import { readCandidateLineage } from './db-migration-lineage.mjs';
 import { fileHash, migrationFingerprint } from './db-operations.mjs';
 
@@ -51,6 +51,11 @@ function liveProvider(config = liveConfiguration()) {
   return { ...providerFixture(), snapshot: async (project) => config[project] };
 }
 const ciSuccess = async () => ({ ok: true, json: async () => ({ workflow_runs: [{ id: 23, head_sha: revision, event: 'push', status: 'completed', conclusion: 'success' }] }) });
+async function currentMigrationProof() {
+  const count = (await readCandidateLineage()).length;
+  return { complete: true, sameDatabase: true, fullDataPreserved: true, existingCatalogPreserved: true,
+    oldDeploymentSchemaCompatible: true, ownerGooglePreserved: true, appliedMigrationsBefore: count, appliedMigrationsAfter: count, suffix: [] };
+}
 const preservedLiveData = () => ({
   users: [{ id: privateAdminId, email: env.BOOTSTRAP_ADMIN_EMAIL }],
   accounts: [{ user_id: privateAdminId, type: 'oidc', provider: 'google', provider_account_id: 'private-real-subject-fixture' }],
@@ -76,6 +81,95 @@ async function liveVerifierFixture({ state = preservedLiveData(), database = env
     },
   }) }) };
 }
+
+test('only the reviewed additive suffix is accepted, preserving the original applied hashes', async () => {
+  const candidates = await readCandidateLineage(); assert.equal(candidates.length, 14);
+  const plan = await readAdditiveUpdatePlan({ compatible: true, appliedMigrations: 13, matchedPrefix: 13, pendingMigrations: 1 });
+  assert.equal(plan.migrations.length, 1); assert.equal(plan.migrations[0].statements.length, 27);
+  assert.deepEqual(plan.suffix, [candidates[13]]);
+  assert.equal(plan.suffix[0].tag, '0013_restore_september_product');
+  const fixture = await liveVerifierFixture({ lineageChange: (applied) => { applied.pop(); } });
+  const verified = await fixture.verifier(liveEnv(), liveConfiguration());
+  assert.equal(verified.evidence.appliedMigrations, 13); assert.equal(verified.evidence.pendingMigrations, 1);
+  assert.deepEqual(verified.evidence.additiveSuffix, plan.suffix);
+  assert.equal(fixture.queries.some((sql) => /^(create|alter|insert|update|delete|drop)/i.test(sql)), false);
+});
+
+test('additive SQL grammar rejects data changes, destructive DDL, executable defaults and old-table constraints/indexes', () => {
+  for (const sql of [
+    'DROP TABLE users;', 'UPDATE users SET email = \'other@example.test\';', 'DELETE FROM accounts;',
+    'INSERT INTO admin_tracking(id) VALUES (\'default\');', 'ALTER TABLE users ALTER COLUMN id TYPE text;',
+    'ALTER TABLE users ADD COLUMN required text NOT NULL;', 'ALTER TABLE users ADD COLUMN counter integer DEFAULT 0;',
+    'ALTER TABLE users ADD CONSTRAINT new_fk FOREIGN KEY (id) REFERENCES public.accounts (user_id);',
+    'CREATE INDEX old_idx ON users (email);', 'CREATE TABLE example AS SELECT * FROM users;',
+    'CREATE TABLE example (id uuid DEFAULT evil_function());', 'CREATE TABLE example (id text DEFAULT set_config(\'x\',\'y\',false));',
+    'CREATE TABLE example (id timestamp DEFAULT evil.now());',
+    'CREATE TABLE example (id text DEFAULT \'x\'::evil_type);', 'CREATE TABLE example (id evil_type);',
+    'CREATE TABLE example (id uuid GENERATED ALWAYS AS IDENTITY);', 'DO $$ begin delete from users; end $$;',
+    'CREATE TABLE example (id text); /* comment */ DROP TABLE users;',
+    'CREATE TABLE example (id text DEFAULT \'value;\'); DROP TABLE users;',
+    'CREATE TABLE example (id text) TABLESPACE external;', 'CREATE TABLE example (id text) INHERITS (users);',
+    'CREATE TABLE example (id text); -- hidden SQL\nDROP TABLE users;', 'ALTER TABLE users ADD COLUMN suspended_at timestamp',
+  ]) assert.throws(() => validateAdditiveMigrationSql(sql), /live_update/);
+  const safe = validateAdditiveMigrationSql('CREATE TABLE "new_table" ("id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL, "count" integer DEFAULT 0, CONSTRAINT "range" CHECK ("count" IN (0,1)));--> statement-breakpoint\nALTER TABLE "users" ADD COLUMN "suspended_at" timestamp with time zone;');
+  assert.equal(safe.statements.length, 2);
+});
+
+test('additive migration commits only after catalog, all existing data and Google checks, and shares the production SQL lock', async () => {
+  const plan = await readAdditiveUpdatePlan({ compatible: true, appliedMigrations: 13, matchedPrefix: 13, pendingMigrations: 1 });
+  for (const scenario of ['success', 'data_change', 'catalog_change', 'google_change', 'wrong_proof', 'write_failure', 'lineage_failure', 'lock_busy']) {
+    const statements = []; let inserted = false; let reads = 0; let stateReads = 0;
+    const before = { tables: [{ schema: 'public', name: 'users' }, { schema: 'public', name: 'user_settings' }],
+      catalog: [{ schema: 'public', name: 'users', attname: 'id', type: 'uuid' }],
+      constraints: [{ name: 'users_pk' }], indexes: [{ name: 'users_pk' }], triggers: [], policies: [],
+      rows: [{ schema: 'public', name: 'users', rows: '1', digest: 'a'.repeat(64) }, { schema: 'public', name: 'user_settings', rows: '1', digest: 'b'.repeat(64) }] };
+    const config = liveConfiguration(); let result; let error;
+    try {
+      result = await applyAdditiveLiveUpdate(liveEnv(), config, scenario === 'wrong_proof' ? { ...plan, suffix: [] } : plan, {
+        clientFactory: (options) => {
+          assert.equal(options.connectionString, config.source);
+          return { connect: async () => {}, end: async () => statements.push('end'), query: async (sql, values) => {
+            statements.push(sql);
+            if (sql.includes('pg_try_advisory_lock')) return { rows: [{ locked: scenario !== 'lock_busy' }] };
+            if (sql === 'select current_database() as database') return { rows: [{ database: env.TARGET_DATABASE_NAME }] };
+            if (sql === 'select id, email from public.users limit 2') return { rows: preservedLiveData().users };
+            if (sql === 'select user_id, type, provider, provider_account_id from public.accounts limit 2') {
+              reads += 1; return { rows: scenario === 'google_change' && reads > 1 ? [] : preservedLiveData().accounts };
+            }
+            if (sql.startsWith('insert into drizzle')) { assert.deepEqual(values, [plan.suffix[0].hash, plan.suffix[0].createdAt]); inserted = true; }
+            if (scenario === 'write_failure' && /^\s*CREATE TABLE/.test(sql)) throw Object.assign(new Error('private-db-row-and-url'), { code: '42501' });
+            return { rows: [] };
+          } };
+        },
+        lineageInspector: async () => ({ compatible: true, appliedMigrations: inserted ? 14 : 13, matchedPrefix: inserted ? 14 : 13, pendingMigrations: inserted && scenario !== 'lineage_failure' ? 0 : 1 }),
+        planReader: async () => plan,
+        stateReader: async (_client, previous) => {
+          stateReads += 1; const state = structuredClone(before);
+          if (previous) {
+            assert.deepEqual(previous, before);
+            state.catalog.push({ schema: 'public', name: 'users', attname: 'suspended_at', type: 'timestamp' });
+            if (scenario === 'data_change') state.rows[1].digest = 'c'.repeat(64);
+            if (scenario === 'catalog_change') state.catalog[0].type = 'text';
+          }
+          return state;
+        }, pause: async () => {},
+      });
+    } catch (caught) { error = caught; }
+    if (scenario === 'success') {
+      assert.equal(error, undefined); assert.equal(result.complete, true); assert.equal(result.oldDeploymentSchemaCompatible, true);
+      assert.equal(result.fullDataPreserved, true); assert.deepEqual(result.suffix, plan.suffix); assert.equal(statements.includes('commit'), true); assert.equal(stateReads, 2);
+      assert.equal(JSON.stringify(result).includes('private'), false); assert.equal(JSON.stringify(result).includes(privateAdminId), false);
+    } else {
+      assert.ok(error, scenario); assert.equal(statements.includes('commit'), false);
+      if (scenario !== 'lock_busy') assert.equal(statements.includes('rollback'), true);
+      if (scenario === 'wrong_proof' || scenario === 'lock_busy') assert.equal(statements.some((sql) => sql.includes('CREATE TABLE')), false);
+      const failure = safeReleaseFailure(error, 'additive_live_migration'); assert.equal(JSON.stringify(failure).includes('private-db-row'), false);
+    }
+    assert.equal(statements[0], 'select pg_try_advisory_lock(1946010371, 1) as locked');
+    assert.equal(statements.at(-1), 'end');
+    if (scenario !== 'lock_busy') assert.equal(statements.at(-2), 'select pg_advisory_unlock(1946010371, 1)');
+  }
+});
 
 test('live update requires its distinct confirmation and rejects seed reuse', () => {
   assert.equal(validateReleaseInput(liveEnv()), 'update');
@@ -118,7 +212,7 @@ test('live update refuses missing or ambiguous live configuration before opening
   await assert.rejects(inspectConfiguration(liveEnv(), provider), /application_database_required/);
 });
 
-test('live update blocks SQL database, owner, accounts and non-exact migration lineage mismatches without writes', async () => {
+test('live update blocks SQL database, owner, accounts and unsafe or divergent migration suffixes without writes', async () => {
   const scenarios = [
     { database: 'other_database' },
     { mutate: (data) => { data.users = []; } },
@@ -130,7 +224,7 @@ test('live update blocks SQL database, owner, accounts and non-exact migration l
     { mutate: (data) => { data.accounts[0].type = 'credentials'; } },
     { mutate: (data) => { data.accounts[0].provider_account_id = ''; } },
     { mutate: (data) => { data.accounts.push({ ...data.accounts[0] }); } },
-    { lineageChange: (applied) => { applied.pop(); } },
+    { lineageChange: (applied) => { applied.splice(-2); } },
     { lineageChange: (applied) => { applied[0].hash = 'divergent'; } },
     { lineageChange: (applied) => { applied.push({ hash: 'unknown', created_at: '9999999999999' }); } },
   ];
@@ -187,17 +281,23 @@ test('live update stages the same database and UUID, preserves real history and 
   }
 });
 
-test('live update rehearsal restores all live tables on the same PostgreSQL major and never copies or migrates', async () => {
+test('live update rehearsal restores all live tables before an optional additive migration and never copies admin selectively', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'alcide-live-restore-'));
   const input = { ...liveEnv(), ADMIN_IMPORT_POLICY: 'account-only', BACKUP_FILE: join(directory, 'release.dump') };
   const identity = { sourceIdentity: 'fixture-source-identity', databaseMajor: 17 };
   const config = liveConfiguration(); const original = preservedLiveData(); const before = structuredClone(original); let restored;
   const commands = []; const fingerprint = await migrationFingerprint();
+  const plan = await readAdditiveUpdatePlan({ compatible: true, appliedMigrations: 13, matchedPrefix: 13, pendingMigrations: 1 });
   try {
     await writeFile(`${input.BACKUP_FILE}.enc`, 'encrypted-placeholder');
     await writeFile(`${input.BACKUP_FILE}.manifest.json`, JSON.stringify({ migrationFingerprint: fingerprint, dumpSha256: 'f'.repeat(64) }));
     const proof = await rehearse(input, directory, config.source, identity, async () => assert.fail('selective copy in full restore'), {
       liveConfiguration: config,
+      migrationRunner: async (_child, localConfig, expected) => {
+        assert.deepEqual(restored, before); assert.equal(new URL(localConfig.source).hostname, '127.0.0.1');
+        assert.deepEqual(expected.suffix, plan.suffix); assert.equal(expected.appliedMigrationsBefore, 13);
+        return { ...await currentMigrationProof(), appliedMigrationsBefore: 13, suffix: plan.suffix };
+      },
       command: (tool, args, child) => {
         commands.push(args[0]); assert.equal(tool, 'docker');
         if (args[0] === 'run') { assert.ok(args.includes('postgres:17-alpine')); assert.equal(args.includes(child.POSTGRES_PASSWORD), false); }
@@ -217,13 +317,14 @@ test('live update rehearsal restores all live tables on the same PostgreSQL majo
       liveVerifier: async (child, localConfig) => {
         assert.deepEqual(restored, before); assert.equal(child.TARGET_DATABASE_NAME, 'restore_source');
         assert.equal(localConfig.source, localConfig.api.ALCIDE_DATABASE_URL.value);
-        const fixture = await liveVerifierFixture({ state: restored, database: 'restore_source' });
+        const fixture = await liveVerifierFixture({ state: restored, database: 'restore_source', lineageChange: (applied) => { applied.pop(); } });
         return fixture.verifier(child, localConfig);
       },
     });
     assert.deepEqual(original, before); assert.deepEqual(restored, before); assert.deepEqual(commands, ['run', 'port', 'rm']);
     assert.equal(proof.releaseMode, 'update'); assert.equal(proof.fullRestoreVerified, true); assert.equal(proof.selectiveCopyPerformed, false);
     assert.equal(proof.fullRestoreEvidenceSha256, await fileHash(join(directory, 'restore.json')));
+    assert.deepEqual(proof.additiveMigrationRehearsal.suffix, plan.suffix); assert.equal(proof.additiveMigrationRehearsal.appliedMigrationsAfter, 14);
     assert.equal(proof.adminCopyVerified, undefined); assert.equal(proof.selectiveCopyVerified, undefined); assert.equal(proof.isolatedTargetCreated, undefined);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
@@ -243,11 +344,14 @@ test('live update full restoration proof is hash-bound to backup, revision, line
     await writeFile(`${input.BACKUP_FILE}.manifest.json`, JSON.stringify(manifest));
     await writeFile(join(directory, 'restore.json'), JSON.stringify(restore));
     const proof = { releaseMode: 'update', fullRestoreVerified: true, existingLiveTargetVerified: true,
+      additiveMigrationRehearsal: await currentMigrationProof(),
       selectiveCopyPerformed: false, dataPreserved: true, restoredCountsMatch: true, revision, targetDatabaseName: input.TARGET_DATABASE_NAME,
       sourceIdentity: identity.sourceIdentity, migrationFingerprint: fingerprint, encryptedSha256: sha,
       fullRestoreEvidenceSha256: await fileHash(join(directory, 'restore.json')), performedAt: new Date().toISOString() };
     const verify = () => verifyPreparedBackup(input, directory, liveConfiguration().source, { identityReader: async () => identity });
     await writeFile(join(directory, 'rehearsal.json'), JSON.stringify(proof)); await verify();
+    await writeFile(join(directory, 'rehearsal.json'), JSON.stringify({ ...proof, additiveMigrationRehearsal: { ...proof.additiveMigrationRehearsal, suffix: [{ hash: 'wrong' }] } }));
+    await assert.rejects(verify(), /rehearsed_suffix_mismatch/);
     for (const changed of [{ releaseMode: 'deploy' }, { selectiveCopyVerified: true }, { selectiveCopyPerformed: true }, { fullRestoreVerified: false }, { fullRestoreEvidenceSha256: 'wrong' }]) {
       await writeFile(join(directory, 'rehearsal.json'), JSON.stringify({ ...proof, ...changed }));
       await assert.rejects(verify(), /fresh_backup_rehearsal/);
@@ -271,12 +375,13 @@ test('live update release validates a full restore proof before calling the shar
   const fixture = await liveVerifierFixture(); const config = liveConfiguration(); const calls = [];
   const deps = { provider: liveProvider(config), fetcher: ciSuccess, liveVerifier: fixture.verifier,
     bootstrap: async () => assert.fail('bootstrap during live update release'),
-    preparedBackupVerifier: async (child, _directory, url) => { calls.push('verify-backup'); assert.equal(child.RELEASE_MODE, 'update'); assert.equal(url, config.source); },
+    preparedBackupVerifier: async (child, _directory, url) => { calls.push('verify-backup'); assert.equal(child.RELEASE_MODE, 'update'); assert.equal(url, config.source); return { additiveMigrationRehearsal: await currentMigrationProof() }; },
+    migrationRunner: async (_child, current, expected) => { calls.push('migrate'); assert.equal(current.source, config.source); assert.deepEqual(expected.suffix, []); return currentMigrationProof(); },
     deploymentRunner: async (child, current, _provider, options) => { calls.push('deploy'); assert.equal(child.RELEASE_MODE, 'update'); assert.equal(current.source, config.source); assert.equal(options.liveVerifier, fixture.verifier); return { complete: true, existingLiveTargetVerified: true }; },
   };
   try {
     const result = await runProductionAdminRelease(input, deps);
-    assert.equal(result.complete, true); assert.equal(result.bootstrap, undefined); assert.equal(result.adminCopyVerified, undefined); assert.deepEqual(calls, ['verify-backup', 'deploy']);
+    assert.equal(result.complete, true); assert.equal(result.bootstrap, undefined); assert.equal(result.adminCopyVerified, undefined); assert.deepEqual(calls, ['verify-backup', 'migrate', 'deploy']);
     calls.length = 0;
     const refused = await runProductionAdminRelease(input, { ...deps, preparedBackupVerifier: async () => { throw new Error('private-invalid-proof'); } });
     assert.equal(refused.complete, false); assert.equal(refused.failure.failedStage, 'prepared_backup_verification'); assert.deepEqual(calls, []);
@@ -794,8 +899,8 @@ test('a successful project-production fallback never becomes evidence of an immu
 });
 
 test('build and deploy receive exact release values in child env and deploy arguments contain keys only', async () => {
-  const provider = providerFixture(); const canonicalWrites = [];
-  provider.replace = async (project, _original, key, value) => { if (['AUTH_URL', 'NEXTAUTH_URL'].includes(key)) canonicalWrites.push([project, key, value]); };
+  const provider = providerFixture(); const canonicalWrites = []; const writes = [];
+  provider.replace = async (project, _original, key, value) => { writes.push([project, key, value]); if (['AUTH_URL', 'NEXTAUTH_URL'].includes(key)) canonicalWrites.push([project, key, value]); };
   const observed = [];
   const result = await deployClosedProduction({ ...env, AUTH_URL: 'https://legacy.example.test', NEXTAUTH_URL: 'https://legacy.example.test' }, { ...configuration(), source }, provider, {
     bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }), selectedAdminId: async () => privateAdminId,
@@ -810,12 +915,14 @@ test('build and deploy receive exact release values in child env and deploy argu
           assert.equal(new URL(child.DATABASE_URL).pathname, `/${env.TARGET_DATABASE_NAME}`);
           assert.equal(child.ALCIDE_DATABASE_URL, child.DATABASE_URL);
           assert.equal(child.BOOTSTRAP_ADMIN_USER_ID, privateAdminId);
+          assert.equal(child.AI_MAX_COMPLETION_TOKENS, '11000');
           if (args.includes('deploy')) {
-            for (const key of ['DATABASE_URL', 'ALCIDE_DATABASE_URL']) assert.ok(args.some((arg, index) => arg === '--env' && args[index + 1] === key));
+            for (const key of ['DATABASE_URL', 'ALCIDE_DATABASE_URL', 'AI_MAX_COMPLETION_TOKENS']) assert.ok(args.some((arg, index) => arg === '--env' && args[index + 1] === key));
           }
         } else {
           assert.equal(child.API_URL, 'https://ai-sport-api.vercel.app');
           assert.equal(child.AUTH_URL, 'https://www.alcideai.fr'); assert.equal(child.NEXTAUTH_URL, 'https://www.alcideai.fr');
+          assert.equal(child.AI_MAX_COMPLETION_TOKENS, undefined);
           if (args.includes('deploy')) {
             for (const key of ['API_URL', 'AUTH_URL', 'NEXTAUTH_URL']) assert.ok(args.some((arg, index) => arg === '--env' && args[index + 1] === key));
           }
@@ -825,8 +932,31 @@ test('build and deploy receive exact release values in child env and deploy argu
     },
   });
   assert.equal(result.complete, true);
+  assert.deepEqual(writes.filter((write) => write[1] === 'AI_MAX_COMPLETION_TOKENS'), [['api', 'AI_MAX_COMPLETION_TOKENS', '11000']]);
+  assert.equal(writes.some((write) => /BUDGET|DAILY|GLOBAL/.test(write[1])), false);
   assert.deepEqual(observed, [['api', 'build'], ['api', 'deploy'], ['web', 'build'], ['web', 'deploy']]);
   assert.deepEqual(canonicalWrites, [['web', 'AUTH_URL', 'https://www.alcideai.fr'], ['web', 'NEXTAUTH_URL', 'https://www.alcideai.fr']]);
+});
+
+test('API planner cap is snapshotted, read back exactly and compensated without changing budget limits', async () => {
+  const original = { id: 'planner-cap', key: 'AI_MAX_COMPLETION_TOKENS', type: 'plain', target: ['production'], value: '2048' };
+  const provider = new VercelProduction(env); const requests = [];
+  provider.request = async (path, method, body) => { requests.push({ path, method, body }); return {}; };
+  const undo = [];
+  await provider.replace('api', original, 'AI_MAX_COMPLETION_TOKENS', '11000', undo);
+  assert.equal(requests[0].body.value, '11000'); await undo[0](); assert.equal(requests[1].body.value, '2048');
+  const fixture = liveProvider(); const config = liveConfiguration();
+  fixture.snapshot = async (project, keys) => {
+    assert.equal(keys.includes('AI_MAX_COMPLETION_TOKENS'), project === 'api');
+    return config[project];
+  };
+  await inspectConfiguration(liveEnv(), fixture);
+  for (const value of ['2048', '11000']) {
+    const check = verifyReleaseConfiguration('api', { AI_MAX_COMPLETION_TOKENS: '11000' }, { snapshot: async () => ({ AI_MAX_COMPLETION_TOKENS: { value } }) });
+    if (value === '11000') await check; else await assert.rejects(check, /readback_mismatch/);
+  }
+  await assert.rejects(provider.replace('api', null, 'AI_DAILY_TOKEN_LIMIT', '999999999', []), /allowlisted/);
+  assert.ok(requests.every((request) => request.path === '/v9/projects/api/env/planner-cap'));
 });
 
 test('canonical authentication origins are checked exactly before the Web build', async () => {

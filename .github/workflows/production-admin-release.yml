@@ -87,7 +87,7 @@ jobs:
       - name: Build shared validation schemas
         run: pnpm --filter shared build
 
-      - name: Plan or prepare encrypted backup and isolated rehearsal
+      - name: Plan or prepare encrypted full backup and isolated candidate rehearsal
         env:
           RELEASE_PHASE: prepare
           ADMIN_RELEASE_EVIDENCE_FILE: ${{ runner.temp }}/admin-release-prepare.json
@@ -106,7 +106,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Preserve live database or create initial copy, then stage, verify and promote
+      - name: Verify rehearsed additive update or initial copy, then stage, verify and promote
         if: inputs.mode == 'deploy' || inputs.mode == 'update'
         env:
           RELEASE_PHASE: release

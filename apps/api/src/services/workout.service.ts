@@ -1,3 +1,4 @@
+import { runWithGenerationQuota, type GenerationAccessMode } from './generation-quota.service.js';
 import { generateWorkout } from './workout-ai.service.js';
 import { resolveAiConfig } from '../controllers/settings.controller.js';
 import {
@@ -21,6 +22,7 @@ export async function generateAndSaveWorkout(
   input: GenerateWorkoutInput,
   operationId?: string,
   signal?: AbortSignal,
+  accessMode: GenerationAccessMode = 'standard',
 ): Promise<WorkoutRecord> {
   return executeBudgetedGeneration({
     userId,
@@ -31,7 +33,11 @@ export async function generateAndSaveWorkout(
     ...(signal ? { signal } : {}),
     generate: async (execution) => generateWorkout(input, await resolveAiConfig(userId), execution),
     replay: (resourceId) => findWorkoutById(resourceId, userId),
-    complete: (id, workout) => generationBudgetRepository.completeWorkout(id, userId, workout),
+    withEntitlement: (work) => runWithGenerationQuota(userId, accessMode, work),
+    complete: (id, workout, persist) =>
+      persist
+        ? persist((tx) => generationBudgetRepository.completeWorkout(id, userId, workout, tx))
+        : generationBudgetRepository.completeWorkout(id, userId, workout),
   });
 }
 

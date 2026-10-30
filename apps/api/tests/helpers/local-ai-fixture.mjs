@@ -23,7 +23,25 @@ function requestData(prompt) {
       /* Schema examples are not the one-line request payload. */
     }
   }
-  throw new Error('Unknown local fixture request format');
+  const sport =
+    prompt.match(/Sport : ([^\n]+)/)?.[1] ?? prompt.match(/programme de ([^\n]+)\./)?.[1];
+  const level = prompt.match(/Niveau : ([^\n]+)/)?.[1];
+  const minutes = Number(prompt.match(/(?:Créneau|Duree par seance) : (\d+)/)?.[1]);
+  const goals = prompt.match(/Objectifs : ([^\n]+)/)?.[1];
+  if (!sport || !level || !minutes) throw new Error('Unknown local fixture request format');
+  const weekNumber = Number(prompt.match(/semaine (\d+) sur/)?.[1]);
+  if (weekNumber)
+    return {
+      weekNumber,
+      request: {
+        sport,
+        level,
+        goals,
+        session_duration_minutes: minutes,
+        sessions_per_week: Number(prompt.match(/Nombre de seances : (\d+)/)?.[1]),
+      },
+    };
+  return { sport, level, goals, duration_minutes: minutes };
 }
 
 function session(minutes, number = 1) {
@@ -33,19 +51,26 @@ function session(minutes, number = 1) {
     focus: 'Endurance facile',
     duration_minutes: minutes,
     warmup: [
-      { name: 'Mobilité locale', description: 'Mouvements progressifs', duration_seconds: 60 },
+      { name: 'Mobilité locale', description: 'Mouvements progressifs', duration_seconds: 180 },
     ],
     exercises: [
       {
         name: 'Marche locale',
         description: 'Allure facile et régulière',
-        duration_seconds: minutes * 60 - 180,
-        rest_seconds: 60,
+        prescription: {
+          version: 2,
+          category: 'cardio',
+          mode: 'continuous',
+          sets: 1,
+          work_seconds: minutes * 60 - 300,
+          rest_seconds: 0,
+          transition_seconds: 0,
+        },
         tips: 'Rester à une allure confortable',
       },
     ],
     cooldown: [
-      { name: 'Retour calme local', description: 'Ralentir progressivement', duration_seconds: 60 },
+      { name: 'Retour calme local', description: 'Ralentir progressivement', duration_seconds: 120 },
     ],
   };
 }

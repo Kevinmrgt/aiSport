@@ -165,3 +165,59 @@ describe('persistent generation orchestration', () => {
     expect(() => generationPolicy()).toThrow(AppError);
   });
 });
+
+describe('credits and persistent generation replay', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    repository.fail.mockResolvedValue(undefined);
+  });
+  it('replays an existing result without reserving or debiting another credit', async () => {
+    repository.begin.mockResolvedValue({
+      operation: { id: 'op', resourceId: 'saved' },
+      replay: true,
+    });
+    const withEntitlement = vi.fn(),
+      generate = vi.fn(),
+      complete = vi.fn(),
+      replay = vi.fn().mockResolvedValue({ id: 'saved' });
+    await expect(
+      executeBudgetedGeneration({
+        userId,
+        kind: 'workout',
+        input: {},
+        maxAttempts: 2,
+        withEntitlement,
+        generate,
+        complete,
+        replay,
+      }),
+    ).resolves.toEqual({ id: 'saved' });
+    expect(withEntitlement).not.toHaveBeenCalled();
+    expect(generate).not.toHaveBeenCalled();
+    expect(complete).not.toHaveBeenCalled();
+  });
+  it('rejects exhausted credits before any provider call and finalizes the operation', async () => {
+    repository.begin.mockResolvedValue({
+      operation: { id: 'op', resourceId: 'saved' },
+      replay: false,
+    });
+    const generate = vi.fn(),
+      complete = vi.fn();
+    await expect(
+      executeBudgetedGeneration({
+        userId,
+        kind: 'program',
+        input: {},
+        maxAttempts: 4,
+        withEntitlement: () =>
+          Promise.reject(new AppError(402, 'INSUFFICIENT_CREDITS', 'Solde insuffisant')),
+        generate,
+        complete,
+        replay: vi.fn(),
+      }),
+    ).rejects.toMatchObject({ statusCode: 402 });
+    expect(generate).not.toHaveBeenCalled();
+    expect(complete).not.toHaveBeenCalled();
+    expect(repository.fail).toHaveBeenCalledWith('op', userId);
+  });
+});

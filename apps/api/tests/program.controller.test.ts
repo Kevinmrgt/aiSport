@@ -128,6 +128,7 @@ describe('ProgramController', () => {
         expect.objectContaining({ sport: 'course' }),
         undefined,
         expect.any(AbortSignal),
+        undefined,
       );
     });
 

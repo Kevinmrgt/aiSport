@@ -1,3 +1,8 @@
+import { generationQuotaRouter } from './generation-quota.routes.js';
+import { betaAuthRouter } from './beta-auth.routes.js';
+import { adminBetaRouter } from './admin-beta.routes.js';
+import { billingRouter } from './billing.routes.js';
+import { visitorAnalyticsRouter } from './visitor-analytics.routes.js';
 import type { Hono } from 'hono';
 import { healthRouter } from './health.routes.js';
 import { workoutRouter } from './workout.routes.js';
@@ -14,4 +19,9 @@ export function registerRoutes(app: Hono): void {
   app.route('/settings', settingsRouter);
   app.route('/session-logs', sessionLogRouter);
   app.route('/account', accountRouter);
+  app.route('/generation-quota', generationQuotaRouter);
+  app.route('/auth/beta', betaAuthRouter);
+  app.route('/admin', adminBetaRouter);
+  app.route('/billing', billingRouter);
+  app.route('/analytics', visitorAnalyticsRouter);
 }

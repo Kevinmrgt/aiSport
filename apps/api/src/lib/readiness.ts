@@ -14,8 +14,8 @@ type DatabaseChecks = Pick<ReadinessResult['checks'], 'database' | 'schema'>;
 
 // Kept in sync with the committed journal by readiness.test.ts. No runtime file I/O
 // is needed in Vercel's serverless bundle.
-export const READINESS_MIGRATION_TIMESTAMP = 1793285084959;
-export const READINESS_MIGRATION_COUNT = 13;
+export const READINESS_MIGRATION_TIMESTAMP = 1793367208396;
+export const READINESS_MIGRATION_COUNT = 14;
 
 const REQUIRED_TABLES = [
   'public.users',
@@ -32,6 +32,17 @@ const REQUIRED_TABLES = [
   'public.generation_usage_events',
   'public.account_revocations',
   'public.session_log_operations',
+  'public.admin_audit_events',
+  'public.admin_tracking',
+  'public.beta_credit_adjustments',
+  'public.beta_testers',
+  'public.billing_accounts',
+  'public.billing_credit_grants',
+  'public.billing_credit_reservations',
+  'public.billing_subscriptions',
+  'public.billing_webhook_events',
+  'public.page_visits',
+  'public.platform_settings',
   'drizzle.__drizzle_migrations',
 ];
 
@@ -40,58 +51,88 @@ const REQUIRED_TABLES = [
 let databaseProbe: Promise<DatabaseChecks> | undefined;
 
 function booleanDiagnostic(value: unknown) {
-  return { type: typeof value, value: typeof value === 'boolean' ? value : null, isTrue: value === true };
+  return {
+    type: typeof value,
+    value: typeof value === 'boolean' ? value : null,
+    isTrue: value === true,
+  };
 }
 
 function metadataInteger(value: unknown): number | null {
-  if ((typeof value !== 'string' || !/^\d{1,16}$/.test(value)) && typeof value !== 'number') return null;
+  if ((typeof value !== 'string' || !/^\d{1,16}$/.test(value)) && typeof value !== 'number')
+    return null;
   const parsed = Number(value);
   return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
 /** Private console evidence only. Never add these fields to the public health response. */
 async function logMissingSchema(
-  client: { query: (query: string, values?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }> },
+  client: {
+    query: (query: string, values?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }>;
+  },
   schemaReady: unknown,
   migrationsReady: unknown,
   configuredDatabaseUrl: string,
 ): Promise<void> {
   const diagnostic: {
-    event: string; schemaReady: ReturnType<typeof booleanDiagnostic>;
-    migrationsReady: ReturnType<typeof booleanDiagnostic>; complete: boolean;
-    databaseNameSha256: string | null; configuredDatabaseNameSha256: string | null;
-    databaseNameMatchesConfigured: boolean | null; missingTables: string[];
-    migrationTablePresent: boolean | null; migrationCount: number | null; latestMigrationTimestamp: number | null;
+    event: string;
+    schemaReady: ReturnType<typeof booleanDiagnostic>;
+    migrationsReady: ReturnType<typeof booleanDiagnostic>;
+    complete: boolean;
+    databaseNameSha256: string | null;
+    configuredDatabaseNameSha256: string | null;
+    databaseNameMatchesConfigured: boolean | null;
+    missingTables: string[];
+    migrationTablePresent: boolean | null;
+    migrationCount: number | null;
+    latestMigrationTimestamp: number | null;
   } = {
-    event: 'readiness_schema_missing', schemaReady: booleanDiagnostic(schemaReady),
-    migrationsReady: booleanDiagnostic(migrationsReady), complete: false,
-    databaseNameSha256: null, configuredDatabaseNameSha256: null,
-    databaseNameMatchesConfigured: null, missingTables: [], migrationTablePresent: null,
-    migrationCount: null, latestMigrationTimestamp: null,
+    event: 'readiness_schema_missing',
+    schemaReady: booleanDiagnostic(schemaReady),
+    migrationsReady: booleanDiagnostic(migrationsReady),
+    complete: false,
+    databaseNameSha256: null,
+    configuredDatabaseNameSha256: null,
+    databaseNameMatchesConfigured: null,
+    missingTables: [],
+    migrationTablePresent: null,
+    migrationCount: null,
+    latestMigrationTimestamp: null,
   };
   try {
     const configuredPath = new URL(configuredDatabaseUrl).pathname.slice(1);
     const configuredName = configuredPath ? decodeURIComponent(configuredPath) : null;
-    if (configuredName) diagnostic.configuredDatabaseNameSha256 = createHash('sha256').update(configuredName).digest('hex');
+    if (configuredName)
+      diagnostic.configuredDatabaseNameSha256 = createHash('sha256')
+        .update(configuredName)
+        .digest('hex');
     const identity = await client.query('select current_database() as database_name');
     const name = identity.rows[0]?.['database_name'];
     if (typeof name !== 'string' || !name.length) throw new Error('ReadinessDiagnosticUnavailable');
     diagnostic.databaseNameSha256 = createHash('sha256').update(name).digest('hex');
-    diagnostic.databaseNameMatchesConfigured = configuredName === null ? null : configuredName === name;
+    diagnostic.databaseNameMatchesConfigured =
+      configuredName === null ? null : configuredName === name;
     // WHERE evaluates table existence in PostgreSQL, independently of JS boolean parsers.
     const missing = await client.query(
       `select table_name from unnest($1::text[]) as required(table_name)
        where to_regclass(table_name) is null order by table_name`,
       [REQUIRED_TABLES],
     );
-    if (missing.rows.some((row) => !REQUIRED_TABLES.includes(String(row['table_name'])))) throw new Error('ReadinessDiagnosticUnavailable');
-    diagnostic.missingTables = REQUIRED_TABLES.filter((table) => missing.rows.some((row) => row['table_name'] === table));
-    diagnostic.migrationTablePresent = !diagnostic.missingTables.includes('drizzle.__drizzle_migrations');
+    if (missing.rows.some((row) => !REQUIRED_TABLES.includes(String(row['table_name']))))
+      throw new Error('ReadinessDiagnosticUnavailable');
+    diagnostic.missingTables = REQUIRED_TABLES.filter((table) =>
+      missing.rows.some((row) => row['table_name'] === table),
+    );
+    diagnostic.migrationTablePresent = !diagnostic.missingTables.includes(
+      'drizzle.__drizzle_migrations',
+    );
     if (diagnostic.migrationTablePresent) {
       const history = await client.query(`select count(*)::text as migration_count,
         max(created_at)::text as latest_migration_timestamp from drizzle.__drizzle_migrations`);
       diagnostic.migrationCount = metadataInteger(history.rows[0]?.['migration_count']);
-      diagnostic.latestMigrationTimestamp = metadataInteger(history.rows[0]?.['latest_migration_timestamp']);
+      diagnostic.latestMigrationTimestamp = metadataInteger(
+        history.rows[0]?.['latest_migration_timestamp'],
+      );
     }
     diagnostic.complete = true;
   } catch {
@@ -134,7 +175,13 @@ async function inspectDatabase(): Promise<DatabaseChecks> {
         migrationsReady = migrations.rows[0]?.migrations_ready;
         schema = migrationsReady === true ? 'ok' : 'missing';
       }
-      if (schema === 'missing') await logMissingSchema(client, result.rows[0]?.schema_ready, migrationsReady, connectionString);
+      if (schema === 'missing')
+        await logMissingSchema(
+          client,
+          result.rows[0]?.schema_ready,
+          migrationsReady,
+          connectionString,
+        );
     } finally {
       await client.end();
     }

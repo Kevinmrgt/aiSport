@@ -293,8 +293,9 @@ export class GenerationBudgetRepository {
     operationId: string,
     userId: string,
     workout: Workout,
+    executor?: Transaction,
   ): Promise<WorkoutRecord> {
-    return this.database.transaction(async (tx) => {
+    const save = async (tx: Transaction): Promise<WorkoutRecord> => {
       await limits(tx);
       const operation = await this.lockRunning(tx, operationId, userId);
       if (operation.kind !== 'workout' || operation.attempts === 0)
@@ -317,15 +318,17 @@ export class GenerationBudgetRepository {
         .set({ status: 'succeeded', updatedAt: sql`now()` })
         .where(eq(operations.id, operationId));
       return created;
-    });
+    };
+    return executor ? save(executor) : this.database.transaction(save);
   }
 
   async completeProgram(
     operationId: string,
     userId: string,
     program: TrainingProgram,
+    executor?: Transaction,
   ): Promise<TrainingProgramRecord> {
-    return this.database.transaction(async (tx) => {
+    const save = async (tx: Transaction): Promise<TrainingProgramRecord> => {
       await limits(tx);
       const operation = await this.lockRunning(tx, operationId, userId);
       if (operation.kind !== 'program' || operation.attempts === 0)
@@ -350,7 +353,8 @@ export class GenerationBudgetRepository {
         .set({ status: 'succeeded', updatedAt: sql`now()` })
         .where(eq(operations.id, operationId));
       return created;
-    });
+    };
+    return executor ? save(executor) : this.database.transaction(save);
   }
 
   private async lockRunning(

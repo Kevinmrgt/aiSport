@@ -1,3 +1,8 @@
+vi.mock('../src/services/generation-quota.service.js', () => ({
+  runWithGenerationQuota: vi.fn(
+    async (_userId: string, _mode: string, work: () => Promise<unknown>) => work(),
+  ),
+}));
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   generateAndSaveProgram,

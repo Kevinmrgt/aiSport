@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ExerciseSchema, PhaseSchema } from './workout.schema.js';
+import { getSessionPrescriptionIssues, getTimingContractIssues } from '../training/rules.js';
 
 // Contrat JSON IA pour les programmes multi-semaines
 // Chaque semaine est générée par un appel IA indépendant (budget token)
@@ -10,6 +11,7 @@ export const ProgramSessionSchema = z.object({
   title: z.string().min(1),
   focus: z.string().min(1),
   duration_minutes: z.number().int().positive(),
+  planning_version: z.literal(2).optional(),
   exercises: z.array(ExerciseSchema).min(1),
   warmup: z.array(PhaseSchema).optional(),
   cooldown: z.array(PhaseSchema).optional(),
@@ -31,7 +33,7 @@ export const ProgramWeekSchema = z
       sessionNumbers.some((number, index) => number !== expectedNumbers[index])
     ) {
       ctx.addIssue({
-        code: 'custom',
+        code: z.ZodIssueCode.custom,
         path: ['sessions'],
         message: 'Les numeros de seance doivent etre uniques et consecutifs a partir de 1',
       });
@@ -48,12 +50,13 @@ export const TrainingProgramSchema = z
     sessions_per_week: z.number().int().min(2).max(5),
     session_duration_minutes: z.number().int().min(20).max(60),
     progression_summary: z.string().min(1),
+    planning_version: z.literal(2).optional(),
     weeks: z.array(ProgramWeekSchema).min(1),
   })
   .superRefine((program, ctx) => {
     if (program.weeks.length !== program.weeks_count) {
       ctx.addIssue({
-        code: 'custom',
+        code: z.ZodIssueCode.custom,
         path: ['weeks'],
         message: `Le programme doit contenir exactement ${program.weeks_count} semaines`,
       });
@@ -65,7 +68,7 @@ export const TrainingProgramSchema = z
       weekNumbers.some((number, index) => number !== index + 1)
     ) {
       ctx.addIssue({
-        code: 'custom',
+        code: z.ZodIssueCode.custom,
         path: ['weeks'],
         message: 'Les numeros de semaine doivent etre uniques et consecutifs a partir de 1',
       });
@@ -74,21 +77,42 @@ export const TrainingProgramSchema = z
     program.weeks.forEach((week, weekIndex) => {
       if (week.sessions.length !== program.sessions_per_week) {
         ctx.addIssue({
-          code: 'custom',
+          code: z.ZodIssueCode.custom,
           path: ['weeks', weekIndex, 'sessions'],
           message: `Chaque semaine doit contenir exactement ${program.sessions_per_week} seances`,
         });
       }
 
       week.sessions.forEach((session, sessionIndex) => {
+        for (const message of getTimingContractIssues(session)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['weeks', weekIndex, 'sessions', sessionIndex],
+            message,
+          });
+        }
         if (session.duration_minutes !== program.session_duration_minutes) {
           ctx.addIssue({
-            code: 'custom',
+            code: z.ZodIssueCode.custom,
             path: ['weeks', weekIndex, 'sessions', sessionIndex, 'duration_minutes'],
             message: `La duree annoncee doit etre de ${program.session_duration_minutes} minutes`,
           });
         }
 
+        if (program.planning_version === 2 || session.planning_version === 2) {
+          for (const message of getSessionPrescriptionIssues(
+            session,
+            program.difficulty,
+            program.session_duration_minutes,
+          )) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['weeks', weekIndex, 'sessions', sessionIndex],
+              message,
+            });
+          }
+          return;
+        }
         const phaseSeconds = [...(session.warmup ?? []), ...(session.cooldown ?? [])].reduce(
           (total, phase) => total + phase.duration_seconds,
           0,
@@ -100,7 +124,7 @@ export const TrainingProgramSchema = z
         const expectedSeconds = program.session_duration_minutes * 60;
         if (phaseSeconds + exerciseSeconds !== expectedSeconds) {
           ctx.addIssue({
-            code: 'custom',
+            code: z.ZodIssueCode.custom,
             path: ['weeks', weekIndex, 'sessions', sessionIndex],
             message: `La duree detaillee doit etre exactement de ${expectedSeconds} secondes`,
           });

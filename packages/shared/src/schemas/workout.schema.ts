@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { PrescriptionSchema } from './prescription.schema.js';
+import { getSessionPrescriptionIssues, getTimingContractIssues } from '../training/rules.js';
 
 // Contrat JSON IA — validé par Zod
 
@@ -10,6 +12,7 @@ export const ExerciseSchema = z.object({
   rest_seconds: z.number().int().nonnegative(),
   duration_seconds: z.number().int().positive().optional(),
   tips: z.string().optional(),
+  prescription: PrescriptionSchema.optional(),
 });
 
 export const PhaseSchema = z.object({
@@ -24,15 +27,29 @@ export const WorkoutSchema = z
     sport: z.string().min(1),
     difficulty: z.enum(['beginner', 'intermediate', 'advanced']),
     duration_minutes: z.number().int().positive(),
+    planning_version: z.literal(2).optional(),
     exercises: z.array(ExerciseSchema).min(1),
     warmup: z.array(PhaseSchema).optional(),
     cooldown: z.array(PhaseSchema).optional(),
   })
   .superRefine((workout, ctx) => {
+    for (const message of getTimingContractIssues(workout)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['exercises'], message });
+    }
+    if (workout.planning_version === 2) {
+      for (const message of getSessionPrescriptionIssues(
+        workout,
+        workout.difficulty,
+        workout.duration_minutes,
+      )) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['exercises'], message });
+      }
+      return;
+    }
     workout.exercises.forEach((exercise, index) => {
       if (exercise.duration_seconds === undefined) {
         ctx.addIssue({
-          code: 'custom',
+          code: z.ZodIssueCode.custom,
           path: ['exercises', index, 'duration_seconds'],
           message: 'La duree est requise pour garantir la duree totale de la seance',
         });
@@ -52,7 +69,7 @@ export const WorkoutSchema = z
 
     if (actualSeconds !== expectedSeconds) {
       ctx.addIssue({
-        code: 'custom',
+        code: z.ZodIssueCode.custom,
         path: ['duration_minutes'],
         message: `La duree detaillee (${actualSeconds}s) doit correspondre a la duree annoncee (${expectedSeconds}s)`,
       });

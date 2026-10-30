@@ -22,16 +22,12 @@ export function Input({ label, error, hint, id, className = '', ...props }: Inpu
       <label htmlFor={inputId} className="field-label">
         {label}
         {props.required && (
-          <span aria-hidden="true" className="ml-1 text-primary-300">*</span>
+          <span aria-hidden="true" className="ml-1 text-primary-300">
+            *
+          </span>
         )}
         {props.required && <span className="sr-only">(requis)</span>}
       </label>
-
-      {hint && (
-        <p id={hintId} className="text-xs text-zinc-400">
-          {hint}
-        </p>
-      )}
 
       <input
         {...props}
@@ -46,6 +42,12 @@ export function Input({ label, error, hint, id, className = '', ...props }: Inpu
           className,
         ].join(' ')}
       />
+
+      {hint && (
+        <p id={hintId} className="text-xs text-zinc-400">
+          {hint}
+        </p>
+      )}
 
       {/* RGAA 4.1: message d'erreur lié au champ */}
       {error && (

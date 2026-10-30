@@ -88,6 +88,7 @@ describe('WorkoutController', () => {
         expect.objectContaining({ sport: 'course' }),
         undefined,
         expect.any(AbortSignal),
+        undefined,
       );
     });
 

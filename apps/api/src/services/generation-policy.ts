@@ -59,7 +59,7 @@ export function generationPolicy(): GenerationPolicy {
     globalConcurrency: positiveInteger('AI_GLOBAL_CONCURRENCY', 4, 100),
     leaseSeconds,
     inputTokensPerAttempt: positiveInteger('AI_RESERVED_INPUT_TOKENS', 16_384, 100_000),
-    maxCompletionTokens: positiveInteger('AI_MAX_COMPLETION_TOKENS', 2048, 16_384),
+    maxCompletionTokens: positiveInteger('AI_MAX_COMPLETION_TOKENS', 11000, 16_384),
     allowedModels,
     defaultModel,
   };

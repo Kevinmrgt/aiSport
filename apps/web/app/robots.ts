@@ -7,6 +7,10 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: [
         '/api/',
+        '/admin',
+        '/change-password',
+        '/compte-suspendu',
+        '/abonnement',
         '/login',
         '/generate',
         '/dashboard',

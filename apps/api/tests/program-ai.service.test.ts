@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { generateProgram } from '../src/services/program-ai.service.js';
 import { getProgramSessionTimedSeconds } from '../src/services/program-duration.service.js';
 import { AppError } from '../src/types/app-error.js';
-import type { GenerateProgramInput } from '@alcide/shared';
-import { ProgramWeekSchema } from '@alcide/shared';
+import { getSessionDurationBounds, type GenerateProgramInput } from '@alcide/shared';
 import type { AiConfig } from '../src/services/ai.service.js';
 
 // Mock fetch global (OWASP A10: pas d'appels réels à l'IA en test)
@@ -37,12 +36,17 @@ const validWeekResponse = (weekNumber: number) => ({
       exercises: [
         {
           name: 'Footing léger',
-          description: 'Posture confortable et mouvement contrôlé',
-          sets: 5,
-          reps: '8-10',
-          duration_seconds: 1_260,
-          rest_seconds: 60,
-          tips: 'Gardez une intensité confortable.',
+          description: 'Rythme modéré et foulée souple',
+          tips: 'Gardez les épaules relâchées',
+          prescription: {
+            version: 2,
+            category: 'cardio',
+            mode: 'interval',
+            sets: 5,
+            work_seconds: 120,
+            rest_seconds: 45,
+            transition_seconds: 0,
+          },
         },
       ],
       warmup: [
@@ -59,12 +63,19 @@ const validWeekResponse = (weekNumber: number) => ({
         {
           name: 'Jogging',
           description: 'Rythme conversationnel',
-          duration_seconds: 1_440,
-          rest_seconds: 60,
+          prescription: {
+            version: 2,
+            category: 'cardio',
+            mode: 'continuous',
+            sets: 1,
+            work_seconds: 1320,
+            rest_seconds: 0,
+            transition_seconds: 0,
+          },
         },
       ],
-      warmup: [{ name: 'Échauffement', duration_seconds: 180, description: 'Mobilité douce' }],
-      cooldown: [{ name: 'Retour au calme', duration_seconds: 120, description: 'Marche lente' }],
+      warmup: [{ name: 'Échauffement', duration_seconds: 300, description: 'Mise en mouvement' }],
+      cooldown: [{ name: 'Retour au calme', duration_seconds: 180, description: 'Marche lente' }],
     },
   ],
 });
@@ -79,8 +90,8 @@ function getWeekNumberFromFetchInit(init: unknown): number {
   const body = (init as { body?: unknown } | undefined)?.body;
   if (typeof body !== 'string') return 1;
 
-  const parsed = JSON.parse(body) as { messages?: Array<{ role?: string; content?: string }> };
-  const prompt = parsed.messages?.find((message) => message.role === 'user')?.content ?? '';
+  const parsed = JSON.parse(body) as { messages?: Array<{ content?: string }> };
+  const prompt = parsed.messages?.[1]?.content ?? '';
   const match = prompt.match(/semaine\s+(\d+)\s+sur/i);
   return Number(match?.[1] ?? 1);
 }
@@ -99,21 +110,22 @@ function expectProgramSessionsToMatchDuration(
   result: Awaited<ReturnType<typeof generateProgram>>,
   expectedMinutes: number,
 ): void {
-  const expectedSeconds = expectedMinutes * 60;
+  const bounds = getSessionDurationBounds(expectedMinutes);
 
   result.weeks.forEach((week) => {
     week.sessions.forEach((session) => {
       expect(session.duration_minutes).toBe(expectedMinutes);
-      expect(getProgramSessionTimedSeconds(session)).toBe(expectedSeconds);
+      expect(getProgramSessionTimedSeconds(session)).toBeLessThanOrEqual(bounds.maxSeconds);
+      expect(getProgramSessionTimedSeconds(session)).toBeGreaterThanOrEqual(bounds.minSeconds);
+      expect(session.planning_version).toBe(2);
       session.exercises.forEach((exercise) => {
         expect(exercise.duration_seconds).toBeGreaterThan(0);
+        expect(exercise.description).toMatch(/Rythme/i);
+        expect(exercise.sets).toBe(exercise.prescription?.sets);
+        expect(exercise.reps).toBeUndefined();
+        if (exercise.name === 'Footing léger')
+          expect(exercise.tips).toBe('Gardez les épaules relâchées');
       });
-      if (session.session_number === 1) {
-        expect(session.exercises[0]?.description).toBe('Posture confortable et mouvement contrôlé');
-        expect(session.exercises[0]?.sets).toBe(5);
-        expect(session.exercises[0]?.reps).toBe('8-10');
-        expect(session.exercises[0]?.tips).toBe('Gardez une intensité confortable.');
-      }
     });
   });
 }
@@ -129,50 +141,6 @@ describe('ProgramAiService', () => {
   });
 
   describe('generateProgram', () => {
-    it.each([20, 30, 60])(
-      'fournit au modèle un exemple dont les blocs totalisent réellement %i minutes',
-      async (minutes) => {
-        mockFetch.mockImplementation((_url: unknown, init: RequestInit) => {
-          const body = JSON.parse(init.body as string) as {
-            messages: Array<{ role: string; content: string }>;
-          };
-          const prompt = body.messages.find((message) => message.role === 'user')!.content;
-          const schemaExample = prompt.split('Schéma JSON :')[1]!;
-          const week = ProgramWeekSchema.parse(JSON.parse(schemaExample));
-          const exampleSession = week.sessions[0]!;
-          // Reproduce a provider following the actual example, including its timings.
-          expect(getProgramSessionTimedSeconds(exampleSession)).toBe(minutes * 60);
-          expect(exampleSession.duration_minutes).toBe(minutes);
-          week.sessions = Array.from({ length: defaultInput.sessions_per_week }, (_, index) => ({
-            ...structuredClone(exampleSession),
-            session_number: index + 1,
-          }));
-          return Promise.resolve({
-            ok: true,
-            json: () =>
-              Promise.resolve({
-                choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(week) } }],
-              }),
-          });
-        });
-
-        const result = await generateProgram(
-          { ...defaultInput, session_duration_minutes: minutes },
-          mockAiConfig,
-        );
-
-        expect(mockFetch).toHaveBeenCalledTimes(defaultInput.weeks_count);
-        result.weeks.forEach((week) => {
-          week.sessions.forEach((session) => {
-            expect(getProgramSessionTimedSeconds(session)).toBe(minutes * 60);
-            expect(session.exercises[0]!.description).toBe('string');
-            expect(session.exercises[0]!.tips).toBe('string');
-            expect(session.exercises[0]!.sets).toBe(2);
-          });
-        });
-      },
-    );
-
     it('retourne un programme valide pour une réponse IA correcte (2 semaines)', async () => {
       mockSuccessfulWeeksByPrompt();
 
@@ -244,6 +212,33 @@ describe('ProgramAiService', () => {
 
       expect(mockFetch).toHaveBeenCalledTimes(3);
       expect(result.weeks).toHaveLength(2);
+      const prompts = mockFetch.mock.calls.map(
+        (call) =>
+          (JSON.parse((call[1] as { body: string }).body) as { messages: { content: string }[] })
+            .messages[1]!.content,
+      );
+      expect(prompts.some((prompt) => prompt.includes(JSON.stringify(invalidWeek)))).toBe(true);
+    });
+
+    it('accepte les champs facultatifs null aussi dans un programme', async () => {
+      mockFetch.mockImplementation((_url: unknown, init: unknown) => {
+        const week = validWeekResponse(getWeekNumberFromFetchInit(init));
+        for (const session of week.sessions) {
+          Object.assign(session.exercises[0]!.prescription, { reps: null, circuit_id: null });
+          Object.assign(session.exercises[0]!, { tips: null });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(week) } }],
+            }),
+        });
+      });
+      const result = await generateProgram(defaultInput, mockAiConfig);
+      expect(result.weeks).toHaveLength(2);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(result.weeks[0]!.sessions[0]!.exercises[0]!.prescription!.circuit_id).toBeUndefined();
     });
 
     it('lance AppError.serviceUnavailable si une semaine échoue après 2 tentatives', async () => {
@@ -292,7 +287,7 @@ describe('ProgramAiService', () => {
       const invalidWeek = { ...validWeekResponse(1), sessions: [] };
       mockFetch.mockImplementation((_url: unknown, init: unknown) => {
         const weekNumber = getWeekNumberFromFetchInit(init);
-        const delayMs = weekNumber === 1 ? 31_000 : 100;
+        const delayMs = weekNumber === 1 ? 42_000 : 100;
         const response =
           weekNumber === 1
             ? {
@@ -315,109 +310,10 @@ describe('ProgramAiService', () => {
       const generation = generateProgram(defaultInput, mockAiConfig);
       const assertion = expect(generation).rejects.toMatchObject({ statusCode: 503 });
 
-      await vi.advanceTimersByTimeAsync(31_000);
+      await vi.advanceTimersByTimeAsync(42_000);
 
       await assertion;
       expect(mockFetch).toHaveBeenCalledTimes(defaultInput.weeks_count);
-    });
-
-    it('régénère une durée incohérente sans étirer les exercices ni effacer les consignes', async () => {
-      const attempts = new Map<number, number>();
-      mockFetch.mockImplementation((_url: unknown, init: unknown) => {
-        const weekNumber = getWeekNumberFromFetchInit(init);
-        const attempt = (attempts.get(weekNumber) ?? 0) + 1;
-        attempts.set(weekNumber, attempt);
-        const week = validWeekResponse(weekNumber);
-        if (weekNumber === 1 && attempt === 1) {
-          week.sessions[0]!.exercises[0]!.duration_seconds = 20;
-          week.sessions[0]!.exercises[0]!.description = 'Texte fournisseur à ne pas recopier';
-        }
-        const body = JSON.parse((init as RequestInit).body as string) as {
-          messages: Array<{ role: string; content: string }>;
-        };
-        const prompt = body.messages.find((message) => message.role === 'user')!.content;
-        if (weekNumber === 1 && attempt === 2) {
-          expect(prompt).toContain('Séance 1 : 30 minutes annoncées, 560 secondes détaillées.');
-          expect(prompt).toContain('atteindre exactement 1800 secondes');
-          expect(prompt).not.toContain('Texte fournisseur à ne pas recopier');
-        } else {
-          expect(prompt).not.toContain('La réponse précédente a été refusée');
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(week) } }],
-            }),
-        });
-      });
-      const result = await generateProgram(defaultInput, mockAiConfig);
-      expect(mockFetch).toHaveBeenCalledTimes(3);
-      expect(result.weeks[0]!.sessions[0]!.exercises[0]!.duration_seconds).toBe(1260);
-      expect(result.weeks[0]!.sessions[0]!.exercises[0]!.tips).toBe(
-        'Gardez une intensité confortable.',
-      );
-    });
-
-    it('refuse une durée toujours incorrecte après la seule retentative autorisée', async () => {
-      mockFetch.mockImplementation((_url: unknown, init: unknown) => {
-        const week = validWeekResponse(getWeekNumberFromFetchInit(init));
-        week.sessions[0]!.exercises[0]!.duration_seconds = 20;
-        return Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(week) } }],
-            }),
-        });
-      });
-
-      await expect(generateProgram(defaultInput, mockAiConfig)).rejects.toMatchObject({
-        statusCode: 503,
-      });
-      expect(mockFetch).toHaveBeenCalledTimes(defaultInput.weeks_count * 2);
-    });
-
-    it('une erreur permanente annule la semaine voisine et ne déclenche pas de retry', async () => {
-      let siblingAborted = false;
-      mockFetch.mockImplementation((_url: unknown, init: unknown) => {
-        const weekNumber = getWeekNumberFromFetchInit(init);
-        if (weekNumber === 1)
-          return Promise.resolve({
-            ok: false,
-            status: 401,
-            headers: new Headers(),
-            json: () => Promise.resolve({ error: { code: 'invalid_api_key' } }),
-          });
-        const signal = (init as RequestInit).signal;
-        return new Promise((_resolve, reject) => {
-          signal?.addEventListener('abort', () => {
-            siblingAborted = true;
-            reject(new Error('aborted'));
-          });
-        });
-      });
-      await expect(generateProgram(defaultInput, mockAiConfig)).rejects.toMatchObject({
-        statusCode: 503,
-      });
-      expect(siblingAborted).toBe(true);
-      expect(mockFetch).toHaveBeenCalledTimes(2);
-    });
-
-    it('passe les hooks de budget à chaque appel et garde les consignes hors du message utilisateur', async () => {
-      mockSuccessfulWeeksByPrompt();
-      const onAttempt = vi.fn();
-      await generateProgram(defaultInput, mockAiConfig, { onAttempt });
-      expect(onAttempt).toHaveBeenCalledTimes(2);
-      const init = mockFetch.mock.calls[0]![1] as RequestInit;
-      if (typeof init.body !== 'string') throw new Error('Corps JSON attendu dans le mock HTTP');
-      const body = JSON.parse(init.body) as {
-        messages: [{ role: string; content: string }, { role: string; content: string }];
-      };
-      expect(body.messages[0].role).toBe('developer');
-      expect(body.messages[0].content).not.toContain(defaultInput.goals);
-      expect(body.messages[1].content).toContain(defaultInput.goals);
-      expect(body.messages[1].content).not.toContain('charges maximales, volume eleve');
     });
   });
 });

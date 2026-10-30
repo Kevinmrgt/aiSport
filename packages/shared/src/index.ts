@@ -1,4 +1,18 @@
 // Schémas Zod — contrat JSON IA (séances simples)
+export { PrescriptionSchema } from './schemas/prescription.schema.js';
+export type { Prescription } from './schemas/prescription.schema.js';
+export { buildSessionSchedule, getSessionTiming, getExerciseGroups } from './training/schedule.js';
+export type { SessionStep } from './training/schedule.js';
+export {
+  getPrescriptionIssues,
+  getPrescriptionLimits,
+  getStrengthSetLimit,
+  getSessionPrescriptionIssues,
+  getSessionDurationBounds,
+  REST_STEPS,
+  TRANSITION_STEPS,
+} from './training/rules.js';
+export type { TrainingLevel } from './training/rules.js';
 export {
   ExerciseSchema,
   PhaseSchema,
@@ -60,3 +74,9 @@ export type {
   SessionFeedback,
   SessionSourceType,
 } from './types/session-log.types.js';
+
+// Types TypeScript — quota de generations
+export type { GenerationQuota } from './types/generation-quota.types.js';
+export { BILLING_OFFER } from './types/billing.types.js';
+export type { BillingStatus } from './types/billing.types.js';
+export * from './admin.js';

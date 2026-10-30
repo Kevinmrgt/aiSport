@@ -2,17 +2,10 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import type { Exercise, Phase } from '@alcide/shared';
+import { buildSessionSchedule, type SessionStep, type Exercise, type Phase } from '@alcide/shared';
 import { Button } from './ui/Button';
 import { Icon } from './ui/Icon';
-import { ProgressRing } from './PremiumPrimitives';
-import {
-  clearTimerProgress,
-  readTimerProgress,
-  timerSignature,
-  writeTimerProgress,
-  type TimerProgress,
-} from '@/lib/timer-storage';
+import { TimerTimeline } from './TimerTimeline';
 import {
   SessionCompletionForm,
   type SessionCompletionPayload,
@@ -29,17 +22,7 @@ export interface TimerProps {
   sessionMeta?: TimerSessionMeta;
 }
 
-type TimerStepType = 'warmup' | 'exercise' | 'rest' | 'cooldown';
-
-interface TimerStep {
-  id: string;
-  type: TimerStepType;
-  title: string;
-  description?: string;
-  durationSeconds: number | null;
-  exerciseIndex?: number;
-  tips?: string;
-}
+type TimerStep = SessionStep;
 
 function useAudio() {
   const ctxRef = useRef<AudioContext | null>(null);
@@ -79,7 +62,11 @@ function useAudio() {
     [getCtx],
   );
 
-  const playCountdown = useCallback(() => beep(880, 0.08, 0.2), [beep]);
+  const playCountdown = useCallback(
+    (isLastSecond = false) =>
+      isLastSecond ? beep(1100, 0.32, 0.38) : beep(880, 0.08, 0.2),
+    [beep],
+  );
 
   const playPhaseChange = useCallback(() => {
     beep(660, 0.12, 0.3);
@@ -95,61 +82,7 @@ function useAudio() {
   return { playCountdown, playPhaseChange, playComplete };
 }
 
-export function buildTimerSteps(
-  exercises: Exercise[],
-  warmup: Phase[] = [],
-  cooldown: Phase[] = [],
-): TimerStep[] {
-  const steps: TimerStep[] = [];
-
-  warmup.forEach((phase, index) => {
-    steps.push({
-      id: `warmup-${index}`,
-      type: 'warmup',
-      title: phase.name,
-      description: phase.description,
-      durationSeconds: phase.duration_seconds,
-    });
-  });
-
-  exercises.forEach((exercise, index) => {
-    steps.push({
-      id: `exercise-${index}`,
-      type: 'exercise',
-      title: exercise.name,
-      description: exercise.description,
-      durationSeconds: exercise.duration_seconds ?? null,
-      exerciseIndex: index,
-      tips: exercise.tips,
-    });
-
-    if (exercise.rest_seconds > 0) {
-      steps.push({
-        id: `rest-${index}`,
-        type: 'rest',
-        title: 'Recuperation',
-        description:
-          index < exercises.length - 1
-            ? `Avant ${exercises[index + 1]?.name ?? "l'exercice suivant"}`
-            : 'Dernier temps de repos',
-        durationSeconds: exercise.rest_seconds,
-        exerciseIndex: index,
-      });
-    }
-  });
-
-  cooldown.forEach((phase, index) => {
-    steps.push({
-      id: `cooldown-${index}`,
-      type: 'cooldown',
-      title: phase.name,
-      description: phase.description,
-      durationSeconds: phase.duration_seconds,
-    });
-  });
-
-  return steps;
-}
+export const buildTimerSteps = buildSessionSchedule;
 
 function formatTime(totalSeconds: number): string {
   const clampedSeconds = Math.max(0, totalSeconds);
@@ -161,23 +94,39 @@ function formatTime(totalSeconds: number): string {
 function getStepLabel(step: TimerStep): string {
   if (step.type === 'warmup') return 'ECHAUFFEMENT';
   if (step.type === 'rest') return 'REPOS';
+  if (step.type === 'transition') return 'INSTALLATION';
   if (step.type === 'cooldown') return 'RETOUR CALME';
   return 'EXERCICE';
 }
 
 function getProgressLabel(step: TimerStep, exercisesCount: number): string {
   if (step.type === 'exercise' && step.exerciseIndex != null) {
-    return `Exercice ${step.exerciseIndex + 1} sur ${exercisesCount}`;
+    const series =
+      step.setNumber !== undefined
+        ? ` · ${step.circuitId ? 'Tour' : 'Série'} ${step.setNumber}/${step.sets}`
+        : '';
+    return `Exercice ${step.exerciseIndex + 1} sur ${exercisesCount}${series}`;
   }
 
   if (step.type === 'rest' && step.exerciseIndex != null) {
     return `Repos apres l'exercice ${step.exerciseIndex + 1} sur ${exercisesCount}`;
   }
 
+  if (step.type === 'transition') return 'Installation du prochain mouvement';
+
   return step.type === 'warmup' ? 'Echauffement' : 'Retour calme';
 }
 
 export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta }: TimerProps) {
+  // RSC refreshes may recreate identical props after saving a completion log.
+  // Only a different session or changed workout content should reset the timer.
+  const sessionVersion = JSON.stringify({
+    sessionMeta,
+    exercises,
+    warmup: warmup ?? [],
+    cooldown: cooldown ?? [],
+  });
+  const previousSessionVersion = useRef(sessionVersion);
   const steps = useMemo(
     () => buildTimerSteps(exercises, warmup, cooldown),
     [exercises, warmup, cooldown],
@@ -185,6 +134,7 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
   const [currentIndex, setCurrentIndex] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(steps[0]?.durationSeconds ?? null);
   const [isRunning, setIsRunning] = useState(false);
+  const [startCountdownSeconds, setStartCountdownSeconds] = useState<number | null>(null);
   const [done, setDone] = useState(steps.length === 0);
   const [completedDurationSeconds, setCompletedDurationSeconds] = useState<number | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -193,16 +143,14 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
   const stepDeadlineRef = useRef<number | null>(null);
   const activeStartedAtRef = useRef<number | null>(null);
   const accumulatedActiveMsRef = useRef(0);
+  const sessionStartedRef = useRef(false);
+  const startCountdownTimeoutsRef = useRef<number[]>([]);
   const fullscreenTriggerRef = useRef<HTMLElement | null>(null);
-  const storageContext = useRef({ scope: '', signature: '' });
-  const resetContextRef = useRef<string | null>(null);
-  const hasStartedRef = useRef(false);
-  const [savedProgress, setSavedProgress] = useState<TimerProgress | null>(null);
 
   const { playCountdown, playPhaseChange, playComplete } = useAudio();
   const currentStep = steps[currentIndex];
   const totalTimedSeconds = useMemo(
-    () => steps.reduce((total, step) => total + (step.durationSeconds ?? 0), 0),
+    () => steps.reduce((total, step) => total + step.plannedSeconds, 0),
     [steps],
   );
 
@@ -274,7 +222,6 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
 
   const goToStep = useCallback(
     (nextIndex: number, keepRunning = false) => {
-      hasStartedRef.current = true;
       const nextStep = steps[nextIndex];
 
       if (!nextStep) {
@@ -285,9 +232,11 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
       setCurrentIndex(nextIndex);
       setSecondsLeft(nextStep.durationSeconds);
       const nextDurationSeconds = nextStep.durationSeconds;
-      const shouldRun = keepRunning && nextDurationSeconds !== null;
-      if (keepRunning && nextDurationSeconds !== null) {
-        stepDeadlineRef.current = Date.now() + nextDurationSeconds * 1000;
+      const shouldRun =
+        keepRunning && (nextDurationSeconds !== null || nextStep.setNumber !== undefined);
+      if (shouldRun) {
+        stepDeadlineRef.current =
+          nextDurationSeconds === null ? null : Date.now() + nextDurationSeconds * 1000;
         startActiveClock();
       } else {
         stepDeadlineRef.current = null;
@@ -299,59 +248,22 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
   );
 
   useEffect(() => {
-    const scope = document.body.dataset.timerSession ?? '';
-    const path = window.location.pathname;
-    // Server action revalidation can deserialize identical steps into new arrays.
-    // Preserve the live timer and completion form unless their content/context changes.
-    const resetContext = JSON.stringify([scope, path, steps, sessionMeta]);
-    if (resetContextRef.current === resetContext) return;
-    resetContextRef.current = resetContext;
+    if (previousSessionVersion.current === sessionVersion) return;
+    previousSessionVersion.current = sessionVersion;
     setCurrentIndex(0);
     setSecondsLeft(steps[0]?.durationSeconds ?? null);
     setIsRunning(false);
+    setStartCountdownSeconds(null);
     setDone(steps.length === 0);
     setCompletedDurationSeconds(null);
     void exitFullscreen();
+    startCountdownTimeoutsRef.current.forEach((timeout) => window.clearTimeout(timeout));
+    startCountdownTimeoutsRef.current = [];
     stepDeadlineRef.current = null;
     activeStartedAtRef.current = null;
     accumulatedActiveMsRef.current = 0;
-    hasStartedRef.current = false;
-    const durations = steps.map((step) => step.durationSeconds);
-    const signature = timerSignature(path, durations);
-    storageContext.current = { scope, signature };
-    setSavedProgress(readTimerProgress(scope, signature, durations));
-  }, [exitFullscreen, sessionMeta, steps]);
-
-  const persistProgress = useCallback(() => {
-    if (savedProgress || !hasStartedRef.current) return;
-    if (done) {
-      clearTimerProgress();
-      return;
-    }
-    const activeMs =
-      accumulatedActiveMsRef.current +
-      (activeStartedAtRef.current === null
-        ? 0
-        : Math.max(0, Date.now() - activeStartedAtRef.current));
-    const remaining =
-      stepDeadlineRef.current === null
-        ? secondsLeft
-        : Math.max(0, Math.ceil((stepDeadlineRef.current - Date.now()) / 1000));
-    writeTimerProgress({
-      version: 1,
-      ...storageContext.current,
-      savedAt: Date.now(),
-      index: currentIndex,
-      secondsLeft: remaining,
-      activeMs,
-    });
-  }, [currentIndex, done, savedProgress, secondsLeft]);
-
-  useEffect(() => {
-    persistProgress();
-    window.addEventListener('pagehide', persistProgress);
-    return () => window.removeEventListener('pagehide', persistProgress);
-  }, [persistProgress, isRunning]);
+    sessionStartedRef.current = false;
+  }, [exitFullscreen, sessionVersion, steps]);
 
   useEffect(() => {
     const syncFullscreenState = () => {
@@ -452,8 +364,8 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
     )
       return;
 
-    if (secondsLeft > 0 && secondsLeft <= 3) {
-      playCountdown();
+    if (currentStep.type === 'exercise' && secondsLeft > 0 && secondsLeft <= 3) {
+      playCountdown(secondsLeft === 1);
     }
 
     if (secondsLeft <= 0) {
@@ -478,10 +390,44 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
     steps.length,
   ]);
 
-  const toggleTimer = useCallback(() => {
-    if (secondsLeft === null) return;
-    hasStartedRef.current = true;
+  const startTimer = useCallback(() => {
+    stepDeadlineRef.current =
+      secondsLeft === null ? null : Date.now() + Math.max(0, secondsLeft) * 1000;
+    startActiveClock();
+    sessionStartedRef.current = true;
+    setIsRunning(true);
+  }, [secondsLeft, startActiveClock]);
 
+  const startInitialCountdown = useCallback(() => {
+    startCountdownTimeoutsRef.current.forEach((timeout) => window.clearTimeout(timeout));
+    setStartCountdownSeconds(3);
+    playCountdown();
+
+    startCountdownTimeoutsRef.current = [
+      window.setTimeout(() => {
+        setStartCountdownSeconds(2);
+        playCountdown();
+      }, 1000),
+      window.setTimeout(() => {
+        setStartCountdownSeconds(1);
+        playCountdown(true);
+      }, 2000),
+      window.setTimeout(() => {
+        startCountdownTimeoutsRef.current = [];
+        setStartCountdownSeconds(null);
+        startTimer();
+      }, 3000),
+    ];
+  }, [playCountdown, startTimer]);
+
+  useEffect(
+    () => () => {
+      startCountdownTimeoutsRef.current.forEach((timeout) => window.clearTimeout(timeout));
+    },
+    [],
+  );
+
+  const toggleTimer = useCallback(() => {
     if (isRunning) {
       if (stepDeadlineRef.current !== null) {
         setSecondsLeft(Math.max(0, Math.ceil((stepDeadlineRef.current - Date.now()) / 1000)));
@@ -492,21 +438,29 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
       return;
     }
 
-    stepDeadlineRef.current = Date.now() + Math.max(0, secondsLeft) * 1000;
-    startActiveClock();
-    setIsRunning(true);
+    if (!sessionStartedRef.current) {
+      startInitialCountdown();
+      void enterFullscreen();
+      return;
+    }
+
+    startTimer();
     void enterFullscreen();
-  }, [enterFullscreen, isRunning, pauseActiveClock, secondsLeft, startActiveClock]);
+  }, [enterFullscreen, isRunning, pauseActiveClock, startInitialCountdown, startTimer]);
 
   if (done || !currentStep) {
     if (completeAction && sessionMeta) {
       return (
-        <section aria-labelledby="session-complete-title" className="glass-soft p-6 text-center">
+        <section aria-labelledby="session-complete-title" className="session-completion">
           <div role="status" aria-live="polite">
-            <p id="session-complete-title" className="text-3xl font-black text-primary-300">
-              Seance terminee
+            <h2 id="session-complete-title" className="page-title">
+              Bilan de séance
+            </h2>
+            <p className="mt-3 font-semibold text-primary-200">Séance terminée</p>
+            <p className="mt-2 text-zinc-300">
+              {sessionMeta.title} ·{' '}
+              {formatTime(completedDurationSeconds ?? Math.max(1, totalTimedSeconds))}
             </p>
-            <p className="mt-2 text-zinc-300">Ajoutez votre ressenti pour ajuster la suite.</p>
           </div>
           <SessionCompletionForm
             completeAction={completeAction}
@@ -519,19 +473,23 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
 
     return (
       <div role="status" aria-live="polite" className="glass-soft p-8 text-center">
-        <p className="text-3xl font-black text-primary-300">Seance terminee</p>
+        <p className="text-3xl font-black text-primary-300">Séance terminée</p>
         <p className="mt-2 text-zinc-300">Bien joue. Prenez quelques minutes pour recuperer.</p>
       </div>
     );
   }
 
   const hasStepTimer = currentStep.durationSeconds !== null;
+  const isPrescribedManual = !hasStepTimer && currentStep.setNumber !== undefined;
+  const isEstimatedSession = steps.some(
+    (step) => step.durationSeconds === null && step.plannedSeconds > 0,
+  );
   const currentStepRemaining = hasStepTimer
     ? Math.max(secondsLeft ?? currentStep.durationSeconds ?? 0, 0)
-    : 0;
+    : currentStep.plannedSeconds;
   const futureTimedSeconds = steps
     .slice(currentIndex + 1)
-    .reduce((total, step) => total + (step.durationSeconds ?? 0), 0);
+    .reduce((total, step) => total + step.plannedSeconds, 0);
   const sessionSecondsLeft = currentStepRemaining + futureTimedSeconds;
   const sessionProgress =
     totalTimedSeconds > 0
@@ -545,43 +503,31 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
   const isCountingDown = isRunning && (secondsLeft ?? 0) <= 3 && (secondsLeft ?? 0) > 0;
   const sessionDisplay = formatTime(sessionSecondsLeft);
   const progressLabel = getProgressLabel(currentStep, exercises.length);
-  const primaryButtonLabel = hasStepTimer
-    ? isRunning
-      ? 'Pause'
-      : secondsLeft === currentStep.durationSeconds
-        ? 'Demarrer'
-        : 'Reprendre'
-    : currentStep.type === 'exercise'
-      ? "Terminer l'exercice"
-      : 'Continuer';
+  const primaryButtonLabel =
+    startCountdownSeconds !== null
+      ? `Départ dans ${startCountdownSeconds}`
+      : hasStepTimer || isPrescribedManual
+        ? isRunning
+          ? 'Pause'
+          : secondsLeft === currentStep.durationSeconds &&
+              !(isPrescribedManual && accumulatedActiveMsRef.current > 0)
+            ? 'Démarrer'
+            : 'Reprendre'
+        : currentStep.type === 'exercise'
+          ? "Terminer l'exercice"
+          : 'Continuer';
   const secondaryButtonLabel = isLastStep
     ? 'Terminer'
     : currentStep.type === 'rest'
       ? 'Passer le repos'
       : 'Passer';
 
-  const timerContainerClassName = isFullscreen
-    ? 'fixed inset-0 z-[9999] flex h-[100dvh] min-h-screen w-screen flex-col items-center gap-4 overflow-y-auto bg-zinc-950 px-4 py-5 sm:justify-center sm:px-8 sm:py-8'
-    : 'flex flex-col items-center gap-6';
-  const timerCardClassName = [
-    'relative w-full overflow-hidden rounded-[2rem] border border-white/[0.15] bg-zinc-950/60 text-center shadow-2xl shadow-black/30 backdrop-blur-2xl',
-    isFullscreen ? 'max-w-4xl p-6 sm:p-8' : 'max-w-xl p-5 sm:p-8',
-  ].join(' ');
-  const timerRingClassName = [
-    'grid place-items-center rounded-full border border-white/10 shadow-2xl shadow-black/30 transition-colors',
-    isFullscreen ? 'h-64 w-64' : 'h-52 w-52',
-    isCountingDown
-      ? 'animate-pulse bg-sport-orange/[0.15] text-sport-orange'
-      : 'bg-white/[0.06] text-white',
-  ].join(' ');
-  const timerRingInnerClassName = [
-    'grid place-items-center rounded-full bg-zinc-950/[0.85] font-mono font-black tabular-nums',
-    isFullscreen ? 'h-52 w-52 text-6xl' : 'h-44 w-44 text-6xl',
-  ].join(' ');
-  const titleClassName = [
-    'break-words font-black text-white',
-    isFullscreen ? 'text-4xl' : 'text-3xl',
-  ].join(' ');
+  const ringLength = 2 * Math.PI * 52;
+  const ringRemaining = currentStep.durationSeconds
+    ? currentStepRemaining / currentStep.durationSeconds
+    : 1;
+  const manualExercise =
+    currentStep.exerciseIndex !== undefined ? exercises[currentStep.exerciseIndex] : undefined;
 
   const timerContent = (
     <section
@@ -590,175 +536,167 @@ export function Timer({ exercises, warmup, cooldown, completeAction, sessionMeta
       aria-modal={isFullscreen ? true : undefined}
       role={isFullscreen ? 'dialog' : undefined}
       tabIndex={isFullscreen ? -1 : undefined}
-      className={timerContainerClassName}
+      className={`timer-shell ${isFullscreen ? 'timer-fullscreen' : ''}`}
     >
-      {savedProgress && (
-        <div
-          role="status"
-          className="w-full rounded-xl border border-primary-300/30 bg-zinc-950 p-4 text-sm text-zinc-100"
-        >
-          <p>Une séance en cours a été retrouvée dans cet onglet. Elle reprendra en pause.</p>
-          <div className="mt-3 flex flex-wrap gap-3">
-            <button
-              type="button"
-              className="action-primary"
-              onClick={() => {
-                setCurrentIndex(savedProgress.index);
-                setSecondsLeft(savedProgress.secondsLeft);
-                accumulatedActiveMsRef.current = savedProgress.activeMs;
-                activeStartedAtRef.current = null;
-                stepDeadlineRef.current = null;
-                hasStartedRef.current = true;
-                setIsRunning(false);
-                setSavedProgress(null);
-              }}
-            >
-              Restaurer la séance en pause
-            </button>
-            <button
-              type="button"
-              className="action-secondary"
-              onClick={() => {
-                clearTimerProgress();
-                setSavedProgress(null);
-              }}
-            >
-              Recommencer depuis le début
-            </button>
-          </div>
-        </div>
-      )}
-      {totalTimedSeconds > 0 && (
-        <div className="w-full">
-          <div className="mb-2 flex justify-between text-xs font-bold text-zinc-400">
-            <span>Session</span>
-            <span
-              role="timer"
-              aria-label={`Temps chronometre restant : ${sessionDisplay}`}
-              aria-live="off"
-            >
-              {sessionDisplay} restant
-            </span>
-          </div>
-          <div className="h-3 overflow-hidden rounded-full bg-white/10 p-1">
-            <div
-              className="h-full rounded-full bg-primary-300 transition-all duration-1000"
-              style={{ width: `${sessionProgress ?? 0}%` }}
-              role="progressbar"
-              aria-valuenow={sessionProgress ?? 0}
-              aria-valuemin={0}
-              aria-valuemax={100}
-            />
-          </div>
-        </div>
-      )}
-
-      <p className="premium-chip text-primary-200" aria-live="polite">
-        {progressLabel}
-      </p>
-
-      <div className={timerCardClassName}>
-        <div className="absolute inset-x-8 top-0 h-24 rounded-full bg-primary-300/[0.15] blur-3xl" />
-        <div className="relative">
-          <p
-            aria-live="assertive"
-            className={`mb-3 text-xs font-black uppercase tracking-[0.22em] ${
-              currentStep.type === 'exercise' ? 'text-primary-300' : 'text-sport-orange'
-            }`}
-          >
-            {getStepLabel(currentStep)}
-          </p>
-
-          <h2 id="timer-exercise-title" className={titleClassName}>
-            {currentStep.title}
-          </h2>
-
-          {currentStep.description && (
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-300">
-              {currentStep.description}
-            </p>
-          )}
-
-          <div className="mt-7 grid place-items-center">
-            {hasStepTimer ? (
-              <div
-                role="timer"
-                aria-label={`Temps restant : ${timeDisplay}`}
-                aria-live="off"
-                className={timerRingClassName}
-                style={{
-                  backgroundImage: `conic-gradient(#d9ff3f ${
-                    currentStep.durationSeconds
-                      ? ((currentStep.durationSeconds - currentStepRemaining) /
-                          currentStep.durationSeconds) *
-                        360
-                      : 0
-                  }deg, rgba(255,255,255,0.08) 0deg)`,
-                }}
-              >
-                <span className={timerRingInnerClassName}>{timeDisplay}</span>
-              </div>
-            ) : (
-              <ProgressRing value={100} label="manuel" size="lg" />
-            )}
-          </div>
-
-          {currentStep.tips && currentStep.type === 'exercise' && (
-            <p className="mx-auto mt-5 max-w-md rounded-[1.25rem] border border-white/10 bg-white/[0.06] p-3 text-xs italic text-zinc-300">
-              {currentStep.tips}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-center">
-        <Button
-          variant="primary"
-          size="lg"
-          data-timer-fullscreen-trigger
-          disabled={savedProgress !== null}
-          className="w-full sm:min-w-44"
-          onClick={() => {
-            if (hasStepTimer) {
-              toggleTimer();
-            } else {
-              goToStep(currentIndex + 1);
-            }
-          }}
-          aria-pressed={hasStepTimer ? isRunning : undefined}
-        >
-          <Icon name={isRunning ? 'timer' : 'zap'} className="h-4 w-4" />
-          {primaryButtonLabel}
-        </Button>
-
-        {hasStepTimer && (
-          <Button
-            variant="secondary"
-            size="lg"
-            disabled={savedProgress !== null}
-            className="w-full sm:min-w-44"
-            onClick={() => {
-              goToStep(currentIndex + 1);
-            }}
-          >
-            <Icon name="arrow-right" className="h-4 w-4" />
-            {secondaryButtonLabel}
-          </Button>
-        )}
-
-        {isFullscreen && (
-          <Button
-            variant="secondary"
-            size="lg"
-            className="w-full sm:min-w-44"
+      {isFullscreen && (
+        <div className="timer-fullscreen-header">
+          <span className="muted-copy">{sessionMeta?.title ?? 'Séance en cours'}</span>
+          <button
+            type="button"
+            className="action-secondary"
             onClick={() => {
               void exitFullscreen();
             }}
           >
-            <Icon name="minimize" className="h-4 w-4" />
-            Quitter plein ecran
-          </Button>
-        )}
+            <Icon name="minimize" className="h-5 w-5" />
+            Quitter plein écran
+          </button>
+        </div>
+      )}
+      <div className="timer-layout">
+        <div className="timer-main">
+          <div className="timer-stage">
+            <p className="mb-2 text-sm text-primary-200" aria-live="assertive">
+              {getStepLabel(currentStep)}
+            </p>
+            <h2 id="timer-exercise-title" className="break-words text-3xl font-extrabold">
+              {currentStep.title}
+            </h2>
+            <p className="muted-copy mt-3" aria-live="polite">
+              {progressLabel}
+            </p>
+            {currentStep.description && (
+              <p className="muted-copy mx-auto mt-4 max-w-xl">{currentStep.description}</p>
+            )}
+            <div className="my-7">
+              {hasStepTimer ? (
+                <div
+                  role="timer"
+                  aria-label={`Temps restant : ${timeDisplay}`}
+                  aria-live="off"
+                  className={`timer-ring ${isCountingDown ? 'text-sport-orange' : 'text-primary-200'}`}
+                >
+                  <svg viewBox="0 0 120 120" aria-hidden="true" fill="none">
+                    <circle
+                      cx="60"
+                      cy="60"
+                      r="52"
+                      stroke="currentColor"
+                      strokeOpacity=".12"
+                      strokeWidth="7"
+                    />
+                    <circle
+                      cx="60"
+                      cy="60"
+                      r="52"
+                      stroke="currentColor"
+                      strokeWidth="7"
+                      strokeLinecap="round"
+                      strokeDasharray={ringLength}
+                      strokeDashoffset={ringLength * (1 - ringRemaining)}
+                    />
+                  </svg>
+                  <span className="timer-value">{timeDisplay}</span>
+                </div>
+              ) : (
+                <div className="timer-ring glass-soft">
+                  <div>
+                    <p className="text-3xl font-bold">
+                      {isPrescribedManual
+                        ? `${currentStep.reps} répétitions`
+                        : manualExercise?.sets && manualExercise?.reps
+                          ? `${manualExercise.sets} × ${manualExercise.reps}`
+                          : 'À votre rythme'}
+                    </p>
+                    <p className="muted-copy mt-3">
+                      {isPrescribedManual
+                        ? 'À votre rythme · validez la série une fois terminée'
+                        : 'Mode manuel'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+            {currentStep.tips && currentStep.type === 'exercise' && (
+              <p className="muted-copy mx-auto max-w-xl text-sm">{currentStep.tips}</p>
+            )}
+          </div>
+          <div className="timer-controls">
+            <Button
+              variant="primary"
+              size="lg"
+              data-timer-fullscreen-trigger
+              onClick={() => {
+                if (hasStepTimer || isPrescribedManual) toggleTimer();
+                else goToStep(currentIndex + 1);
+              }}
+              disabled={startCountdownSeconds !== null}
+              aria-pressed={hasStepTimer || isPrescribedManual ? isRunning : undefined}
+            >
+              <Icon
+                name={isRunning ? 'pause' : hasStepTimer || isPrescribedManual ? 'play' : 'check'}
+                className="h-5 w-5"
+              />
+              {primaryButtonLabel}
+            </Button>
+            {isPrescribedManual && (
+              <Button
+                variant="secondary"
+                size="lg"
+                disabled={startCountdownSeconds !== null}
+                onClick={() => goToStep(currentIndex + 1, isRunning)}
+              >
+                <Icon name="check" className="h-5 w-5" />
+                Série terminée
+              </Button>
+            )}
+            {hasStepTimer && (
+              <Button
+                variant="secondary"
+                size="lg"
+                disabled={startCountdownSeconds !== null}
+                onClick={() => {
+                  goToStep(currentIndex + 1);
+                }}
+              >
+                {secondaryButtonLabel}
+                <Icon name="arrow-right" className="h-5 w-5" />
+              </Button>
+            )}
+          </div>
+          {totalTimedSeconds > 0 && (
+            <div className="timer-session-progress">
+              <div className="muted-copy mb-3 flex justify-between gap-4 text-sm">
+                <span>{isEstimatedSession ? 'Estimation restante' : 'Session'}</span>
+                <span
+                  role="timer"
+                  aria-label={`${isEstimatedSession ? 'Temps estimé restant' : 'Temps chronometre restant'} : ${sessionDisplay}`}
+                  aria-live="off"
+                >
+                  {isEstimatedSession ? '≈ ' : ''}
+                  {sessionDisplay} restant
+                </span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-white/15">
+                <div
+                  className="h-full rounded-full bg-primary-200"
+                  style={{ width: `${sessionProgress ?? 0}%` }}
+                  role="progressbar"
+                  aria-label="Progression de la séance"
+                  aria-valuenow={sessionProgress ?? 0}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                />
+              </div>
+              {steps[currentIndex + 1] && (
+                <p className="muted-copy mt-4 text-sm">
+                  À suivre : {steps[currentIndex + 1]?.title}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+        {isFullscreen && <TimerTimeline steps={steps} currentIndex={currentIndex} />}
       </div>
     </section>
   );

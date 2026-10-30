@@ -70,38 +70,32 @@ describe.skipIf(!databaseUrl)('privacy PostgreSQL rights and erasure', () => {
     const workout = await createWorkout(owner.id, fixture);
     const aliasSubject = `alias-${owner.subject}`;
     subjects.push(aliasSubject);
-    await db
-      .insert(schema.accounts)
-      .values({
-        userId: owner.id,
-        type: 'oidc',
-        provider: 'google',
-        providerAccountId: aliasSubject,
-      });
+    await db.insert(schema.accounts).values({
+      userId: owner.id,
+      type: 'oidc',
+      provider: 'google',
+      providerAccountId: aliasSubject,
+    });
     await createWorkout(other.id, { ...fixture, title: 'OTHER_OWNER_SENTINEL' });
-    await db
-      .insert(schema.userSettings)
-      .values({
-        userId: owner.id,
-        aiModel: 'gpt-5.4-mini',
-        aiApiKeyEncrypted: 'PRIVATE_CREDENTIAL_SENTINEL',
-      });
-    await db
-      .insert(schema.sessionLogs)
-      .values({
-        userId: owner.id,
-        sourceType: 'workout',
-        workoutId: workout.id,
-        title: 'Old retained note',
-        sport: 'course',
-        difficulty: 'beginner',
-        plannedDurationMinutes: 15,
-        completedAt: new Date(),
-        durationSeconds: 900,
-        perceivedEffort: 5,
-        feedback: 'good',
-        painNotes: 'LEGACY_PRIVATE_NOTE',
-      });
+    await db.insert(schema.userSettings).values({
+      userId: owner.id,
+      aiModel: 'gpt-5.4-mini',
+      aiApiKeyEncrypted: 'PRIVATE_CREDENTIAL_SENTINEL',
+    });
+    await db.insert(schema.sessionLogs).values({
+      userId: owner.id,
+      sourceType: 'workout',
+      workoutId: workout.id,
+      title: 'Old retained note',
+      sport: 'course',
+      difficulty: 'beginner',
+      plannedDurationMinutes: 15,
+      completedAt: new Date(),
+      durationSeconds: 900,
+      perceivedEffort: 5,
+      feedback: 'good',
+      painNotes: 'LEGACY_PRIVATE_NOTE',
+    });
     const [operation] = await db
       .insert(budget.generationOperations)
       .values({
@@ -114,23 +108,19 @@ describe.skipIf(!databaseUrl)('privacy PostgreSQL rights and erasure', () => {
       })
       .returning({ id: budget.generationOperations.id });
     if (!operation) throw new Error('Missing operation fixture');
-    await db
-      .insert(budget.generationUsageEvents)
-      .values({
-        operationId: operation.id,
-        eventKey: 'event-fixture',
-        model: 'gpt-5.4-mini',
-        inputTokens: 2,
-        outputTokens: 3,
-        totalTokens: 5,
-      });
-    await db
-      .insert(budget.generationDailyBudgets)
-      .values({
-        scope: `user:${owner.id}`,
-        day: new Date().toISOString().slice(0, 10),
-        userId: owner.id,
-      });
+    await db.insert(budget.generationUsageEvents).values({
+      operationId: operation.id,
+      eventKey: 'event-fixture',
+      model: 'gpt-5.4-mini',
+      inputTokens: 2,
+      outputTokens: 3,
+      totalTokens: 5,
+    });
+    await db.insert(budget.generationDailyBudgets).values({
+      scope: `user:${owner.id}`,
+      day: new Date().toISOString().slice(0, 10),
+      userId: owner.id,
+    });
     const exported = await exportOwnedAccount(owner.id);
     expect(exported.workouts).toHaveLength(1);
     expect(exported.sessionLogs[0]?.painNotes).toBe('LEGACY_PRIVATE_NOTE');

@@ -26,6 +26,7 @@ export interface AiExecutionOptions {
   onUsage?: (usage: AiUsage) => void | Promise<void>;
 }
 export interface AiCallOptions extends AiExecutionOptions {
+  jsonSchema?: { name: string; schema: Record<string, unknown> };
   timeoutMs?: number;
   maxTokens?: number;
   temperature?: number;
@@ -126,7 +127,9 @@ export async function callAiProvider(
   // A UTF-8 byte bound is conservative for text tokens; include chat framing.
   const inputTokensUpperBound =
     new TextEncoder().encode(
-      (options.systemMessage ?? 'Réponds uniquement avec un objet JSON valide.') + prompt,
+      (options.systemMessage ?? 'Réponds uniquement avec un objet JSON valide.') +
+        prompt +
+        (options.jsonSchema ? JSON.stringify(options.jsonSchema) : ''),
     ).byteLength + 256;
   throwIfCancelled(options.signal);
   if (options.onAttempt) {
@@ -186,7 +189,9 @@ async function callOpenAi(
       ],
       temperature: options.temperature ?? 0.7,
       max_completion_tokens: options.maxTokens ?? 2048,
-      response_format: { type: 'json_object' },
+      response_format: options.jsonSchema
+        ? { type: 'json_schema', json_schema: { ...options.jsonSchema, strict: true } }
+        : { type: 'json_object' },
       store: false,
     }),
     signal,

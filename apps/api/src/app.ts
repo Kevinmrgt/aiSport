@@ -24,7 +24,7 @@ app.use(
   '*',
   cors({
     origin: frontendUrl,
-    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders: [
       'Content-Type',
       'Authorization',
@@ -34,6 +34,10 @@ app.use(
       'x-user-email',
       'x-user-name',
       'x-user-name-encoded',
+      'x-user-name-utf8',
+      'x-auth-method',
+      'x-beta-session-version',
+      'x-email-verified',
       'x-request-id',
       'x-auth-issued-at',
       'idempotency-key',

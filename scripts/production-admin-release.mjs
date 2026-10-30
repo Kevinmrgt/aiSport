@@ -4,9 +4,9 @@ import { lstat, mkdir, readFile, readdir, realpath, rename, rm, unlink, writeFil
 import { join, resolve, sep } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { runAdminBootstrap, targetDatabaseUrl, readSelectedAdminId } from './production-admin-bootstrap.mjs';
-import { Client, databaseUrl, readDatabaseIdentity, fileHash, migrationFingerprint, require } from './db-operations.mjs';
+import { Client, databaseUrl, readDatabaseIdentity, fileHash, migrationFingerprint, require, migrationsFolder, quoteIdentifier } from './db-operations.mjs';
 import { checkHealth } from './cd-health-check.mjs';
-import { inspectDatabaseMigrationLineage } from './db-migration-lineage.mjs';
+import { inspectDatabaseMigrationLineage, readCandidateLineage } from './db-migration-lineage.mjs';
 
 class ReleaseError extends Error {
   constructor(reason, diagnostics) { super(reason); if (diagnostics) this.diagnostics = diagnostics; }
@@ -14,10 +14,10 @@ class ReleaseError extends Error {
 const fail = (message) => { throw new ReleaseError(message); };
 const production = (item) => !item.gitBranch && (Array.isArray(item.target) ? item.target : [item.target]).includes('production');
 const safeKey = (key) => /^[A-Z][A-Z0-9_]+$/.test(key);
-const mutableKeys = new Set(['DATABASE_URL', 'ALCIDE_DATABASE_URL', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'API_URL', 'NEXT_PUBLIC_API_URL', 'FRONTEND_URL', 'AUTH_URL', 'NEXTAUTH_URL']);
+const mutableKeys = new Set(['DATABASE_URL', 'ALCIDE_DATABASE_URL', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'API_URL', 'NEXT_PUBLIC_API_URL', 'FRONTEND_URL', 'AUTH_URL', 'NEXTAUTH_URL', 'AI_MAX_COMPLETION_TOKENS']);
 const releaseStages = new Set(['input_validation', 'ci_verification', 'configuration_read', 'bootstrap_plan', 'source_reference', 'backup', 'rehearsal',
   'diagnostic_input', 'diagnostic_deployment_lookup', 'diagnostic_environment_pull', 'diagnostic_project_environment_pull', 'diagnostic_project_database_read', 'diagnostic_database_sql',
-  'prepared_backup_verification', 'live_target_verification', 'api_reference', 'web_reference', 'bootstrap_apply', 'admin_lookup_source', 'admin_lookup_target', 'admin_identity_comparison',
+  'prepared_backup_verification', 'live_target_verification', 'additive_live_migration', 'api_reference', 'web_reference', 'bootstrap_apply', 'admin_lookup_source', 'admin_lookup_target', 'admin_identity_comparison',
   ...['api', 'web'].flatMap((project) => ['env_readback', 'cleanup', 'pull', 'build', 'function_environment', 'build_artifacts', 'deploy', 'health', 'oauth_configuration', 'automation_bypass_create', 'automation_bypass_revoke', 'denied_probe', 'promote', 'alias_health', 'alias_denied_probe',
     ...[...mutableKeys].map((key) => `env_${key}`)].map((action) => `${project}_${action}`))]);
 const bootstrapFailureReasons = new Set(['admin_not_unique', 'admin_identity_lookup_failed', 'admin_identity_mismatch', 'explicit_admin_email_required']);
@@ -217,7 +217,7 @@ export class VercelProduction {
 }
 
 export async function inspectConfiguration(env, provider) {
-  const apiKeys = ['DATABASE_URL', 'ALCIDE_DATABASE_URL', 'SERVICE_SECRET', 'AUTH_SECRET', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'FRONTEND_URL'];
+  const apiKeys = ['DATABASE_URL', 'ALCIDE_DATABASE_URL', 'SERVICE_SECRET', 'AUTH_SECRET', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'FRONTEND_URL', 'AI_MAX_COMPLETION_TOKENS'];
   const webKeys = ['SERVICE_SECRET', 'AUTH_SECRET', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'APP_REVISION', 'API_URL', 'NEXT_PUBLIC_API_URL', 'AUTH_URL', 'NEXTAUTH_URL'];
   const [api, web, webMetadata] = await Promise.all([provider.snapshot(env.VERCEL_API_PROJECT_ID, apiKeys), provider.snapshot(env.VERCEL_WEB_PROJECT_ID, webKeys), provider.list(env.VERCEL_WEB_PROJECT_ID)]);
   const checks = {
@@ -238,9 +238,109 @@ export async function inspectConfiguration(env, provider) {
   return { api, web, source: direct.value, sourceDirectDerived: direct.sourceDirectDerived, applicationOverrideSelected, checks, ready: Object.values(checks).every(Boolean) };
 }
 
-/** adminId is private orchestration data. Only evidence may be serialized. */
+// A deliberately small SQL grammar, not a heuristic search for DROP. New tables
+// may contain checks and literal defaults; old tables may only gain nullable
+// columns without defaults. DML, executable defaults and existing-table FKs are
+// excluded, keeping the previous deployment's writes compatible after rollback.
+export function validateAdditiveMigrationSql(sql, previouslyCreated = new Set()) {
+  const statements = []; let tokens = []; let start = 0;
+  const text = sql;
+  const token = /\s+|'(?:[^'\\]|'')*'|"[a-z][a-z0-9_]*"|[a-z_][a-z0-9_]*|\d+(?:\.\d+)?|::|[(),.;<>=+\-]/giy;
+  let offset = 0;
+  while (offset < text.length) {
+    if (text.startsWith('--> statement-breakpoint', offset)) {
+      const end = text.indexOf('\n', offset);
+      if (text.slice(offset + '--> statement-breakpoint'.length, end < 0 ? text.length : end).trim()) fail('live_update_additive_sql_required');
+      offset = end < 0 ? text.length : end + 1; continue;
+    }
+    if (text.startsWith('--', offset) || text.startsWith('/*', offset)) fail('live_update_unreviewed_sql_comment');
+    token.lastIndex = offset; const match = token.exec(text);
+    if (!match) fail('live_update_additive_sql_required');
+    offset = token.lastIndex;
+    if (/^\s/.test(match[0])) continue;
+    if (match[0] === ';') { if (tokens.length) statements.push({ sql: text.slice(start, offset), tokens }); tokens = []; start = offset; }
+    else tokens.push(match[0].startsWith("'") ? '$literal' : match[0].replaceAll('"', '').toLowerCase());
+  }
+  if (tokens.length) fail('live_update_terminated_additive_sql_required');
+  if (!statements.length) fail('live_update_additive_sql_required');
+  const created = new Set(previouslyCreated);
+  const identifier = '[a-z][a-z0-9_]*';
+  const tablePattern = `(?:public \\. )?(${identifier})`;
+  for (const statement of statements) {
+    const normalized = statement.tokens.join(' ');
+    const create = normalized.match(new RegExp(`^create table ${tablePattern} \\(`));
+    if (create) {
+      if (created.has(create[1])) fail('live_update_duplicate_added_table');
+      created.add(create[1]);
+    }
+  }
+  const forbidden = new Set(['select', 'insert', 'update', 'delete', 'drop', 'truncate', 'alter', 'grant', 'revoke', 'do', 'execute', 'copy', 'call', 'as', 'like', 'inherits', 'partition', 'generated', 'identity', 'references', 'trigger', 'rule', 'policy', 'collate', 'tablespace']);
+  for (const statement of statements) {
+    const words = statement.tokens; const normalized = words.join(' ');
+    const create = normalized.match(new RegExp(`^create table ${tablePattern} \\([\\s\\S]+\\)$`));
+    if (create) {
+      const body = words.slice(words.indexOf('(') + 1, -1);
+      if (body.some((word) => forbidden.has(word))) fail('live_update_additive_table_definition_required');
+      let depth = 1;
+      let columnStart = true;
+      for (let index = 0; index < body.length; index += 1) {
+        const word = body[index];
+        if (columnStart && !['constraint', 'primary', 'unique', 'check'].includes(word) &&
+            !['uuid', 'text', 'integer', 'bigint', 'boolean', 'jsonb', 'timestamp', 'timestamptz', 'varchar', 'numeric'].includes(body[index + 1])) fail('live_update_primitive_column_type_required');
+        columnStart = false;
+        if (word === '(') {
+          depth += 1;
+          if (!['check', 'in', 'key', 'unique', 'varchar', 'numeric', 'now', 'gen_random_uuid'].includes(body[index - 1])) fail('live_update_executable_sql_refused');
+          if (body[index - 2] === '.') fail('live_update_executable_sql_refused');
+          if (['now', 'gen_random_uuid'].includes(body[index - 1]) && body[index + 1] !== ')') fail('live_update_executable_sql_refused');
+        }
+        if (word === ')' && --depth < 1) fail('live_update_additive_sql_required');
+        if (word === ',' && depth === 1) columnStart = true;
+        if (word === '::' && body[index + 1] !== 'jsonb') fail('live_update_unsafe_default_cast');
+        if (word === 'default' && !['$literal', 'true', 'false', 'null', 'now', 'gen_random_uuid', '-'].includes(body[index + 1]) && !/^\d/.test(body[index + 1] ?? '')) fail('live_update_literal_default_required');
+      }
+      if (depth !== 1) fail('live_update_additive_sql_required');
+      continue;
+    }
+    const column = normalized.match(new RegExp(`^alter table ${tablePattern} add column ${identifier} (uuid|text|integer|bigint|boolean|jsonb|timestamptz|timestamp(?: with time zone| without time zone)?)$`));
+    if (column) continue;
+    const foreign = normalized.match(new RegExp(`^alter table ${tablePattern} add constraint ${identifier} foreign key \\( ${identifier}(?: , ${identifier})* \\) references ${tablePattern} \\( ${identifier}(?: , ${identifier})* \\)(?: on delete (?:cascade|restrict|no action|set null))?(?: on update no action)?$`));
+    if (foreign && created.has(foreign[1])) continue;
+    const index = normalized.match(new RegExp(`^create (?:unique )?index ${identifier} on ${tablePattern}(?: using btree)? \\( ${identifier}(?: (?:asc|desc))?(?: nulls (?:first|last))?(?: , ${identifier}(?: (?:asc|desc))?(?: nulls (?:first|last))?)* \\)$`));
+    if (index && created.has(index[1])) continue;
+    fail('live_update_additive_sql_required');
+  }
+  return { statements: statements.map((statement) => statement.sql), createdTables: created };
+}
+
+export async function readAdditiveUpdatePlan(lineage, { folder = migrationsFolder } = {}) {
+  const candidates = await readCandidateLineage(folder);
+  if (lineage.compatible !== true || !Number.isSafeInteger(lineage.appliedMigrations) || lineage.appliedMigrations < 1 ||
+      lineage.matchedPrefix !== lineage.appliedMigrations || lineage.pendingMigrations !== candidates.length - lineage.appliedMigrations) fail('live_update_exact_migration_lineage_required');
+  let created = new Set(); const migrations = [];
+  for (const candidate of candidates.slice(lineage.appliedMigrations)) {
+    const sql = await readFile(new URL(`${candidate.tag}.sql`, folder), 'utf8');
+    if (createHash('sha256').update(sql).digest('hex') !== candidate.hash) fail('live_update_migration_hash_changed');
+    const validated = validateAdditiveMigrationSql(sql, created); created = validated.createdTables;
+    migrations.push({ ...candidate, statements: validated.statements });
+  }
+  return { appliedMigrationsBefore: lineage.appliedMigrations, appliedMigrationsAfter: candidates.length,
+    suffix: migrations.map(({ tag, hash, createdAt }) => ({ tag, hash, createdAt })), migrations };
+}
+
+async function verifyAdminRows(client, env, pinnedId, authorized) {
+  if ((await client.query('select current_database() as database')).rows[0]?.database !== env.TARGET_DATABASE_NAME) fail('live_update_sql_database_name_mismatch');
+  const users = (await client.query('select id, email from public.users limit 2')).rows;
+  if (users.length !== 1 || users[0].id !== pinnedId || users[0].email?.trim().toLowerCase() !== authorized) fail('live_update_unique_admin_identity_required');
+  const accounts = (await client.query('select user_id, type, provider, provider_account_id from public.accounts limit 2')).rows;
+  if (accounts.length > 1 || accounts.some((account) => account.user_id !== pinnedId || account.provider !== 'google' ||
+      !['oauth', 'oidc'].includes(account.type) || typeof account.provider_account_id !== 'string' || !account.provider_account_id.trim())) fail('live_update_google_account_ownership_required');
+  return accounts.length;
+}
+
+/** adminId and row digests are private orchestration data. Only evidence is serialized. */
 export async function verifyLiveAdminProduction(env, configuration, {
-  clientFactory = (options) => new Client(options), lineageInspector = inspectDatabaseMigrationLineage,
+  clientFactory = (options) => new Client(options), lineageInspector = inspectDatabaseMigrationLineage, planReader = readAdditiveUpdatePlan,
 } = {}) {
   if (!configuration.api.ALCIDE_DATABASE_URL?.value || !configuration.applicationOverrideSelected) fail('live_update_application_database_required');
   const source = databaseUrl(configuration.source);
@@ -258,20 +358,111 @@ export async function verifyLiveAdminProduction(env, configuration, {
   const client = clientFactory({ connectionString: source.toString(), connectionTimeoutMillis: 15_000, statement_timeout: 15_000, query_timeout: 20_000 });
   try {
     await client.connect(); await client.query('begin isolation level repeatable read read only');
-    if ((await client.query('select current_database() as database')).rows[0]?.database !== env.TARGET_DATABASE_NAME) fail('live_update_sql_database_name_mismatch');
     const lineage = await lineageInspector(client);
-    if (lineage.compatible !== true || lineage.pendingMigrations !== 0 || !Number.isSafeInteger(lineage.appliedMigrations) ||
-        lineage.appliedMigrations < 1 || lineage.matchedPrefix !== lineage.appliedMigrations) fail('live_update_exact_migration_lineage_required');
-    const users = (await client.query('select id, email from public.users limit 2')).rows;
-    if (users.length !== 1 || users[0].id !== pinnedId || users[0].email?.trim().toLowerCase() !== authorized) fail('live_update_unique_admin_identity_required');
-    const accounts = (await client.query('select user_id, type, provider, provider_account_id from public.accounts limit 2')).rows;
-    if (accounts.length > 1 || accounts.some((account) => account.user_id !== pinnedId || account.provider !== 'google' ||
-        !['oauth', 'oidc'].includes(account.type) || typeof account.provider_account_id !== 'string' || !account.provider_account_id.trim())) fail('live_update_google_account_ownership_required');
+    const plan = await planReader(lineage);
+    const googleCount = await verifyAdminRows(client, env, pinnedId, authorized);
     await client.query('rollback');
     return { adminId: pinnedId, evidence: { complete: true, existingLiveTargetVerified: true, sourceReadOnly: true,
-      databaseNameVerified: true, adminOwnerVerified: true, usersVerified: 1, googleAccountsVerified: accounts.length,
-      appliedMigrations: lineage.appliedMigrations, pendingMigrations: 0, dataPreserved: true } };
+      databaseNameVerified: true, adminOwnerVerified: true, usersVerified: 1, googleAccountsVerified: googleCount,
+      appliedMigrations: lineage.appliedMigrations, pendingMigrations: lineage.pendingMigrations,
+      additiveSuffix: plan.suffix, dataPreserved: true } };
   } finally { await client.end().catch(() => undefined); }
+}
+
+async function capturePreservationState(client, previous) {
+  const tables = previous?.tables ?? (await client.query(`select n.nspname as schema, c.relname as name
+    from pg_class c join pg_namespace n on n.oid=c.relnamespace
+    where c.relkind in ('r','p') and n.nspname not in ('pg_catalog','information_schema')
+      and n.nspname not like 'pg_toast%' order by n.nspname,c.relname`)).rows;
+  const catalog = (await client.query(`select n.nspname as schema, c.relname as name, c.relowner::text, c.relacl::text, c.relrowsecurity, c.relforcerowsecurity,
+    a.attname, a.attnum, a.atttypid::text, a.atttypmod, a.attnotnull, a.attidentity, a.attgenerated,
+    a.attcollation::text, pg_get_expr(d.adbin,d.adrelid) as default_expression
+    from pg_class c join pg_namespace n on n.oid=c.relnamespace join pg_attribute a on a.attrelid=c.oid
+    left join pg_attrdef d on d.adrelid=c.oid and d.adnum=a.attnum
+    where c.relkind in ('r','p') and a.attnum>0 and not a.attisdropped
+      and n.nspname not in ('pg_catalog','information_schema') and n.nspname not like 'pg_toast%'
+    order by n.nspname,c.relname,a.attnum`)).rows;
+  const constraints = (await client.query(`select n.nspname as schema,c.relname as name,k.conname,pg_get_constraintdef(k.oid) as definition
+    from pg_constraint k join pg_class c on c.oid=k.conrelid join pg_namespace n on n.oid=c.relnamespace
+    where n.nspname not in ('pg_catalog','information_schema') and n.nspname not like 'pg_toast%'
+    order by n.nspname,c.relname,k.conname`)).rows;
+  const indexes = (await client.query(`select schemaname as schema,tablename as name,indexname,indexdef from pg_indexes
+    where schemaname not in ('pg_catalog','information_schema') and schemaname not like 'pg_toast%'
+    order by schemaname,tablename,indexname`)).rows;
+  const triggers = (await client.query(`select n.nspname as schema,c.relname as name,t.tgname,pg_get_triggerdef(t.oid) as definition
+    from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace
+    where n.nspname not in ('pg_catalog','information_schema') and n.nspname not like 'pg_toast%'
+    order by n.nspname,c.relname,t.tgname`)).rows;
+  const policies = (await client.query(`select * from pg_policies where schemaname not in ('pg_catalog','information_schema')
+    order by schemaname,tablename,policyname`)).rows;
+  const rows = [];
+  for (const table of tables) {
+    if (table.schema === 'drizzle' && table.name === '__drizzle_migrations') continue;
+    const columns = (previous?.catalog ?? catalog).filter((column) => column.schema === table.schema && column.name === table.name);
+    if (!columns.length) fail('live_update_existing_catalog_missing');
+    const projection = columns.map((column) => quoteIdentifier(column.attname)).join(',');
+    const data = (await client.query(`select count(*)::text as rows,
+      encode(sha256(convert_to(coalesce(string_agg(row_digest, '' order by row_digest), ''), 'UTF8')), 'hex') as digest
+      from (select encode(sha256(convert_to(row_to_json(t)::text, 'UTF8')), 'hex') as row_digest
+        from (select ${projection} from ${quoteIdentifier(table.schema)}.${quoteIdentifier(table.name)}) t) hashed`)).rows[0];
+    if (!/^\d+$/.test(data?.rows ?? '') || !/^[a-f0-9]{64}$/.test(data?.digest ?? '')) fail('live_update_existing_rows_unverifiable');
+    rows.push({ ...table, ...data });
+  }
+  return { tables, catalog, constraints, indexes, triggers, policies, rows };
+}
+
+function assertPreservationState(before, after) {
+  for (const kind of ['catalog', 'constraints', 'indexes', 'triggers', 'policies']) {
+    const actual = new Set(after[kind].map((entry) => JSON.stringify(entry)));
+    if (before[kind].some((entry) => !actual.has(JSON.stringify(entry)))) fail('live_update_existing_catalog_changed');
+  }
+  if (JSON.stringify(before.rows) !== JSON.stringify(after.rows)) fail('live_update_existing_rows_changed');
+}
+
+export async function applyAdditiveLiveUpdate(env, configuration, expected, {
+  clientFactory = (options) => new Client(options), lineageInspector = inspectDatabaseMigrationLineage,
+  planReader = readAdditiveUpdatePlan, stateReader = capturePreservationState, pause: pauseImpl = pause,
+} = {}) {
+  if (env.RELEASE_MODE !== 'update' || env.UPDATE_CONFIRM !== 'preserve-live-admin-production') fail('explicit_live_update_confirmation_required');
+  const source = databaseUrl(configuration.source);
+  if (source.hostname.includes('-pooler.') || decodeURIComponent(source.pathname.slice(1)) !== env.TARGET_DATABASE_NAME ||
+      directSourceUrl(configuration.api.ALCIDE_DATABASE_URL?.value).value !== source.toString()) fail('live_update_effective_database_mismatch');
+  const client = clientFactory({ connectionString: source.toString(), connectionTimeoutMillis: 15_000, statement_timeout: 60_000, query_timeout: 65_000 });
+  let locked = false; let transaction = false;
+  try {
+    await client.connect();
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      locked = (await client.query('select pg_try_advisory_lock(1946010371, 1) as locked')).rows[0]?.locked === true;
+      if (locked) break;
+      await pauseImpl(1000);
+    }
+    if (!locked) fail('live_update_migration_lock_unavailable');
+    await client.query('begin isolation level repeatable read'); transaction = true;
+    await client.query("set local lock_timeout = '15s'");
+    await client.query('set local search_path = public');
+    const googleCount = await verifyAdminRows(client, env, configuration.api.BOOTSTRAP_ADMIN_USER_ID?.value, env.BOOTSTRAP_ADMIN_EMAIL.trim().toLowerCase());
+    const lineage = await lineageInspector(client); const plan = await planReader(lineage);
+    const summary = { appliedMigrationsBefore: plan.appliedMigrationsBefore, appliedMigrationsAfter: plan.appliedMigrationsAfter, suffix: plan.suffix };
+    if (!expected || JSON.stringify(summary) !== JSON.stringify({ appliedMigrationsBefore: expected.appliedMigrationsBefore,
+      appliedMigrationsAfter: expected.appliedMigrationsAfter, suffix: expected.suffix })) fail('live_update_rehearsed_suffix_mismatch');
+    const before = await stateReader(client);
+    for (const migration of plan.migrations) {
+      for (const statement of migration.statements) await client.query(statement);
+      await client.query('insert into drizzle.__drizzle_migrations (hash, created_at) values ($1, $2)', [migration.hash, migration.createdAt]);
+    }
+    const afterLineage = await lineageInspector(client);
+    if (!afterLineage.compatible || afterLineage.pendingMigrations !== 0 || afterLineage.appliedMigrations !== plan.appliedMigrationsAfter ||
+        afterLineage.matchedPrefix !== plan.appliedMigrationsAfter) fail('live_update_post_migration_lineage_invalid');
+    const after = await stateReader(client, before); assertPreservationState(before, after);
+    if (await verifyAdminRows(client, env, configuration.api.BOOTSTRAP_ADMIN_USER_ID.value, env.BOOTSTRAP_ADMIN_EMAIL.trim().toLowerCase()) !== googleCount) fail('live_update_google_identity_changed');
+    await client.query('commit'); transaction = false;
+    return { complete: true, ...summary, sameDatabase: true, fullDataPreserved: true, existingCatalogPreserved: true,
+      oldDeploymentSchemaCompatible: true, ownerGooglePreserved: true, existingTablesVerified: before.tables.length };
+  } finally {
+    if (transaction) await client.query('rollback').catch(() => undefined);
+    if (locked) await client.query('select pg_advisory_unlock(1946010371, 1)').catch(() => undefined);
+    await client.end().catch(() => undefined);
+  }
 }
 
 export async function requireSuccessfulCi(env, fetcher = fetch) {
@@ -311,7 +502,7 @@ const pause = (ms) => new Promise((done) => setTimeout(done, ms));
 
 export async function rehearse(env, directory, source, identity, bootstrap, {
   liveConfiguration, liveVerifier = verifyLiveAdminProduction, command = privateCommand,
-  restoreRunner = script, identityReader = readDatabaseIdentity, pause: pauseImpl = pause,
+  restoreRunner = script, identityReader = readDatabaseIdentity, migrationRunner = applyAdditiveLiveUpdate, pause: pauseImpl = pause,
 } = {}) {
   const password = randomBytes(32).toString('hex');
   const container = `alcide-admin-rehearsal-${randomBytes(8).toString('hex')}`;
@@ -338,13 +529,22 @@ export async function rehearse(env, directory, source, identity, bootstrap, {
           restored.candidateMigrationsApplied !== false || restored.sourceIdentity !== identity.sourceIdentity ||
           restored.candidateRevision !== env.RELEASE_REVISION || restored.dumpSha256 !== manifest.dumpSha256 ||
           !Number.isSafeInteger(restored.tablesVerified) || restored.tablesVerified < 1) fail('live_update_full_restore_verification_required');
-      const verification = await liveVerifier({ ...env, TARGET_DATABASE_NAME: 'restore_source' }, {
+      const localEnv = { ...env, TARGET_DATABASE_NAME: 'restore_source' };
+      const localConfiguration = {
         ...liveConfiguration, source: local, applicationOverrideSelected: true,
         api: { ...liveConfiguration.api, ALCIDE_DATABASE_URL: { value: local } },
-      });
+      };
+      const verification = await liveVerifier(localEnv, localConfiguration);
       if (verification.evidence?.complete !== true || verification.evidence.existingLiveTargetVerified !== true) fail('live_update_restored_target_verification_required');
+      const additiveMigrationRehearsal = await migrationRunner(localEnv, localConfiguration, {
+        appliedMigrationsBefore: verification.evidence.appliedMigrations,
+        appliedMigrationsAfter: verification.evidence.appliedMigrations + verification.evidence.pendingMigrations,
+        suffix: verification.evidence.additiveSuffix,
+      });
+      if (!additiveMigrationRehearsal.complete || !additiveMigrationRehearsal.fullDataPreserved || !additiveMigrationRehearsal.existingCatalogPreserved ||
+          !additiveMigrationRehearsal.oldDeploymentSchemaCompatible || !additiveMigrationRehearsal.ownerGooglePreserved) fail('live_update_additive_rehearsal_failed');
       modeEvidence = { releaseMode: 'update', fullRestoreVerified: true, fullRestoreEvidenceSha256: await fileHash(proof),
-        existingLiveTargetVerified: true, selectiveCopyPerformed: false, dataPreserved: true };
+        additiveMigrationRehearsal, existingLiveTargetVerified: true, selectiveCopyPerformed: false, dataPreserved: true };
     } else {
       const copied = await bootstrap({ ...env, SOURCE_DATABASE_URL: local, BOOTSTRAP_MODE: 'apply', BOOTSTRAP_CONFIRM: 'selective-admin-copy-to-new-database' });
       if (!copied.complete || !copied.ready || !copied.adminCopyVerified) fail('isolated_admin_copy_rehearsal_failed');
@@ -363,7 +563,7 @@ export async function rehearse(env, directory, source, identity, bootstrap, {
   }
 }
 
-export async function verifyPreparedBackup(env, directory, source, { identityReader = readDatabaseIdentity } = {}) {
+export async function verifyPreparedBackup(env, directory, source, { identityReader = readDatabaseIdentity, planReader = readAdditiveUpdatePlan } = {}) {
   const [manifest, proof, identity] = await Promise.all([
     readFile(`${env.BACKUP_FILE}.manifest.json`, 'utf8').then(JSON.parse),
     readFile(resolve(directory, 'rehearsal.json'), 'utf8').then(JSON.parse), identityReader(source),
@@ -376,6 +576,12 @@ export async function verifyPreparedBackup(env, directory, source, { identityRea
       restored.encrypted === true && restored.rowCountsMatch === true && restored.candidateMigrationsApplied === false &&
       restored.sourceIdentity === identity.sourceIdentity && restored.candidateRevision === env.RELEASE_REVISION &&
       restored.dumpSha256 === manifest.dumpSha256 && Number.isSafeInteger(restored.tablesVerified) && restored.tablesVerified > 0;
+    const migration = proof.additiveMigrationRehearsal;
+    if (!migration?.complete || !migration.sameDatabase || !migration.fullDataPreserved || !migration.existingCatalogPreserved ||
+        !migration.oldDeploymentSchemaCompatible || !migration.ownerGooglePreserved) fail('live_update_additive_rehearsal_required');
+    const plan = await planReader({ compatible: true, appliedMigrations: migration.appliedMigrationsBefore,
+      matchedPrefix: migration.appliedMigrationsBefore, pendingMigrations: migration.appliedMigrationsAfter - migration.appliedMigrationsBefore });
+    if (migration.appliedMigrationsAfter !== plan.appliedMigrationsAfter || JSON.stringify(migration.suffix) !== JSON.stringify(plan.suffix)) fail('live_update_rehearsed_suffix_mismatch');
   }
   const modeVerified = env.RELEASE_MODE === 'update' ?
     fullRestoreVerified && proof.releaseMode === 'update' && proof.fullRestoreVerified === true && proof.existingLiveTargetVerified === true &&
@@ -390,6 +596,7 @@ export async function verifyPreparedBackup(env, directory, source, { identityRea
       proof.migrationFingerprint !== manifest.migrationFingerprint || manifest.migrationFingerprint !== await migrationFingerprint() ||
       Date.now() - Date.parse(proof.performedAt) > 3_600_000 || Date.parse(proof.performedAt) > Date.now() + 60_000 || !Number.isFinite(Date.parse(proof.performedAt)) ||
       await fileHash(`${env.BACKUP_FILE}.enc`) !== manifest.encryptedSha256 || proof.encryptedSha256 !== manifest.encryptedSha256) fail('fresh_backup_rehearsal_required');
+  return proof;
 }
 
 export async function checkUnauthenticatedApiDenied(base, { fetcher = fetch, bypassSecret } = {}) {
@@ -778,6 +985,7 @@ export async function deployClosedProduction(env, configuration, provider, { boo
       failedStage = 'live_target_verification';
       const live = await liveVerifier(env, configuration);
       if (live.evidence?.complete !== true || live.evidence.existingLiveTargetVerified !== true ||
+          live.evidence.pendingMigrations !== 0 ||
           !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(live.adminId ?? '')) fail('live_update_target_verification_required');
       newDatabase = configuration.source; adminId = live.adminId; liveTargetEvidence = live.evidence;
     } else {
@@ -794,7 +1002,7 @@ export async function deployClosedProduction(env, configuration, provider, { boo
       if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(adminId ?? '') || adminId !== copiedAdminId) fail('copied_admin_identity_mismatch');
     }
     const values = [
-      { DATABASE_URL: newDatabase, ALCIDE_DATABASE_URL: newDatabase, PRODUCTION_ACCESS_MODE: 'admin-only', ADMIN_EMAILS: env.BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_USER_ID: adminId, APP_REVISION: env.RELEASE_REVISION, FRONTEND_URL: 'https://www.alcideai.fr' },
+      { DATABASE_URL: newDatabase, ALCIDE_DATABASE_URL: newDatabase, PRODUCTION_ACCESS_MODE: 'admin-only', ADMIN_EMAILS: env.BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_USER_ID: adminId, APP_REVISION: env.RELEASE_REVISION, FRONTEND_URL: 'https://www.alcideai.fr', AI_MAX_COMPLETION_TOKENS: '11000' },
       { PRODUCTION_ACCESS_MODE: 'admin-only', ADMIN_EMAILS: env.BOOTSTRAP_ADMIN_EMAIL, APP_REVISION: env.RELEASE_REVISION, API_URL: 'https://ai-sport-api.vercel.app', NEXT_PUBLIC_API_URL: 'https://ai-sport-api.vercel.app', AUTH_URL: 'https://www.alcideai.fr', NEXTAUTH_URL: 'https://www.alcideai.fr' },
     ];
     for (const [index, project] of [env.VERCEL_API_PROJECT_ID, env.VERCEL_WEB_PROJECT_ID].entries()) {
@@ -875,7 +1083,7 @@ export async function deployClosedProduction(env, configuration, provider, { boo
 
 export async function runProductionAdminRelease(input, { provider, bootstrap = runAdminBootstrap, fetcher = fetch,
   liveVerifier = verifyLiveAdminProduction, identityReader = readDatabaseIdentity, backupRunner = script,
-  rehearsalRunner = rehearse, preparedBackupVerifier = verifyPreparedBackup, deploymentRunner = deployClosedProduction,
+  rehearsalRunner = rehearse, preparedBackupVerifier = verifyPreparedBackup, migrationRunner = applyAdditiveLiveUpdate, deploymentRunner = deployClosedProduction,
 } = {}) {
   const report = { performedAt: new Date().toISOString(), scope: 'closed-admin-technical-release', complete: false };
   let failedStage = 'input_validation';
@@ -918,7 +1126,13 @@ export async function runProductionAdminRelease(input, { provider, bootstrap = r
       report.complete = true; report.phase = 'prepared'; return report;
     }
     failedStage = 'prepared_backup_verification';
-    await preparedBackupVerifier(env, directory, configuration.source);
+    const preparedProof = await preparedBackupVerifier(env, directory, configuration.source);
+    if (mode === 'update') {
+      failedStage = 'additive_live_migration';
+      report.liveMigration = await migrationRunner(env, configuration, preparedProof?.additiveMigrationRehearsal);
+      if (!report.liveMigration?.complete || !report.liveMigration.fullDataPreserved || !report.liveMigration.existingCatalogPreserved ||
+          !report.liveMigration.oldDeploymentSchemaCompatible || !report.liveMigration.ownerGooglePreserved) fail('live_update_migration_verification_required');
+    }
     Object.assign(report, await deploymentRunner(env, configuration, client, { bootstrap, liveVerifier }));
     return report;
   } catch (error) {

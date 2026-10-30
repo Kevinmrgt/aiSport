@@ -20,7 +20,10 @@ type BrowserEvidence = {
   }>;
 };
 
-const evidenceDir = path.resolve(process.cwd(), '../../tmp/browser-evidence');
+const evidenceDir = path.resolve(
+  process.cwd(),
+  '../../docs/rncp/bloc2-annexes/browser-evidence-2026-07-20',
+);
 
 function slugForRoute(route: string) {
   return route === '/' ? 'accueil' : route.replace(/^\//, '').replaceAll('/', '-');
@@ -130,8 +133,15 @@ test.describe('preuves clavier publiques', () => {
       }));
       await mkdir(evidenceDir, { recursive: true });
       await writeFile(
-        path.join(evidenceDir, `${testInfo.project.name}-${slugForRoute(route)}-clavier.json`),
-        `${JSON.stringify({ route, focusedBeforeActivation, focusedAfterActivation }, null, 2)}\n`,
+        path.join(
+          evidenceDir,
+          `${testInfo.project.name}-${slugForRoute(route)}-clavier.json`,
+        ),
+        `${JSON.stringify(
+          { route, focusedBeforeActivation, focusedAfterActivation },
+          null,
+          2,
+        )}\n`,
         'utf8',
       );
     });
@@ -171,7 +181,10 @@ test.describe('preuves de protection sans session', () => {
 
       await mkdir(evidenceDir, { recursive: true });
       await writeFile(
-        path.join(evidenceDir, `${testInfo.project.name}-redirection-${slugForRoute(route)}.json`),
+        path.join(
+          evidenceDir,
+          `${testInfo.project.name}-redirection-${slugForRoute(route)}.json`,
+        ),
         `${JSON.stringify(
           {
             requestedRoute: route,
