@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
-import { runAdminBootstrap, targetDatabaseUrl } from './production-admin-bootstrap.mjs';
+import { runAdminBootstrap, targetDatabaseUrl, readSelectedAdminId } from './production-admin-bootstrap.mjs';
 import { databaseUrl, readDatabaseIdentity, fileHash, migrationFingerprint } from './db-operations.mjs';
 import { checkHealth } from './cd-health-check.mjs';
 
@@ -11,7 +11,7 @@ class ReleaseError extends Error {}
 const fail = (message) => { throw new ReleaseError(message); };
 const production = (item) => !item.gitBranch && (Array.isArray(item.target) ? item.target : [item.target]).includes('production');
 const safeKey = (key) => /^[A-Z][A-Z0-9_]+$/.test(key);
-const mutableKeys = new Set(['DATABASE_URL', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'APP_REVISION', 'API_URL', 'NEXT_PUBLIC_API_URL', 'FRONTEND_URL']);
+const mutableKeys = new Set(['DATABASE_URL', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'API_URL', 'NEXT_PUBLIC_API_URL', 'FRONTEND_URL']);
 
 export function validateReleaseInput(env) {
   const mode = env.RELEASE_MODE ?? 'plan';
@@ -19,6 +19,7 @@ export function validateReleaseInput(env) {
   if (!/^[a-f0-9]{40}$/.test(env.RELEASE_REVISION ?? '')) fail('immutable_release_revision_required');
   if (!/^[a-z][a-z0-9_]{2,62}$/.test(env.TARGET_DATABASE_NAME ?? '')) fail('explicit_new_database_name_required');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(env.BOOTSTRAP_ADMIN_EMAIL ?? '')) fail('explicit_admin_email_required');
+  if (env.ADMIN_IMPORT_POLICY && env.ADMIN_IMPORT_POLICY !== 'account-only') fail('account_only_import_required');
   for (const key of ['VERCEL_TOKEN', 'VERCEL_ORG_ID', 'VERCEL_API_PROJECT_ID', 'VERCEL_WEB_PROJECT_ID']) {
     if (!env[key]) fail(`missing_${key.toLowerCase()}`);
   }
@@ -109,7 +110,7 @@ export class VercelProduction {
 }
 
 export async function inspectConfiguration(env, provider) {
-  const apiKeys = ['DATABASE_URL', 'SERVICE_SECRET', 'AUTH_SECRET', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'APP_REVISION', 'FRONTEND_URL'];
+  const apiKeys = ['DATABASE_URL', 'SERVICE_SECRET', 'AUTH_SECRET', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'FRONTEND_URL'];
   const webKeys = ['SERVICE_SECRET', 'AUTH_SECRET', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'APP_REVISION', 'API_URL', 'NEXT_PUBLIC_API_URL'];
   const [api, web, webMetadata] = await Promise.all([provider.snapshot(env.VERCEL_API_PROJECT_ID, apiKeys), provider.snapshot(env.VERCEL_WEB_PROJECT_ID, webKeys), provider.list(env.VERCEL_WEB_PROJECT_ID)]);
   const checks = {
@@ -167,7 +168,7 @@ async function rehearse(env, directory, source, identity, bootstrap) {
     script('db-restore-check.mjs', { ...env, RESTORE_DATABASE_URL: local, RESTORE_CONFIRM: 'isolated-empty-database', RESTORE_EVIDENCE_FILE: proof, RESTORE_APPLY_CANDIDATE_MIGRATIONS: '0' });
     const copied = await bootstrap({ ...env, SOURCE_DATABASE_URL: local, BOOTSTRAP_MODE: 'apply', BOOTSTRAP_CONFIRM: 'selective-admin-copy-to-new-database' });
     if (!copied.complete || !copied.ready || !copied.adminCopyVerified) fail('isolated_admin_copy_rehearsal_failed');
-    const evidence = { formatVersion: 1, revision: env.RELEASE_REVISION, targetDatabaseName: env.TARGET_DATABASE_NAME,
+    const evidence = { formatVersion: 1, revision: env.RELEASE_REVISION, targetDatabaseName: env.TARGET_DATABASE_NAME, importPolicy: env.ADMIN_IMPORT_POLICY,
       sourceIdentity: identity.sourceIdentity, databaseMajor: identity.databaseMajor,
       performedAt: new Date().toISOString(), restoredCountsMatch: true, selectiveCopyVerified: true,
       encryptedSha256: await fileHash(`${env.BACKUP_FILE}.enc`), migrationFingerprint: JSON.parse(await readFile(`${env.BACKUP_FILE}.manifest.json`, 'utf8')).migrationFingerprint };
@@ -186,6 +187,7 @@ async function verifyPreparedBackup(env, directory, source) {
   if (!manifest.encrypted || manifest.sourceIdentity !== identity.sourceIdentity || manifest.databaseMajor !== identity.databaseMajor ||
       manifest.candidateRevision !== env.RELEASE_REVISION || proof.revision !== env.RELEASE_REVISION ||
       proof.targetDatabaseName !== env.TARGET_DATABASE_NAME || proof.sourceIdentity !== identity.sourceIdentity ||
+      proof.importPolicy !== env.ADMIN_IMPORT_POLICY || env.ADMIN_IMPORT_POLICY !== 'account-only' ||
       proof.selectiveCopyVerified !== true || proof.restoredCountsMatch !== true ||
       proof.migrationFingerprint !== manifest.migrationFingerprint || manifest.migrationFingerprint !== await migrationFingerprint() ||
       Date.now() - Date.parse(proof.performedAt) > 3_600_000 || Date.parse(proof.performedAt) > Date.now() + 60_000 || !Number.isFinite(Date.parse(proof.performedAt)) ||
@@ -203,7 +205,7 @@ export async function checkUnauthenticatedApiDenied(base, { fetcher = fetch, byp
 }
 
 export async function deployClosedProduction(env, configuration, provider, { bootstrap = runAdminBootstrap, command = privateCommand, health = checkHealth,
-  denied = checkUnauthenticatedApiDenied, cleanup = () => rm(resolve('.vercel'), { force: true, recursive: true }) } = {}) {
+  selectedAdminId = readSelectedAdminId, denied = checkUnauthenticatedApiDenied, cleanup = () => rm(resolve('.vercel'), { force: true, recursive: true }) } = {}) {
   const undo = [];
   const previous = await Promise.all([provider.previousDeployment(env.VERCEL_API_PROJECT_ID), provider.previousDeployment(env.VERCEL_WEB_PROJECT_ID)]);
   const cli = (project, args) => command('npx', ['--yes', 'vercel@54.17.2', ...args, '--token', env.VERCEL_TOKEN], { ...env, VERCEL_PROJECT_ID: project, VERCEL_TELEMETRY_DISABLED: '1', VERCEL_FORCE_BUILD: '1', APP_REVISION: env.RELEASE_REVISION }, 1_200_000);
@@ -211,10 +213,15 @@ export async function deployClosedProduction(env, configuration, provider, { boo
   let bootstrapResult;
   let promotionAttempted = false;
   try {
-    bootstrapResult = await bootstrap({ ...env, SOURCE_DATABASE_URL: configuration.source, BOOTSTRAP_MODE: 'apply' });
+    bootstrapResult = await bootstrap({ ...env, ADMIN_IMPORT_POLICY: env.ADMIN_IMPORT_POLICY ?? 'account-only', SOURCE_DATABASE_URL: configuration.source, BOOTSTRAP_MODE: 'apply' });
     if (!bootstrapResult.complete || !bootstrapResult.ready || !bootstrapResult.adminCopyVerified) fail('production_admin_copy_failed');
+    const newDatabase = targetDatabaseUrl(configuration.source, env.TARGET_DATABASE_NAME);
+    const [adminId, copiedAdminId] = await Promise.all([
+      selectedAdminId(configuration.source, env.BOOTSTRAP_ADMIN_EMAIL), selectedAdminId(newDatabase, env.BOOTSTRAP_ADMIN_EMAIL),
+    ]);
+    if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(adminId ?? '') || adminId !== copiedAdminId) fail('copied_admin_identity_mismatch');
     const values = [
-      { DATABASE_URL: targetDatabaseUrl(configuration.source, env.TARGET_DATABASE_NAME), PRODUCTION_ACCESS_MODE: 'admin-only', ADMIN_EMAILS: env.BOOTSTRAP_ADMIN_EMAIL, APP_REVISION: env.RELEASE_REVISION, FRONTEND_URL: 'https://www.alcideai.fr' },
+      { DATABASE_URL: newDatabase, PRODUCTION_ACCESS_MODE: 'admin-only', ADMIN_EMAILS: env.BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_USER_ID: adminId, APP_REVISION: env.RELEASE_REVISION, FRONTEND_URL: 'https://www.alcideai.fr' },
       { PRODUCTION_ACCESS_MODE: 'admin-only', ADMIN_EMAILS: env.BOOTSTRAP_ADMIN_EMAIL, APP_REVISION: env.RELEASE_REVISION, API_URL: 'https://ai-sport-api.vercel.app', NEXT_PUBLIC_API_URL: 'https://ai-sport-api.vercel.app' },
     ];
     for (const [index, project] of [env.VERCEL_API_PROJECT_ID, env.VERCEL_WEB_PROJECT_ID].entries()) {
@@ -256,7 +263,7 @@ export async function runProductionAdminRelease(input, { provider, bootstrap = r
   try {
     const mode = validateReleaseInput(input);
     report.mode = mode; report.revision = input.RELEASE_REVISION;
-    const env = { ...input };
+    const env = { ...input, ADMIN_IMPORT_POLICY: input.ADMIN_IMPORT_POLICY ?? 'account-only' };
     const client = provider ?? new VercelProduction(env, fetcher);
     if (mode === 'deploy') report.ci = await requireSuccessfulCi(env, fetcher);
     const configuration = await inspectConfiguration(env, client);

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { runAdminBootstrap, targetDatabaseUrl } from './production-admin-bootstrap.mjs';
+import { runAdminBootstrap, targetDatabaseUrl, readSelectedAdminId } from './production-admin-bootstrap.mjs';
 
 const adminId = '11111111-1111-4111-8111-111111111111';
 const workoutId = '22222222-2222-4222-8222-222222222222';
@@ -39,6 +39,7 @@ function harness({ adminCount = 1, createdb = true, exists = false, accounts = [
           if (sql.includes('suspended_at is not null')) return { rows: [{ suspended }] };
           if (sql.startsWith('select count(*)') && sql.includes('from public.accounts')) return { rows: [{ count: '1' }] };
           const table = sql.match(/from public\.(\w+)/)?.[1];
+          if (table && sql.startsWith('select count(*)')) return { rows: [{ count: String(sourceRows[table]?.length ?? 0) }] };
           if (table) return { rows: sourceRows[table] };
         }
         if (kind === 'control' && createFailure) throw Object.assign(new Error('PRIVATE_DRIVER_ERROR'), { code: '42501' });
@@ -172,4 +173,55 @@ test('target database name must be confirmed through SQL before migrations or in
   assert.equal(result.reason, 'target_database_name_mismatch'); assert.equal(result.targetCreated, true);
   assert.equal(h.queries.target.some(({ sql }) => sql.startsWith('insert') || sql.includes('synthetic_migration_count')), false);
   safe(result);
+});
+
+test('account-only explicitly archives invalid histories and settings without reading, changing or importing their content', async () => {
+  const h = harness({ foreignWorkout: true, incompatible: { ...valid, workouts: 1 } });
+  h.sourceRows.workouts[0].data.exercises[0].duration_seconds = 59;
+  const before = JSON.stringify(h.sourceRows);
+  h.dependencies.validateData = async () => { throw Error('historical content must not be validated or loaded for account-only'); };
+  const result = await runAdminBootstrap({ ...apply, ADMIN_IMPORT_POLICY: 'account-only' }, h.dependencies);
+  assert.equal(result.complete, true); assert.equal(result.adminCopyVerified, true);
+  assert.equal(result.importPolicy, 'account-only');
+  assert.deepEqual(result.retainedRows, { users: 1, accounts: 0 });
+  assert.deepEqual(result.copiedRowCounts, { users: 1, accounts: 0 });
+  assert.deepEqual(result.archivedRows, { workouts: 1, training_programs: 0, session_logs: 1, user_settings: 1 });
+  assert.equal(result.historyCompatibilityChecked, false); assert.equal(result.incompatibleRows, undefined);
+  assert.equal(JSON.stringify(h.sourceRows), before);
+  assert.equal(h.imported.users.length, 1);
+  for (const table of ['workouts', 'training_programs', 'session_logs', 'user_settings']) {
+    assert.equal(h.imported[table].length, 0);
+    assert.ok(h.queries.source.filter(({ sql }) => sql.includes(`from public.${table}`)).every(({ sql }) => sql.startsWith('select count(*)')));
+  }
+  safe(result);
+  const noOptIn = harness({ incompatible: { ...valid, workouts: 1 } });
+  assert.equal((await runAdminBootstrap(apply, noOptIn.dependencies)).reason, 'admin_data_incompatible');
+  assert.equal(noOptIn.queries.control.length, 0);
+});
+
+test('unknown import policies cannot enable account-only implicitly or leak input', async () => {
+  const h = harness(); const result = await runAdminBootstrap({ ...env, ADMIN_IMPORT_POLICY: 'PRIVATE_SECRET_POLICY' }, h.dependencies);
+  assert.equal(result.importPolicy, 'invalid'); assert.equal(result.reason, 'invalid_import_policy');
+  assert.equal(h.closed.length, 0); safe(result);
+});
+
+test('selected admin UUID is returned only in memory after exact unique-email lookup in a read-only transaction', async () => {
+  const queries = []; let closed = false;
+  const result = await readSelectedAdminId(env.SOURCE_DATABASE_URL, env.BOOTSTRAP_ADMIN_EMAIL, {
+    clientFactory: () => ({ connect: async () => {}, end: async () => { closed = true; },
+      query: async (sql, values) => { queries.push(sql); if (sql.startsWith('select')) {
+        assert.deepEqual(values, [env.BOOTSTRAP_ADMIN_EMAIL]); return { rows: [{ id: adminId }] };
+      } return { rows: [] }; },
+    }),
+  });
+  assert.equal(result, adminId); assert.equal(closed, true);
+  assert.deepEqual(queries, ['begin isolation level repeatable read read only', 'select id from public.users where email = $1 limit 2', 'rollback']);
+  for (const rows of [[], [{ id: adminId }, { id: workoutId }], [{ id: 'PRIVATE_INVALID_UUID' }]]) {
+    await assert.rejects(readSelectedAdminId(env.SOURCE_DATABASE_URL, env.BOOTSTRAP_ADMIN_EMAIL, {
+      clientFactory: () => ({ connect: async () => {}, end: async () => {}, query: async () => ({ rows }) }),
+    }), /admin_not_unique/);
+  }
+  await assert.rejects(readSelectedAdminId(env.SOURCE_DATABASE_URL, env.BOOTSTRAP_ADMIN_EMAIL, {
+    clientFactory: () => ({ connect: async () => { throw Error(env.SOURCE_DATABASE_URL); }, end: async () => {} }),
+  }), (error) => error.message === 'admin_identity_lookup_failed');
 });

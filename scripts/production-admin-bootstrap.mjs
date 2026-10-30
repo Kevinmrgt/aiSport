@@ -29,6 +29,29 @@ export function targetDatabaseUrl(sourceValue, targetName) {
   return source.toString();
 }
 
+/** Private return value for orchestration memory only. Never include it in evidence or logs. */
+export async function readSelectedAdminId(sourceValue, adminEmail, {
+  clientFactory = (configuration) => new Client(configuration),
+} = {}) {
+  let client;
+  try {
+    const url = databaseUrl(sourceValue);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail ?? '')) fail('explicit_admin_email_required');
+    client = clientFactory({ connectionString: url.toString(), connectionTimeoutMillis: 15_000, statement_timeout: 30_000 });
+    await client.connect();
+    await client.query('begin isolation level repeatable read read only');
+    const rows = (await client.query('select id from public.users where email = $1 limit 2', [adminEmail])).rows;
+    if (rows.length !== 1 || !uuid.test(rows[0]?.id ?? '')) fail('admin_not_unique');
+    await client.query('rollback');
+    return rows[0].id;
+  } catch (error) {
+    if (error instanceof BootstrapError) throw error;
+    fail('admin_identity_lookup_failed');
+  } finally {
+    if (client) await client.end().catch(() => undefined);
+  }
+}
+
 async function validateStoredData(rows) {
   const { WorkoutSchema, TrainingProgramSchema } = await import('../packages/shared/dist/index.js');
   return {
@@ -73,7 +96,15 @@ async function readAdminSnapshot(client, configuration, validateData) {
   const suspendedColumn = (await client.query("select exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'users' and column_name = 'suspended_at') as present")).rows[0].present;
   const suspended = suspendedColumn && (await client.query('select suspended_at is not null as suspended from public.users where id = $1', [user.id])).rows[0].suspended;
   const rows = { users: [user] };
+  const archivedRows = {};
   for (const table of Object.keys(columns).filter((name) => name !== 'users')) {
+    if (configuration.importPolicy === 'account-only' && table !== 'accounts') {
+      const count = Number((await client.query(`select count(*)::text as count from public.${table} where user_id = $1`, [user.id])).rows[0].count);
+      if (!Number.isSafeInteger(count) || count < 0) fail('invalid_archive_count');
+      archivedRows[table] = count;
+      rows[table] = [];
+      continue;
+    }
     rows[table] = (await client.query(`select ${columns[table].join(', ')} from public.${table} where user_id = $1${table === 'accounts' ? " and provider = 'google'" : ''} order by id limit 10001`, [user.id])).rows;
     if (rows[table].length > 10_000) fail('admin_data_limit_exceeded');
     if (rows[table].some((row) => row.user_id !== user.id)) fail('admin_ownership_mismatch');
@@ -89,16 +120,16 @@ async function readAdminSnapshot(client, configuration, validateData) {
   const programs = new Set(rows.training_programs.map((row) => row.id));
   const foreignKeyIssues = rows.session_logs.filter((row) => (row.workout_id && !workouts.has(row.workout_id)) ||
     (row.program_id && !programs.has(row.program_id))).length;
-  const incompatible = await validateData(rows);
-  if (Object.keys(incompatible).sort().join(',') !== 'session_logs,training_programs,user_settings,workouts' ||
-      Object.values(incompatible).some((count) => !Number.isSafeInteger(count) || count < 0)) fail('invalid_compatibility_diagnostic');
+  const incompatible = configuration.importPolicy === 'account-only' ? null : await validateData(rows);
+  if (incompatible && (Object.keys(incompatible).sort().join(',') !== 'session_logs,training_programs,user_settings,workouts' ||
+      Object.values(incompatible).some((count) => !Number.isSafeInteger(count) || count < 0))) fail('invalid_compatibility_diagnostic');
   const reason = targetExists ? 'target_already_exists' : !base.createDatabasePrivilege ? 'create_database_privilege_missing' :
     suspended ? 'admin_suspended_review_required' : foreignKeyIssues ? 'admin_foreign_keys_invalid' :
-    Object.values(incompatible).some((count) => count > 0) ? 'admin_data_incompatible' : null;
+    incompatible && Object.values(incompatible).some((count) => count > 0) ? 'admin_data_incompatible' : null;
   return { rows, report: { ...base, ready: reason === null, ...(reason ? { reason } : {}),
     googleIdentityCount: rows.accounts.length, legacyGoogleLinkRequired: rows.accounts.length === 0,
-    retainedRows: Object.fromEntries(Object.entries(rows).map(([table, records]) => [table, records.length])),
-    incompatibleRows: incompatible, foreignKeyIssues } };
+    retainedRows: Object.fromEntries(Object.entries(rows).filter(([table]) => configuration.importPolicy !== 'account-only' || ['users', 'accounts'].includes(table)).map(([table, records]) => [table, records.length])),
+    ...(configuration.importPolicy === 'account-only' ? { archivedRows, historyCompatibilityChecked: false } : { incompatibleRows: incompatible }), foreignKeyIssues } };
 }
 
 async function insertSelectedRows(client, rows) {
@@ -137,10 +168,12 @@ export async function runAdminBootstrap(env, {
   readLineage = readCandidateLineage,
 } = {}) {
   const mode = env.BOOTSTRAP_MODE ?? 'plan';
-  const report = { performedAt: new Date().toISOString(), scope: 'selective-admin-copy-to-new-database', mode: ['plan', 'apply'].includes(mode) ? mode : 'invalid', sourceReadOnly: true, complete: false, targetCreated: false };
+  const importPolicy = env.ADMIN_IMPORT_POLICY ?? 'compatible-history';
+  const report = { performedAt: new Date().toISOString(), scope: 'selective-admin-copy-to-new-database', mode: ['plan', 'apply'].includes(mode) ? mode : 'invalid', importPolicy: ['compatible-history', 'account-only'].includes(importPolicy) ? importPolicy : 'invalid', sourceReadOnly: true, complete: false, targetCreated: false };
   let source; let control; let target; let sourceTransaction = false; let targetTransaction = false;
   try {
     if (!['plan', 'apply'].includes(report.mode)) fail('invalid_mode');
+    if (!['compatible-history', 'account-only'].includes(report.importPolicy)) fail('invalid_import_policy');
     const sourceUrl = databaseUrl(env.SOURCE_DATABASE_URL);
     const targetUrl = targetDatabaseUrl(env.SOURCE_DATABASE_URL, env.TARGET_DATABASE_NAME);
     if (sourceUrl.hostname.includes('-pooler.')) fail('direct_source_endpoint_required');
@@ -156,7 +189,7 @@ export async function runAdminBootstrap(env, {
     };
     source = await connect(sourceUrl.toString());
     await source.query('begin isolation level repeatable read read only'); sourceTransaction = true;
-    const snapshot = await readAdminSnapshot(source, { targetName: env.TARGET_DATABASE_NAME, adminEmail: env.BOOTSTRAP_ADMIN_EMAIL, adminId: env.BOOTSTRAP_ADMIN_USER_ID }, validateData);
+    const snapshot = await readAdminSnapshot(source, { targetName: env.TARGET_DATABASE_NAME, adminEmail: env.BOOTSTRAP_ADMIN_EMAIL, adminId: env.BOOTSTRAP_ADMIN_USER_ID, importPolicy }, validateData);
     Object.assign(report, snapshot.report);
     if (report.mode === 'plan' || !report.ready) { report.complete = true; return report; }
     control = await connect(sourceUrl.toString());

@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied } from './production-admin-release.mjs';
 
 const revision = 'a'.repeat(40);
+const privateAdminId = 'd72a58b7-6d4f-4187-90f7-9c763cfe2975';
 const service = 'q1W2e3R4t5Y6u7I8o9P0aSbDcFgHjKlZ';
 const auth = 'z1X2c3V4b5N6m7A8s9D0fGhJkLqWeRtY';
 const env = { RELEASE_MODE: 'plan', RELEASE_REVISION: revision, TARGET_DATABASE_NAME: 'alcide_admin_test',
@@ -28,12 +29,14 @@ test('plan defaults read-only and requires an immutable revision and private adm
   assert.throws(() => validateReleaseInput({ ...env, RELEASE_REVISION: 'main' }), /immutable/);
   assert.throws(() => validateReleaseInput({ ...env, RELEASE_MODE: 'deploy' }), /confirmation/);
   assert.throws(() => validateReleaseInput({ ...env, BOOTSTRAP_ADMIN_EMAIL: '' }), /admin_email/);
+  assert.throws(() => validateReleaseInput({ ...env, ADMIN_IMPORT_POLICY: 'compatible-history' }), /account_only/);
 });
 
 test('plan only reads provider and calls bootstrap in read-only mode, keeping private values out of evidence', async () => {
   const modes = [];
   const result = await runProductionAdminRelease(env, { provider: providerFixture(), bootstrap: async (input) => {
     modes.push(input.BOOTSTRAP_MODE);
+    assert.equal(input.ADMIN_IMPORT_POLICY, 'account-only');
     assert.equal(input.SOURCE_DATABASE_URL.includes('private_password'), true);
     return ready;
   } });
@@ -144,15 +147,21 @@ test('deployment requires the latest exact-SHA CI and rejects PR-only or failed 
 
 test('failed staged deployment restores values without promotion and retains the newly created database', async () => {
   const provider = providerFixture(); const calls = []; let undone = 0;
-  provider.replace = async (_project, _original, key, _value, undo) => { calls.push(key); undo.push(async () => { undone += 1; }); };
+  provider.replace = async (project, _original, key, value, undo) => {
+    calls.push(key); undo.push(async () => { undone += 1; });
+    if (key === 'BOOTSTRAP_ADMIN_USER_ID') { assert.equal(project, 'api'); assert.equal(value, privateAdminId); }
+  };
   const result = await deployClosedProduction(env, { ...configuration(), source }, provider, {
-    bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }),
-    command: (_command, args) => { if (args.includes('build')) throw new Error('secret payload must not escape'); return ''; },
+    bootstrap: async (input) => { assert.equal(input.ADMIN_IMPORT_POLICY, 'account-only'); return { ...ready, targetCreated: true, adminCopyVerified: true }; },
+    selectedAdminId: async () => privateAdminId,
+    command: (_command, args) => { if (args.includes('build')) { assert.ok(calls.includes('BOOTSTRAP_ADMIN_USER_ID')); throw new Error('secret payload must not escape'); } return ''; },
     health: async () => assert.fail('health before deployment'), cleanup: async () => {},
   });
   assert.equal(result.complete, false); assert.equal(result.rollbackComplete, true);
   assert.equal(result.newDatabaseRetained, true); assert.equal(undone, calls.length);
+  assert.ok(calls.includes('BOOTSTRAP_ADMIN_USER_ID'));
   assert.equal(JSON.stringify(result).includes('secret payload'), false);
+  assert.equal(JSON.stringify(result).includes(privateAdminId), false);
 });
 
 test('promotion failure rolls back both projects and reports incomplete compensation', async () => {
@@ -160,7 +169,8 @@ test('promotion failure rolls back both projects and reports incomplete compensa
   provider.replace = async (_project, _original, _key, _value, undo) => { undo.push(async () => {}); };
   let deployCount = 0;
   const result = await deployClosedProduction(env, { ...configuration(), source }, provider, {
-    bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }), cleanup: async () => {}, health: async () => {}, denied: async () => {},
+    bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }), selectedAdminId: async () => privateAdminId,
+    cleanup: async () => {}, health: async () => {}, denied: async () => {},
     command: (_command, args) => {
       if (args.includes('deploy')) return `https://new-${deployCount++}.vercel.app\n`;
       if (args.includes('promote')) {
@@ -172,6 +182,17 @@ test('promotion failure rolls back both projects and reports incomplete compensa
   });
   assert.deepEqual(promotions, ['https://new-0.vercel.app', 'https://old-web.vercel.app', 'https://old-api.vercel.app']);
   assert.equal(result.reason, 'release_failed_manual_rollback_required');
+});
+
+test('a copied admin UUID mismatch prevents every provider mutation and build', async () => {
+  const provider = providerFixture(); let reads = 0;
+  const result = await deployClosedProduction(env, { ...configuration(), source }, provider, {
+    bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }),
+    selectedAdminId: async () => reads++ === 0 ? privateAdminId : 'b7d2bc72-c313-4abc-835c-161498a2c0b1',
+    command: () => assert.fail('mismatched admin must not build'), cleanup: async () => {},
+  });
+  assert.equal(result.complete, false); assert.equal(result.rollbackComplete, true);
+  assert.equal(result.newDatabaseRetained, true); assert.equal(JSON.stringify(result).includes(privateAdminId), false);
 });
 
 test('protected API must deny an unauthenticated request even when health is green', async () => {
@@ -190,6 +211,7 @@ test('workflow preserves encrypted backup before release under the shared produc
   assert.match(workflow, /group: production-database-release/);
   assert.match(workflow, /actions: read/);
   assert.match(workflow, /persist-credentials: false/);
+  assert.match(workflow, /ADMIN_IMPORT_POLICY: account-only/);
   assert.ok(workflow.indexOf('Preserve encrypted source backup') < workflow.indexOf('RELEASE_PHASE: release'));
   assert.equal(workflow.includes('GITHUB_ENV'), false);
   assert.equal(workflow.includes('RESTORE_APPLY_CANDIDATE_MIGRATIONS: 1'), false);
