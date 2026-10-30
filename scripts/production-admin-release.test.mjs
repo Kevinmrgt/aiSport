@@ -3,11 +3,14 @@ import test from 'node:test';
 import { access, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand, safeReleaseFailure, verifyReleaseConfiguration, checkReleaseHealth, inspectDeploymentDatabase, safeVercelValidation, cleanupVercelCheckout, inspectVercelBuildArtifacts, bindVercelFunctionEnvironment, checkWebOAuthConfiguration, verifyLiveAdminProduction, rehearse, verifyPreparedBackup, validateAdditiveMigrationSql, readAdditiveUpdatePlan, applyAdditiveLiveUpdate } from './production-admin-release.mjs';
+import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand, safeReleaseFailure, verifyReleaseConfiguration, checkReleaseHealth, inspectDeploymentDatabase, safeVercelValidation, cleanupVercelCheckout, inspectVercelBuildArtifacts, bindVercelFunctionEnvironment, checkWebOAuthConfiguration, verifyLiveAdminProduction, rehearse, verifyPreparedBackup, validateAdditiveMigrationSql, readAdditiveUpdatePlan, applyAdditiveLiveUpdate, checkAliasConvergence, verifyRestoredConfiguration } from './production-admin-release.mjs';
 import { readCandidateLineage } from './db-migration-lineage.mjs';
 import { fileHash, migrationFingerprint } from './db-operations.mjs';
 
 const revision = 'a'.repeat(40);
+const oldRevision = 'b'.repeat(40);
+const previousReference = (project) => ({ component: project, alias: project === 'api' ? 'ai-sport-api.vercel.app' : 'www.alcideai.fr',
+  url: `https://old-${project}.vercel.app`, revision: oldRevision, servedRevisionVerified: true });
 const privateAdminId = 'd72a58b7-6d4f-4187-90f7-9c763cfe2975';
 const mockFunctionBinder = async () => ({ complete: true, nodeBoundCount: 1, readbackVerified: true });
 const service = 'q1W2e3R4t5Y6u7I8o9P0aSbDcFgHjKlZ';
@@ -31,10 +34,148 @@ function providerFixture() {
     temporaryAutomationBypass: async (_project, undo) => {
       const revoke = async () => {}; undo.push(revoke); return { secret: 'private-fixture-bypass', revoke };
     },
-    previousDeployment: async (project) => `https://old-${project}.vercel.app`,
+    previousDeployment: async (project) => previousReference(project), verifyAliasDeployment: async () => ({ assignmentVerified: true }),
     replace: async () => assert.fail('plan attempted environment write') };
 }
 const ready = { complete: true, ready: true, googleIdentityCount: 0, legacyGoogleLinkRequired: true, retainedRows: { users: 1 } };
+
+const aliasHealthPayload = (servedRevision, extra = {}) => ({ service: 'alcide-api', status: 'ready', revision: servedRevision,
+  timestamp: new Date().toISOString(), checks: { database: 'ok', schema: 'ok', aiConfiguration: 'ok' }, ...extra });
+
+test('rollback reference resolves the real production alias and its served revision, never project.targets.production', async () => {
+  const paths = []; let publicCalls = 0;
+  const provider = new VercelProduction(env, async (url, options) => {
+    if (url.hostname === 'api.vercel.com') {
+      paths.push(url.pathname); assert.equal(url.searchParams.get('teamId'), env.VERCEL_ORG_ID);
+      assert.equal(options.headers.Authorization, `Bearer ${env.VERCEL_TOKEN}`);
+      const payload = url.pathname.startsWith('/v4/') ? { alias: 'ai-sport-api.vercel.app', projectId: 'api', deploymentId: 'dpl_actual', deployment: { id: 'dpl_actual', url: 'actual-served-api.vercel.app' } } :
+        { projectId: 'api', id: 'dpl_actual', url: 'actual-served-api.vercel.app', readyState: 'READY', meta: { sourceRevision: oldRevision } };
+      return new Response(JSON.stringify(payload));
+    }
+    publicCalls += 1; assert.equal(url.hostname, 'ai-sport-api.vercel.app');
+    assert.equal(options.headers.Authorization, undefined); assert.equal(options.headers['x-vercel-protection-bypass'], undefined);
+    return new Response(JSON.stringify(aliasHealthPayload(oldRevision)), { headers: { 'content-type': 'application/json' } });
+  });
+  const reference = await provider.previousDeployment('api');
+  assert.equal(reference.url, 'https://actual-served-api.vercel.app'); assert.equal(reference.revision, oldRevision); assert.equal(reference.servedRevisionVerified, true);
+  assert.deepEqual(paths, ['/v4/aliases/ai-sport-api.vercel.app', '/v13/deployments/dpl_actual']); assert.equal(publicCalls, 1);
+  assert.equal(paths.some((path) => path.includes('/v9/projects/')), false);
+});
+
+test('alias references refuse foreign project bindings, unqualified metadata and a revision not actually served', async () => {
+  for (const change of ['alias_project', 'alias_name', 'deployment_id', 'deployment_project', 'deployment_url', 'metadata_revision', 'served_revision']) {
+    const provider = new VercelProduction(env, async () => new Response(JSON.stringify(aliasHealthPayload(change === 'served_revision' ? 'c'.repeat(40) : oldRevision)), { headers: { 'content-type': 'application/json' } }));
+    provider.request = async (path) => {
+      if (path.startsWith('/v4/')) return { alias: change === 'alias_name' ? 'foreign.example.test' : 'ai-sport-api.vercel.app', projectId: change === 'alias_project' ? 'foreign' : 'api', deploymentId: 'dpl_actual', deployment: { id: change === 'deployment_id' ? 'dpl_other' : 'dpl_actual', url: 'actual-api.vercel.app' } };
+      return { id: 'dpl_actual', projectId: change === 'deployment_project' ? 'foreign' : 'api', url: change === 'deployment_url' ? 'other-api.vercel.app' : 'actual-api.vercel.app', readyState: 'READY', meta: { sourceRevision: change === 'metadata_revision' ? 'main' : oldRevision } };
+    };
+    await assert.rejects(provider.previousDeployment('api'));
+  }
+});
+
+test('alias convergence retries only a healthy known previous SHA, keeping unique candidate URLs strict', async () => {
+  let requests = 0; const delays = [];
+  const health = (url, expected) => checkReleaseHealth(url, expected, { fetcher: async () => {
+    requests += 1;
+    return new Response(JSON.stringify(aliasHealthPayload(requests < 3 ? oldRevision : revision)), { headers: { 'content-type': 'application/json' } });
+  } });
+  const result = await checkAliasConvergence('https://ai-sport-api.vercel.app/health/ready', { service: 'alcide-api', status: 'ready', revision }, {
+    previousRevision: oldRevision, health, pause: async (ms) => delays.push(ms), now: () => 0,
+  });
+  assert.equal(result.complete, true); assert.equal(result.revision, revision); assert.equal(result.attempts, 3); assert.deepEqual(delays, [1000, 2000]);
+  await assert.rejects(checkAliasConvergence('https://unique-candidate.vercel.app/health/ready', { service: 'alcide-api', status: 'ready', revision }, { previousRevision: oldRevision }), /reference_required/);
+  requests = 0;
+  await assert.rejects(health('https://unique-candidate.vercel.app/health/ready', { service: 'alcide-api', status: 'ready', revision }), /health_revision_mismatch/);
+  assert.equal(requests, 1);
+});
+
+test('persistent old alias SHA times out with bounded safe provenance; wrong artifacts and application failures never retry', async () => {
+  for (const scenario of ['old', 'third_sha', '500', 'invalid_json', 'stale', 'not_ready']) {
+    let requests = 0; const delays = []; let failure;
+    try {
+      await checkAliasConvergence('https://ai-sport-api.vercel.app/health/ready', { service: 'alcide-api', status: 'ready', revision }, {
+        previousRevision: oldRevision, pause: async (ms) => delays.push(ms), now: () => 0,
+        health: (url, expected) => checkReleaseHealth(url, expected, { fetcher: async () => {
+          requests += 1;
+          const payload = aliasHealthPayload(scenario === 'third_sha' ? 'c'.repeat(40) : oldRevision,
+            scenario === 'stale' ? { timestamp: '2020-01-01T00:00:00Z' } : scenario === 'not_ready' ? { checks: { database: 'ok', schema: 'missing', aiConfiguration: 'ok' } } : {});
+          return new Response(scenario === 'invalid_json' ? '{private-invalid-json' : JSON.stringify(payload), { status: scenario === '500' ? 500 : 200, headers: { 'content-type': 'application/json' } });
+        } }),
+      }); assert.fail('unqualified alias must fail');
+    } catch (error) { failure = safeReleaseFailure(error, 'api_alias_health'); }
+    if (scenario === 'old') { assert.equal(requests, 8); assert.deepEqual(delays, [1000, 2000, 4000, 8000, 15000, 15000, 15000]); assert.equal(failure.reason, 'alias_convergence_timeout'); assert.equal(failure.aliasConvergence.waitedMs, 60000); }
+    else { assert.equal(requests, 1); assert.deepEqual(delays, []); }
+    if (scenario === '500') assert.equal(failure.httpStatus, 500);
+    assert.equal(JSON.stringify(failure).includes('private-invalid-json'), false);
+  }
+});
+
+test('alias assignment can converge only from its captured predecessor, never a third deployment', async () => {
+  const provider = new VercelProduction(env); const delays = []; let reads = 0;
+  provider.aliasDeployment = async () => ({ url: ++reads < 3 ? 'https://old-api.vercel.app' : 'https://new-api.vercel.app' });
+  const result = await checkAliasConvergence('https://ai-sport-api.vercel.app/health/ready', { service: 'alcide-api', status: 'ready', revision }, {
+    previousRevision: oldRevision, health: async () => {}, pause: async (ms) => delays.push(ms), now: () => 0,
+    verifyAssignment: () => provider.verifyAliasDeployment('api', 'https://new-api.vercel.app', 'https://old-api.vercel.app'),
+  });
+  assert.equal(result.complete, true); assert.deepEqual(delays, [1000, 2000]);
+  provider.aliasDeployment = async () => ({ url: 'https://foreign-api.vercel.app' });
+  await assert.rejects(provider.verifyAliasDeployment('api', 'https://new-api.vercel.app', 'https://old-api.vercel.app'), /alias_deployment_mismatch/);
+});
+
+test('an old alias assignment cannot hide a runtime 500, invalid JSON or a third SHA behind retries', async () => {
+  for (const scenario of ['500', 'invalid_json', 'third_sha']) {
+    const provider = new VercelProduction(env); let assignments = 0; let healthCalls = 0; const waits = []; let failure;
+    provider.aliasDeployment = async () => { assignments += 1; return { url: 'https://old-api.vercel.app' }; };
+    try {
+      await checkAliasConvergence('https://ai-sport-api.vercel.app/health/ready', { service: 'alcide-api', status: 'ready', revision }, {
+        previousRevision: oldRevision, pause: async (ms) => waits.push(ms), now: () => 0,
+        verifyAssignment: () => provider.verifyAliasDeployment('api', 'https://new-api.vercel.app', 'https://old-api.vercel.app'),
+        health: (url, expected) => checkReleaseHealth(url, expected, { fetcher: async () => {
+          healthCalls += 1;
+          return new Response(scenario === 'invalid_json' ? '{private-broken-json' : JSON.stringify(aliasHealthPayload(scenario === 'third_sha' ? 'c'.repeat(40) : oldRevision)), {
+            status: scenario === '500' ? 500 : 200, headers: { 'content-type': 'application/json' },
+          });
+        } }),
+      }); assert.fail('an old metadata assignment must not qualify an unhealthy runtime');
+    } catch (error) { failure = safeReleaseFailure(error, 'api_alias_health'); }
+    assert.equal(assignments, 1); assert.equal(healthCalls, 1); assert.deepEqual(waits, []);
+    assert.notEqual(failure.reason, 'alias_convergence_timeout');
+    if (scenario === '500') assert.equal(failure.httpStatus, 500);
+    if (scenario === 'third_sha') assert.equal(failure.reason, 'health_revision_mismatch');
+    assert.equal(JSON.stringify(failure).includes('private-broken-json'), false);
+  }
+});
+
+test('mixed old/new metadata and runtime observations wait until both identify the candidate', async () => {
+  for (const scenario of ['old_assignment_new_health', 'new_assignment_old_health', 'both_old']) {
+    const provider = new VercelProduction(env); let assignments = 0; let healthCalls = 0; const waits = [];
+    provider.aliasDeployment = async () => ({ url: ++assignments === 1 && scenario !== 'new_assignment_old_health' ? 'https://old-api.vercel.app' : 'https://new-api.vercel.app' });
+    const result = await checkAliasConvergence('https://ai-sport-api.vercel.app/health/ready', { service: 'alcide-api', status: 'ready', revision }, {
+      previousRevision: oldRevision, pause: async (ms) => waits.push(ms), now: () => 0,
+      verifyAssignment: () => provider.verifyAliasDeployment('api', 'https://new-api.vercel.app', 'https://old-api.vercel.app'),
+      health: (url, expected) => checkReleaseHealth(url, expected, { fetcher: async () => {
+        const served = ++healthCalls === 1 && scenario !== 'old_assignment_new_health' ? oldRevision : revision;
+        return new Response(JSON.stringify(aliasHealthPayload(served)), { headers: { 'content-type': 'application/json' } });
+      } }),
+    });
+    assert.equal(result.complete, true); assert.equal(result.attempts, 2); assert.equal(assignments, 2); assert.equal(healthCalls, 2); assert.deepEqual(waits, [1000]);
+  }
+});
+
+test('alias convergence honors the wall-clock deadline including probe duration', async () => {
+  let clock = 0; const delays = []; let requests = 0; let failure;
+  try {
+    await checkAliasConvergence('https://ai-sport-api.vercel.app/health/ready', { service: 'alcide-api', status: 'ready', revision }, {
+      previousRevision: oldRevision, now: () => clock, pause: async (ms) => { delays.push(ms); clock += ms; },
+      health: (url, expected) => checkReleaseHealth(url, expected, { fetcher: async () => {
+        clock += 45_000; requests += 1;
+        return new Response(JSON.stringify(aliasHealthPayload(oldRevision)), { headers: { 'content-type': 'application/json' } });
+      } }),
+    });
+  } catch (error) { failure = safeReleaseFailure(error, 'api_alias_health'); }
+  assert.equal(requests, 2); assert.deepEqual(delays, [1000]); assert.equal(failure.reason, 'alias_convergence_timeout');
+  assert.deepEqual(failure.aliasConvergence, { attempts: 2, waitedMs: 1000, elapsedMs: 91000, deadlineMs: 90000, previousRevisionObserved: true, previousAssignmentObserved: false });
+});
 
 const liveEnv = () => ({ ...env, RELEASE_MODE: 'update', UPDATE_CONFIRM: 'preserve-live-admin-production',
   BACKUP_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'), GITHUB_TOKEN: 'private-gh-token', GITHUB_REPOSITORY: 'owner/project' });
@@ -600,7 +741,7 @@ test('private command diagnostics disclose only allowlisted stage, tool, numeric
   }), (error) => { assert.equal(error.diagnostics.stage, 'private_command'); assert.equal(error.diagnostics.tool, 'other'); return true; });
 });
 
-test('promotion failure rolls back both projects and reports incomplete compensation', async () => {
+test('promotion failure checks the untouched Web reference and reports incomplete API compensation', async () => {
   const provider = providerFixture(); const promotions = [];
   provider.replace = async (_project, _original, _key, _value, undo) => { undo.push(async () => {}); };
   let deployCount = 0;
@@ -616,8 +757,103 @@ test('promotion failure rolls back both projects and reports incomplete compensa
       return '';
     },
   });
-  assert.deepEqual(promotions, ['https://new-0.vercel.app', 'https://old-web.vercel.app', 'https://old-api.vercel.app']);
+  assert.deepEqual(promotions, ['https://new-0.vercel.app', 'https://old-api.vercel.app']);
   assert.equal(result.reason, 'release_failed_manual_rollback_required');
+});
+
+test('rollback verifies independent real alias revisions and restored settings, reporting each incomplete component', async () => {
+  for (const scenario of ['complete', 'alias_command_fails', 'environment_mismatch']) {
+    const original = configuration();
+    original.api.APP_REVISION = { value: oldRevision }; original.web.APP_REVISION = { value: 'c'.repeat(40) };
+    const current = structuredClone(original); const assignments = { api: 'https://old-api.vercel.app', web: 'https://old-web.vercel.app' };
+    const promotions = []; const events = []; let webPromotionFailed = false;
+    const provider = providerFixture();
+    provider.previousDeployment = async (project) => ({ ...previousReference(project), revision: original[project].APP_REVISION.value });
+    provider.verifyAliasDeployment = (project, expectedUrl, priorUrl) => VercelProduction.prototype.verifyAliasDeployment.call({ aliasDeployment: async () => ({ url: assignments[project] }) }, project, expectedUrl, priorUrl);
+    provider.snapshot = async (project, keys) => Object.fromEntries(keys.map((key) => [key, current[project][key] ?? null]));
+    provider.replace = async (project, _original, key, value, undo) => {
+      const old = structuredClone(current[project][key]);
+      undo.push(async () => {
+        if (scenario === 'environment_mismatch' && project === 'api' && key === 'APP_REVISION') return;
+        if (old === undefined) delete current[project][key]; else current[project][key] = old;
+      });
+      current[project][key] = { ...old, value };
+    };
+    const result = await deployClosedProduction(env, { ...original, source }, provider, {
+      bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }), selectedAdminId: async () => privateAdminId,
+      cleanup: async () => {}, denied: async () => {}, verifyConfiguration: async () => {}, functionEnvironmentBinder: mockFunctionBinder,
+      artifactInspector: async () => ({}), oauthConfiguration: async () => ({ canonicalCallbackVerified: true }), pause: async () => {},
+      health: async (url, expected) => {
+        if (url.includes('new-')) return;
+        const component = url.includes('ai-sport-api.vercel.app') ? 'api' : 'web';
+        events.push(['health', component, expected.revision]);
+        // Use the real revision mismatch marker and validation path.
+        const served = assignments[component].includes('old-') ? original[component].APP_REVISION.value : revision;
+        return checkReleaseHealth(url, expected, { fetcher: async () => new Response(JSON.stringify(aliasHealthPayload(served, {
+          service: component === 'api' ? 'alcide-api' : 'alcide-web', status: component === 'api' ? 'ready' : 'ok',
+        })), { headers: { 'content-type': 'application/json' } }) });
+      },
+      command: (_command, args, child) => {
+        const component = child.VERCEL_PROJECT_ID;
+        if (args.includes('deploy')) return `https://new-${component}.vercel.app`;
+        if (args.includes('promote')) {
+          const url = args[args.indexOf('promote') + 1]; promotions.push(url);
+          if (scenario === 'alias_command_fails' && url === 'https://old-api.vercel.app') throw new Error('private-rollback-command');
+          assignments[component] = url;
+          if (component === 'web' && url === 'https://new-web.vercel.app' && !webPromotionFailed) { webPromotionFailed = true; throw new Error('private-promote-timeout-may-have-mutated'); }
+        }
+        return '';
+      },
+    });
+    assert.equal(result.complete, false); assert.equal(result.rollbackComplete, scenario === 'complete');
+    assert.deepEqual(promotions, ['https://new-api.vercel.app', 'https://new-web.vercel.app', 'https://old-web.vercel.app', 'https://old-api.vercel.app']);
+    assert.equal(result.previousAliasReferences[0].revision, oldRevision); assert.equal(result.previousAliasReferences[1].revision, 'c'.repeat(40));
+    assert.equal(result.rollback.web.alias.verification.complete, true);
+    assert.equal(result.rollback.web.alias.verification.revision, 'c'.repeat(40));
+    if (scenario === 'alias_command_fails') {
+      assert.equal(result.rollback.api.alias.commandSucceeded, false); assert.equal(result.rollback.api.alias.failure.reason, 'alias_convergence_timeout');
+    } else { assert.equal(result.rollback.api.alias.verification.complete, true); assert.equal(result.rollback.api.alias.verification.revision, oldRevision); }
+    if (scenario === 'environment_mismatch') { assert.equal(result.rollback.api.environment.complete, false); assert.equal(result.rollback.api.environment.failure.reason, 'rollback_environment_readback_mismatch'); }
+    else { assert.equal(result.rollback.api.environment.complete, true); assert.deepEqual(current, original); }
+    for (const value of [env.VERCEL_TOKEN, privateAdminId, 'private-rollback-command', 'private-promote-timeout', service, auth]) assert.equal(JSON.stringify(result).includes(value), false);
+  }
+});
+
+test('restored environment must match original absence, value, type and shared target scope', async () => {
+  const original = { APP_REVISION: { value: oldRevision, type: 'encrypted', target: ['production', 'preview'] }, AUTH_URL: null };
+  const actual = structuredClone(original);
+  const provider = { snapshot: async () => actual };
+  assert.equal((await verifyRestoredConfiguration('web', original, Object.keys(original), provider)).complete, true);
+  for (const change of [
+    () => { actual.APP_REVISION.value = revision; }, () => { actual.APP_REVISION.type = 'plain'; },
+    () => { actual.APP_REVISION.target = ['production']; }, () => { actual.AUTH_URL = { value: 'new' }; },
+  ]) {
+    Object.assign(actual, structuredClone(original)); change();
+    await assert.rejects(verifyRestoredConfiguration('web', original, Object.keys(original), provider), /readback_mismatch/);
+  }
+});
+
+test('a mixed final API/Web pair can never produce a successful release', async () => {
+  const provider = providerFixture(); const promotions = []; let webPromoted = false; let rollbackStarted = false;
+  provider.replace = async (_project, _original, _key, _value, undo) => undo.push(async () => {});
+  const result = await deployClosedProduction(env, { ...configuration(), source }, provider, {
+    bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }), selectedAdminId: async () => privateAdminId,
+    cleanup: async () => {}, denied: async () => {}, verifyConfiguration: async () => {}, functionEnvironmentBinder: mockFunctionBinder,
+    artifactInspector: async () => ({}), oauthConfiguration: async () => ({ canonicalCallbackVerified: true }), pause: async () => {},
+    command: (_command, args, child) => {
+      if (args.includes('deploy')) return `https://new-${child.VERCEL_PROJECT_ID}.vercel.app`;
+      if (args.includes('promote')) { const target = args[args.indexOf('promote') + 1]; promotions.push(target); if (target.includes('old-')) rollbackStarted = true; if (target === 'https://new-web.vercel.app') webPromoted = true; }
+      return '';
+    },
+    health: async (url, expected) => {
+      if (!url.includes('ai-sport-api.vercel.app') && !url.includes('www.alcideai.fr')) return;
+      const api = url.includes('ai-sport-api.vercel.app');
+      const served = rollbackStarted ? oldRevision : webPromoted && api ? 'c'.repeat(40) : revision;
+      return checkReleaseHealth(url, expected, { fetcher: async () => new Response(JSON.stringify(aliasHealthPayload(served, { service: api ? 'alcide-api' : 'alcide-web', status: api ? 'ready' : 'ok' })), { headers: { 'content-type': 'application/json' } }) });
+    },
+  });
+  assert.equal(result.complete, false); assert.equal(result.failure.failedStage, 'api_final_alias_health'); assert.equal(result.failure.reason, 'health_revision_mismatch');
+  assert.equal(result.rollbackComplete, true); assert.deepEqual(promotions.slice(-2), ['https://old-web.vercel.app', 'https://old-api.vercel.app']);
 });
 
 test('a copied admin UUID mismatch prevents every provider mutation and build', async () => {
@@ -1133,7 +1369,9 @@ test('Web validation uses a temporary header then revokes before promotion, also
     const input = { ...env, ...(scenario === 'existing_token' ? { VERCEL_AUTOMATION_BYPASS_SECRET: 'third-party-token' } : {}) };
     const provider = new VercelProduction(input); const state = { 'third-party-token': { scope: 'automation-bypass' } };
     const requests = []; let ownToken; let promoted = 0;
-    provider.previousDeployment = async (project) => `https://old-${project}.vercel.app`;
+    provider.previousDeployment = async (project) => previousReference(project);
+    provider.verifyAliasDeployment = async () => ({ assignmentVerified: true });
+    provider.snapshot = async (project) => configuration()[project];
     provider.replace = async (_project, _original, _key, _value, undo) => { undo.push(async () => {}); };
     provider.request = async (_path, method = 'GET', body) => {
       requests.push({ method, body });

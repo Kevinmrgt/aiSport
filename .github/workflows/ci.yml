@@ -60,6 +60,9 @@ jobs:
       - name: Test CD workflow policy
         run: node --test scripts/*.test.mjs
 
+      - name: Test the bounded administrative production recipe policy without network access
+        run: node --test apps/api/scripts/qualify-production-admin.policy.mjs
+
       - name: Test authenticated E2E storage policy
         run: pnpm test:e2e:auth-policy
 
