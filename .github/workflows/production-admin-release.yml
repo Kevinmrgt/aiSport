@@ -13,7 +13,6 @@ jobs:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_API_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
       VERCEL_TELEMETRY_DISABLED: '1'
-      DIAGNOSTIC_FILE: ${{ runner.temp }}/generation-runtime-diagnostics.json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -22,6 +21,8 @@ jobs:
         with:
           node-version: '24'
       - name: Read bounded runtime logs and export application diagnostics only
+        env:
+          DIAGNOSTIC_FILE: ${{ runner.temp }}/generation-runtime-diagnostics.json
         run: node scripts/read-runtime-diagnostics.mjs
       - name: Preserve sanitized diagnostics
         if: always()
