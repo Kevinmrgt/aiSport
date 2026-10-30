@@ -1,7 +1,7 @@
 import {writeFile} from 'node:fs/promises';
 import {VercelProduction,inspectConfiguration,deployClosedProduction,privateCommand,checkReleaseHealth,safeReleaseFailure} from './production-admin-release.mjs';
 import {runAdminBootstrap} from './production-admin-bootstrap.mjs';
-const env={...process.env,ADMIN_IMPORT_POLICY:'account-only',BOOTSTRAP_REUSE_EXISTING:'verified-admin-copy'};
+const env={...process.env,ADMIN_IMPORT_POLICY:'account-only',BOOTSTRAP_CONFIRM:'selective-admin-copy-to-new-database',BOOTSTRAP_REUSE_EXISTING:'verified-admin-copy'};
 const report={scope:'candidate-only-diagnostic',sourceDatabaseWrites:false,aliasesModified:false,complete:false};
 let reachedHealth=false;
 try {
@@ -9,7 +9,7 @@ try {
  const provider=new VercelProduction(env);
  const configuration=await inspectConfiguration(env,provider);
  const result=await deployClosedProduction(env,configuration,provider,{
-  bootstrap:async input=>{const proof=await runAdminBootstrap(input);report.targetCreated=proof.targetCreated===true;report.existingTargetVerified=proof.existingTargetVerified===true;if(proof.targetCreated||!proof.existingTargetVerified||!proof.targetReused)throw Error('verified_existing_target_required');return proof;},
+  bootstrap:async input=>{const proof=await runAdminBootstrap(input);report.bootstrap=proof;report.targetCreated=proof.targetCreated===true;report.existingTargetVerified=proof.existingTargetVerified===true;if(proof.targetCreated||!proof.existingTargetVerified||!proof.targetReused)throw Error('verified_existing_target_required');return proof;},
   command:privateApiCommand,
   health:async(url,expected,options)=>{reachedHealth=true;try{report.health=await checkReleaseHealth(url,expected,options);}catch(error){report.healthFailure=safeReleaseFailure(error,'api_health');}throw Error('intentional_diagnostic_stop_before_web_or_promotion');},
  });
