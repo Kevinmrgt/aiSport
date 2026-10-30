@@ -200,6 +200,8 @@ describe('readiness dependency bounds', () => {
     expect(log).toHaveBeenCalledExactlyOnceWith('[Readiness] Schema diagnostic', {
       event: 'readiness_schema_missing', complete: true,
       databaseNameSha256: createHash('sha256').update('PRIVATE_DATABASE_SENTINEL').digest('hex'),
+      configuredDatabaseNameSha256: createHash('sha256').update('health_test').digest('hex'),
+      databaseNameMatchesConfigured: false,
       schemaReady: { type: 'boolean', value: false, isTrue: false },
       migrationsReady: { type: 'undefined', value: null, isTrue: false },
       missingTables: ['public.generation_operations'], migrationTablePresent: true,
@@ -273,5 +275,27 @@ describe('readiness dependency bounds', () => {
     expect((await checkReadiness()).ready).toBe(false);
     expect(log).toHaveBeenCalledWith('[Readiness] Schema diagnostic', expect.objectContaining({ complete: false, missingTables: [] }));
     expect(JSON.stringify(log.mock.calls)).not.toMatch(/PRIVATE_NONCANONICAL_TABLE|PRIVATE_DATABASE_SENTINEL/);
+  });
+
+  it('compares SQL identity with the exact connection string passed to Client rather than rereading global env', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.stubEnv('DATABASE_URL', 'postgresql://PRIVATE_USER:PRIVATE_PASSWORD@private.invalid/PRIVATE_CONFIGURED_DB?sslmode=require');
+    client.connect.mockImplementationOnce(() => {
+      vi.stubEnv('DATABASE_URL', 'postgresql://PRIVATE_OTHER:PRIVATE_OTHER_PASSWORD@other.invalid/PRIVATE_CHANGED_DB');
+      return Promise.resolve();
+    });
+    client.query.mockResolvedValueOnce({ rows: [{ schema_ready: false }] });
+    client.query.mockResolvedValueOnce({ rows: [{ database_name: 'PRIVATE_CONFIGURED_DB' }] });
+    client.query.mockResolvedValueOnce({ rows: [{ table_name: 'drizzle.__drizzle_migrations' }] });
+    expect((await checkReadiness()).ready).toBe(false);
+    expect(client.options).toHaveBeenCalledWith(expect.objectContaining({
+      connectionString: 'postgresql://PRIVATE_USER:PRIVATE_PASSWORD@private.invalid/PRIVATE_CONFIGURED_DB?sslmode=verify-full',
+    }));
+    expect(log).toHaveBeenCalledWith('[Readiness] Schema diagnostic', expect.objectContaining({
+      databaseNameSha256: createHash('sha256').update('PRIVATE_CONFIGURED_DB').digest('hex'),
+      configuredDatabaseNameSha256: createHash('sha256').update('PRIVATE_CONFIGURED_DB').digest('hex'),
+      databaseNameMatchesConfigured: true,
+    }));
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(/PRIVATE_|private\.invalid|other\.invalid|postgresql/);
   });
 });

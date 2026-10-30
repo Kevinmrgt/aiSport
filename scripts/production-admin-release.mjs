@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
-import { lstat, mkdir, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, readdir, realpath, rename, rm, unlink, writeFile } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { runAdminBootstrap, targetDatabaseUrl, readSelectedAdminId } from './production-admin-bootstrap.mjs';
@@ -17,7 +17,7 @@ const mutableKeys = new Set(['DATABASE_URL', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EM
 const releaseStages = new Set(['input_validation', 'ci_verification', 'configuration_read', 'bootstrap_plan', 'source_reference', 'backup', 'rehearsal',
   'diagnostic_input', 'diagnostic_deployment_lookup', 'diagnostic_environment_pull', 'diagnostic_project_environment_pull', 'diagnostic_project_database_read', 'diagnostic_database_sql',
   'prepared_backup_verification', 'api_reference', 'web_reference', 'bootstrap_apply', 'admin_lookup_source', 'admin_lookup_target', 'admin_identity_comparison',
-  ...['api', 'web'].flatMap((project) => ['env_readback', 'cleanup', 'pull', 'build', 'build_artifacts', 'deploy', 'health', 'denied_probe', 'promote', 'alias_health', 'alias_denied_probe',
+  ...['api', 'web'].flatMap((project) => ['env_readback', 'cleanup', 'pull', 'build', 'function_environment', 'build_artifacts', 'deploy', 'health', 'denied_probe', 'promote', 'alias_health', 'alias_denied_probe',
     ...[...mutableKeys].map((key) => `env_${key}`)].map((action) => `${project}_${action}`))]);
 const bootstrapFailureReasons = new Set(['admin_not_unique', 'admin_identity_lookup_failed', 'admin_identity_mismatch', 'explicit_admin_email_required']);
 const healthFailureReasons = new Map([
@@ -519,8 +519,88 @@ export async function inspectVercelBuildArtifacts(env, { component = 'api', expe
   return report;
 }
 
+// Build Output API: environment is a Node.js Function config property. It is
+// intentionally not added to Edge configs, which use envVarsInUse instead.
+export async function bindVercelFunctionEnvironment(env, { component = 'api', expectedValues, cwd = process.cwd() } = {}) {
+  const root = resolve(cwd);
+  if (!['api', 'web'].includes(component) || env.GITHUB_ACTIONS !== 'true' || !env.GITHUB_WORKSPACE || resolve(env.GITHUB_WORKSPACE) !== root) fail('function_binding_requires_github_checkout');
+  const keys = Object.keys(expectedValues ?? {});
+  if (!keys.length || keys.some((key) => !mutableKeys.has(key) || typeof expectedValues[key] !== 'string') || (component === 'api' && !expectedValues.DATABASE_URL)) fail('function_binding_expected_values_required');
+  const projectId = component === 'api' ? env.VERCEL_API_PROJECT_ID : env.VERCEL_WEB_PROJECT_ID;
+  if (!projectId) fail('function_binding_project_required');
+  const actualRoot = await realpath(root);
+  const confined = async (path, boundary = actualRoot) => {
+    const actual = await realpath(path);
+    if (!actual.startsWith(`${boundary}${sep}`)) fail('function_binding_path_outside_checkout');
+    return actual;
+  };
+  const regularJson = async (path) => {
+    await confined(path);
+    const metadata = await lstat(path);
+    if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size > 2 * 1024 * 1024) fail('function_binding_invalid_config_file');
+    try { return JSON.parse(await readFile(path, 'utf8')); } catch { fail('function_binding_invalid_config_json'); }
+  };
+  const outputs = [];
+  for (const cache of ['.vercel', 'apps/api/.vercel', 'apps/web/.vercel']) {
+    const outputPath = join(root, cache, 'output');
+    try {
+      await confined(outputPath);
+      const metadata = await lstat(outputPath);
+      if (!metadata.isDirectory() || metadata.isSymbolicLink()) fail('function_binding_invalid_output_directory');
+      outputs.push({ cache, outputPath });
+    } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  }
+  if (outputs.length !== 1) fail('function_binding_single_active_output_required');
+  const { cache, outputPath } = outputs[0];
+  const project = await regularJson(join(root, cache, 'project.json'));
+  if (project.projectId !== projectId || project.settings?.rootDirectory !== `apps/${component}`) fail('function_binding_project_mismatch');
+  const manifest = await regularJson(join(outputPath, 'builds.json'));
+  if (manifest.target !== 'production') fail('function_binding_production_build_required');
+  const functionsPath = join(outputPath, 'functions');
+  const actualFunctions = await confined(functionsPath);
+  if ((await lstat(functionsPath)).isSymbolicLink()) fail('function_binding_invalid_functions_directory');
+  const canonicalFunctions = new Set(); const aliases = []; const changes = [];
+  let entries = 0; let edgeSkippedCount = 0;
+  const visit = async (directory, depth = 0) => {
+    if (depth > 25) fail('function_binding_directory_limit_exceeded');
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      if (++entries > 20_000) fail('function_binding_file_limit_exceeded');
+      const path = join(directory, entry.name);
+      if (entry.isSymbolicLink()) {
+        aliases.push(await confined(path, actualFunctions));
+        continue;
+      }
+      if (!entry.isDirectory()) continue;
+      await confined(path, actualFunctions);
+      if (!entry.name.endsWith('.func')) { await visit(path, depth + 1); continue; }
+      const actualFunction = await realpath(path);
+      canonicalFunctions.add(actualFunction);
+      const configPath = join(path, '.vc-config.json');
+      const configuration = await regularJson(configPath);
+      if (configuration.runtime === 'edge') { edgeSkippedCount += 1; continue; }
+      if (!/^nodejs\d+\.x$/.test(configuration.runtime ?? '')) fail('function_binding_unsupported_runtime');
+      if (configuration.environment !== undefined && (configuration.environment === null || typeof configuration.environment !== 'object' || Array.isArray(configuration.environment))) fail('function_binding_invalid_environment');
+      changes.push({ path: configPath, configuration: { ...configuration, environment: { ...configuration.environment, ...expectedValues } } });
+    }
+  };
+  await visit(functionsPath);
+  if (aliases.some((target) => !canonicalFunctions.has(target))) fail('function_binding_alias_target_not_selected');
+  if (component === 'api' && changes.length === 0) fail('function_binding_node_function_required');
+  for (const change of changes) {
+    const temporary = `${change.path}.release-${randomBytes(8).toString('hex')}.tmp`;
+    try {
+      await writeFile(temporary, `${JSON.stringify(change.configuration, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
+      await rename(temporary, change.path);
+    } finally { await unlink(temporary).catch(() => undefined); }
+    const copied = await regularJson(change.path);
+    if (keys.some((key) => copied.environment?.[key] !== expectedValues[key])) fail('function_binding_readback_mismatch');
+  }
+  return { complete: true, selectedOutput: `${cache}/output`, expectedProjectMatches: true, expectedRootDirectoryMatches: true,
+    nodeBoundCount: changes.length, edgeSkippedCount, internalAliasesSkippedCount: aliases.length, verifiedKeys: keys, readbackVerified: true };
+}
+
 export async function deployClosedProduction(env, configuration, provider, { bootstrap = runAdminBootstrap, command = privateCommand, health = checkReleaseHealth,
-  verifyConfiguration = verifyReleaseConfiguration, artifactInspector = inspectVercelBuildArtifacts,
+  verifyConfiguration = verifyReleaseConfiguration, artifactInspector = inspectVercelBuildArtifacts, functionEnvironmentBinder = bindVercelFunctionEnvironment,
   selectedAdminId = readSelectedAdminId, denied = checkUnauthenticatedApiDenied, cleanup = () => cleanupVercelCheckout(env) } = {}) {
   const undo = [];
   const previous = [];
@@ -567,8 +647,11 @@ export async function deployClosedProduction(env, configuration, provider, { boo
       cli(project, ['pull', '--yes', '--environment=production']);
       failedStage = `${component}_build`;
       cli(project, ['build', '--prod']);
+      failedStage = `${component}_function_environment`;
+      const functionEnvironmentBinding = await functionEnvironmentBinder({ ...env, ...values[index] }, { component, expectedValues: values[index] });
+      buildArtifactDiagnostics[component] = { functionEnvironmentBinding };
       failedStage = `${component}_build_artifacts`;
-      buildArtifactDiagnostics[component] = await artifactInspector({ ...env, ...values[index] }, { component, expectedValues: values[index], sourceDatabaseUrl: configuration.source });
+      buildArtifactDiagnostics[component] = { ...await artifactInspector({ ...env, ...values[index] }, { component, expectedValues: values[index], sourceDatabaseUrl: configuration.source }), functionEnvironmentBinding };
       failedStage = `${component}_deploy`;
       // Bare --env KEY makes the pinned CLI read the value from child env.
       // Secret values never become command arguments or persisted CLI logs.

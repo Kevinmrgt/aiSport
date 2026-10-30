@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { access, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand, safeReleaseFailure, verifyReleaseConfiguration, checkReleaseHealth, inspectDeploymentDatabase, safeVercelValidation, cleanupVercelCheckout, inspectVercelBuildArtifacts } from './production-admin-release.mjs';
+import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand, safeReleaseFailure, verifyReleaseConfiguration, checkReleaseHealth, inspectDeploymentDatabase, safeVercelValidation, cleanupVercelCheckout, inspectVercelBuildArtifacts, bindVercelFunctionEnvironment } from './production-admin-release.mjs';
 
 const revision = 'a'.repeat(40);
 const privateAdminId = 'd72a58b7-6d4f-4187-90f7-9c763cfe2975';
+const mockFunctionBinder = async () => ({ complete: true, nodeBoundCount: 1, readbackVerified: true });
 const service = 'q1W2e3R4t5Y6u7I8o9P0aSbDcFgHjKlZ';
 const auth = 'z1X2c3V4b5N6m7A8s9D0fGhJkLqWeRtY';
 const env = { RELEASE_MODE: 'plan', RELEASE_REVISION: revision, TARGET_DATABASE_NAME: 'alcide_admin_test',
@@ -203,7 +204,7 @@ test('failed staged deployment restores values without promotion and retains the
       }
       return '';
     },
-    health: async () => assert.fail('health before deployment'), cleanup: async () => {}, verifyConfiguration: async () => {},
+    health: async () => assert.fail('health before deployment'), cleanup: async () => {}, verifyConfiguration: async () => {}, functionEnvironmentBinder: mockFunctionBinder,
   });
   assert.equal(result.complete, false); assert.equal(result.rollbackComplete, true);
   assert.equal(result.newDatabaseRetained, true); assert.equal(undone, calls.length);
@@ -235,7 +236,7 @@ test('promotion failure rolls back both projects and reports incomplete compensa
   let deployCount = 0;
   const result = await deployClosedProduction(env, { ...configuration(), source }, provider, {
     bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }), selectedAdminId: async () => privateAdminId,
-    cleanup: async () => {}, health: async () => {}, denied: async () => {}, verifyConfiguration: async () => {},
+    cleanup: async () => {}, health: async () => {}, denied: async () => {}, verifyConfiguration: async () => {}, functionEnvironmentBinder: mockFunctionBinder,
     command: (_command, args) => {
       if (args.includes('deploy')) return `https://new-${deployCount++}.vercel.app\n`;
       if (args.includes('promote')) {
@@ -279,7 +280,7 @@ test('a strictly verified reused target can deploy without falsely claiming data
       assert.equal(input.BOOTSTRAP_REUSE_EXISTING, 'verified-admin-copy');
       return { ...ready, targetExists: true, targetReused: true, existingTargetVerified: true, targetCreated: false, adminCopyVerified: true };
     },
-    selectedAdminId: async () => privateAdminId, cleanup: async () => {}, health: async () => {}, denied: async () => {}, verifyConfiguration: async () => {},
+    selectedAdminId: async () => privateAdminId, cleanup: async () => {}, health: async () => {}, denied: async () => {}, verifyConfiguration: async () => {}, functionEnvironmentBinder: mockFunctionBinder,
     command: (_command, args) => args.includes('deploy') ? `https://verified-reuse-${deployments++}.vercel.app` : '',
   });
   assert.equal(result.complete, true); assert.equal(result.reuseExistingRequested, true);
@@ -355,7 +356,7 @@ test('staged schema failure retains only validated deployment URLs and safe heal
     privateExtra: 'private-payload', timestamp: new Date().toISOString() }), { status: 503, headers: { 'content-type': 'application/json' } });
   const result = await deployClosedProduction(env, { ...configuration(), source }, provider, {
     bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }), selectedAdminId: async () => privateAdminId,
-    verifyConfiguration: async () => {}, cleanup: async () => {},
+    verifyConfiguration: async () => {}, functionEnvironmentBinder: mockFunctionBinder, cleanup: async () => {},
     health: (url, expected) => checkReleaseHealth(url, expected, { fetcher }),
     command: (_command, args) => { assert.equal(args.includes('promote'), false); return args.includes('deploy') ? 'https://safe-candidate.vercel.app' : ''; },
   });
@@ -459,7 +460,7 @@ test('build and deploy receive exact release values in child env and deploy argu
   const observed = [];
   const result = await deployClosedProduction({ ...env, AUTH_URL: 'https://legacy.example.test', NEXTAUTH_URL: 'https://legacy.example.test' }, { ...configuration(), source }, provider, {
     bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }), selectedAdminId: async () => privateAdminId,
-    verifyConfiguration: async () => {}, cleanup: async () => {}, health: async () => {}, denied: async () => {},
+    verifyConfiguration: async () => {}, functionEnvironmentBinder: mockFunctionBinder, cleanup: async () => {}, health: async () => {}, denied: async () => {},
     command: (_command, args, child) => {
       if (args.includes('build') || args.includes('deploy')) {
         observed.push([child.VERCEL_PROJECT_ID, args.includes('deploy') ? 'deploy' : 'build']);
@@ -546,7 +547,7 @@ test('artifact capture refuses a local checkout and survives a failed staged hea
   let captured = false;
   const result = await deployClosedProduction(env, { ...configuration(), source }, provider, {
     bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }), selectedAdminId: async () => privateAdminId,
-    verifyConfiguration: async () => {}, cleanup: async () => {},
+    verifyConfiguration: async () => {}, functionEnvironmentBinder: mockFunctionBinder, cleanup: async () => {},
     command: (_command, args) => args.includes('deploy') ? 'https://inspected-candidate.vercel.app' : '',
     artifactInspector: async (child, options) => {
       assert.equal(child.PRODUCTION_ACCESS_MODE, 'admin-only'); assert.equal(options.component, 'api');
@@ -559,6 +560,61 @@ test('artifact capture refuses a local checkout and survives a failed staged hea
   assert.equal(result.buildArtifactDiagnostics.api.complete, true);
   assert.deepEqual(result.stagedDeploymentUrls, ['https://inspected-candidate.vercel.app']);
   assert.equal(JSON.stringify(result).includes('private-intentional'), false);
+});
+
+test('function binding pins Node release values, preserves unrelated env, skips Edge and deduplicates confined aliases', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'alcide-function-binding-'));
+  const cache = join(root, '.vercel'); const functions = join(cache, 'output/functions');
+  const node = join(functions, 'api.func'); const edge = join(functions, 'middleware.func');
+  const gha = { ...env, GITHUB_ACTIONS: 'true', GITHUB_WORKSPACE: root };
+  const expected = { DATABASE_URL: 'postgresql://fixture:private-new@db.example.test/alcide_admin_test', PRODUCTION_ACCESS_MODE: 'admin-only', BOOTSTRAP_ADMIN_USER_ID: privateAdminId, APP_REVISION: revision };
+  try {
+    await mkdir(node, { recursive: true }); await mkdir(edge, { recursive: true });
+    await writeFile(join(cache, 'project.json'), JSON.stringify({ projectId: 'api', settings: { rootDirectory: 'apps/api' } }));
+    await writeFile(join(cache, 'output/builds.json'), JSON.stringify({ target: 'production' }));
+    const edgeConfig = { runtime: 'edge', entrypoint: 'index.js', envVarsInUse: ['PRODUCTION_ACCESS_MODE'] };
+    await writeFile(join(edge, '.vc-config.json'), JSON.stringify(edgeConfig));
+    await symlink(node, join(functions, 'alias.func'), process.platform === 'win32' ? 'junction' : 'dir');
+    for (const originalEnvironment of [{}, { DATABASE_URL: source, CUSTOM_VALUE: 'preserve-private-existing', PRODUCTION_ACCESS_MODE: 'public' }]) {
+      await writeFile(join(node, '.vc-config.json'), JSON.stringify({ runtime: 'nodejs24.x', handler: 'index.js', maxDuration: 60, environment: originalEnvironment }));
+      const result = await bindVercelFunctionEnvironment(gha, { cwd: root, component: 'api', expectedValues: expected });
+      assert.equal(result.complete, true); assert.equal(result.nodeBoundCount, 1); assert.equal(result.edgeSkippedCount, 1);
+      assert.equal(result.internalAliasesSkippedCount, 1); assert.equal(result.readbackVerified, true);
+      const copied = JSON.parse(await readFile(join(node, '.vc-config.json'), 'utf8'));
+      assert.deepEqual(copied.environment, { ...originalEnvironment, ...expected }); assert.equal(copied.maxDuration, 60);
+      assert.deepEqual(JSON.parse(await readFile(join(edge, '.vc-config.json'), 'utf8')), edgeConfig);
+      assert.equal(JSON.stringify(result).includes('private-new'), false); assert.equal(JSON.stringify(result).includes(privateAdminId), false);
+      const diagnostic = await inspectVercelBuildArtifacts(gha, { cwd: root, expectedValues: expected });
+      assert.equal(diagnostic.environmentOverridesConsistent, true);
+    }
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test('function binding rejects wrong project, wrong root directory, multiple outputs and external aliases before modifying configs', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'alcide-function-reject-'));
+  const outside = await mkdtemp(join(tmpdir(), 'alcide-function-outside-'));
+  const cache = join(root, '.vercel'); const functions = join(cache, 'output/functions'); const node = join(functions, 'api.func');
+  const gha = { ...env, GITHUB_ACTIONS: 'true', GITHUB_WORKSPACE: root };
+  const expected = { DATABASE_URL: 'postgresql://fixture:private-new@db.example.test/alcide_admin_test' };
+  try {
+    await mkdir(node, { recursive: true });
+    const original = JSON.stringify({ runtime: 'nodejs24.x', environment: { DATABASE_URL: source } });
+    await writeFile(join(node, '.vc-config.json'), original);
+    await writeFile(join(cache, 'output/builds.json'), JSON.stringify({ target: 'production' }));
+    for (const project of [{ projectId: 'foreign', settings: { rootDirectory: 'apps/api' } }, { projectId: 'api', settings: { rootDirectory: 'apps/web' } }]) {
+      await writeFile(join(cache, 'project.json'), JSON.stringify(project));
+      await assert.rejects(bindVercelFunctionEnvironment(gha, { cwd: root, expectedValues: expected }), /project_mismatch/);
+      assert.equal(await readFile(join(node, '.vc-config.json'), 'utf8'), original);
+    }
+    await writeFile(join(cache, 'project.json'), JSON.stringify({ projectId: 'api', settings: { rootDirectory: 'apps/api' } }));
+    await mkdir(join(root, 'apps/api/.vercel/output'), { recursive: true });
+    await assert.rejects(bindVercelFunctionEnvironment(gha, { cwd: root, expectedValues: expected }), /single_active_output/);
+    await rm(join(root, 'apps/api/.vercel/output'), { recursive: true });
+    await symlink(outside, join(functions, 'escape.func'), process.platform === 'win32' ? 'junction' : 'dir');
+    await assert.rejects(bindVercelFunctionEnvironment(gha, { cwd: root, expectedValues: expected }), /path_outside_checkout/);
+    assert.equal(await readFile(join(node, '.vc-config.json'), 'utf8'), original);
+    await assert.rejects(bindVercelFunctionEnvironment(env, { cwd: root, expectedValues: expected }), /requires_github_checkout/);
+  } finally { await rm(root, { recursive: true, force: true }); await rm(outside, { recursive: true, force: true }); }
 });
 
 test('vendor validation reveals only a bounded machine code and static message categories', () => {

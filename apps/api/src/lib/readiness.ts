@@ -54,23 +54,30 @@ async function logMissingSchema(
   client: { query: (query: string, values?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }> },
   schemaReady: unknown,
   migrationsReady: unknown,
+  configuredDatabaseUrl: string,
 ): Promise<void> {
   const diagnostic: {
     event: string; schemaReady: ReturnType<typeof booleanDiagnostic>;
     migrationsReady: ReturnType<typeof booleanDiagnostic>; complete: boolean;
-    databaseNameSha256: string | null; missingTables: string[];
+    databaseNameSha256: string | null; configuredDatabaseNameSha256: string | null;
+    databaseNameMatchesConfigured: boolean | null; missingTables: string[];
     migrationTablePresent: boolean | null; migrationCount: number | null; latestMigrationTimestamp: number | null;
   } = {
     event: 'readiness_schema_missing', schemaReady: booleanDiagnostic(schemaReady),
     migrationsReady: booleanDiagnostic(migrationsReady), complete: false,
-    databaseNameSha256: null, missingTables: [], migrationTablePresent: null,
+    databaseNameSha256: null, configuredDatabaseNameSha256: null,
+    databaseNameMatchesConfigured: null, missingTables: [], migrationTablePresent: null,
     migrationCount: null, latestMigrationTimestamp: null,
   };
   try {
+    const configuredPath = new URL(configuredDatabaseUrl).pathname.slice(1);
+    const configuredName = configuredPath ? decodeURIComponent(configuredPath) : null;
+    if (configuredName) diagnostic.configuredDatabaseNameSha256 = createHash('sha256').update(configuredName).digest('hex');
     const identity = await client.query('select current_database() as database_name');
     const name = identity.rows[0]?.['database_name'];
     if (typeof name !== 'string' || !name.length) throw new Error('ReadinessDiagnosticUnavailable');
     diagnostic.databaseNameSha256 = createHash('sha256').update(name).digest('hex');
+    diagnostic.databaseNameMatchesConfigured = configuredName === null ? null : configuredName === name;
     // WHERE evaluates table existence in PostgreSQL, independently of JS boolean parsers.
     const missing = await client.query(
       `select table_name from unnest($1::text[]) as required(table_name)
@@ -105,8 +112,9 @@ async function inspectDatabase(): Promise<DatabaseChecks> {
     // A dedicated, bounded connection is closed on every path. The timeout
     // cancels the server statement as well as bounding a lost network response;
     // no Promise.race leaves a background pooled query running after the probe.
+    const connectionString = normalizeDatabaseUrl(url);
     const client = new Client({
-      connectionString: normalizeDatabaseUrl(url),
+      connectionString,
       connectionTimeoutMillis: 3_000,
       statement_timeout: 3_000,
       query_timeout: 3_500,
@@ -128,7 +136,7 @@ async function inspectDatabase(): Promise<DatabaseChecks> {
         migrationsReady = migrations.rows[0]?.migrations_ready;
         schema = migrationsReady === true ? 'ok' : 'missing';
       }
-      if (schema === 'missing') await logMissingSchema(client, result.rows[0]?.schema_ready, migrationsReady);
+      if (schema === 'missing') await logMissingSchema(client, result.rows[0]?.schema_ready, migrationsReady, connectionString);
     } finally {
       await client.end();
     }
