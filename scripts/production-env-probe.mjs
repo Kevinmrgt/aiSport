@@ -16,7 +16,7 @@ try {
  const result=await deployClosedProduction(env,configuration,provider,{
   bootstrap:async()=>proof,
   command:(command,args,childEnv,timeout,context)=>{
-   if(context?.stage==='api_pull')return privateCommand(command,args,childEnv,timeout,context);
+   if(['api_pull','api_build'].includes(context?.stage))return privateCommand(command,args,childEnv,timeout,context);
    buildReached=true;throw Error('intentional_probe_stop');
   },
  });
