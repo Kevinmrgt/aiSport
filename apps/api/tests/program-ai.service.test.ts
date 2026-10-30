@@ -3,6 +3,7 @@ import { generateProgram } from '../src/services/program-ai.service.js';
 import { getProgramSessionTimedSeconds } from '../src/services/program-duration.service.js';
 import { AppError } from '../src/types/app-error.js';
 import type { GenerateProgramInput } from '@alcide/shared';
+import { ProgramWeekSchema } from '@alcide/shared';
 import type { AiConfig } from '../src/services/ai.service.js';
 
 // Mock fetch global (OWASP A10: pas d'appels réels à l'IA en test)
@@ -128,6 +129,50 @@ describe('ProgramAiService', () => {
   });
 
   describe('generateProgram', () => {
+    it.each([20, 30, 60])(
+      'fournit au modèle un exemple dont les blocs totalisent réellement %i minutes',
+      async (minutes) => {
+        mockFetch.mockImplementation((_url: unknown, init: RequestInit) => {
+          const body = JSON.parse(init.body as string) as {
+            messages: Array<{ role: string; content: string }>;
+          };
+          const prompt = body.messages.find((message) => message.role === 'user')!.content;
+          const schemaExample = prompt.split('Schéma JSON :')[1]!;
+          const week = ProgramWeekSchema.parse(JSON.parse(schemaExample));
+          const exampleSession = week.sessions[0]!;
+          // Reproduce a provider following the actual example, including its timings.
+          expect(getProgramSessionTimedSeconds(exampleSession)).toBe(minutes * 60);
+          expect(exampleSession.duration_minutes).toBe(minutes);
+          week.sessions = Array.from({ length: defaultInput.sessions_per_week }, (_, index) => ({
+            ...structuredClone(exampleSession),
+            session_number: index + 1,
+          }));
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(week) } }],
+              }),
+          });
+        });
+
+        const result = await generateProgram(
+          { ...defaultInput, session_duration_minutes: minutes },
+          mockAiConfig,
+        );
+
+        expect(mockFetch).toHaveBeenCalledTimes(defaultInput.weeks_count);
+        result.weeks.forEach((week) => {
+          week.sessions.forEach((session) => {
+            expect(getProgramSessionTimedSeconds(session)).toBe(minutes * 60);
+            expect(session.exercises[0]!.description).toBe('string');
+            expect(session.exercises[0]!.tips).toBe('string');
+            expect(session.exercises[0]!.sets).toBe(2);
+          });
+        });
+      },
+    );
+
     it('retourne un programme valide pour une réponse IA correcte (2 semaines)', async () => {
       mockSuccessfulWeeksByPrompt();
 
@@ -283,8 +328,21 @@ describe('ProgramAiService', () => {
         const attempt = (attempts.get(weekNumber) ?? 0) + 1;
         attempts.set(weekNumber, attempt);
         const week = validWeekResponse(weekNumber);
-        if (weekNumber === 1 && attempt === 1)
+        if (weekNumber === 1 && attempt === 1) {
           week.sessions[0]!.exercises[0]!.duration_seconds = 20;
+          week.sessions[0]!.exercises[0]!.description = 'Texte fournisseur à ne pas recopier';
+        }
+        const body = JSON.parse((init as RequestInit).body as string) as {
+          messages: Array<{ role: string; content: string }>;
+        };
+        const prompt = body.messages.find((message) => message.role === 'user')!.content;
+        if (weekNumber === 1 && attempt === 2) {
+          expect(prompt).toContain('Séance 1 : 30 minutes annoncées, 560 secondes détaillées.');
+          expect(prompt).toContain('atteindre exactement 1800 secondes');
+          expect(prompt).not.toContain('Texte fournisseur à ne pas recopier');
+        } else {
+          expect(prompt).not.toContain('La réponse précédente a été refusée');
+        }
         return Promise.resolve({
           ok: true,
           json: () =>
@@ -299,6 +357,25 @@ describe('ProgramAiService', () => {
       expect(result.weeks[0]!.sessions[0]!.exercises[0]!.tips).toBe(
         'Gardez une intensité confortable.',
       );
+    });
+
+    it('refuse une durée toujours incorrecte après la seule retentative autorisée', async () => {
+      mockFetch.mockImplementation((_url: unknown, init: unknown) => {
+        const week = validWeekResponse(getWeekNumberFromFetchInit(init));
+        week.sessions[0]!.exercises[0]!.duration_seconds = 20;
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(week) } }],
+            }),
+        });
+      });
+
+      await expect(generateProgram(defaultInput, mockAiConfig)).rejects.toMatchObject({
+        statusCode: 503,
+      });
+      expect(mockFetch).toHaveBeenCalledTimes(defaultInput.weeks_count * 2);
     });
 
     it('une erreur permanente annule la semaine voisine et ne déclenche pas de retry', async () => {

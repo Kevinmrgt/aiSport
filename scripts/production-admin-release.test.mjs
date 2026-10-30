@@ -3,7 +3,9 @@ import test from 'node:test';
 import { access, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand, safeReleaseFailure, verifyReleaseConfiguration, checkReleaseHealth, inspectDeploymentDatabase, safeVercelValidation, cleanupVercelCheckout, inspectVercelBuildArtifacts, bindVercelFunctionEnvironment, checkWebOAuthConfiguration } from './production-admin-release.mjs';
+import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand, safeReleaseFailure, verifyReleaseConfiguration, checkReleaseHealth, inspectDeploymentDatabase, safeVercelValidation, cleanupVercelCheckout, inspectVercelBuildArtifacts, bindVercelFunctionEnvironment, checkWebOAuthConfiguration, verifyLiveAdminProduction, rehearse, verifyPreparedBackup } from './production-admin-release.mjs';
+import { readCandidateLineage } from './db-migration-lineage.mjs';
+import { fileHash, migrationFingerprint } from './db-operations.mjs';
 
 const revision = 'a'.repeat(40);
 const privateAdminId = 'd72a58b7-6d4f-4187-90f7-9c763cfe2975';
@@ -33,6 +35,254 @@ function providerFixture() {
     replace: async () => assert.fail('plan attempted environment write') };
 }
 const ready = { complete: true, ready: true, googleIdentityCount: 0, legacyGoogleLinkRequired: true, retainedRows: { users: 1 } };
+
+const liveEnv = () => ({ ...env, RELEASE_MODE: 'update', UPDATE_CONFIRM: 'preserve-live-admin-production',
+  BACKUP_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'), GITHUB_TOKEN: 'private-gh-token', GITHUB_REPOSITORY: 'owner/project' });
+const liveConfiguration = () => {
+  const config = configuration();
+  for (const vars of [config.api, config.web]) {
+    vars.PRODUCTION_ACCESS_MODE = { value: 'admin-only' }; vars.ADMIN_EMAILS = { value: env.BOOTSTRAP_ADMIN_EMAIL };
+  }
+  config.api.ALCIDE_DATABASE_URL = { value: directSourceUrl(source.replace('/legacy', `/${env.TARGET_DATABASE_NAME}`)).value };
+  config.api.BOOTSTRAP_ADMIN_USER_ID = { value: privateAdminId };
+  return { ...config, source: config.api.ALCIDE_DATABASE_URL.value, applicationOverrideSelected: true, ready: true };
+};
+function liveProvider(config = liveConfiguration()) {
+  return { ...providerFixture(), snapshot: async (project) => config[project] };
+}
+const ciSuccess = async () => ({ ok: true, json: async () => ({ workflow_runs: [{ id: 23, head_sha: revision, event: 'push', status: 'completed', conclusion: 'success' }] }) });
+const preservedLiveData = () => ({
+  users: [{ id: privateAdminId, email: env.BOOTSTRAP_ADMIN_EMAIL }],
+  accounts: [{ user_id: privateAdminId, type: 'oidc', provider: 'google', provider_account_id: 'private-real-subject-fixture' }],
+  workouts: [{ id: 'workout-fixture', user_id: privateAdminId, completed: true }],
+  training_programs: [{ id: 'program-fixture', user_id: privateAdminId }],
+  session_logs: [{ id: 'session-fixture' }], user_settings: [{ user_id: privateAdminId, generatedWorkouts: 1, generatedPrograms: 2 }],
+});
+async function liveVerifierFixture({ state = preservedLiveData(), database = env.TARGET_DATABASE_NAME, lineageChange, queries = [] } = {}) {
+  const candidates = await readCandidateLineage();
+  const applied = candidates.map((row) => ({ hash: row.hash, created_at: String(row.createdAt) }));
+  lineageChange?.(applied);
+  return { state, queries, verifier: (input, config) => verifyLiveAdminProduction(input, config, { clientFactory: () => ({
+    connect: async () => {}, end: async () => { queries.push('end'); },
+    query: async (sql) => {
+      queries.push(sql);
+      if (sql === 'begin isolation level repeatable read read only' || sql === 'rollback') return { rows: [] };
+      if (sql === 'select current_database() as database') return { rows: [{ database }] };
+      if (sql.includes('to_regclass')) return { rows: [{ registry: 'drizzle.__drizzle_migrations' }] };
+      if (sql === 'select hash, created_at from drizzle.__drizzle_migrations order by created_at asc, id asc') return { rows: applied };
+      if (sql === 'select id, email from public.users limit 2') return { rows: state.users.slice(0, 2) };
+      if (sql === 'select user_id, type, provider, provider_account_id from public.accounts limit 2') return { rows: state.accounts.slice(0, 2) };
+      assert.fail(`Unexpected SQL in read-only live update: ${sql}`);
+    },
+  }) }) };
+}
+
+test('live update requires its distinct confirmation and rejects seed reuse', () => {
+  assert.equal(validateReleaseInput(liveEnv()), 'update');
+  assert.throws(() => validateReleaseInput({ ...liveEnv(), UPDATE_CONFIRM: '', BOOTSTRAP_CONFIRM: 'selective-admin-copy-to-new-database' }), /live_update_confirmation/);
+  assert.throws(() => validateReleaseInput({ ...liveEnv(), BOOTSTRAP_REUSE_EXISTING: 'verified-admin-copy' }), /does_not_use_seed_reuse/);
+});
+
+test('live update verifies the exact candidate lineage and Google owner using only read-only SQL, preserving history and usage', async () => {
+  const fixture = await liveVerifierFixture(); const before = structuredClone(fixture.state);
+  const verified = await fixture.verifier(liveEnv(), liveConfiguration());
+  assert.equal(verified.adminId, privateAdminId); assert.equal(verified.evidence.existingLiveTargetVerified, true);
+  assert.equal(verified.evidence.googleAccountsVerified, 1); assert.equal(verified.evidence.pendingMigrations, 0);
+  assert.deepEqual(fixture.state, before);
+  assert.equal(fixture.queries[0], 'begin isolation level repeatable read read only');
+  assert.equal(fixture.queries.at(-2), 'rollback'); assert.equal(fixture.queries.at(-1), 'end');
+  assert.ok(fixture.queries.every((sql) => /^(select |begin isolation level repeatable read read only$|rollback$|end$)/.test(sql)));
+  for (const value of [privateAdminId, env.BOOTSTRAP_ADMIN_EMAIL, 'private-real-subject-fixture', 'private_password']) assert.equal(JSON.stringify(verified.evidence).includes(value), false);
+  fixture.state.accounts = [];
+  assert.equal((await fixture.verifier(liveEnv(), liveConfiguration())).evidence.googleAccountsVerified, 0);
+});
+
+test('live update refuses missing or ambiguous live configuration before opening a SQL connection', async () => {
+  const changes = [
+    (config) => { delete config.api.ALCIDE_DATABASE_URL; },
+    (config) => { config.api.ALCIDE_DATABASE_URL.value = ''; },
+    (config) => { config.applicationOverrideSelected = false; },
+    (config) => { config.api.ALCIDE_DATABASE_URL.value = source; },
+    (config) => { config.source = directSourceUrl(source).value; config.api.ALCIDE_DATABASE_URL.value = config.source; },
+    (config) => { config.api.PRODUCTION_ACCESS_MODE.value = 'public'; },
+    (config) => { config.web.PRODUCTION_ACCESS_MODE.value = 'public'; },
+    (config) => { config.api.ADMIN_EMAILS.value += ',other@example.test'; },
+    (config) => { config.web.ADMIN_EMAILS.value = 'other@example.test'; },
+    (config) => { config.api.BOOTSTRAP_ADMIN_USER_ID.value = ''; },
+  ];
+  for (const change of changes) {
+    const config = liveConfiguration(); change(config);
+    await assert.rejects(verifyLiveAdminProduction(liveEnv(), config, { clientFactory: () => assert.fail('invalid config connected to SQL') }), /live_update/);
+  }
+  const provider = liveProvider(); provider.snapshot = async (project) => configuration()[project];
+  await assert.rejects(inspectConfiguration(liveEnv(), provider), /application_database_required/);
+});
+
+test('live update blocks SQL database, owner, accounts and non-exact migration lineage mismatches without writes', async () => {
+  const scenarios = [
+    { database: 'other_database' },
+    { mutate: (data) => { data.users = []; } },
+    { mutate: (data) => { data.users.push({ id: 'other', email: 'other@example.test' }); } },
+    { mutate: (data) => { data.users[0].id = 'different-private-owner'; } },
+    { mutate: (data) => { data.users[0].email = 'other@example.test'; } },
+    { mutate: (data) => { data.accounts[0].user_id = 'different-private-owner'; } },
+    { mutate: (data) => { data.accounts[0].provider = 'credentials'; } },
+    { mutate: (data) => { data.accounts[0].type = 'credentials'; } },
+    { mutate: (data) => { data.accounts[0].provider_account_id = ''; } },
+    { mutate: (data) => { data.accounts.push({ ...data.accounts[0] }); } },
+    { lineageChange: (applied) => { applied.pop(); } },
+    { lineageChange: (applied) => { applied[0].hash = 'divergent'; } },
+    { lineageChange: (applied) => { applied.push({ hash: 'unknown', created_at: '9999999999999' }); } },
+  ];
+  for (const scenario of scenarios) {
+    const state = preservedLiveData(); scenario.mutate?.(state);
+    const before = structuredClone(state); const fixture = await liveVerifierFixture({ ...scenario, state });
+    await assert.rejects(fixture.verifier(liveEnv(), liveConfiguration()), /live_update/);
+    assert.deepEqual(state, before); assert.equal(fixture.queries.at(-1), 'end');
+    assert.ok(fixture.queries.every((sql) => !/^(create|insert|delete|update|alter|drop)/i.test(sql)));
+  }
+});
+
+test('live update prepare requires exact CI and backs up the active URL without calling selective bootstrap', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'alcide-live-prepare-'));
+  const fixture = await liveVerifierFixture(); const config = liveConfiguration(); const before = structuredClone(fixture.state); const calls = [];
+  const input = { ...liveEnv(), RELEASE_DIRECTORY: directory };
+  try {
+    const deps = { provider: liveProvider(config), fetcher: ciSuccess, liveVerifier: fixture.verifier,
+      bootstrap: async () => assert.fail('live update must not call bootstrap'),
+      identityReader: async (url) => { assert.equal(url, config.source); return { sourceIdentity: 'private-identity', databaseMajor: 17 }; },
+      backupRunner: async (scriptName, child) => { calls.push('backup'); assert.equal(scriptName, 'db-backup.mjs'); assert.equal(child.DATABASE_URL, config.source); assert.equal(child.PG_TOOLS_DOCKER_IMAGE, 'postgres:17-alpine'); assert.equal(child.BACKUP_ENCRYPTION_KEY, input.BACKUP_ENCRYPTION_KEY); },
+      rehearsalRunner: async (child, _directory, url, _identity, _bootstrap, options) => { calls.push('restore'); assert.equal(child.RELEASE_MODE, 'update'); assert.equal(url, config.source); assert.equal(options.liveConfiguration.source, url); return { fullRestoreVerified: true, selectiveCopyPerformed: false }; },
+    };
+    const result = await runProductionAdminRelease(input, deps);
+    assert.equal(result.complete, true); assert.equal(result.phase, 'prepared'); assert.equal(result.existingLiveTargetVerified, true);
+    assert.equal(result.bootstrap, undefined); assert.equal(result.adminCopyVerified, undefined); assert.deepEqual(calls, ['backup', 'restore']); assert.deepEqual(fixture.state, before);
+    calls.length = 0;
+    const refused = await runProductionAdminRelease(input, { ...deps, fetcher: async () => ({ ok: true, json: async () => ({ workflow_runs: [] }) }) });
+    assert.equal(refused.complete, false); assert.equal(refused.failure.failedStage, 'ci_verification'); assert.deepEqual(calls, []);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test('live update stages the same database and UUID, preserves real history and Google account, and retains rollback', async () => {
+  for (const failsHealth of [false, true]) {
+    const fixture = await liveVerifierFixture(); const before = structuredClone(fixture.state); const config = liveConfiguration();
+    const provider = liveProvider(config); const writes = []; let undone = 0; let promoted = 0;
+    provider.replace = async (project, _old, key, value, undo) => { writes.push({ project, key, value }); undo.push(async () => { undone += 1; }); };
+    const result = await deployClosedProduction(liveEnv(), config, provider, {
+      liveVerifier: fixture.verifier, bootstrap: async () => assert.fail('selective bootstrap in live update'), selectedAdminId: async () => assert.fail('bootstrap identity lookup in live update'),
+      verifyConfiguration: async () => {}, artifactInspector: async () => ({}), functionEnvironmentBinder: mockFunctionBinder,
+      cleanup: async () => {}, denied: async () => {}, oauthConfiguration: async () => ({ canonicalCallbackVerified: true }),
+      command: (_command, args, child) => {
+        if (args.includes('promote')) promoted += 1;
+        if (child.VERCEL_PROJECT_ID === 'api') { assert.equal(child.ALCIDE_DATABASE_URL, config.source); assert.equal(child.DATABASE_URL, config.source); assert.equal(child.BOOTSTRAP_ADMIN_USER_ID, privateAdminId); }
+        return args.includes('deploy') ? `https://${child.VERCEL_PROJECT_ID}-live-update.vercel.app` : '';
+      },
+      health: async () => { if (failsHealth) throw new Error('Health HTTP 503'); },
+    });
+    assert.deepEqual(fixture.state, before); assert.equal(result.complete, !failsHealth); assert.equal(result.bootstrap, undefined); assert.equal(result.adminCopyVerified, undefined);
+    assert.equal(writes.find((write) => write.key === 'ALCIDE_DATABASE_URL').value, config.source);
+    if (failsHealth) { assert.equal(promoted, 0); assert.equal(result.rollbackComplete, true); assert.equal(result.existingDatabaseRetained, true); assert.equal(result.newDatabaseRetained, false); assert.equal(undone, writes.length); }
+    else { assert.equal(promoted, 2); assert.equal(result.existingLiveTargetVerified, true); assert.equal(result.liveTarget.googleAccountsVerified, 1); }
+    for (const value of [privateAdminId, env.BOOTSTRAP_ADMIN_EMAIL, 'private-real-subject-fixture', 'private_password']) assert.equal(JSON.stringify(result).includes(value), false);
+  }
+});
+
+test('live update rehearsal restores all live tables on the same PostgreSQL major and never copies or migrates', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'alcide-live-restore-'));
+  const input = { ...liveEnv(), ADMIN_IMPORT_POLICY: 'account-only', BACKUP_FILE: join(directory, 'release.dump') };
+  const identity = { sourceIdentity: 'fixture-source-identity', databaseMajor: 17 };
+  const config = liveConfiguration(); const original = preservedLiveData(); const before = structuredClone(original); let restored;
+  const commands = []; const fingerprint = await migrationFingerprint();
+  try {
+    await writeFile(`${input.BACKUP_FILE}.enc`, 'encrypted-placeholder');
+    await writeFile(`${input.BACKUP_FILE}.manifest.json`, JSON.stringify({ migrationFingerprint: fingerprint, dumpSha256: 'f'.repeat(64) }));
+    const proof = await rehearse(input, directory, config.source, identity, async () => assert.fail('selective copy in full restore'), {
+      liveConfiguration: config,
+      command: (tool, args, child) => {
+        commands.push(args[0]); assert.equal(tool, 'docker');
+        if (args[0] === 'run') { assert.ok(args.includes('postgres:17-alpine')); assert.equal(args.includes(child.POSTGRES_PASSWORD), false); }
+        return args[0] === 'port' ? '127.0.0.1:54329\n' : '';
+      },
+      identityReader: async (url) => { assert.equal(new URL(url).hostname, '127.0.0.1'); return { databaseMajor: 17 }; },
+      restoreRunner: async (name, child) => {
+        assert.equal(name, 'db-restore-check.mjs'); assert.equal(child.RESTORE_APPLY_CANDIDATE_MIGRATIONS, '0');
+        assert.equal(child.RESTORE_CONFIRM, 'isolated-empty-database'); assert.equal(new URL(child.RESTORE_DATABASE_URL).pathname, '/restore_source');
+        // The restore boundary carries the complete snapshot, including paid usage
+        // and history; no account-only projection is used in this mode.
+        restored = structuredClone(original);
+        await writeFile(child.RESTORE_EVIDENCE_FILE, JSON.stringify({ result: 'passed', encrypted: true, rowCountsMatch: true,
+          candidateMigrationsApplied: false, candidateRevision: revision, sourceIdentity: identity.sourceIdentity,
+          dumpSha256: 'f'.repeat(64), tablesVerified: Object.keys(restored).length }));
+      },
+      liveVerifier: async (child, localConfig) => {
+        assert.deepEqual(restored, before); assert.equal(child.TARGET_DATABASE_NAME, 'restore_source');
+        assert.equal(localConfig.source, localConfig.api.ALCIDE_DATABASE_URL.value);
+        const fixture = await liveVerifierFixture({ state: restored, database: 'restore_source' });
+        return fixture.verifier(child, localConfig);
+      },
+    });
+    assert.deepEqual(original, before); assert.deepEqual(restored, before); assert.deepEqual(commands, ['run', 'port', 'rm']);
+    assert.equal(proof.releaseMode, 'update'); assert.equal(proof.fullRestoreVerified, true); assert.equal(proof.selectiveCopyPerformed, false);
+    assert.equal(proof.fullRestoreEvidenceSha256, await fileHash(join(directory, 'restore.json')));
+    assert.equal(proof.adminCopyVerified, undefined); assert.equal(proof.selectiveCopyVerified, undefined); assert.equal(proof.isolatedTargetCreated, undefined);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test('live update full restoration proof is hash-bound to backup, revision, lineage and unchanged table counts', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'alcide-live-proof-'));
+  const input = { ...liveEnv(), ADMIN_IMPORT_POLICY: 'account-only', BACKUP_FILE: join(directory, 'release.dump') };
+  const identity = { sourceIdentity: 'fixture-source-identity', databaseMajor: 17 };
+  const fingerprint = await migrationFingerprint();
+  try {
+    await writeFile(`${input.BACKUP_FILE}.enc`, 'encrypted-placeholder');
+    const sha = await fileHash(`${input.BACKUP_FILE}.enc`);
+    const manifest = { encrypted: true, sourceIdentity: identity.sourceIdentity, databaseMajor: 17,
+      candidateRevision: revision, migrationFingerprint: fingerprint, dumpSha256: 'f'.repeat(64), encryptedSha256: sha };
+    const restore = { result: 'passed', encrypted: true, rowCountsMatch: true, candidateMigrationsApplied: false,
+      sourceIdentity: identity.sourceIdentity, candidateRevision: revision, dumpSha256: manifest.dumpSha256, tablesVerified: 12 };
+    await writeFile(`${input.BACKUP_FILE}.manifest.json`, JSON.stringify(manifest));
+    await writeFile(join(directory, 'restore.json'), JSON.stringify(restore));
+    const proof = { releaseMode: 'update', fullRestoreVerified: true, existingLiveTargetVerified: true,
+      selectiveCopyPerformed: false, dataPreserved: true, restoredCountsMatch: true, revision, targetDatabaseName: input.TARGET_DATABASE_NAME,
+      sourceIdentity: identity.sourceIdentity, migrationFingerprint: fingerprint, encryptedSha256: sha,
+      fullRestoreEvidenceSha256: await fileHash(join(directory, 'restore.json')), performedAt: new Date().toISOString() };
+    const verify = () => verifyPreparedBackup(input, directory, liveConfiguration().source, { identityReader: async () => identity });
+    await writeFile(join(directory, 'rehearsal.json'), JSON.stringify(proof)); await verify();
+    for (const changed of [{ releaseMode: 'deploy' }, { selectiveCopyVerified: true }, { selectiveCopyPerformed: true }, { fullRestoreVerified: false }, { fullRestoreEvidenceSha256: 'wrong' }]) {
+      await writeFile(join(directory, 'rehearsal.json'), JSON.stringify({ ...proof, ...changed }));
+      await assert.rejects(verify(), /fresh_backup_rehearsal/);
+    }
+    for (const changed of [{ rowCountsMatch: false }, { candidateMigrationsApplied: true }, { sourceIdentity: 'different' }, { candidateRevision: 'b'.repeat(40) }, { encrypted: false }]) {
+      await writeFile(join(directory, 'restore.json'), JSON.stringify({ ...restore, ...changed }));
+      await writeFile(join(directory, 'rehearsal.json'), JSON.stringify({ ...proof, fullRestoreEvidenceSha256: await fileHash(join(directory, 'restore.json')) }));
+      await assert.rejects(verify(), /fresh_backup_rehearsal/);
+    }
+    await writeFile(join(directory, 'restore.json'), JSON.stringify(restore));
+    await writeFile(join(directory, 'rehearsal.json'), JSON.stringify(proof));
+    // An initial selective proof cannot be substituted for the live-data proof.
+    await assert.rejects(verifyPreparedBackup({ ...input, RELEASE_MODE: 'deploy' }, directory, liveConfiguration().source, { identityReader: async () => identity }), /fresh_backup_rehearsal/);
+    await writeFile(`${input.BACKUP_FILE}.enc`, 'tampered'); await assert.rejects(verify(), /fresh_backup_rehearsal/);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test('live update release validates a full restore proof before calling the shared deploy routine and skips bootstrap', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'alcide-live-release-'));
+  const input = { ...liveEnv(), RELEASE_DIRECTORY: directory, RELEASE_PHASE: 'release' };
+  const fixture = await liveVerifierFixture(); const config = liveConfiguration(); const calls = [];
+  const deps = { provider: liveProvider(config), fetcher: ciSuccess, liveVerifier: fixture.verifier,
+    bootstrap: async () => assert.fail('bootstrap during live update release'),
+    preparedBackupVerifier: async (child, _directory, url) => { calls.push('verify-backup'); assert.equal(child.RELEASE_MODE, 'update'); assert.equal(url, config.source); },
+    deploymentRunner: async (child, current, _provider, options) => { calls.push('deploy'); assert.equal(child.RELEASE_MODE, 'update'); assert.equal(current.source, config.source); assert.equal(options.liveVerifier, fixture.verifier); return { complete: true, existingLiveTargetVerified: true }; },
+  };
+  try {
+    const result = await runProductionAdminRelease(input, deps);
+    assert.equal(result.complete, true); assert.equal(result.bootstrap, undefined); assert.equal(result.adminCopyVerified, undefined); assert.deepEqual(calls, ['verify-backup', 'deploy']);
+    calls.length = 0;
+    const refused = await runProductionAdminRelease(input, { ...deps, preparedBackupVerifier: async () => { throw new Error('private-invalid-proof'); } });
+    assert.equal(refused.complete, false); assert.equal(refused.failure.failedStage, 'prepared_backup_verification'); assert.deepEqual(calls, []);
+    assert.equal(JSON.stringify(refused).includes('private-invalid-proof'), false);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
 
 test('plan defaults read-only and requires an immutable revision and private admin input', () => {
   assert.equal(validateReleaseInput(env), 'plan');
@@ -826,6 +1076,9 @@ test('protected API must deny an unauthenticated request even when health is gre
 test('workflow preserves encrypted backup before release under the shared production lock', async () => {
   const workflow = await readFile(new URL('../.github/workflows/production-admin-release.yml', import.meta.url), 'utf8');
   assert.match(workflow, /default: plan/);
+  assert.match(workflow, /options: \[plan, rehearse, deploy, update\]/);
+  assert.match(workflow, /UPDATE_CONFIRM: \$\{\{ inputs.update_confirm \}\}/);
+  assert.match(workflow, /if: inputs.mode == 'deploy' \|\| inputs.mode == 'update'/);
   assert.match(workflow, /group: production-database-release/);
   assert.match(workflow, /actions: read/);
   assert.match(workflow, /persist-credentials: false/);

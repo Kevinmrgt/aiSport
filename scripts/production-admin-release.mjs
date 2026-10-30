@@ -6,6 +6,7 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 import { runAdminBootstrap, targetDatabaseUrl, readSelectedAdminId } from './production-admin-bootstrap.mjs';
 import { Client, databaseUrl, readDatabaseIdentity, fileHash, migrationFingerprint, require } from './db-operations.mjs';
 import { checkHealth } from './cd-health-check.mjs';
+import { inspectDatabaseMigrationLineage } from './db-migration-lineage.mjs';
 
 class ReleaseError extends Error {
   constructor(reason, diagnostics) { super(reason); if (diagnostics) this.diagnostics = diagnostics; }
@@ -16,7 +17,7 @@ const safeKey = (key) => /^[A-Z][A-Z0-9_]+$/.test(key);
 const mutableKeys = new Set(['DATABASE_URL', 'ALCIDE_DATABASE_URL', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'API_URL', 'NEXT_PUBLIC_API_URL', 'FRONTEND_URL', 'AUTH_URL', 'NEXTAUTH_URL']);
 const releaseStages = new Set(['input_validation', 'ci_verification', 'configuration_read', 'bootstrap_plan', 'source_reference', 'backup', 'rehearsal',
   'diagnostic_input', 'diagnostic_deployment_lookup', 'diagnostic_environment_pull', 'diagnostic_project_environment_pull', 'diagnostic_project_database_read', 'diagnostic_database_sql',
-  'prepared_backup_verification', 'api_reference', 'web_reference', 'bootstrap_apply', 'admin_lookup_source', 'admin_lookup_target', 'admin_identity_comparison',
+  'prepared_backup_verification', 'live_target_verification', 'api_reference', 'web_reference', 'bootstrap_apply', 'admin_lookup_source', 'admin_lookup_target', 'admin_identity_comparison',
   ...['api', 'web'].flatMap((project) => ['env_readback', 'cleanup', 'pull', 'build', 'function_environment', 'build_artifacts', 'deploy', 'health', 'oauth_configuration', 'automation_bypass_create', 'automation_bypass_revoke', 'denied_probe', 'promote', 'alias_health', 'alias_denied_probe',
     ...[...mutableKeys].map((key) => `env_${key}`)].map((action) => `${project}_${action}`))]);
 const bootstrapFailureReasons = new Set(['admin_not_unique', 'admin_identity_lookup_failed', 'admin_identity_mismatch', 'explicit_admin_email_required']);
@@ -81,7 +82,7 @@ export function safeReleaseFailure(error, stage) {
 
 export function validateReleaseInput(env) {
   const mode = env.RELEASE_MODE ?? 'plan';
-  if (!['plan', 'rehearse', 'deploy'].includes(mode)) fail('invalid_release_mode');
+  if (!['plan', 'rehearse', 'deploy', 'update'].includes(mode)) fail('invalid_release_mode');
   if (!/^[a-f0-9]{40}$/.test(env.RELEASE_REVISION ?? '')) fail('immutable_release_revision_required');
   if (!/^[a-z][a-z0-9_]{2,62}$/.test(env.TARGET_DATABASE_NAME ?? '')) fail('explicit_new_database_name_required');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(env.BOOTSTRAP_ADMIN_EMAIL ?? '')) fail('explicit_admin_email_required');
@@ -91,6 +92,8 @@ export function validateReleaseInput(env) {
     if (!env[key]) fail(`missing_${key.toLowerCase()}`);
   }
   if (mode === 'deploy' && env.BOOTSTRAP_CONFIRM !== 'selective-admin-copy-to-new-database') fail('explicit_bootstrap_confirmation_required');
+  if (mode === 'update' && env.UPDATE_CONFIRM !== 'preserve-live-admin-production') fail('explicit_live_update_confirmation_required');
+  if (mode === 'update' && env.BOOTSTRAP_REUSE_EXISTING) fail('live_update_does_not_use_seed_reuse');
   if (mode !== 'plan' && Buffer.from(env.BACKUP_ENCRYPTION_KEY ?? '', 'base64').length !== 32) fail('backup_encryption_key_required');
   return mode;
 }
@@ -228,8 +231,47 @@ export async function inspectConfiguration(env, provider) {
   const effective = applicationOverrideSelected ? api.ALCIDE_DATABASE_URL : api.DATABASE_URL;
   if (!effective?.value) fail('missing_production_database_url');
   const direct = directSourceUrl(effective.value);
-  targetDatabaseUrl(direct.value, env.TARGET_DATABASE_NAME);
+  if (env.RELEASE_MODE === 'update') {
+    if (!applicationOverrideSelected) fail('live_update_application_database_required');
+    if (decodeURIComponent(databaseUrl(direct.value).pathname.slice(1)) !== env.TARGET_DATABASE_NAME) fail('live_update_database_name_mismatch');
+  } else targetDatabaseUrl(direct.value, env.TARGET_DATABASE_NAME);
   return { api, web, source: direct.value, sourceDirectDerived: direct.sourceDirectDerived, applicationOverrideSelected, checks, ready: Object.values(checks).every(Boolean) };
+}
+
+/** adminId is private orchestration data. Only evidence may be serialized. */
+export async function verifyLiveAdminProduction(env, configuration, {
+  clientFactory = (options) => new Client(options), lineageInspector = inspectDatabaseMigrationLineage,
+} = {}) {
+  if (!configuration.api.ALCIDE_DATABASE_URL?.value || !configuration.applicationOverrideSelected) fail('live_update_application_database_required');
+  const source = databaseUrl(configuration.source);
+  if (directSourceUrl(configuration.api.ALCIDE_DATABASE_URL.value).value !== source.toString()) fail('live_update_effective_database_mismatch');
+  if (decodeURIComponent(source.pathname.slice(1)) !== env.TARGET_DATABASE_NAME) fail('live_update_database_name_mismatch');
+  const authorized = env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
+  if (!authorized || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(authorized)) fail('explicit_admin_email_required');
+  for (const settings of [configuration.api, configuration.web]) {
+    if (settings.PRODUCTION_ACCESS_MODE?.value !== 'admin-only') fail('live_update_admin_only_policy_required');
+    const allowlist = (settings.ADMIN_EMAILS?.value ?? '').split(',').map((email) => email.trim().toLowerCase()).filter(Boolean);
+    if (allowlist.length !== 1 || allowlist[0] !== authorized) fail('live_update_unique_admin_allowlist_required');
+  }
+  const pinnedId = configuration.api.BOOTSTRAP_ADMIN_USER_ID?.value;
+  if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(pinnedId ?? '')) fail('live_update_pinned_admin_required');
+  const client = clientFactory({ connectionString: source.toString(), connectionTimeoutMillis: 15_000, statement_timeout: 15_000, query_timeout: 20_000 });
+  try {
+    await client.connect(); await client.query('begin isolation level repeatable read read only');
+    if ((await client.query('select current_database() as database')).rows[0]?.database !== env.TARGET_DATABASE_NAME) fail('live_update_sql_database_name_mismatch');
+    const lineage = await lineageInspector(client);
+    if (lineage.compatible !== true || lineage.pendingMigrations !== 0 || !Number.isSafeInteger(lineage.appliedMigrations) ||
+        lineage.appliedMigrations < 1 || lineage.matchedPrefix !== lineage.appliedMigrations) fail('live_update_exact_migration_lineage_required');
+    const users = (await client.query('select id, email from public.users limit 2')).rows;
+    if (users.length !== 1 || users[0].id !== pinnedId || users[0].email?.trim().toLowerCase() !== authorized) fail('live_update_unique_admin_identity_required');
+    const accounts = (await client.query('select user_id, type, provider, provider_account_id from public.accounts limit 2')).rows;
+    if (accounts.length > 1 || accounts.some((account) => account.user_id !== pinnedId || account.provider !== 'google' ||
+        !['oauth', 'oidc'].includes(account.type) || typeof account.provider_account_id !== 'string' || !account.provider_account_id.trim())) fail('live_update_google_account_ownership_required');
+    await client.query('rollback');
+    return { adminId: pinnedId, evidence: { complete: true, existingLiveTargetVerified: true, sourceReadOnly: true,
+      databaseNameVerified: true, adminOwnerVerified: true, usersVerified: 1, googleAccountsVerified: accounts.length,
+      appliedMigrations: lineage.appliedMigrations, pendingMigrations: 0, dataPreserved: true } };
+  } finally { await client.end().catch(() => undefined); }
 }
 
 export async function requireSuccessfulCi(env, fetcher = fetch) {
@@ -267,50 +309,84 @@ const script = (name, env) => privateCommand(process.execPath, [fileURLToPath(ne
   { stage: name === 'db-backup.mjs' ? 'database_backup' : 'database_restore' });
 const pause = (ms) => new Promise((done) => setTimeout(done, ms));
 
-async function rehearse(env, directory, source, identity, bootstrap) {
+export async function rehearse(env, directory, source, identity, bootstrap, {
+  liveConfiguration, liveVerifier = verifyLiveAdminProduction, command = privateCommand,
+  restoreRunner = script, identityReader = readDatabaseIdentity, pause: pauseImpl = pause,
+} = {}) {
   const password = randomBytes(32).toString('hex');
   const container = `alcide-admin-rehearsal-${randomBytes(8).toString('hex')}`;
   const dockerEnv = { ...env, POSTGRES_PASSWORD: password };
   let started = false;
   try {
-    privateCommand('docker', ['run', '--detach', '--name', container, '--publish', '127.0.0.1::5432', '--env', 'POSTGRES_PASSWORD', '--env', 'POSTGRES_DB=restore_source', `postgres:${identity.databaseMajor}-alpine`], dockerEnv, 600_000, { stage: 'docker_start' });
+    command('docker', ['run', '--detach', '--name', container, '--publish', '127.0.0.1::5432', '--env', 'POSTGRES_PASSWORD', '--env', 'POSTGRES_DB=restore_source', `postgres:${identity.databaseMajor}-alpine`], dockerEnv, 600_000, { stage: 'docker_start' });
     started = true;
-    const port = privateCommand('docker', ['port', container, '5432/tcp'], dockerEnv, 600_000, { stage: 'docker_port' }).trim().match(/^127\.0\.0\.1:(\d+)$/)?.[1];
+    const port = command('docker', ['port', container, '5432/tcp'], dockerEnv, 600_000, { stage: 'docker_port' }).trim().match(/^127\.0\.0\.1:(\d+)$/)?.[1];
     if (!port) fail('isolated_restore_port_unavailable');
     const local = `postgresql://postgres:${password}@127.0.0.1:${port}/restore_source?sslmode=disable`;
     let ready = false;
     for (let attempt = 0; attempt < 30; attempt += 1) {
-      try { await readDatabaseIdentity(local); ready = true; break; } catch { await pause(1000); }
+      try { await identityReader(local); ready = true; break; } catch { await pauseImpl(1000); }
     }
     if (!ready) fail('isolated_restore_not_ready');
     const proof = resolve(directory, 'restore.json');
-    script('db-restore-check.mjs', { ...env, RESTORE_DATABASE_URL: local, RESTORE_CONFIRM: 'isolated-empty-database', RESTORE_EVIDENCE_FILE: proof, RESTORE_APPLY_CANDIDATE_MIGRATIONS: '0' });
-    const copied = await bootstrap({ ...env, SOURCE_DATABASE_URL: local, BOOTSTRAP_MODE: 'apply', BOOTSTRAP_CONFIRM: 'selective-admin-copy-to-new-database' });
-    if (!copied.complete || !copied.ready || !copied.adminCopyVerified) fail('isolated_admin_copy_rehearsal_failed');
-    if (copied.targetCreated !== true || copied.targetReused === true) fail('isolated_admin_copy_must_create_fresh_target');
-    const evidence = { formatVersion: 1, revision: env.RELEASE_REVISION, targetDatabaseName: env.TARGET_DATABASE_NAME, importPolicy: env.ADMIN_IMPORT_POLICY,
-      reuseExistingRequested: env.BOOTSTRAP_REUSE_EXISTING === 'verified-admin-copy', isolatedTargetCreated: true, isolatedTargetReused: false,
+    await restoreRunner('db-restore-check.mjs', { ...env, RESTORE_DATABASE_URL: local, RESTORE_CONFIRM: 'isolated-empty-database', RESTORE_EVIDENCE_FILE: proof, RESTORE_APPLY_CANDIDATE_MIGRATIONS: '0' });
+    let modeEvidence;
+    if (env.RELEASE_MODE === 'update') {
+      const restored = JSON.parse(await readFile(proof, 'utf8'));
+      const manifest = JSON.parse(await readFile(`${env.BACKUP_FILE}.manifest.json`, 'utf8'));
+      if (restored.result !== 'passed' || restored.rowCountsMatch !== true || restored.encrypted !== true ||
+          restored.candidateMigrationsApplied !== false || restored.sourceIdentity !== identity.sourceIdentity ||
+          restored.candidateRevision !== env.RELEASE_REVISION || restored.dumpSha256 !== manifest.dumpSha256 ||
+          !Number.isSafeInteger(restored.tablesVerified) || restored.tablesVerified < 1) fail('live_update_full_restore_verification_required');
+      const verification = await liveVerifier({ ...env, TARGET_DATABASE_NAME: 'restore_source' }, {
+        ...liveConfiguration, source: local, applicationOverrideSelected: true,
+        api: { ...liveConfiguration.api, ALCIDE_DATABASE_URL: { value: local } },
+      });
+      if (verification.evidence?.complete !== true || verification.evidence.existingLiveTargetVerified !== true) fail('live_update_restored_target_verification_required');
+      modeEvidence = { releaseMode: 'update', fullRestoreVerified: true, fullRestoreEvidenceSha256: await fileHash(proof),
+        existingLiveTargetVerified: true, selectiveCopyPerformed: false, dataPreserved: true };
+    } else {
+      const copied = await bootstrap({ ...env, SOURCE_DATABASE_URL: local, BOOTSTRAP_MODE: 'apply', BOOTSTRAP_CONFIRM: 'selective-admin-copy-to-new-database' });
+      if (!copied.complete || !copied.ready || !copied.adminCopyVerified) fail('isolated_admin_copy_rehearsal_failed');
+      if (copied.targetCreated !== true || copied.targetReused === true) fail('isolated_admin_copy_must_create_fresh_target');
+      modeEvidence = { importPolicy: env.ADMIN_IMPORT_POLICY, reuseExistingRequested: env.BOOTSTRAP_REUSE_EXISTING === 'verified-admin-copy',
+        isolatedTargetCreated: true, isolatedTargetReused: false, selectiveCopyVerified: true };
+    }
+    const evidence = { formatVersion: 1, revision: env.RELEASE_REVISION, targetDatabaseName: env.TARGET_DATABASE_NAME, ...modeEvidence,
       sourceIdentity: identity.sourceIdentity, databaseMajor: identity.databaseMajor,
-      performedAt: new Date().toISOString(), restoredCountsMatch: true, selectiveCopyVerified: true,
+      performedAt: new Date().toISOString(), restoredCountsMatch: true,
       encryptedSha256: await fileHash(`${env.BACKUP_FILE}.enc`), migrationFingerprint: JSON.parse(await readFile(`${env.BACKUP_FILE}.manifest.json`, 'utf8')).migrationFingerprint };
     await writeFile(resolve(directory, 'rehearsal.json'), JSON.stringify(evidence), { flag: 'wx', mode: 0o600 });
     return evidence;
   } finally {
-    if (started) privateCommand('docker', ['rm', '--force', '--volumes', container], dockerEnv, 600_000, { stage: 'docker_cleanup' });
+    if (started) command('docker', ['rm', '--force', '--volumes', container], dockerEnv, 600_000, { stage: 'docker_cleanup' });
   }
 }
 
-async function verifyPreparedBackup(env, directory, source) {
+export async function verifyPreparedBackup(env, directory, source, { identityReader = readDatabaseIdentity } = {}) {
   const [manifest, proof, identity] = await Promise.all([
     readFile(`${env.BACKUP_FILE}.manifest.json`, 'utf8').then(JSON.parse),
-    readFile(resolve(directory, 'rehearsal.json'), 'utf8').then(JSON.parse), readDatabaseIdentity(source),
+    readFile(resolve(directory, 'rehearsal.json'), 'utf8').then(JSON.parse), identityReader(source),
   ]);
+  let fullRestoreVerified = false;
+  if (env.RELEASE_MODE === 'update') {
+    const restorePath = resolve(directory, 'restore.json');
+    const restored = JSON.parse(await readFile(restorePath, 'utf8'));
+    fullRestoreVerified = proof.fullRestoreEvidenceSha256 === await fileHash(restorePath) && restored.result === 'passed' &&
+      restored.encrypted === true && restored.rowCountsMatch === true && restored.candidateMigrationsApplied === false &&
+      restored.sourceIdentity === identity.sourceIdentity && restored.candidateRevision === env.RELEASE_REVISION &&
+      restored.dumpSha256 === manifest.dumpSha256 && Number.isSafeInteger(restored.tablesVerified) && restored.tablesVerified > 0;
+  }
+  const modeVerified = env.RELEASE_MODE === 'update' ?
+    fullRestoreVerified && proof.releaseMode === 'update' && proof.fullRestoreVerified === true && proof.existingLiveTargetVerified === true &&
+      proof.selectiveCopyPerformed === false && proof.dataPreserved === true && proof.selectiveCopyVerified === undefined :
+    proof.releaseMode !== 'update' && proof.importPolicy === env.ADMIN_IMPORT_POLICY && env.ADMIN_IMPORT_POLICY === 'account-only' &&
+      proof.reuseExistingRequested === (env.BOOTSTRAP_REUSE_EXISTING === 'verified-admin-copy') && proof.isolatedTargetCreated === true &&
+      proof.isolatedTargetReused === false && proof.selectiveCopyVerified === true;
   if (!manifest.encrypted || manifest.sourceIdentity !== identity.sourceIdentity || manifest.databaseMajor !== identity.databaseMajor ||
       manifest.candidateRevision !== env.RELEASE_REVISION || proof.revision !== env.RELEASE_REVISION ||
       proof.targetDatabaseName !== env.TARGET_DATABASE_NAME || proof.sourceIdentity !== identity.sourceIdentity ||
-      proof.importPolicy !== env.ADMIN_IMPORT_POLICY || env.ADMIN_IMPORT_POLICY !== 'account-only' ||
-      proof.reuseExistingRequested !== (env.BOOTSTRAP_REUSE_EXISTING === 'verified-admin-copy') || proof.isolatedTargetCreated !== true || proof.isolatedTargetReused !== false ||
-      proof.selectiveCopyVerified !== true || proof.restoredCountsMatch !== true ||
+      !modeVerified || proof.restoredCountsMatch !== true ||
       proof.migrationFingerprint !== manifest.migrationFingerprint || manifest.migrationFingerprint !== await migrationFingerprint() ||
       Date.now() - Date.parse(proof.performedAt) > 3_600_000 || Date.parse(proof.performedAt) > Date.now() + 60_000 || !Number.isFinite(Date.parse(proof.performedAt)) ||
       await fileHash(`${env.BACKUP_FILE}.enc`) !== manifest.encryptedSha256 || proof.encryptedSha256 !== manifest.encryptedSha256) fail('fresh_backup_rehearsal_required');
@@ -671,7 +747,7 @@ export async function bindVercelFunctionEnvironment(env, { component = 'api', ex
 
 export async function deployClosedProduction(env, configuration, provider, { bootstrap = runAdminBootstrap, command = privateCommand, health = checkReleaseHealth,
   verifyConfiguration = verifyReleaseConfiguration, artifactInspector = inspectVercelBuildArtifacts, functionEnvironmentBinder = bindVercelFunctionEnvironment,
-  oauthConfiguration = checkWebOAuthConfiguration,
+  oauthConfiguration = checkWebOAuthConfiguration, liveVerifier = verifyLiveAdminProduction,
   selectedAdminId = readSelectedAdminId, denied = checkUnauthenticatedApiDenied, cleanup = () => cleanupVercelCheckout(env) } = {}) {
   const undo = [];
   const previous = [];
@@ -682,23 +758,33 @@ export async function deployClosedProduction(env, configuration, provider, { boo
   const urls = [];
   const buildArtifactDiagnostics = {};
   let bootstrapResult;
+  let liveTargetEvidence;
   let webOAuthConfiguration;
   let promotionAttempted = false;
   try {
     previous.push(await provider.previousDeployment(env.VERCEL_API_PROJECT_ID));
     failedStage = 'web_reference';
     previous.push(await provider.previousDeployment(env.VERCEL_WEB_PROJECT_ID));
-    failedStage = 'bootstrap_apply';
-    bootstrapResult = await bootstrap({ ...env, ADMIN_IMPORT_POLICY: env.ADMIN_IMPORT_POLICY ?? 'account-only', SOURCE_DATABASE_URL: configuration.source, BOOTSTRAP_MODE: 'apply' });
-    if (!bootstrapResult.complete || !bootstrapResult.ready || !bootstrapResult.adminCopyVerified) fail('production_admin_copy_failed');
-    requireVerifiedReuse(bootstrapResult, env);
-    const newDatabase = targetDatabaseUrl(configuration.source, env.TARGET_DATABASE_NAME);
-    failedStage = 'admin_lookup_source';
-    const adminId = await selectedAdminId(configuration.source, env.BOOTSTRAP_ADMIN_EMAIL);
-    failedStage = 'admin_lookup_target';
-    const copiedAdminId = await selectedAdminId(newDatabase, env.BOOTSTRAP_ADMIN_EMAIL);
-    failedStage = 'admin_identity_comparison';
-    if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(adminId ?? '') || adminId !== copiedAdminId) fail('copied_admin_identity_mismatch');
+    let newDatabase; let adminId;
+    if (env.RELEASE_MODE === 'update') {
+      failedStage = 'live_target_verification';
+      const live = await liveVerifier(env, configuration);
+      if (live.evidence?.complete !== true || live.evidence.existingLiveTargetVerified !== true ||
+          !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(live.adminId ?? '')) fail('live_update_target_verification_required');
+      newDatabase = configuration.source; adminId = live.adminId; liveTargetEvidence = live.evidence;
+    } else {
+      failedStage = 'bootstrap_apply';
+      bootstrapResult = await bootstrap({ ...env, ADMIN_IMPORT_POLICY: env.ADMIN_IMPORT_POLICY ?? 'account-only', SOURCE_DATABASE_URL: configuration.source, BOOTSTRAP_MODE: 'apply' });
+      if (!bootstrapResult.complete || !bootstrapResult.ready || !bootstrapResult.adminCopyVerified) fail('production_admin_copy_failed');
+      requireVerifiedReuse(bootstrapResult, env);
+      newDatabase = targetDatabaseUrl(configuration.source, env.TARGET_DATABASE_NAME);
+      failedStage = 'admin_lookup_source';
+      adminId = await selectedAdminId(configuration.source, env.BOOTSTRAP_ADMIN_EMAIL);
+      failedStage = 'admin_lookup_target';
+      const copiedAdminId = await selectedAdminId(newDatabase, env.BOOTSTRAP_ADMIN_EMAIL);
+      failedStage = 'admin_identity_comparison';
+      if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(adminId ?? '') || adminId !== copiedAdminId) fail('copied_admin_identity_mismatch');
+    }
     const values = [
       { DATABASE_URL: newDatabase, ALCIDE_DATABASE_URL: newDatabase, PRODUCTION_ACCESS_MODE: 'admin-only', ADMIN_EMAILS: env.BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_USER_ID: adminId, APP_REVISION: env.RELEASE_REVISION, FRONTEND_URL: 'https://www.alcideai.fr' },
       { PRODUCTION_ACCESS_MODE: 'admin-only', ADMIN_EMAILS: env.BOOTSTRAP_ADMIN_EMAIL, APP_REVISION: env.RELEASE_REVISION, API_URL: 'https://ai-sport-api.vercel.app', NEXT_PUBLIC_API_URL: 'https://ai-sport-api.vercel.app', AUTH_URL: 'https://www.alcideai.fr', NEXTAUTH_URL: 'https://www.alcideai.fr' },
@@ -760,7 +846,8 @@ export async function deployClosedProduction(env, configuration, provider, { boo
       await health(index === 0 ? 'https://ai-sport-api.vercel.app/health/ready' : 'https://www.alcideai.fr/api/health', { service: index === 0 ? 'alcide-api' : 'alcide-web', status: index === 0 ? 'ready' : 'ok', revision: env.RELEASE_REVISION });
       if (index === 0) { failedStage = 'api_alias_denied_probe'; await denied('https://ai-sport-api.vercel.app'); }
     }
-    return { complete: true, access: 'admin-only', revision: env.RELEASE_REVISION, reuseExistingRequested: env.BOOTSTRAP_REUSE_EXISTING === 'verified-admin-copy', deploymentUrls: urls, previousDeploymentUrls: previous, unauthenticatedProtectedApiStatus: 401, bootstrap: bootstrapResult, buildArtifactDiagnostics, webOAuthConfiguration };
+    return { complete: true, access: 'admin-only', revision: env.RELEASE_REVISION, reuseExistingRequested: env.BOOTSTRAP_REUSE_EXISTING === 'verified-admin-copy', deploymentUrls: urls, previousDeploymentUrls: previous, unauthenticatedProtectedApiStatus: 401,
+      ...(liveTargetEvidence ? { existingLiveTargetVerified: true, liveTarget: liveTargetEvidence } : { bootstrap: bootstrapResult }), buildArtifactDiagnostics, webOAuthConfiguration };
   } catch (error) {
     let rollbackComplete = true;
     if (promotionAttempted) {
@@ -774,11 +861,14 @@ export async function deployClosedProduction(env, configuration, provider, { boo
       failure: safeReleaseFailure(error, failedStage),
       stagedDeploymentUrls: urls,
       buildArtifactDiagnostics,
-      newDatabaseRetained: bootstrapResult?.targetCreated === true, existingDatabaseRetained: bootstrapResult?.targetReused === true, previousDeploymentUrls: previous };
+      newDatabaseRetained: bootstrapResult?.targetCreated === true, existingDatabaseRetained: Boolean(liveTargetEvidence) || bootstrapResult?.targetReused === true, previousDeploymentUrls: previous };
   } finally { await cleanup(); }
 }
 
-export async function runProductionAdminRelease(input, { provider, bootstrap = runAdminBootstrap, fetcher = fetch } = {}) {
+export async function runProductionAdminRelease(input, { provider, bootstrap = runAdminBootstrap, fetcher = fetch,
+  liveVerifier = verifyLiveAdminProduction, identityReader = readDatabaseIdentity, backupRunner = script,
+  rehearsalRunner = rehearse, preparedBackupVerifier = verifyPreparedBackup, deploymentRunner = deployClosedProduction,
+} = {}) {
   const report = { performedAt: new Date().toISOString(), scope: 'closed-admin-technical-release', complete: false };
   let failedStage = 'input_validation';
   try {
@@ -786,34 +876,42 @@ export async function runProductionAdminRelease(input, { provider, bootstrap = r
     report.mode = mode; report.revision = input.RELEASE_REVISION; report.reuseExistingRequested = input.BOOTSTRAP_REUSE_EXISTING === 'verified-admin-copy';
     const env = { ...input, ADMIN_IMPORT_POLICY: input.ADMIN_IMPORT_POLICY ?? 'account-only' };
     const client = provider ?? new VercelProduction(env, fetcher);
-    if (mode === 'deploy') { failedStage = 'ci_verification'; report.ci = await requireSuccessfulCi(env, fetcher); }
+    if (['deploy', 'update'].includes(mode)) { failedStage = 'ci_verification'; report.ci = await requireSuccessfulCi(env, fetcher); }
     failedStage = 'configuration_read';
     const configuration = await inspectConfiguration(env, client);
     report.configuration = configuration.checks; report.sourceDirectDerived = configuration.sourceDirectDerived; report.applicationDatabaseOverrideSelected = configuration.applicationOverrideSelected;
-    failedStage = 'bootstrap_plan';
-    report.bootstrap = await bootstrap({ ...env, SOURCE_DATABASE_URL: configuration.source, BOOTSTRAP_MODE: 'plan' });
-    if (!report.bootstrap.complete || !report.bootstrap.ready || !configuration.ready) { report.reason = 'production_preconditions_failed'; return report; }
-    requireVerifiedReuse(report.bootstrap, env);
+    if (mode === 'update') {
+      failedStage = 'live_target_verification';
+      const live = await liveVerifier(env, configuration);
+      report.liveTarget = live.evidence;
+      if (live.evidence?.complete !== true || live.evidence.existingLiveTargetVerified !== true || !configuration.ready) { report.reason = 'production_preconditions_failed'; return report; }
+      report.existingLiveTargetVerified = true;
+    } else {
+      failedStage = 'bootstrap_plan';
+      report.bootstrap = await bootstrap({ ...env, SOURCE_DATABASE_URL: configuration.source, BOOTSTRAP_MODE: 'plan' });
+      if (!report.bootstrap.complete || !report.bootstrap.ready || !configuration.ready) { report.reason = 'production_preconditions_failed'; return report; }
+      requireVerifiedReuse(report.bootstrap, env);
+    }
     if (mode === 'plan') { report.complete = true; return report; }
     const directory = resolve(env.RELEASE_DIRECTORY ?? resolve(env.RUNNER_TEMP ?? '.', 'alcide-admin-release'));
     await mkdir(directory, { recursive: true, mode: 0o700 });
     env.BACKUP_FILE = resolve(directory, 'release.dump');
     const phase = env.RELEASE_PHASE ?? 'prepare';
-    if (!['prepare', 'release'].includes(phase) || (mode !== 'deploy' && phase !== 'prepare')) fail('invalid_release_phase');
+    if (!['prepare', 'release'].includes(phase) || (!['deploy', 'update'].includes(mode) && phase !== 'prepare')) fail('invalid_release_phase');
     if (phase === 'prepare') {
       failedStage = 'source_reference';
-      const identity = await readDatabaseIdentity(configuration.source);
+      const identity = await identityReader(configuration.source);
       if (![16, 17, 18].includes(identity.databaseMajor)) fail('unsupported_postgresql_major');
       env.PG_TOOLS_DOCKER_IMAGE = `postgres:${identity.databaseMajor}-alpine`;
       failedStage = 'backup';
-      script('db-backup.mjs', { ...env, DATABASE_URL: configuration.source });
+      await backupRunner('db-backup.mjs', { ...env, DATABASE_URL: configuration.source });
       failedStage = 'rehearsal';
-      report.rehearsal = await rehearse(env, directory, configuration.source, identity, bootstrap);
+      report.rehearsal = await rehearsalRunner(env, directory, configuration.source, identity, bootstrap, { liveConfiguration: configuration, liveVerifier });
       report.complete = true; report.phase = 'prepared'; return report;
     }
     failedStage = 'prepared_backup_verification';
-    await verifyPreparedBackup(env, directory, configuration.source);
-    Object.assign(report, await deployClosedProduction(env, configuration, client, { bootstrap }));
+    await preparedBackupVerifier(env, directory, configuration.source);
+    Object.assign(report, await deploymentRunner(env, configuration, client, { bootstrap, liveVerifier }));
     return report;
   } catch (error) {
     report.reason = error instanceof ReleaseError ? error.message : 'private_diagnostics_required';
