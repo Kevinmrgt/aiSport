@@ -31,6 +31,7 @@ env:
   WEB_HEALTH_URL: ${{ vars.PROD_WEB_HEALTH_URL || 'https://www.alcideai.fr/api/health' }}
   CHECK_MODE: ${{ inputs.check_mode || 'production' }}
   PROD_EXPECTED_REVISION: ${{ vars.PROD_EXPECTED_REVISION }}
+  PROD_MONITOR_RESUMED_AT: ${{ vars.PROD_MONITOR_RESUMED_AT }}
 
 jobs:
   healthcheck:

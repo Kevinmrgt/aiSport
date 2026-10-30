@@ -3,16 +3,36 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { checkHealth } from './cd-health-check.mjs';
 
-export function probeGap(previousRunAt, { now = Date.now(), maxGapMinutes = 120 } = {}) {
+export function probeGap(previousRunAt, { now = Date.now(), maxGapMinutes = 120, resumedAt } = {}) {
   if (!Number.isInteger(maxGapMinutes) || maxGapMinutes < 1 || maxGapMinutes > 1_440) {
     throw new Error('Invalid monitoring gap target');
   }
-  if (!previousRunAt) return { status: 'no_previous_scheduled_run', minutes: null };
-  const previous = Date.parse(previousRunAt);
-  if (!Number.isFinite(previous) || previous > now + 60_000) throw new Error('Invalid previous monitor execution time');
-  const minutes = Math.round((now - previous) / 60_000);
-  if (minutes > maxGapMinutes) throw new Error(`Monitoring execution gap exceeds ${maxGapMinutes} minutes`);
-  return { status: 'within_target', minutes };
+  const hasResumption = resumedAt !== undefined && resumedAt !== null && resumedAt !== '';
+  let resumed;
+  if (hasResumption) {
+    const format = typeof resumedAt === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(resumedAt);
+    resumed = format ? Date.parse(resumedAt) : NaN;
+    const canonical = format ? resumedAt.replace(/(?:\.(\d{1,3}))?Z$/, (_match, fraction) => `.${(fraction ?? '').padEnd(3, '0')}Z`) : '';
+    if (!Number.isFinite(resumed) || resumed > now || new Date(resumed).toISOString() !== canonical) throw new Error('Invalid maintenance monitoring resumption time');
+  }
+  const previous = previousRunAt ? Date.parse(previousRunAt) : undefined;
+  if (previousRunAt && (!Number.isFinite(previous) || previous > now + 60_000)) throw new Error('Invalid previous monitor execution time');
+  if (previous === undefined && !hasResumption) return { status: 'no_previous_scheduled_run', minutes: null };
+  const resumptionSelected = hasResumption && (previous === undefined || resumed > previous);
+  const baseline = resumptionSelected ? resumed : previous;
+  const minutes = Math.round((now - baseline) / 60_000);
+  const provenance = hasResumption ? {
+    baselineAt: new Date(baseline).toISOString(),
+    baselineSource: resumptionSelected ? 'maintenance_resumption' : 'previous_scheduled_run',
+    previousScheduledRunAt: previous === undefined ? null : new Date(previous).toISOString(),
+    maintenanceResumedAt: new Date(resumed).toISOString(),
+  } : {};
+  if (minutes > maxGapMinutes) {
+    const error = new Error(`Monitoring execution gap exceeds ${maxGapMinutes} minutes`);
+    if (hasResumption) error.scheduler = { status: 'gap_exceeded', minutes, ...provenance };
+    throw error;
+  }
+  return { status: 'within_target', minutes, ...provenance };
 }
 
 async function main() {
@@ -22,8 +42,9 @@ async function main() {
   try {
     report.scheduler = probeGap(process.env['MONITOR_PREVIOUS_RUN_AT'], {
       maxGapMinutes: Number(process.env['MONITOR_MAX_GAP_MINUTES'] ?? 120),
+      resumedAt: process.env['PROD_MONITOR_RESUMED_AT'],
     });
-  } catch (error) { report.failures.push(error.message); }
+  } catch (error) { if (error.scheduler) report.scheduler = error.scheduler; report.failures.push(error.message); }
   let revision = process.env['PROD_EXPECTED_REVISION'] || undefined;
   for (const endpoint of [
     { url: process.env['WEB_HEALTH_URL'] ?? 'https://www.alcideai.fr/api/health', service: 'alcide-web', status: 'ok' },
@@ -40,6 +61,12 @@ async function main() {
   await writeFile(join(directory, 'production-health.md'), [
     '# Production health monitor', '', `- Checked at: ${report.checkedAt}`,
     `- Result: ${report.result}`, `- Revision: ${revision ?? 'unverified'}`,
+    ...(report.scheduler?.baselineAt ? [
+      `- Cadence baseline: ${report.scheduler.baselineAt}`,
+      `- Cadence baseline source: ${report.scheduler.baselineSource}`,
+      `- Previous scheduled probe: ${report.scheduler.previousScheduledRunAt ?? 'none'}`,
+      `- Maintenance resumed at: ${report.scheduler.maintenanceResumedAt}`,
+    ] : []),
     ...report.failures.map((failure) => `- Failure: ${failure}`), '',
     'Health validates availability, schema presence and release identity; it does not call the paid AI provider or exercise OAuth.',
   ].join('\n'));
