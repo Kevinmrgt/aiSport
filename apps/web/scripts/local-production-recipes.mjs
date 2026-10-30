@@ -249,7 +249,11 @@ export async function runLocalRecipes() {
     const page = await contexts[0].newPage();
     currentPage = page;
     page.on('console', (message) => {
-      if (message.type() === 'error' && browserErrors.length < 50) {
+      if (
+        (message.type() === 'error' ||
+          /SERVER ACTION APPLY FAILED|SEGMENT MISMATCH/.test(message.text())) &&
+        browserErrors.length < 50
+      ) {
         browserErrors.push({
           category: recipeBrowserErrorCategory(message.text()),
           atMs: Date.now() - diagnosticStarted,
@@ -271,7 +275,13 @@ export async function runLocalRecipes() {
         historyResponses.length >= 50
       )
         return;
-      const entry = { phase: currentCheck, receivedAtMs: Date.now() - diagnosticStarted };
+      const entry = {
+        phase: currentCheck,
+        detail,
+        receivedAtMs: Date.now() - diagnosticStarted,
+        method: response.request().method(),
+        status: response.status(),
+      };
       historyResponses.push(entry);
       const task = (async () => {
         Object.assign(
