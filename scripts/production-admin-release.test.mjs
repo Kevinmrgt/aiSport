@@ -3,7 +3,7 @@ import test from 'node:test';
 import { access, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand, safeReleaseFailure, verifyReleaseConfiguration, checkReleaseHealth, inspectDeploymentDatabase, safeVercelValidation, cleanupVercelCheckout, inspectVercelBuildArtifacts, bindVercelFunctionEnvironment } from './production-admin-release.mjs';
+import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand, safeReleaseFailure, verifyReleaseConfiguration, checkReleaseHealth, inspectDeploymentDatabase, safeVercelValidation, cleanupVercelCheckout, inspectVercelBuildArtifacts, bindVercelFunctionEnvironment, checkWebOAuthConfiguration } from './production-admin-release.mjs';
 
 const revision = 'a'.repeat(40);
 const privateAdminId = 'd72a58b7-6d4f-4187-90f7-9c763cfe2975';
@@ -26,6 +26,9 @@ function providerFixture() {
     return vars[project];
   },
     list: async () => ['AUTH_GOOGLE_ID', 'AUTH_GOOGLE_SECRET'].map((key) => ({ key, id: key, type: 'sensitive', target: ['production'] })),
+    temporaryAutomationBypass: async (_project, undo) => {
+      const revoke = async () => {}; undo.push(revoke); return { secret: 'private-fixture-bypass', revoke };
+    },
     previousDeployment: async (project) => `https://old-${project}.vercel.app`,
     replace: async () => assert.fail('plan attempted environment write') };
 }
@@ -216,7 +219,7 @@ test('failed staged deployment restores values without promotion and retains the
       }
       return '';
     },
-    health: async () => assert.fail('health before deployment'), cleanup: async () => {}, verifyConfiguration: async () => {}, functionEnvironmentBinder: mockFunctionBinder,
+    health: async () => assert.fail('health before deployment'), cleanup: async () => {}, verifyConfiguration: async () => {}, functionEnvironmentBinder: mockFunctionBinder, oauthConfiguration: async () => ({ canonicalCallbackVerified: true }),
   });
   assert.equal(result.complete, false); assert.equal(result.rollbackComplete, true);
   assert.equal(result.newDatabaseRetained, true); assert.equal(undone, calls.length);
@@ -248,7 +251,7 @@ test('promotion failure rolls back both projects and reports incomplete compensa
   let deployCount = 0;
   const result = await deployClosedProduction(env, { ...configuration(), source }, provider, {
     bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }), selectedAdminId: async () => privateAdminId,
-    cleanup: async () => {}, health: async () => {}, denied: async () => {}, verifyConfiguration: async () => {}, functionEnvironmentBinder: mockFunctionBinder,
+    cleanup: async () => {}, health: async () => {}, denied: async () => {}, verifyConfiguration: async () => {}, functionEnvironmentBinder: mockFunctionBinder, oauthConfiguration: async () => ({ canonicalCallbackVerified: true }),
     command: (_command, args) => {
       if (args.includes('deploy')) return `https://new-${deployCount++}.vercel.app\n`;
       if (args.includes('promote')) {
@@ -292,7 +295,7 @@ test('a strictly verified reused target can deploy without falsely claiming data
       assert.equal(input.BOOTSTRAP_REUSE_EXISTING, 'verified-admin-copy');
       return { ...ready, targetExists: true, targetReused: true, existingTargetVerified: true, targetCreated: false, adminCopyVerified: true };
     },
-    selectedAdminId: async () => privateAdminId, cleanup: async () => {}, health: async () => {}, denied: async () => {}, verifyConfiguration: async () => {}, functionEnvironmentBinder: mockFunctionBinder,
+    selectedAdminId: async () => privateAdminId, cleanup: async () => {}, health: async () => {}, denied: async () => {}, verifyConfiguration: async () => {}, functionEnvironmentBinder: mockFunctionBinder, oauthConfiguration: async () => ({ canonicalCallbackVerified: true }),
     command: (_command, args) => args.includes('deploy') ? `https://verified-reuse-${deployments++}.vercel.app` : '',
   });
   assert.equal(result.complete, true); assert.equal(result.reuseExistingRequested, true);
@@ -368,7 +371,7 @@ test('staged schema failure retains only validated deployment URLs and safe heal
     privateExtra: 'private-payload', timestamp: new Date().toISOString() }), { status: 503, headers: { 'content-type': 'application/json' } });
   const result = await deployClosedProduction(env, { ...configuration(), source }, provider, {
     bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }), selectedAdminId: async () => privateAdminId,
-    verifyConfiguration: async () => {}, functionEnvironmentBinder: mockFunctionBinder, cleanup: async () => {},
+    verifyConfiguration: async () => {}, functionEnvironmentBinder: mockFunctionBinder, oauthConfiguration: async () => ({ canonicalCallbackVerified: true }), cleanup: async () => {},
     health: (url, expected) => checkReleaseHealth(url, expected, { fetcher }),
     command: (_command, args) => { assert.equal(args.includes('promote'), false); return args.includes('deploy') ? 'https://safe-candidate.vercel.app' : ''; },
   });
@@ -491,7 +494,7 @@ test('build and deploy receive exact release values in child env and deploy argu
   const observed = [];
   const result = await deployClosedProduction({ ...env, AUTH_URL: 'https://legacy.example.test', NEXTAUTH_URL: 'https://legacy.example.test' }, { ...configuration(), source }, provider, {
     bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }), selectedAdminId: async () => privateAdminId,
-    verifyConfiguration: async () => {}, functionEnvironmentBinder: mockFunctionBinder, cleanup: async () => {}, health: async () => {}, denied: async () => {},
+    verifyConfiguration: async () => {}, functionEnvironmentBinder: mockFunctionBinder, oauthConfiguration: async () => ({ canonicalCallbackVerified: true }), cleanup: async () => {}, health: async () => {}, denied: async () => {},
     command: (_command, args, child) => {
       if (args.includes('build') || args.includes('deploy')) {
         observed.push([child.VERCEL_PROJECT_ID, args.includes('deploy') ? 'deploy' : 'build']);
@@ -582,7 +585,7 @@ test('artifact capture refuses a local checkout and survives a failed staged hea
   let captured = false;
   const result = await deployClosedProduction(env, { ...configuration(), source }, provider, {
     bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }), selectedAdminId: async () => privateAdminId,
-    verifyConfiguration: async () => {}, functionEnvironmentBinder: mockFunctionBinder, cleanup: async () => {},
+    verifyConfiguration: async () => {}, functionEnvironmentBinder: mockFunctionBinder, oauthConfiguration: async () => ({ canonicalCallbackVerified: true }), cleanup: async () => {},
     command: (_command, args) => args.includes('deploy') ? 'https://inspected-candidate.vercel.app' : '',
     artifactInspector: async (child, options) => {
       assert.equal(child.PRODUCTION_ACCESS_MODE, 'admin-only'); assert.equal(options.component, 'api');
@@ -659,6 +662,92 @@ test('vendor validation reveals only a bounded machine code and static message c
   const unsafe = safeVercelValidation({ error: { code: 'Private-Secret-123', message: 'Decryption forbidden for private-password' } });
   assert.equal(unsafe.code, undefined); assert.equal(unsafe.signals.decryptionForbidden, true);
   assert.equal(JSON.stringify(unsafe).includes('private-password'), false);
+});
+
+test('temporary project bypass compensates generation failures, revokes only its token and is idempotent', async () => {
+  const provider = new VercelProduction({ ...env, GITHUB_RUN_ID: '123', GITHUB_RUN_ATTEMPT: '2' });
+  const state = { 'third-party-token': { scope: 'automation-bypass' } }; const calls = []; const undo = [];
+  provider.request = async (path, method = 'GET', body) => {
+    calls.push({ path, method, body });
+    if (body?.generate) {
+      assert.equal(undo.length, 1); assert.equal(body.generate.note, 'Alcide closed release validation 123-2');
+      state[body.generate.secret] = { scope: 'automation-bypass' };
+    }
+    if (body?.revoke) { assert.equal(Array.isArray(body.revoke), false); assert.equal(body.revoke.regenerate, false); delete state[body.revoke.secret]; }
+    return { protectionBypass: { ...state } };
+  };
+  const lease = await provider.temporaryAutomationBypass('web', undo);
+  assert.match(lease.secret, /^[a-f0-9]{64}$/); assert.equal(Object.hasOwn(state, lease.secret), true);
+  await lease.revoke(); await lease.revoke(); await undo[0]();
+  assert.deepEqual(Object.keys(state), ['third-party-token']);
+  assert.equal(calls.filter((call) => call.body?.revoke).length, 1);
+  assert.ok(calls.every((call) => call.path === '/v9/projects/web' || call.path === '/v1/projects/web/protection-bypass'));
+  const failedUndo = []; const failedCalls = [];
+  provider.request = async (_path, _method, body) => {
+    failedCalls.push(body);
+    if (body?.generate) throw new Error('private-generate-failure');
+    return { protectionBypass: { ...state } };
+  };
+  await assert.rejects(provider.temporaryAutomationBypass('web', failedUndo));
+  await failedUndo[0](); assert.equal(failedCalls.some((body) => body?.revoke), false);
+});
+
+test('Web validation uses a temporary header then revokes before promotion, also compensating health and revoke failures', async () => {
+  for (const scenario of ['success', 'health_failure', 'revoke_failure', 'existing_token']) {
+    const input = { ...env, ...(scenario === 'existing_token' ? { VERCEL_AUTOMATION_BYPASS_SECRET: 'third-party-token' } : {}) };
+    const provider = new VercelProduction(input); const state = { 'third-party-token': { scope: 'automation-bypass' } };
+    const requests = []; let ownToken; let promoted = 0;
+    provider.previousDeployment = async (project) => `https://old-${project}.vercel.app`;
+    provider.replace = async (_project, _original, _key, _value, undo) => { undo.push(async () => {}); };
+    provider.request = async (_path, method = 'GET', body) => {
+      requests.push({ method, body });
+      if (body?.generate) { ownToken = body.generate.secret; state[ownToken] = { scope: 'automation-bypass' }; }
+      if (body?.revoke) {
+        assert.equal(body.revoke.secret, ownToken);
+        if (scenario === 'revoke_failure') throw new Error('private-revoke-failure');
+        delete state[ownToken];
+      }
+      return { protectionBypass: { ...state } };
+    };
+    const result = await deployClosedProduction(input, { ...configuration(), source }, provider, {
+      bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }), selectedAdminId: async () => privateAdminId,
+      verifyConfiguration: async () => {}, functionEnvironmentBinder: mockFunctionBinder, artifactInspector: async () => ({ complete: true }), cleanup: async () => {}, denied: async () => {},
+      health: async (_url, expected, options = {}) => {
+        if (expected.service === 'alcide-api') assert.equal(options.bypassSecret, undefined);
+        if (expected.service === 'alcide-web' && _url.includes('web-validation.vercel.app')) {
+          assert.equal(options.bypassSecret, ownToken ?? 'third-party-token');
+          if (scenario === 'health_failure') throw new Error('private-health-failure');
+        }
+      },
+      oauthConfiguration: async (_url, options) => { assert.equal(options.bypassSecret, ownToken ?? 'third-party-token'); return { canonicalCallbackVerified: true }; },
+      command: (_command, args, child) => {
+        if (ownToken) assert.equal(args.some((argument) => argument.includes(ownToken)), false);
+        if (args.includes('promote')) { promoted += 1; assert.equal(Boolean(ownToken && Object.hasOwn(state, ownToken)), false); }
+        return args.includes('deploy') ? `https://${child.VERCEL_PROJECT_ID}-validation.vercel.app` : '';
+      },
+    });
+    if (scenario === 'success' || scenario === 'existing_token') { assert.equal(result.complete, true); assert.equal(promoted, 2); }
+    else { assert.equal(result.complete, false); assert.equal(promoted, 0); }
+    if (scenario === 'health_failure') { assert.equal(result.rollbackComplete, true); assert.equal(result.failure.failedStage, 'web_health'); }
+    if (scenario === 'revoke_failure') { assert.equal(result.rollbackComplete, false); assert.equal(result.failure.failedStage, 'web_automation_bypass_revoke'); }
+    else if (ownToken) assert.equal(Object.hasOwn(state, ownToken), false);
+    assert.equal(Object.hasOwn(state, 'third-party-token'), true);
+    if (scenario === 'existing_token') assert.equal(requests.length, 0);
+    for (const privateValue of [ownToken, 'third-party-token', 'private-health-failure', 'private-revoke-failure'].filter(Boolean)) assert.equal(JSON.stringify(result).includes(privateValue), false);
+  }
+});
+
+test('Web OAuth configuration requires the exact canonical callback and refuses cross-origin redirects', async () => {
+  let calls = 0;
+  const response = (callbackUrl) => new Response(JSON.stringify({ google: { id: 'google', callbackUrl } }), { headers: { 'content-type': 'application/json' } });
+  const result = await checkWebOAuthConfiguration('https://web-validation.vercel.app', { bypassSecret: 'private-bypass', fetcher: async (url, options) => {
+    calls += 1; assert.equal(url.origin, 'https://web-validation.vercel.app'); assert.equal(url.search, '');
+    assert.equal(options.headers['x-vercel-protection-bypass'], 'private-bypass'); assert.equal(options.redirect, 'manual');
+    return response('https://www.alcideai.fr/api/auth/callback/google');
+  } });
+  assert.equal(result.canonicalCallbackVerified, true); assert.equal(calls, 1);
+  await assert.rejects(checkWebOAuthConfiguration('https://web-validation.vercel.app', { fetcher: async () => response('https://ai-sport-web.vercel.app/api/auth/callback/google') }), /canonical_callback_mismatch/);
+  await assert.rejects(checkWebOAuthConfiguration('https://web-validation.vercel.app', { bypassSecret: 'private-bypass', fetcher: async () => new Response(null, { status: 302, headers: { location: 'https://vercel.com/sso-api' } }) }), /redirect_refused/);
 });
 
 test('protected API must deny an unauthenticated request even when health is green', async () => {

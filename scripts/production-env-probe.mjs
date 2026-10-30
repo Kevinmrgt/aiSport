@@ -20,7 +20,7 @@ try {
    try{
     const health=await checkReleaseHealth(url,expected,options);report.health[component]=health;
     if(component==='api')return health;
-    const response=await fetch(new URL('/api/auth/providers',url),{redirect:'error',signal:AbortSignal.timeout(15000)});
+    const response=await fetch(new URL('/api/auth/providers',url),{redirect:'error',signal:AbortSignal.timeout(15000),headers:options?.bypassSecret?{'x-vercel-protection-bypass':options.bypassSecret}:{}});
     const providers=await response.json();
     report.googleCallbackCanonical=response.ok&&providers.google?.callbackUrl==='https://www.alcideai.fr/api/auth/callback/google';
    }catch(error){report.healthFailures[component]=safeReleaseFailure(error,component+'_health');}

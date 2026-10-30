@@ -17,7 +17,7 @@ const mutableKeys = new Set(['DATABASE_URL', 'ALCIDE_DATABASE_URL', 'PRODUCTION_
 const releaseStages = new Set(['input_validation', 'ci_verification', 'configuration_read', 'bootstrap_plan', 'source_reference', 'backup', 'rehearsal',
   'diagnostic_input', 'diagnostic_deployment_lookup', 'diagnostic_environment_pull', 'diagnostic_project_environment_pull', 'diagnostic_project_database_read', 'diagnostic_database_sql',
   'prepared_backup_verification', 'api_reference', 'web_reference', 'bootstrap_apply', 'admin_lookup_source', 'admin_lookup_target', 'admin_identity_comparison',
-  ...['api', 'web'].flatMap((project) => ['env_readback', 'cleanup', 'pull', 'build', 'function_environment', 'build_artifacts', 'deploy', 'health', 'denied_probe', 'promote', 'alias_health', 'alias_denied_probe',
+  ...['api', 'web'].flatMap((project) => ['env_readback', 'cleanup', 'pull', 'build', 'function_environment', 'build_artifacts', 'deploy', 'health', 'oauth_configuration', 'automation_bypass_create', 'automation_bypass_revoke', 'denied_probe', 'promote', 'alias_health', 'alias_denied_probe',
     ...[...mutableKeys].map((key) => `env_${key}`)].map((action) => `${project}_${action}`))]);
 const bootstrapFailureReasons = new Set(['admin_not_unique', 'admin_identity_lookup_failed', 'admin_identity_mismatch', 'explicit_admin_email_required']);
 const healthFailureReasons = new Map([
@@ -158,6 +158,28 @@ export class VercelProduction {
     const url = result.targets?.production?.url;
     if (typeof url !== 'string' || !/^[a-z0-9.-]+\.vercel\.app$/.test(url)) fail('previous_production_deployment_required');
     return `https://${url}`;
+  }
+  async temporaryAutomationBypass(project, undo) {
+    const secret = randomBytes(32).toString('hex');
+    const projectPath = `/v9/projects/${encodeURIComponent(project)}`;
+    const bypassPath = `/v1/projects/${encodeURIComponent(project)}/protection-bypass`;
+    let finished = false;
+    const revoke = async () => {
+      if (finished) return;
+      const current = await this.request(projectPath);
+      if (!Object.hasOwn(current.protectionBypass ?? {}, secret)) { finished = true; return; }
+      const result = await this.request(bypassPath, 'PATCH', { revoke: { secret, regenerate: false } });
+      const remaining = result.protectionBypass ?? (await this.request(projectPath)).protectionBypass;
+      if (Object.hasOwn(remaining ?? {}, secret)) fail('automation_bypass_revocation_not_verified');
+      finished = true;
+    };
+    // Compensate even when a timed-out generation request actually succeeded.
+    undo.push(revoke);
+    const run = /^\d+$/.test(this.env.GITHUB_RUN_ID ?? '') ? this.env.GITHUB_RUN_ID : 'manual';
+    const attempt = /^\d+$/.test(this.env.GITHUB_RUN_ATTEMPT ?? '') ? this.env.GITHUB_RUN_ATTEMPT : '1';
+    const result = await this.request(bypassPath, 'PATCH', { generate: { secret, note: `Alcide closed release validation ${run}-${attempt}` } });
+    if (result.protectionBypass?.[secret]?.scope !== 'automation-bypass') fail('automation_bypass_generation_not_verified');
+    return { secret, revoke };
   }
   async replace(project, original, key, value, undo) {
     if (!mutableKeys.has(key)) fail('environment_write_not_allowlisted');
@@ -413,6 +435,21 @@ export async function checkReleaseHealth(url, expected, { bypassSecret, fetcher 
   } });
 }
 
+export async function checkWebOAuthConfiguration(base, { bypassSecret, fetcher = fetch } = {}) {
+  if (!/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(base ?? '')) fail('invalid_created_deployment_url');
+  const url = new URL('/api/auth/providers', base);
+  const headers = { 'cache-control': 'no-cache' };
+  if (bypassSecret) headers['x-vercel-protection-bypass'] = bypassSecret;
+  const response = await fetcher(url, { headers, redirect: 'manual', signal: AbortSignal.timeout(20_000) });
+  if ([301, 302, 303, 307, 308].includes(response.status)) fail('web_oauth_configuration_redirect_refused');
+  if (!response.ok) { const error = new ReleaseError('web_oauth_configuration_http_error'); error.status = response.status; throw error; }
+  if (!response.headers.get('content-type')?.includes('application/json')) fail('web_oauth_configuration_not_json');
+  let providers;
+  try { providers = await response.json(); } catch { fail('web_oauth_configuration_invalid_json'); }
+  if (providers?.google?.id !== 'google' || providers.google.callbackUrl !== 'https://www.alcideai.fr/api/auth/callback/google') fail('web_oauth_canonical_callback_mismatch');
+  return { googleProviderConfigured: true, canonicalCallbackVerified: true };
+}
+
 export async function cleanupVercelCheckout(env, { cwd = process.cwd() } = {}) {
   const root = resolve(cwd);
   if (env.GITHUB_ACTIONS !== 'true' || !env.GITHUB_WORKSPACE || resolve(env.GITHUB_WORKSPACE) !== root) fail('vercel_cleanup_requires_github_checkout');
@@ -611,6 +648,7 @@ export async function bindVercelFunctionEnvironment(env, { component = 'api', ex
 
 export async function deployClosedProduction(env, configuration, provider, { bootstrap = runAdminBootstrap, command = privateCommand, health = checkReleaseHealth,
   verifyConfiguration = verifyReleaseConfiguration, artifactInspector = inspectVercelBuildArtifacts, functionEnvironmentBinder = bindVercelFunctionEnvironment,
+  oauthConfiguration = checkWebOAuthConfiguration,
   selectedAdminId = readSelectedAdminId, denied = checkUnauthenticatedApiDenied, cleanup = () => cleanupVercelCheckout(env) } = {}) {
   const undo = [];
   const previous = [];
@@ -621,6 +659,7 @@ export async function deployClosedProduction(env, configuration, provider, { boo
   const urls = [];
   const buildArtifactDiagnostics = {};
   let bootstrapResult;
+  let webOAuthConfiguration;
   let promotionAttempted = false;
   try {
     previous.push(await provider.previousDeployment(env.VERCEL_API_PROJECT_ID));
@@ -670,9 +709,24 @@ export async function deployClosedProduction(env, configuration, provider, { boo
       const url = output.trim().split(/\r?\n/).at(-1)?.trim();
       if (!/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(url ?? '')) fail('invalid_created_deployment_url');
       urls.push(url);
+      let bypassSecret;
+      let temporaryBypass;
+      if (index === 1) {
+        bypassSecret = env.VERCEL_AUTOMATION_BYPASS_SECRET;
+        if (!bypassSecret) {
+          failedStage = 'web_automation_bypass_create';
+          temporaryBypass = await provider.temporaryAutomationBypass(project, undo);
+          bypassSecret = temporaryBypass.secret;
+        }
+      }
       failedStage = `${component}_health`;
-      await health(`${url}${index === 0 ? '/health/ready' : '/api/health'}`, { service: index === 0 ? 'alcide-api' : 'alcide-web', status: index === 0 ? 'ready' : 'ok', revision: env.RELEASE_REVISION }, { bypassSecret: env.VERCEL_AUTOMATION_BYPASS_SECRET });
-      if (index === 0) { failedStage = 'api_denied_probe'; await denied(url, { bypassSecret: env.VERCEL_AUTOMATION_BYPASS_SECRET }); }
+      await health(`${url}${index === 0 ? '/health/ready' : '/api/health'}`, { service: index === 0 ? 'alcide-api' : 'alcide-web', status: index === 0 ? 'ready' : 'ok', revision: env.RELEASE_REVISION }, { bypassSecret });
+      if (index === 0) { failedStage = 'api_denied_probe'; await denied(url); }
+      else {
+        failedStage = 'web_oauth_configuration';
+        webOAuthConfiguration = await oauthConfiguration(url, { bypassSecret });
+        if (temporaryBypass) { failedStage = 'web_automation_bypass_revoke'; await temporaryBypass.revoke(); }
+      }
     }
     for (const [index, project] of [env.VERCEL_API_PROJECT_ID, env.VERCEL_WEB_PROJECT_ID].entries()) {
       const component = index === 0 ? 'api' : 'web';
@@ -683,7 +737,7 @@ export async function deployClosedProduction(env, configuration, provider, { boo
       await health(index === 0 ? 'https://ai-sport-api.vercel.app/health/ready' : 'https://www.alcideai.fr/api/health', { service: index === 0 ? 'alcide-api' : 'alcide-web', status: index === 0 ? 'ready' : 'ok', revision: env.RELEASE_REVISION });
       if (index === 0) { failedStage = 'api_alias_denied_probe'; await denied('https://ai-sport-api.vercel.app'); }
     }
-    return { complete: true, access: 'admin-only', revision: env.RELEASE_REVISION, reuseExistingRequested: env.BOOTSTRAP_REUSE_EXISTING === 'verified-admin-copy', deploymentUrls: urls, previousDeploymentUrls: previous, unauthenticatedProtectedApiStatus: 401, bootstrap: bootstrapResult, buildArtifactDiagnostics };
+    return { complete: true, access: 'admin-only', revision: env.RELEASE_REVISION, reuseExistingRequested: env.BOOTSTRAP_REUSE_EXISTING === 'verified-admin-copy', deploymentUrls: urls, previousDeploymentUrls: previous, unauthenticatedProtectedApiStatus: 401, bootstrap: bootstrapResult, buildArtifactDiagnostics, webOAuthConfiguration };
   } catch (error) {
     let rollbackComplete = true;
     if (promotionAttempted) {
