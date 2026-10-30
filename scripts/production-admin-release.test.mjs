@@ -399,7 +399,7 @@ test('the immutable deployment diagnostic reads its resolved env privately and d
   assert.equal(report.runtimeDatabaseNameMatchesTarget, false); assert.equal(report.runtimeDatabaseNameMatchesCurrentProject, true);
   assert.equal(report.runtimeConnectionMatchesTarget, false); assert.equal(report.sql.migrationCount, 12);
   assert.equal(report.runtimeRevisionMatchesExpected, true); assert.equal(report.functionEnvironmentOverridesInspected, false);
-  assert.deepEqual(calls, ['/v13/deployments/candidate-fixture.vercel.app', '/v3/env/pull/dpl_fixture']);
+  assert.deepEqual(calls, ['/v13/deployments/candidate-fixture.vercel.app', '/v3/env/pull/dpl_fixture?source=vercel-cli%3Apull']);
   for (const value of ['never-persist-this-value', 'private_user', 'private_password', '/legacy']) assert.equal(JSON.stringify(report).includes(value), false);
 });
 
@@ -410,6 +410,23 @@ test('deployment diagnostics fail closed for foreign projects and omit every enc
     snapshot: async () => assert.fail('a foreign deployment must not resolve secrets'),
   }, databaseInspector: async () => assert.fail('a foreign deployment must not connect') });
   assert.equal(report.complete, false); assert.equal(report.reason, 'diagnostic_deployment_project_mismatch');
+});
+
+test('diagnostics accept an explicit deployment ID and expose the failing read stage without private errors', async () => {
+  const calls = [];
+  const provider = new VercelProduction(env);
+  const underlyingRequest = provider.request.bind(provider);
+  provider.fetcher = async () => ({ ok: false, status: 400, json: async () => ({ error: { message: 'private-provider-details' } }) });
+  provider.request = async (path) => {
+    calls.push(path);
+    return path.startsWith('/v13/') ? { id: 'dpl_fixture', projectId: 'api', url: 'candidate-fixture.vercel.app' } : underlyingRequest(path);
+  };
+  provider.snapshot = async () => assert.fail('failed deployment pull must not proceed to project variables');
+  const report = await inspectDeploymentDatabase({ ...env, DIAGNOSTIC_DEPLOYMENT_ID: 'dpl_fixture' }, { provider });
+  assert.deepEqual(calls, ['/v13/deployments/dpl_fixture', '/v3/env/pull/dpl_fixture?source=vercel-cli%3Apull']);
+  assert.equal(report.complete, false); assert.equal(report.failure.failedStage, 'diagnostic_environment_pull');
+  assert.equal(report.failure.httpStatus, 400); assert.equal(report.deploymentUrl, 'https://candidate-fixture.vercel.app');
+  assert.equal(JSON.stringify(report).includes('private-provider'), false);
 });
 
 test('protected API must deny an unauthenticated request even when health is green', async () => {

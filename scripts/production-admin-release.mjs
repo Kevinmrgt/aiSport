@@ -15,6 +15,7 @@ const production = (item) => !item.gitBranch && (Array.isArray(item.target) ? it
 const safeKey = (key) => /^[A-Z][A-Z0-9_]+$/.test(key);
 const mutableKeys = new Set(['DATABASE_URL', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'API_URL', 'NEXT_PUBLIC_API_URL', 'FRONTEND_URL']);
 const releaseStages = new Set(['input_validation', 'ci_verification', 'configuration_read', 'bootstrap_plan', 'source_reference', 'backup', 'rehearsal',
+  'diagnostic_input', 'diagnostic_deployment_lookup', 'diagnostic_environment_pull', 'diagnostic_project_database_read', 'diagnostic_database_sql',
   'prepared_backup_verification', 'api_reference', 'web_reference', 'bootstrap_apply', 'admin_lookup_source', 'admin_lookup_target', 'admin_identity_comparison',
   ...['api', 'web'].flatMap((project) => ['env_readback', 'cleanup', 'pull', 'build', 'deploy', 'health', 'denied_probe', 'promote', 'alias_health', 'alias_denied_probe',
     ...[...mutableKeys].map((key) => `env_${key}`)].map((action) => `${project}_${action}`))]);
@@ -300,20 +301,31 @@ async function inspectResolvedDatabase(value) {
 export async function inspectDeploymentDatabase(env, { provider = new VercelProduction(env), databaseInspector = inspectResolvedDatabase } = {}) {
   const report = { scope: 'immutable-deployment-database-configuration', readOnly: true, complete: false,
     environmentSource: 'vercel-resolved-deployment-environment', functionEnvironmentOverridesInspected: false };
+  let failedStage = 'diagnostic_input';
   try {
-    const candidate = env.DIAGNOSTIC_DEPLOYMENT_URL;
-    if (!/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(candidate ?? '')) fail('invalid_created_deployment_url');
+    let candidate = env.DIAGNOSTIC_DEPLOYMENT_URL;
+    const deploymentId = env.DIAGNOSTIC_DEPLOYMENT_ID;
+    if (deploymentId && !/^dpl_[a-zA-Z0-9]+$/.test(deploymentId)) fail('invalid_diagnostic_deployment_id');
+    if ((!deploymentId || candidate) && !/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(candidate ?? '')) fail('invalid_created_deployment_url');
     if (!/^[a-z][a-z0-9_]{2,62}$/.test(env.TARGET_DATABASE_NAME ?? '') || !env.VERCEL_API_PROJECT_ID) fail('diagnostic_configuration_required');
-    const deployment = await provider.request(`/v13/deployments/${encodeURIComponent(new URL(candidate).hostname)}`);
-    if (!/^dpl_[a-zA-Z0-9]+$/.test(deployment.id ?? '') || deployment.projectId !== env.VERCEL_API_PROJECT_ID || deployment.url !== new URL(candidate).hostname) fail('diagnostic_deployment_project_mismatch');
-    const [resolved, configured] = await Promise.all([
-      provider.request(`/v3/env/pull/${encodeURIComponent(deployment.id)}`), provider.snapshot(env.VERCEL_API_PROJECT_ID, ['DATABASE_URL']),
-    ]);
+    failedStage = 'diagnostic_deployment_lookup';
+    const deployment = await provider.request(`/v13/deployments/${encodeURIComponent(deploymentId ?? new URL(candidate).hostname)}`);
+    if (!/^dpl_[a-zA-Z0-9]+$/.test(deployment.id ?? '') || (deploymentId && deployment.id !== deploymentId) ||
+        deployment.projectId !== env.VERCEL_API_PROJECT_ID || !/^[a-z0-9-]+\.vercel\.app$/.test(deployment.url ?? '') ||
+        (candidate && deployment.url !== new URL(candidate).hostname)) fail('diagnostic_deployment_project_mismatch');
+    candidate = `https://${deployment.url}`;
+    report.deploymentUrl = candidate;
+    failedStage = 'diagnostic_environment_pull';
+    // The pinned CLI always identifies the pull source with this query value.
+    const resolved = await provider.request(`/v3/env/pull/${encodeURIComponent(deployment.id)}?source=vercel-cli%3Apull`);
+    failedStage = 'diagnostic_project_database_read';
+    const configured = await provider.snapshot(env.VERCEL_API_PROJECT_ID, ['DATABASE_URL']);
     if (typeof resolved.env?.DATABASE_URL !== 'string' || !configured.DATABASE_URL?.value) fail('deployment_runtime_database_unavailable');
     const runtime = databaseUrl(directSourceUrl(resolved.env.DATABASE_URL).value);
     const source = databaseUrl(directSourceUrl(configured.DATABASE_URL.value).value);
     const expected = new URL(source); expected.pathname = `/${env.TARGET_DATABASE_NAME}`;
     const runtimeName = decodeURIComponent(runtime.pathname.slice(1));
+    failedStage = 'diagnostic_database_sql';
     const sql = await databaseInspector(runtime.toString());
     Object.assign(report, { complete: true, deploymentUrl: candidate,
       runtimeDatabaseNameSha256: createHash('sha256').update(runtimeName).digest('hex'),
@@ -330,7 +342,10 @@ export async function inspectDeploymentDatabase(env, { provider = new VercelProd
         migrationCount: Number.isSafeInteger(sql.migrationCount) && sql.migrationCount >= 0 ? sql.migrationCount : null,
         latestMigrationTimestamp: Number.isSafeInteger(sql.latestMigrationTimestamp) && sql.latestMigrationTimestamp >= 0 ? sql.latestMigrationTimestamp : null },
     });
-  } catch (error) { report.reason = error instanceof ReleaseError ? error.message : 'private_diagnostics_required'; }
+  } catch (error) {
+    report.reason = error instanceof ReleaseError ? error.message : 'private_diagnostics_required';
+    report.failure = safeReleaseFailure(error, failedStage);
+  }
   return report;
 }
 
