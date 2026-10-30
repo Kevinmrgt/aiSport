@@ -64,3 +64,23 @@ cookies, clés et informations de connexion.
 
 Les points déjà identifiés sont dans
 [release-readiness.md](release-readiness.md).
+
+## Reprise de la surveillance après maintenance
+
+Après une pause volontaire, l'opérateur peut définir la variable GitHub
+`PROD_MONITOR_RESUMED_AT` à l'horodatage UTC d'une sonde de production réellement
+observée à la reprise. Le moniteur choisit la plus récente de cette date et de
+la dernière exécution planifiée. Son rapport conserve la date planifiée
+antérieure, la date de reprise et la provenance de la référence retenue.
+Une valeur absente ou vide conserve le contrôle historique ; une date invalide
+ou future bloque la qualification. Cette référence ne se renouvelle pas
+automatiquement : tout nouveau délai supérieur à 120 minutes reste une alerte.
+Les contrôles JSON, schéma et SHA continuent à sonder les deux services ; les
+simulations d'alerte et de reprise ne constituent jamais des sondes réelles.
+
+Pour la reprise du 30 octobre 2026, la valeur factuelle à configurer est
+`2026-10-30T11:43:21.649Z`, issue du [premier contrôle réel après la bascule](https://github.com/Kevinmrgt/aiSport/actions/runs/41050093047).
+Ses contrôles Web/API et SHA étaient conformes ; l'échec concernait uniquement
+l'intervalle historique laissé par la pause de maintenance. L'opérateur définit
+la variable après livraison de ce support, puis rejoue le moniteur en mode
+`production` et conserve son résultat.
