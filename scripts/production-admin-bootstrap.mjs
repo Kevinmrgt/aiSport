@@ -123,7 +123,8 @@ async function readAdminSnapshot(client, configuration, validateData) {
   const incompatible = configuration.importPolicy === 'account-only' ? null : await validateData(rows);
   if (incompatible && (Object.keys(incompatible).sort().join(',') !== 'session_logs,training_programs,user_settings,workouts' ||
       Object.values(incompatible).some((count) => !Number.isSafeInteger(count) || count < 0))) fail('invalid_compatibility_diagnostic');
-  const reason = targetExists ? 'target_already_exists' : !base.createDatabasePrivilege ? 'create_database_privilege_missing' :
+  const reusable = targetExists && configuration.reuseExisting && configuration.importPolicy === 'account-only';
+  const reason = targetExists && !reusable ? 'target_already_exists' : !targetExists && !base.createDatabasePrivilege ? 'create_database_privilege_missing' :
     suspended ? 'admin_suspended_review_required' : foreignKeyIssues ? 'admin_foreign_keys_invalid' :
     incompatible && Object.values(incompatible).some((count) => count > 0) ? 'admin_data_incompatible' : null;
   return { rows, report: { ...base, ready: reason === null, ...(reason ? { reason } : {}),
@@ -154,7 +155,7 @@ async function verifySelectedRows(client, rows) {
   }
   const foreignKeys = Number((await client.query("select count(*)::text as count from pg_constraint where contype = 'f' and not convalidated")).rows[0].count);
   if (foreignKeys !== 0) fail('target_foreign_key_verification_failed');
-  for (const table of ['sessions', 'generation_quotas', 'generation_operations', 'generation_daily_budgets', 'generation_usage_events', 'account_revocations', 'session_log_operations']) {
+  for (const table of ['sessions', 'generation_quotas', 'generation_control', 'generation_operations', 'generation_daily_budgets', 'generation_usage_events', 'account_revocations', 'session_log_operations']) {
     if (Number((await client.query(`select count(*)::text as count from public.${table}`)).rows[0].count) !== 0) fail('unexpected_target_data');
   }
   const credentials = Number((await client.query(`select count(*)::text as count from public.accounts where refresh_token is not null or access_token is not null or id_token is not null or session_state is not null`)).rows[0].count);
@@ -162,10 +163,24 @@ async function verifySelectedRows(client, rows) {
   if (credentials || keys) fail('unexpected_target_credentials');
 }
 
+async function verifyExistingTarget(client, rows, inspectLineage) {
+  const lineage = await inspectLineage(client, migrationsFolder);
+  if (lineage.appliedMigrations !== 13 || lineage.pendingMigrations !== 0) fail('target_migration_verification_failed');
+  const tables = (await client.query(`select n.nspname as schema, c.relname as name
+    from pg_class c join pg_namespace n on n.oid = c.relnamespace
+    where c.relkind in ('r','p','f') and n.nspname not in ('pg_catalog','information_schema')
+      and n.nspname not like 'pg_toast%' order by n.nspname, c.relname`)).rows;
+  const expected = [...Object.keys(columns), 'sessions', 'generation_quotas', 'generation_control', 'generation_operations',
+    'generation_daily_budgets', 'generation_usage_events', 'account_revocations', 'session_log_operations']
+    .map((name) => `public.${name}`).concat('drizzle.__drizzle_migrations').sort();
+  if (JSON.stringify(tables.map((table) => `${table.schema}.${table.name}`).sort()) !== JSON.stringify(expected)) fail('unexpected_target_tables');
+  await verifySelectedRows(client, rows);
+}
+
 export async function runAdminBootstrap(env, {
   clientFactory = (configuration) => new Client(configuration),
   validateData = validateStoredData, migrateTarget = migrateNewTarget,
-  readLineage = readCandidateLineage,
+  readLineage = readCandidateLineage, inspectTargetLineage = assertDatabaseMigrationLineage,
 } = {}) {
   const mode = env.BOOTSTRAP_MODE ?? 'plan';
   const importPolicy = env.ADMIN_IMPORT_POLICY ?? 'compatible-history';
@@ -174,6 +189,9 @@ export async function runAdminBootstrap(env, {
   try {
     if (!['plan', 'apply'].includes(report.mode)) fail('invalid_mode');
     if (!['compatible-history', 'account-only'].includes(report.importPolicy)) fail('invalid_import_policy');
+    if (env.BOOTSTRAP_REUSE_EXISTING && env.BOOTSTRAP_REUSE_EXISTING !== 'verified-admin-copy') fail('invalid_existing_target_confirmation');
+    const reuseExisting = env.BOOTSTRAP_REUSE_EXISTING === 'verified-admin-copy';
+    if (reuseExisting && importPolicy !== 'account-only') fail('existing_target_reuse_requires_account_only');
     const sourceUrl = databaseUrl(env.SOURCE_DATABASE_URL);
     const targetUrl = targetDatabaseUrl(env.SOURCE_DATABASE_URL, env.TARGET_DATABASE_NAME);
     if (sourceUrl.hostname.includes('-pooler.')) fail('direct_source_endpoint_required');
@@ -189,8 +207,20 @@ export async function runAdminBootstrap(env, {
     };
     source = await connect(sourceUrl.toString());
     await source.query('begin isolation level repeatable read read only'); sourceTransaction = true;
-    const snapshot = await readAdminSnapshot(source, { targetName: env.TARGET_DATABASE_NAME, adminEmail: env.BOOTSTRAP_ADMIN_EMAIL, adminId: env.BOOTSTRAP_ADMIN_USER_ID, importPolicy }, validateData);
+    const snapshot = await readAdminSnapshot(source, { targetName: env.TARGET_DATABASE_NAME, adminEmail: env.BOOTSTRAP_ADMIN_EMAIL, adminId: env.BOOTSTRAP_ADMIN_USER_ID, importPolicy, reuseExisting }, validateData);
     Object.assign(report, snapshot.report);
+    if (report.targetExists && reuseExisting && report.ready) {
+      target = await connect(targetUrl);
+      await target.query('begin isolation level repeatable read read only'); targetTransaction = true;
+      if ((await target.query('select current_database() as database')).rows[0]?.database !== env.TARGET_DATABASE_NAME) fail('target_database_name_mismatch');
+      await verifyExistingTarget(target, snapshot.rows, inspectTargetLineage);
+      await target.query('rollback'); targetTransaction = false;
+      report.complete = true; report.targetReused = true; report.existingTargetVerified = true;
+      report.migrationCount = 13; report.verifiedRowCounts = report.retainedRows;
+      report.googleIdentityLinked = report.googleIdentityCount > 0;
+      if (report.mode === 'apply') { report.adminCopyVerified = true; report.copiedRowCounts = report.retainedRows; }
+      return report;
+    }
     if (report.mode === 'plan' || !report.ready) { report.complete = true; return report; }
     control = await connect(sourceUrl.toString());
     // PostgreSQL cannot CREATE DATABASE inside a transaction. This changes only a new database.

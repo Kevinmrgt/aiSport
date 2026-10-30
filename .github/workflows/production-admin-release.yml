@@ -13,9 +13,13 @@ on:
         required: true
         type: string
       target_database_name:
-        description: New database on the existing PostgreSQL endpoint (must not exist)
+        description: Database on the existing endpoint (existing requires verified reuse)
         required: true
         type: string
+      reuse_existing:
+        description: Reuse an existing account-only target after strict read-only verification
+        type: boolean
+        default: false
       bootstrap_confirm:
         description: For deploy only, selective-admin-copy-to-new-database
         type: string
@@ -39,6 +43,7 @@ jobs:
       RELEASE_REVISION: ${{ inputs.revision }}
       TARGET_DATABASE_NAME: ${{ inputs.target_database_name }}
       BOOTSTRAP_CONFIRM: ${{ inputs.bootstrap_confirm }}
+      BOOTSTRAP_REUSE_EXISTING: ${{ inputs.reuse_existing && 'verified-admin-copy' || '' }}
       BOOTSTRAP_ADMIN_EMAIL: ${{ secrets.BOOTSTRAP_ADMIN_EMAIL }}
       ADMIN_IMPORT_POLICY: account-only
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -96,7 +101,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Create selective admin database and stage, verify, promote deployments
+      - name: Verify or create selective admin database and stage, verify, promote deployments
         if: inputs.mode == 'deploy'
         env:
           RELEASE_PHASE: release
