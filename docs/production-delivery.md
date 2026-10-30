@@ -1,5 +1,11 @@
 # Livraison du candidat de production — 29 octobre 2026
 
+**Mise à jour du 30 octobre :** le propriétaire a choisi de ne conserver que
+son compte administrateur et a demandé la livraison. La procédure de
+[production fermée](production-admin-release.md) décrit la nouvelle base,
+l'import du compte seul et la liaison Google contrôlée. Le rapport ci-dessous
+conserve les preuves et constats de l'audit précédent.
+
 La cible choisie est le code local aiSport sur www.alcideai.fr.
 Ce document rassemble la préparation technique ; il ne certifie pas
 l'ouverture du service public.

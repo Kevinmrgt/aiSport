@@ -1,6 +1,7 @@
 import { signIn } from '@/lib/auth';
 import { GlassPanel, IconBubble, MetricPill } from '@/components/PremiumPrimitives';
 import { loginDestination } from '@/lib/login-destination';
+import { isProductionAccessRestricted } from '@/lib/access-policy';
 
 export const metadata = { title: 'Connexion — Alcide', robots: { index: false, follow: false } };
 
@@ -12,6 +13,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const error = params?.error;
   const destination = loginDestination(params?.callbackUrl);
+  const restricted = isProductionAccessRestricted();
 
   return (
     <div className="grid min-h-[72vh] items-center gap-8 lg:grid-cols-[0.9fr_1.1fr]">
@@ -27,6 +29,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           Connectez-vous pour retrouver vos seances, vos programmes et votre progression dans l
           espace Alcide Pulse.
         </p>
+
+        {restricted && (
+          <p role="status" className="muted-copy mt-4 max-w-md">
+            Accès réservé à l’administration. Utilisez le compte Google autorisé avec une adresse
+            vérifiée.
+          </p>
+        )}
 
         <form
           action={async () => {
@@ -55,7 +64,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             aria-live="polite"
             className="mt-6 max-w-sm rounded-xl border border-red-300/30 bg-red-950/45 px-4 py-3 text-sm font-bold text-red-100"
           >
-            Connexion impossible. Réessayez avec Google.
+            {restricted || error === 'AccessDenied'
+              ? 'Accès réservé. Ce compte Google ne peut pas accéder à cette version.'
+              : 'Connexion impossible. Réessayez avec Google.'}
           </p>
         )}
       </section>

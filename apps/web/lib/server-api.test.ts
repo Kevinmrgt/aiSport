@@ -30,12 +30,14 @@ describe('serverApi', () => {
     vi.spyOn(console, 'info').mockImplementation(() => undefined);
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     process.env['SERVICE_SECRET'] = 'secret-test';
+    vi.stubEnv('PRODUCTION_ACCESS_MODE', 'public');
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     vi.useRealTimers();
+    vi.unstubAllEnvs();
   });
 
   it('refuse tout appel sans session avant de contacter l API', async () => {
@@ -45,6 +47,36 @@ describe('serverApi', () => {
 
     await expect(serverApi.getStats()).rejects.toThrow('Non authentifie');
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('atteste la verification du JWT serveur et refuse les sessions interdites avant fetch', async () => {
+    vi.stubEnv('PRODUCTION_ACCESS_MODE', 'admin-only');
+    vi.stubEnv('ADMIN_EMAILS', 'admin@example.test');
+    const fetchMock = vi
+      .fn<(url: string, init: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(response({}));
+    vi.stubGlobal('fetch', fetchMock);
+    for (const user of [
+      { id: 'admin', email: 'admin@example.test' },
+      { id: 'other', email: 'other@example.test', googleEmailVerified: true },
+    ]) {
+      authMock.mockResolvedValue({ user } as never);
+      await expect(serverApi.getStats()).rejects.toMatchObject({
+        status: 403,
+        code: 'ACCESS_RESTRICTED',
+      });
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+    authMock.mockResolvedValue({
+      user: {
+        id: 'admin',
+        email: 'admin@example.test',
+        googleEmailVerified: true,
+        authIssuedAt: Date.now(),
+      },
+    } as never);
+    await serverApi.getStats();
+    expect(fetchMock.mock.calls[0]?.[1].headers).toMatchObject({ 'x-email-verified': 'true' });
   });
 
   it('transmet l identite serveur et encode les filtres de liste', async () => {

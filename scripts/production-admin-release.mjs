@@ -7,7 +7,9 @@ import { runAdminBootstrap, targetDatabaseUrl, readSelectedAdminId } from './pro
 import { databaseUrl, readDatabaseIdentity, fileHash, migrationFingerprint } from './db-operations.mjs';
 import { checkHealth } from './cd-health-check.mjs';
 
-class ReleaseError extends Error {}
+class ReleaseError extends Error {
+  constructor(reason, diagnostics) { super(reason); if (diagnostics) this.diagnostics = diagnostics; }
+}
 const fail = (message) => { throw new ReleaseError(message); };
 const production = (item) => !item.gitBranch && (Array.isArray(item.target) ? item.target : [item.target]).includes('production');
 const safeKey = (key) => /^[A-Z][A-Z0-9_]+$/.test(key);
@@ -105,7 +107,10 @@ export class VercelProduction {
       const matches = (await this.list(project)).filter((item) => item.key === key && production(item) && item.id !== original?.id);
       for (const item of matches) await this.request(`${base}/${encodeURIComponent(item.id)}`, 'DELETE');
     });
-    await this.request(base, 'POST', { key, value, target: ['production'], type: original?.type ?? 'encrypted' });
+    // POST is v10; PATCH/DELETE intentionally remain v9 per the Vercel API.
+    const result = await this.request(`/v10/projects/${encodeURIComponent(project)}/env`, 'POST', { key, value, target: ['production'], type: original?.type ?? 'encrypted' });
+    const created = Array.isArray(result.created) ? result.created : [result.created];
+    if ((result.failed?.length ?? 0) !== 0 || created.length !== 1 || !created[0]?.id || created[0].key !== key || !production(created[0])) fail('vercel_environment_create_failed');
   }
 }
 
@@ -140,12 +145,25 @@ export async function requireSuccessfulCi(env, fetcher = fetch) {
 
 // Child output is deliberately captured: PostgreSQL, builders and provider CLIs
 // can include decrypted environment values or database row data in diagnostics.
-export function privateCommand(command, args, env, timeout = 600_000) {
-  const result = spawnSync(command, args, { env, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', timeout, maxBuffer: 32 * 1024 * 1024 });
-  if (result.error || result.status !== 0) fail('private_command_failed');
+export function privateCommand(command, args, env, timeout = 600_000, {
+  stage = 'private_command', spawn = spawnSync,
+} = {}) {
+  const allowedStages = new Set(['private_command', 'database_backup', 'database_restore', 'docker_start', 'docker_port', 'docker_cleanup',
+    ...['api', 'web'].flatMap((project) => ['pull', 'build', 'deploy', 'promote', 'rollback'].map((action) => `${project}_${action}`))]);
+  const tool = command === process.execPath ? 'node' : command === 'docker' ? 'docker' : command === 'npx' ? 'vercel_cli' : 'other';
+  const result = spawn(command, args, { env, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', timeout, maxBuffer: 32 * 1024 * 1024 });
+  if (result.error || result.status !== 0) {
+    const reasons = { ETIMEDOUT: 'timeout', ENOENT: 'tool_missing', EACCES: 'tool_access_denied', ENOBUFS: 'output_limit' };
+    throw new ReleaseError('private_command_failed', {
+      stage: allowedStages.has(stage) ? stage : 'private_command', tool,
+      exitCode: Number.isSafeInteger(result.status) ? result.status : null,
+      category: Object.hasOwn(reasons, result.error?.code) ? reasons[result.error.code] : (result.signal ? 'terminated' : 'nonzero_exit'),
+    });
+  }
   return result.stdout;
 }
-const script = (name, env) => privateCommand(process.execPath, [fileURLToPath(new URL(`./${name}`, import.meta.url))], env);
+const script = (name, env) => privateCommand(process.execPath, [fileURLToPath(new URL(`./${name}`, import.meta.url))], env, 600_000,
+  { stage: name === 'db-backup.mjs' ? 'database_backup' : 'database_restore' });
 const pause = (ms) => new Promise((done) => setTimeout(done, ms));
 
 async function rehearse(env, directory, source, identity, bootstrap) {
@@ -154,9 +172,9 @@ async function rehearse(env, directory, source, identity, bootstrap) {
   const dockerEnv = { ...env, POSTGRES_PASSWORD: password };
   let started = false;
   try {
-    privateCommand('docker', ['run', '--detach', '--name', container, '--publish', '127.0.0.1::5432', '--env', 'POSTGRES_PASSWORD', '--env', 'POSTGRES_DB=restore_source', `postgres:${identity.databaseMajor}-alpine`], dockerEnv);
+    privateCommand('docker', ['run', '--detach', '--name', container, '--publish', '127.0.0.1::5432', '--env', 'POSTGRES_PASSWORD', '--env', 'POSTGRES_DB=restore_source', `postgres:${identity.databaseMajor}-alpine`], dockerEnv, 600_000, { stage: 'docker_start' });
     started = true;
-    const port = privateCommand('docker', ['port', container, '5432/tcp'], dockerEnv).trim().match(/^127\.0\.0\.1:(\d+)$/)?.[1];
+    const port = privateCommand('docker', ['port', container, '5432/tcp'], dockerEnv, 600_000, { stage: 'docker_port' }).trim().match(/^127\.0\.0\.1:(\d+)$/)?.[1];
     if (!port) fail('isolated_restore_port_unavailable');
     const local = `postgresql://postgres:${password}@127.0.0.1:${port}/restore_source?sslmode=disable`;
     let ready = false;
@@ -175,7 +193,7 @@ async function rehearse(env, directory, source, identity, bootstrap) {
     await writeFile(resolve(directory, 'rehearsal.json'), JSON.stringify(evidence), { flag: 'wx', mode: 0o600 });
     return evidence;
   } finally {
-    if (started) privateCommand('docker', ['rm', '--force', '--volumes', container], dockerEnv);
+    if (started) privateCommand('docker', ['rm', '--force', '--volumes', container], dockerEnv, 600_000, { stage: 'docker_cleanup' });
   }
 }
 
@@ -208,7 +226,8 @@ export async function deployClosedProduction(env, configuration, provider, { boo
   selectedAdminId = readSelectedAdminId, denied = checkUnauthenticatedApiDenied, cleanup = () => rm(resolve('.vercel'), { force: true, recursive: true }) } = {}) {
   const undo = [];
   const previous = await Promise.all([provider.previousDeployment(env.VERCEL_API_PROJECT_ID), provider.previousDeployment(env.VERCEL_WEB_PROJECT_ID)]);
-  const cli = (project, args) => command('npx', ['--yes', 'vercel@54.17.2', ...args, '--token', env.VERCEL_TOKEN], { ...env, VERCEL_PROJECT_ID: project, VERCEL_TELEMETRY_DISABLED: '1', VERCEL_FORCE_BUILD: '1', APP_REVISION: env.RELEASE_REVISION }, 1_200_000);
+  const cli = (project, args, action = args[0]) => command('npx', ['--yes', 'vercel@54.17.2', ...args, '--token', env.VERCEL_TOKEN], { ...env, VERCEL_PROJECT_ID: project, VERCEL_TELEMETRY_DISABLED: '1', VERCEL_FORCE_BUILD: '1', APP_REVISION: env.RELEASE_REVISION }, 1_200_000,
+    { stage: `${project === env.VERCEL_API_PROJECT_ID ? 'api' : 'web'}_${action}` });
   const urls = [];
   let bootstrapResult;
   let promotionAttempted = false;
@@ -244,16 +263,17 @@ export async function deployClosedProduction(env, configuration, provider, { boo
       if (index === 0) await denied('https://ai-sport-api.vercel.app');
     }
     return { complete: true, access: 'admin-only', revision: env.RELEASE_REVISION, deploymentUrls: urls, previousDeploymentUrls: previous, unauthenticatedProtectedApiStatus: 401, bootstrap: bootstrapResult };
-  } catch {
+  } catch (error) {
     let rollbackComplete = true;
     if (promotionAttempted) {
       // Roll back Web before API to stop new callers using the new API policy.
       for (const index of [1, 0]) {
-        try { cli([env.VERCEL_API_PROJECT_ID, env.VERCEL_WEB_PROJECT_ID][index], ['promote', previous[index], '--yes']); } catch { rollbackComplete = false; }
+        try { cli([env.VERCEL_API_PROJECT_ID, env.VERCEL_WEB_PROJECT_ID][index], ['promote', previous[index], '--yes'], 'rollback'); } catch { rollbackComplete = false; }
       }
     }
     for (const compensate of undo.reverse()) { try { await compensate(); } catch { rollbackComplete = false; } }
     return { complete: false, reason: rollbackComplete ? 'release_failed_rollback_completed' : 'release_failed_manual_rollback_required', rollbackComplete,
+      failure: { reason: error instanceof ReleaseError ? error.message : 'private_diagnostics_required', ...(error instanceof ReleaseError && error.diagnostics ? { command: error.diagnostics } : {}) },
       newDatabaseRetained: bootstrapResult?.targetCreated === true, previousDeploymentUrls: previous };
   } finally { await cleanup(); }
 }
@@ -289,6 +309,7 @@ export async function runProductionAdminRelease(input, { provider, bootstrap = r
     return report;
   } catch (error) {
     report.reason = error instanceof ReleaseError ? error.message : 'private_diagnostics_required';
+    if (error instanceof ReleaseError && error.diagnostics) report.command = error.diagnostics;
     return report;
   }
 }

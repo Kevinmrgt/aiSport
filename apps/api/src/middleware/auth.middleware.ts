@@ -69,9 +69,31 @@ export async function authMiddleware(ctx: Context, next: Next): Promise<void> {
     throw AppError.unauthorized('Identifiant utilisateur manquant');
   }
 
+  const accessMode = process.env['PRODUCTION_ACCESS_MODE'] ?? 'public';
+  if (accessMode !== 'public') {
+    const allowedEmails = (process.env['ADMIN_EMAILS'] ?? '')
+      .split(',')
+      .map((allowed) => allowed.trim().toLowerCase())
+      .filter(Boolean);
+    if (
+      accessMode !== 'admin-only' ||
+      ctx.req.header('x-email-verified') !== 'true' ||
+      !allowedEmails.includes(email.trim().toLowerCase())
+    ) {
+      // Check before identity resolution: closed access must never create another account.
+      throw AppError.forbidden('Accès réservé à l’administration.');
+    }
+  }
+
   const issuedAt = parseSessionIssuedAt(ctx.req.header('x-auth-issued-at'));
   await assertGoogleSessionActive(oauthId, issuedAt);
-  const userId = await resolveGoogleIdentity({ subject: oauthId, email, name, issuedAt });
+  const userId = await resolveGoogleIdentity({
+    subject: oauthId,
+    email,
+    name,
+    issuedAt,
+    verifiedEmail: ctx.req.header('x-email-verified') === 'true',
+  });
   ctx.set('auth', { userId, email, subject: oauthId });
   await next();
 }

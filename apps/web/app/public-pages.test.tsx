@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 vi.mock('@/lib/auth', () => ({ signIn: vi.fn() }));
+vi.mock('server-only', () => ({}));
 
 import ErrorPage from './error';
 import LoginPage from './(auth)/login/page';

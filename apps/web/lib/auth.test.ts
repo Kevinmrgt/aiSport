@@ -1,7 +1,90 @@
-import { describe, expect, it } from 'vitest';
-import { googleJwt } from './auth-callbacks';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { googleJwt, googleSignIn } from './auth-callbacks';
+
+vi.mock('server-only', () => ({}));
 
 describe('sessions Google Auth.js', () => {
+  beforeEach(() => vi.stubEnv('PRODUCTION_ACCESS_MODE', 'public'));
+  afterEach(() => vi.unstubAllEnvs());
+
+  describe('production reservee', () => {
+    beforeEach(() => {
+      vi.stubEnv('PRODUCTION_ACCESS_MODE', 'admin-only');
+      vi.stubEnv('ADMIN_EMAILS', 'admin@example.test');
+    });
+    const login = (email: string, googleEmailVerified: unknown = true) => ({
+      token: {},
+      account: { provider: 'google', providerAccountId: 'google-admin' },
+      profile: { email, email_verified: googleEmailVerified },
+    });
+
+    it('accepte la connexion Google admin et signe sa preuve de verification', async () => {
+      expect(await googleSignIn(login('admin@example.test') as never)).toBe(true);
+      expect(googleJwt(login('admin@example.test') as never)).toMatchObject({
+        userId: 'google-admin',
+        email: 'admin@example.test',
+        googleEmailVerified: true,
+      });
+    });
+
+    it.each([
+      ['other@example.test', true],
+      ['admin@example.test', false],
+      ['admin@example.test', 'true'],
+      ['admin@example.test', undefined],
+    ])('refuse le profil %s avec verification %s', async (email, googleEmailVerified) => {
+      const input = login(email, googleEmailVerified);
+      // Explicit undefined must remain absent, not use the helper default.
+      input.profile.email_verified = googleEmailVerified;
+      expect(await googleSignIn(input as never)).toBe(false);
+      expect(googleJwt(input as never)).toBeNull();
+    });
+
+    it('refuse les cookies anciens ou non admin et ignore une mise a jour cliente', () => {
+      const token = {
+        userId: 'google-admin',
+        authMethod: 'google',
+        identityVersion: 2,
+        authIssuedAt: Date.now(),
+        email: 'admin@example.test',
+      };
+      expect(
+        googleJwt({ token, trigger: 'update', session: { googleEmailVerified: true } } as never),
+      ).toBeNull();
+      expect(googleJwt({ token: { ...token, googleEmailVerified: true } } as never)).not.toBeNull();
+      expect(
+        googleJwt({
+          token: { ...token, googleEmailVerified: true, email: 'other@example.test' },
+        } as never),
+      ).toBeNull();
+    });
+
+    it('ne reutilise pas une ancienne preuve si le nouveau profil Google ne la confirme pas', () => {
+      expect(
+        googleJwt({
+          ...login('admin@example.test', false),
+          token: { email: 'admin@example.test', googleEmailVerified: true },
+        } as never),
+      ).toBeNull();
+    });
+
+    it('refuse un autre fournisseur et ne remplace pas le profil par une adresse utilisateur', async () => {
+      expect(
+        await googleSignIn({
+          ...login('admin@example.test'),
+          account: { provider: 'credentials', providerAccountId: 'google-admin' },
+        } as never),
+      ).toBe(false);
+      const input = {
+        ...login('admin@example.test'),
+        profile: undefined,
+        user: { email: 'admin@example.test', googleEmailVerified: true },
+        token: { email: 'admin@example.test', googleEmailVerified: true },
+      };
+      expect(await googleSignIn(input as never)).toBe(false);
+      expect(googleJwt(input as never)).toBeNull();
+    });
+  });
   it('conserve l’identité Google lors de la connexion', () => {
     expect(
       googleJwt({

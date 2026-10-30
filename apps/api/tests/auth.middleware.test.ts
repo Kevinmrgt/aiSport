@@ -35,10 +35,13 @@ describe('authMiddleware', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env['SERVICE_SECRET'] = VALID_SECRET;
+    vi.stubEnv('PRODUCTION_ACCESS_MODE', 'public');
+    vi.stubEnv('ADMIN_EMAILS', '');
   });
 
   afterEach(() => {
     delete process.env['SERVICE_SECRET'];
+    vi.unstubAllEnvs();
   });
 
   it('retourne 401 si le header x-internal-secret est absent', async () => {
@@ -48,6 +51,74 @@ describe('authMiddleware', () => {
     expect(res.status).toBe(401);
     const body = (await res.json()) as { error: string };
     expect(body.error).toBe('UNAUTHORIZED');
+  });
+
+  describe('production reservee aux administrateurs verifies', () => {
+    beforeEach(() => {
+      vi.stubEnv('PRODUCTION_ACCESS_MODE', 'admin-only');
+      vi.stubEnv('ADMIN_EMAILS', 'admin@example.test');
+    });
+    const headers = (email = 'admin@example.test', verified = 'true') => ({
+      'x-internal-secret': VALID_SECRET,
+      'x-user-id': 'google-admin',
+      'x-user-email': email,
+      'x-email-verified': verified,
+      'x-auth-issued-at': String(Date.now()),
+    });
+
+    it('autorise une attestation admin verifiee par le service', async () => {
+      expect(
+        (await createApp().request('/protected', { headers: headers('Admin@EXAMPLE.test') }))
+          .status,
+      ).toBe(200);
+      expect(resolveGoogleIdentity).toHaveBeenCalledOnce();
+      expect(resolveGoogleIdentity).toHaveBeenCalledWith(
+        expect.objectContaining({ verifiedEmail: true }),
+      );
+    });
+
+    it.each([
+      ['other@example.test', 'true'],
+      ['admin@example.test', 'false'],
+      ['admin@example.test', 'True'],
+      ['admin@example.test', '1'],
+      ['admin@example.test', ''],
+    ])('refuse %s avec preuve %s avant toute creation de compte', async (email, verified) => {
+      const result = await createApp().request('/protected', { headers: headers(email, verified) });
+      expect(result.status).toBe(403);
+      expect(((await result.json()) as { message: string }).message).toContain('Accès réservé');
+      expect(resolveGoogleIdentity).not.toHaveBeenCalled();
+      expect(assertGoogleSessionActive).not.toHaveBeenCalled();
+    });
+
+    it('refuse une ancienne attestation sans verification et une liste vide', async () => {
+      const old = headers();
+      delete (old as Partial<typeof old>)['x-email-verified'];
+      expect((await createApp().request('/protected', { headers: old })).status).toBe(403);
+      vi.stubEnv('ADMIN_EMAILS', '');
+      expect((await createApp().request('/protected', { headers: headers() })).status).toBe(403);
+      expect(resolveGoogleIdentity).not.toHaveBeenCalled();
+    });
+
+    it('une preuve seule ne remplace jamais le secret du service', async () => {
+      expect(
+        (
+          await createApp().request('/protected', {
+            headers: {
+              ...headers(),
+              'x-internal-secret': 'wrong-secret',
+            },
+          })
+        ).status,
+      ).toBe(401);
+      expect(resolveGoogleIdentity).not.toHaveBeenCalled();
+    });
+
+    it('un mode inconnu reste ferme meme pour une attestation admin valide', async () => {
+      vi.stubEnv('PRODUCTION_ACCESS_MODE', 'typo');
+      expect((await createApp().request('/protected', { headers: headers() })).status).toBe(403);
+      expect(resolveGoogleIdentity).not.toHaveBeenCalled();
+    });
   });
 
   it('retourne 401 si le secret est incorrect', async () => {
@@ -100,6 +171,7 @@ describe('authMiddleware', () => {
       email: 'user@example.com',
       name: null,
       issuedAt,
+      verifiedEmail: false,
     });
     expect(assertGoogleSessionActive).toHaveBeenCalledBefore(vi.mocked(resolveGoogleIdentity));
   });

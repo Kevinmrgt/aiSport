@@ -1,11 +1,12 @@
 import NextAuth from 'next-auth';
 import type { NextAuthConfig } from 'next-auth';
 import Google from 'next-auth/providers/google';
-import { googleJwt } from '@/lib/auth-callbacks';
+import { googleJwt, googleSignIn } from '@/lib/auth-callbacks';
 
 declare module 'next-auth' {
   interface User {
     authIssuedAt?: number;
+    googleEmailVerified?: boolean;
   }
 }
 
@@ -24,12 +25,15 @@ export const authConfig = {
     error: '/login',
   },
   callbacks: {
+    signIn: googleSignIn,
     jwt: googleJwt,
     session({ session, token }) {
       if (token.userId && typeof token.userId === 'string') {
         session.user.id = token.userId;
       }
       if (typeof token.authIssuedAt === 'number') session.user.authIssuedAt = token.authIssuedAt;
+      if (typeof token.email === 'string') session.user.email = token.email;
+      session.user.googleEmailVerified = token.googleEmailVerified === true;
       return session;
     },
   },

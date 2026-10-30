@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
-import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied } from './production-admin-release.mjs';
+import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand } from './production-admin-release.mjs';
 
 const revision = 'a'.repeat(40);
 const privateAdminId = 'd72a58b7-6d4f-4187-90f7-9c763cfe2975';
@@ -122,17 +122,36 @@ test('encrypted values require explicit decryption and write-only values never b
 test('shared environment variables split production without altering preview values and compensate in reverse order', async () => {
   const provider = new VercelProduction(env);
   const calls = [];
-  provider.request = async (path, method, body) => { calls.push({ path, method, body }); return {}; };
+  provider.request = async (path, method, body) => {
+    calls.push({ path, method, body });
+    return method === 'POST' ? { created: { id: 'new-id', key: body.key, target: ['production'] }, failed: [] } : {};
+  };
   provider.list = async () => [{ key: 'ADMIN_EMAILS', id: 'new-id', target: ['production'] }];
   const undo = [];
   const old = { id: 'shared-id', value: 'old-private', target: ['production', 'preview'], type: 'encrypted' };
   await provider.replace('api', old, 'ADMIN_EMAILS', 'new-private', undo);
   assert.deepEqual(calls[0].body, { target: ['preview'] });
+  assert.equal(calls[0].path, '/v9/projects/api/env/shared-id');
   assert.deepEqual(calls[1].body.target, ['production']);
+  assert.equal(calls[1].path, '/v10/projects/api/env');
   for (const action of undo.reverse()) await action();
   assert.equal(calls[2].method, 'DELETE');
+  assert.equal(calls[2].path, '/v9/projects/api/env/new-id');
+  assert.equal(calls[3].path, '/v9/projects/api/env/shared-id');
   assert.deepEqual(calls[3].body, { value: old.value, target: old.target, type: old.type });
   await assert.rejects(provider.replace('api', null, 'AUTH_SECRET', 'rotate-forbidden', []), /allowlisted/);
+});
+
+test('a Vercel HTTP 200 containing failed environment creations cannot qualify a write', async () => {
+  const provider = new VercelProduction(env);
+  provider.request = async () => ({ created: {}, failed: [{ error: { message: 'private provider detail', value: 'private-value' } }] });
+  const undo = [];
+  await assert.rejects(provider.replace('api', null, 'PRODUCTION_ACCESS_MODE', 'admin-only', undo), (error) => {
+    assert.equal(error.message, 'vercel_environment_create_failed');
+    assert.equal(JSON.stringify(error).includes('private'), false);
+    return true;
+  });
+  assert.equal(undo.length, 1);
 });
 
 test('deployment requires the latest exact-SHA CI and rejects PR-only or failed runs', async () => {
@@ -154,7 +173,13 @@ test('failed staged deployment restores values without promotion and retains the
   const result = await deployClosedProduction(env, { ...configuration(), source }, provider, {
     bootstrap: async (input) => { assert.equal(input.ADMIN_IMPORT_POLICY, 'account-only'); return { ...ready, targetCreated: true, adminCopyVerified: true }; },
     selectedAdminId: async () => privateAdminId,
-    command: (_command, args) => { if (args.includes('build')) { assert.ok(calls.includes('BOOTSTRAP_ADMIN_USER_ID')); throw new Error('secret payload must not escape'); } return ''; },
+    command: (command, args, input, timeout, options) => {
+      if (args.includes('build')) {
+        assert.ok(calls.includes('BOOTSTRAP_ADMIN_USER_ID'));
+        return privateCommand(command, args, input, timeout, { ...options, spawn: () => ({ status: 1, stdout: 'private stdout', stderr: 'secret payload must not escape' }) });
+      }
+      return '';
+    },
     health: async () => assert.fail('health before deployment'), cleanup: async () => {},
   });
   assert.equal(result.complete, false); assert.equal(result.rollbackComplete, true);
@@ -162,6 +187,23 @@ test('failed staged deployment restores values without promotion and retains the
   assert.ok(calls.includes('BOOTSTRAP_ADMIN_USER_ID'));
   assert.equal(JSON.stringify(result).includes('secret payload'), false);
   assert.equal(JSON.stringify(result).includes(privateAdminId), false);
+  assert.deepEqual(result.failure.command, { stage: 'api_build', tool: 'vercel_cli', exitCode: 1, category: 'nonzero_exit' });
+});
+
+test('private command diagnostics disclose only allowlisted stage, tool, numeric exit and static category', () => {
+  for (const [code, category] of [['ETIMEDOUT', 'timeout'], ['ENOENT', 'tool_missing'], ['__proto__', 'nonzero_exit']]) {
+    assert.throws(() => privateCommand('npx', ['private-arg'], { PRIVATE_VALUE: 'private-env' }, 10, {
+      stage: 'api_build', spawn: () => ({ status: null, error: { code, message: 'private-error' }, stdout: 'private-stdout', stderr: 'private-stderr' }),
+    }), (error) => {
+      assert.equal(error.message, 'private_command_failed');
+      assert.deepEqual(error.diagnostics, { stage: 'api_build', tool: 'vercel_cli', exitCode: null, category });
+      assert.equal(JSON.stringify(error).includes('private-'), false);
+      return true;
+    });
+  }
+  assert.throws(() => privateCommand('unknown-private-path', ['private-arg'], {}, 10, {
+    stage: 'private-untrusted-stage', spawn: () => ({ status: 2 }),
+  }), (error) => { assert.equal(error.diagnostics.stage, 'private_command'); assert.equal(error.diagnostics.tool, 'other'); return true; });
 });
 
 test('promotion failure rolls back both projects and reports incomplete compensation', async () => {

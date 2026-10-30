@@ -1,5 +1,6 @@
 import 'server-only';
 import { auth } from '@/lib/auth';
+import { hasProductionAccess } from '@/lib/access-policy';
 import type {
   WorkoutDetail,
   WorkoutListResponse,
@@ -58,6 +59,9 @@ async function serverFetch<T>(
   if (!session?.user?.id) {
     throw new Error('Non authentifie');
   }
+  if (!hasProductionAccess(session.user)) {
+    throw new ServerApiError('Accès réservé à l’administration.', 403, 'ACCESS_RESTRICTED');
+  }
 
   const requestId = crypto.randomUUID();
   // Correlate services without logging account data, filters or payloads.
@@ -83,6 +87,7 @@ async function serverFetch<T>(
         'x-internal-secret': process.env['SERVICE_SECRET'] ?? '',
         'x-user-id': session.user.id,
         'x-user-email': session.user.email ?? '',
+        'x-email-verified': session.user.googleEmailVerified === true ? 'true' : 'false',
         'x-user-name-encoded': encodeURIComponent(
           new TextDecoder()
             .decode(new TextEncoder().encode((session.user.name ?? '').slice(0, 256)))

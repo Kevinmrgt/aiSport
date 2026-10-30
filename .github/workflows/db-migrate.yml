@@ -8,7 +8,7 @@ on:
         required: true
         default: verify
         type: choice
-        options: [verify, migrate, admin-plan]
+        options: [verify, migrate, admin-plan, admin-rehearse]
       revision:
         description: 'Exact 40-character candidate SHA; empty uses selected workflow revision'
         required: false
@@ -28,8 +28,8 @@ env:
 
 jobs:
   admin-plan:
-    name: Plan isolated admin-only production without source writes
-    if: inputs.mode == 'admin-plan'
+    name: Plan or rehearse isolated admin-only production without source writes
+    if: inputs.mode == 'admin-plan' || inputs.mode == 'admin-rehearse'
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -45,13 +45,14 @@ jobs:
       - run: pnpm --filter shared build
       - name: Inspect actual Vercel source and admin migration feasibility
         env:
-          RELEASE_MODE: plan
+          RELEASE_MODE: ${{ inputs.mode == 'admin-rehearse' && 'rehearse' || 'plan' }}
           TARGET_DATABASE_NAME: alcide_admin_20261030
           BOOTSTRAP_ADMIN_EMAIL: ${{ secrets.BOOTSTRAP_ADMIN_EMAIL }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_WEB_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
           VERCEL_API_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
           ADMIN_RELEASE_EVIDENCE_FILE: ${{ runner.temp }}/admin-release-plan.json
         run: node scripts/production-admin-release.mjs
       - name: Preserve sanitized feasibility result
@@ -62,6 +63,18 @@ jobs:
           path: ${{ runner.temp }}/admin-release-plan.json
           if-no-files-found: ignore
           retention-days: 7
+      - name: Preserve encrypted actual source backup and isolated rehearsal evidence
+        if: always() && inputs.mode == 'admin-rehearse'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: admin-rehearsal-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/alcide-admin-release/release.dump.enc
+            ${{ runner.temp }}/alcide-admin-release/release.dump.manifest.json
+            ${{ runner.temp }}/alcide-admin-release/restore.json
+            ${{ runner.temp }}/alcide-admin-release/rehearsal.json
+          if-no-files-found: warn
+          retention-days: 30
   target-inventory:
     name: Read production target metadata without exporting secret values
     if: inputs.mode == 'verify'
@@ -92,7 +105,7 @@ jobs:
           retention-days: 7
   database:
     name: Verify isolated restore or apply qualified migrations
-    if: inputs.mode != 'admin-plan'
+    if: inputs.mode != 'admin-plan' && inputs.mode != 'admin-rehearse'
     runs-on: ubuntu-latest
     environment: production
     steps:
