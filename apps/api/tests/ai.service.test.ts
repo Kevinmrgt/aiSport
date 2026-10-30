@@ -1,3 +1,4 @@
+import type { AiAttempt, AiUsage } from '../src/services/ai.service.js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   AiAccountingError,
@@ -68,13 +69,20 @@ describe('contrat fournisseur IA', () => {
       { role: 'user', content: 'données utilisateur' },
     ]);
     expect(body.store).toBe(false);
-    expect(usage).toHaveBeenCalledWith({
-      model: config.model,
-      inputTokens: 12,
-      outputTokens: 8,
-      totalTokens: 20,
-      requestId: 'request-test',
-    });
+    expect(usage).toHaveBeenCalledWith(
+      {
+        receiptId: expect.any(String) as string,
+        model: config.model,
+        inputTokens: 12,
+        outputTokens: 8,
+        totalTokens: 20,
+        requestId: 'request-test',
+      },
+      expect.objectContaining({
+        receiptId: expect.any(String) as string,
+        maxCompletionTokens: 2048,
+      }),
+    );
   });
 
   it('refuse un appel quand la réservation échoue, sans consommation fournisseur', async () => {
@@ -197,5 +205,57 @@ describe('contrat fournisseur IA', () => {
     expect(await waitForAiRetry(new AiResponseError('refusal'), Date.now() + 50_000, 5_000)).toBe(
       false,
     );
+  });
+});
+
+describe('HTTP-local immutable accounting receipts', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal('fetch', fetchMock);
+  });
+  afterEach(() => vi.unstubAllGlobals());
+  it('keeps heterogeneous bounds with their own usage when parallel HTTP responses arrive backwards', async () => {
+    const release: Array<() => void> = [];
+    fetchMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release.push(() => resolve({ ...response(), headers: new Headers() }));
+        }),
+    );
+    const admitted: Array<{
+      receiptId?: string;
+      maxCompletionTokens: number;
+      inputTokensUpperBound: number;
+    }> = [];
+    const usage = vi.fn<(usage: AiUsage, attempt?: Readonly<AiAttempt>) => void>();
+    const onAttempt = (attempt: (typeof admitted)[number]) => {
+      expect(Object.isFrozen(attempt)).toBe(true);
+      admitted.push(attempt);
+    };
+    const a = callAiProvider(config, 'small', { maxTokens: 100, onAttempt, onUsage: usage });
+    const b = callAiProvider(config, 'much larger prompt', {
+      maxTokens: 900,
+      onAttempt,
+      onUsage: usage,
+    });
+    await vi.waitFor(() => expect(release).toHaveLength(2));
+    release[1]!();
+    await b;
+    release[0]!();
+    await a;
+    expect(admitted[0]!.receiptId).not.toBe(admitted[1]!.receiptId);
+    expect(usage.mock.calls[0]![0]).toMatchObject({ receiptId: admitted[1]!.receiptId });
+    expect(usage.mock.calls[0]![1]).toEqual(admitted[1]);
+    expect(usage.mock.calls[1]![1]).toEqual(admitted[0]);
+    expect(usage.mock.calls[0]![1]?.maxCompletionTokens).toBe(900);
+    expect(usage.mock.calls[1]![1]?.maxCompletionTokens).toBe(100);
+  });
+  it('reports no confirmed usage when a response omits its usage measurement', async () => {
+    fetchMock.mockResolvedValue(response({ usage: undefined }));
+    const usage = vi.fn(),
+      admission = vi.fn();
+    await callAiProvider(config, 'data', { onAttempt: admission, onUsage: usage });
+    expect(admission).toHaveBeenCalledOnce();
+    expect(usage).not.toHaveBeenCalled();
   });
 });

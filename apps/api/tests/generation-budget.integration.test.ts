@@ -14,6 +14,7 @@ import {
 } from '../src/db/generation-budget.schema.js';
 import { generationPolicy, type GenerationPolicy } from '../src/services/generation-policy.js';
 import type { TrainingProgram, Workout } from '@alcide/shared';
+import type { AiAttempt } from '../src/services/ai.service.js';
 import type { GenerationBudgetRepository } from '../src/repositories/generation-budget.repository.js';
 
 const testUrl = process.env['TEST_DATABASE_URL'];
@@ -40,10 +41,11 @@ function processAttempt(
   operationId: string,
   userId: string,
   limits: GenerationPolicy,
+  httpAttempt: AiAttempt = attempt,
 ): Promise<{ ok: boolean; statusCode?: number }> {
   const moduleUrl = pathToFileURL(resolve('src/repositories/generation-budget.repository.ts')).href;
   const dbUrl = pathToFileURL(resolve('src/db/index.ts')).href;
-  const code = `const {generationBudgetRepository:r}=await import(${JSON.stringify(moduleUrl)});const {pool}=await import(${JSON.stringify(dbUrl)});try{await r.reserveAttempt(${JSON.stringify(operationId)},${JSON.stringify(userId)},${JSON.stringify(attempt)},8,${JSON.stringify(limits)});console.log(JSON.stringify({ok:true}));}catch(error){console.log(JSON.stringify({ok:false,statusCode:error.statusCode??500}));}finally{await pool.end();}`;
+  const code = `const {generationBudgetRepository:r}=await import(${JSON.stringify(moduleUrl)});const {pool}=await import(${JSON.stringify(dbUrl)});try{await r.reserveAttempt(${JSON.stringify(operationId)},${JSON.stringify(userId)},${JSON.stringify(httpAttempt)},8,${JSON.stringify(limits)});console.log(JSON.stringify({ok:true}));}catch(error){console.log(JSON.stringify({ok:false,statusCode:error.statusCode??500}));}finally{await pool.end();}`;
   return new Promise((resolveResult, reject) => {
     const child = spawn(process.execPath, ['--import', 'tsx', '--input-type=module', '-e', code], {
       cwd: process.cwd(),
@@ -221,7 +223,9 @@ suite('PostgreSQL persistent generation budgets', () => {
       .from(generationDailyBudgets)
       .where(eq(generationDailyBudgets.scope, `user:${userIds[0]!}`));
     expect(counter?.attempts).toBe(1);
-    expect(counter?.reservedTokens).toBe(policy.inputTokensPerAttempt + policy.maxCompletionTokens);
+    expect(counter?.reservedTokens).toBe(
+      attempt.inputTokensUpperBound + attempt.maxCompletionTokens,
+    );
   });
 
   it('limits concurrent operations and applies the database kill switch across instances', async () => {
@@ -241,7 +245,7 @@ suite('PostgreSQL persistent generation budgets', () => {
     ).resolves.toHaveProperty('replay', false);
   });
 
-  it('records usage once, keeps reserved worst case and cascades accounting on account erasure', async () => {
+  it('records unproven usage once without releasing its provision and cascades accounting on account erasure', async () => {
     const { operation } = await repositoryA.begin(
       userIds[0]!,
       randomUUID(),
@@ -267,7 +271,9 @@ suite('PostgreSQL persistent generation budgets', () => {
       .where(eq(generationDailyBudgets.scope, `user:${userIds[0]!}`));
     expect(counter?.inputTokens).toBe(100);
     expect(counter?.outputTokens).toBe(200);
-    expect(counter?.reservedTokens).toBe(policy.inputTokensPerAttempt + policy.maxCompletionTokens);
+    expect(counter?.reservedTokens).toBe(
+      attempt.inputTokensUpperBound + attempt.maxCompletionTokens + usage.totalTokens,
+    );
     await database.delete(users).where(eq(users.id, userIds[0]!));
     expect(
       await database
@@ -314,6 +320,7 @@ suite('PostgreSQL persistent generation budgets', () => {
   });
 
   it('stores a complete program atomically and retains unexpected measured excess', async () => {
+    const provenAttempt = { ...attempt, receiptId: randomUUID() };
     const { operation } = await repositoryA.begin(
       userIds[0]!,
       randomUUID(),
@@ -321,12 +328,19 @@ suite('PostgreSQL persistent generation budgets', () => {
       hash,
       policy,
     );
-    await repositoryA.reserveAttempt(operation.id, userIds[0]!, attempt, 8, policy);
+    await repositoryA.reserveAttempt(operation.id, userIds[0]!, provenAttempt, 8, policy);
     await repositoryA.recordUsage(
       operation.id,
       userIds[0]!,
-      { model: attempt.model, inputTokens: 35_000, outputTokens: 2000, totalTokens: 37_000 },
+      {
+        receiptId: provenAttempt.receiptId,
+        model: attempt.model,
+        inputTokens: 35_000,
+        outputTokens: 2000,
+        totalTokens: 37_000,
+      },
       policy,
+      provenAttempt,
     );
     const program: TrainingProgram = {
       title: 'Program budget',
@@ -359,4 +373,36 @@ suite('PostgreSQL persistent generation budgets', () => {
     expect(stored?.reservedTokens).toBe(37_000);
     expect(stored?.inputTokens).toBe(35_000);
   });
+  it('preserves heterogeneous token limits between processes and after restart', async () => {
+    const limits = { ...policy, userDailyTokens: 5000 };
+    const { operation } = await repositoryA.begin(
+      userIds[0]!,
+      randomUUID(),
+      'program',
+      hash,
+      limits,
+    );
+    const a = { ...attempt, inputTokensUpperBound: 500, maxCompletionTokens: 2000 };
+    const b = { ...attempt, inputTokensUpperBound: 1000, maxCompletionTokens: 2501 };
+    const results = await Promise.all([
+      processAttempt(operation.id, userIds[0]!, limits, a),
+      processAttempt(operation.id, userIds[0]!, limits, b),
+    ]);
+    expect(results.filter((result) => result.ok)).toHaveLength(1);
+    const accepted = results[0].ok ? a : b;
+    expect(
+      await processAttempt(operation.id, userIds[0]!, limits, {
+        ...attempt,
+        inputTokensUpperBound: 3000,
+      }),
+    ).toEqual({ ok: false, statusCode: 429 });
+    const [counter] = await database
+      .select()
+      .from(generationDailyBudgets)
+      .where(eq(generationDailyBudgets.scope, `user:${userIds[0]!}`));
+    expect(counter).toMatchObject({
+      attempts: 1,
+      reservedTokens: accepted.inputTokensUpperBound + accepted.maxCompletionTokens,
+    });
+  }, 30_000);
 });

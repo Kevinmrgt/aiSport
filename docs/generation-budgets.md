@@ -26,20 +26,58 @@ séance et deux par semaine pour un programme. Les limites par minute
 existantes sont un contrôle complémentaire ; elles ne remplacent pas ce
 registre distribué.
 
-Les quantités réservées sont pessimistes : plafond de tokens d'entrée et
-plafond de complétion configurés. La borne d'entrée fournie par le transport
-IA est vérifiée avant l'appel. Les consommations retournées par le fournisseur
-sont enregistrées avant validation du contenu ; des réponses refusées ou
-tronquées peuvent donc être comptabilisées. La déduplication utilise une
-empreinte de l'identifiant de requête du fournisseur lorsqu'il est fourni.
-Un dépassement réel inattendu est ajouté aux réservations.
+Chaque tentative HTTP reçoit un reçu UUID immuable avant sa réservation.
+L'entrée est bornée par le nombre d'octets UTF-8 du prompt, des instructions
+et du schéma JSON, avec une marge de protocole. Cette borne et le plafond
+de sortie demandé pour cet appel doivent rester sous les plafonds serveur.
+Le débit préalable utilise **leur somme**, et non les deux maxima de
+configuration pour tous les appels.
 
-Une tentative dont le résultat est incertain **n'est jamais remboursée
-automatiquement**. Le compteur revient à une nouvelle journée UTC pour les
-nouvelles opérations. Une opération admise juste avant minuit conserve son
-jour d'admission pendant sa courte durée d'exécution. Ces réservations de
-tokens/appels ne sont pas un prix en euros et ne remplacent pas les plafonds
-et alertes de facturation du compte fournisseur.
+L'orchestrateur conserve la preuve des admissions réussies par reçu, avec
+une copie immuable de leurs bornes. La réponse de ce même HTTP transporte
+son reçu vers la comptabilisation ; des semaines parallèles ne peuvent pas
+échanger leurs réserves. Le modèle renvoyé par le fournisseur peut avoir un
+nom de version plus précis que l'alias demandé ; cette différence n'invalide
+pas la preuve de réservation.
+
+Quand une mesure fournisseur complète est disponible, l'événement et le
+règlement sont atomiques : le compteur évolue de
+`tokens réellement mesurés - provision de cet appel`. Une consommation
+supérieure à la provision est donc ajoutée, et une consommation inférieure
+libère seulement l'écart de ce reçu prouvé. L'événement est unique par reçu,
+même sans identifiant fournisseur et même après un double callback.
+La mesure est enregistrée avant validation du contenu ; une réponse refusée,
+tronquée ou un planning invalide peut avoir été facturé et reste mesuré.
+Les compteurs de tentatives ne diminuent jamais lors du règlement.
+
+Une tentative sans mesure complète, dont le résultat est incertain ou dont
+le reçu n'a pas d'admission prouvée **ne donne aucune restitution**.
+Sans preuve d'admission, un usage transmis est ajouté conservativement sans
+retirer une autre provision. La colonne historique `reserved_tokens`
+représente donc les consommations mesurées confirmées **plus** les provisions
+encore inconnues ; ce n'est pas une facture en euros.
+
+Avant une nouvelle admission, une transaction sous le même verrou rapproche
+les anciennes opérations de ce compte admises pendant le même jour UTC
+PostgreSQL que la nouvelle admission, qui sont terminées et dont le bail
+est expiré. Il faut un événement par tentative, des reçus fournisseur uniques
+anciens reconnus par leur empreinte SHA-256, et des sommes d'entrée, sortie
+et total cohérentes avec l'opération. Les UUID aléatoires de l'ancien fallback,
+les opérations partielles, les sommes incohérentes et les baux actifs sont
+exclus. Seule la différence positive entre provision et mesure complète
+est retranchée de l'opération et des deux scopes de son jour UTC. Les deux
+scopes doivent exister et leurs compteurs doivent rester cohérents.
+L'audit `generation.budget.settled`, acteur `system`, est écrit dans cette
+même transaction, avec les compteurs avant/après et aucun prompt ou secret.
+Un second passage ne libère rien ; une panne de l'audit annule tout le
+rapprochement. Les jours précédents restent inchangés. Aucun historique n'est réinitialisé
+ni bail forcé à expirer.
+
+Le compteur revient à une nouvelle journée UTC pour les nouvelles
+opérations. Une opération admise juste avant minuit conserve son jour
+pendant sa courte durée d'exécution. Les limites quotidiennes de tokens,
+de tentatives et de concurrence restent cumulatives et inchangées. Ces
+compteurs ne remplacent pas les plafonds et alertes du compte fournisseur.
 
 ## Configuration et valeurs initiales
 
@@ -47,25 +85,25 @@ Les valeurs sont lues côté API ; elles ne doivent pas devenir des champs
 modifiables par l'utilisateur. Une valeur non finie, vide ou hors bornes
 provoque un refus de génération.
 
-| Variable                      | Valeur par défaut | Rôle                                                                            |
-| ----------------------------- | ----------------- | ------------------------------------------------------------------------------- |
-| `AI_USER_DAILY_ATTEMPTS`      | 16                | Tentatives fournisseur par compte et jour d'admission UTC                       |
-| `AI_GLOBAL_DAILY_ATTEMPTS`    | 200               | Tentatives globales quotidiennes                                                |
-| `AI_USER_DAILY_TOKENS`        | 160000            | Tokens réservés par compte                                                      |
-| `AI_GLOBAL_DAILY_TOKENS`      | 2000000           | Tokens réservés globalement                                                     |
-| `AI_USER_CONCURRENCY`         | 1                 | Opérations actives par compte                                                   |
-| `AI_GLOBAL_CONCURRENCY`       | 4                 | Opérations actives globales                                                     |
-| `AI_GENERATION_LEASE_SECONDS` | 120               | Bail de capacité, borné entre 90 et 300 secondes                                |
-| `AI_RESERVED_INPUT_TOKENS`    | 16384             | Réservation d'entrée par tentative ; une borne de prompt supérieure est refusée |
-| `AI_MAX_COMPLETION_TOKENS`    | 2048              | Réservation maximale de sortie par tentative                                    |
-| `AI_ALLOWED_MODELS`           | `gpt-5.4-mini`    | Liste serveur séparée par virgules                                              |
-| `AI_DEFAULT_MODEL`            | `gpt-5.4-mini`    | Doit appartenir à la liste autorisée                                            |
-| `AI_GENERATION_ENABLED`       | `true`            | Interrupteur supplémentaire par environnement                                   |
+| Variable                      | Valeur par défaut | Rôle                                                                           |
+| ----------------------------- | ----------------- | ------------------------------------------------------------------------------ |
+| `AI_USER_DAILY_ATTEMPTS`      | 16                | Tentatives fournisseur par compte et jour d'admission UTC                      |
+| `AI_GLOBAL_DAILY_ATTEMPTS`    | 200               | Tentatives globales quotidiennes                                               |
+| `AI_USER_DAILY_TOKENS`        | 160000            | Tokens réservés par compte                                                     |
+| `AI_GLOBAL_DAILY_TOKENS`      | 2000000           | Tokens réservés globalement                                                    |
+| `AI_USER_CONCURRENCY`         | 1                 | Opérations actives par compte                                                  |
+| `AI_GLOBAL_CONCURRENCY`       | 4                 | Opérations actives globales                                                    |
+| `AI_GENERATION_LEASE_SECONDS` | 120               | Bail de capacité, borné entre 90 et 300 secondes                               |
+| `AI_RESERVED_INPUT_TOKENS`    | 16384             | Plafond de la borne d'entrée par HTTP ; la borne effective est provisionnée    |
+| `AI_MAX_COMPLETION_TOKENS`    | 11000             | Plafond de sortie par HTTP ; le maximum demandé pour cet appel est provisionné |
+| `AI_ALLOWED_MODELS`           | `gpt-5.4-mini`    | Liste serveur séparée par virgules                                             |
+| `AI_DEFAULT_MODEL`            | `gpt-5.4-mini`    | Doit appartenir à la liste autorisée                                           |
+| `AI_GENERATION_ENABLED`       | `true`            | Interrupteur supplémentaire par environnement                                  |
 
 Les valeurs initiales limitent l'exposition technique ; elles ne constituent
 pas un budget commercial approuvé. Les fixer selon la fréquentation et les
 coûts observés, puis rapprocher régulièrement mesures et facture fournisseur.
-Un fournisseur qui ne renvoie pas `usage` laisse la réservation maximale en
+Un fournisseur qui ne renvoie pas `usage` laisse la provision de cet appel en
 place, sans inventer une consommation mesurée.
 
 ## Arrêt global et reprise
@@ -90,7 +128,7 @@ publique permettant aux utilisateurs de changer ce contrôle.
 Un bail expiré ne donne **jamais** le droit de reprendre automatiquement une
 opération : un appel fournisseur peut avoir été envoyé avant l'arrêt du
 processus. La même clé renvoie `GENERATION_CONFLICT`, avec invitation à
-consulter l'historique. Le budget déjà réservé reste chargé. Si l'échec et
+consulter l'historique. La provision de toute tentative non mesurée reste chargée. Si l'échec et
 l'absence de ressource sont établis, l'opération passe à `failed` et retourne
 `GENERATION_RETRY_REQUIRES_NEW_KEY` lors de la prochaine demande ; un nouveau
 clic explicite peut alors utiliser une nouvelle clé.
@@ -109,5 +147,5 @@ identités et ne contiennent aucun texte ou identifiant de compte.
 Les tests PostgreSQL dédiés couvrent deux processus Node concurrents, un
 processus redémarré, plafonds globaux entre comptes, admission concurrente,
 replay après succès, bail expiré, arrêt global, déduplication de consommation
-et effacement en cascade. Ils utilisent une base locale éphémère ; aucune
+effacement en cascade, bornes hétérogènes, règlement mesuré idempotent et rapprochement des seuls historiques complets. Ils utilisent une base locale éphémère ; aucune
 requête IA réelle ou payante n'est nécessaire.

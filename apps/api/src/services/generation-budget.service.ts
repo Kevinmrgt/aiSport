@@ -2,7 +2,7 @@ import type { CreditPersistence } from '../repositories/billing.repository.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { generationBudgetRepository } from '../repositories/generation-budget.repository.js';
 import type { GenerationKind } from '../repositories/generation-budget.repository.js';
-import type { AiExecutionOptions } from './ai.service.js';
+import type { AiAttempt, AiExecutionOptions } from './ai.service.js';
 import { generationPolicy } from './generation-policy.js';
 import { AppError } from '../types/app-error.js';
 
@@ -68,21 +68,48 @@ export async function executeBudgetedGeneration<Content, Record>(options: {
   if (admitted.replay) return options.replay(admitted.operation.resourceId);
   const operationId = admitted.operation.id;
   try {
+    const receipts = new Map<string, { attempt: Readonly<AiAttempt>; admitted: boolean }>();
     const execution: AiExecutionOptions = {
       ...(options.signal ? { signal: options.signal } : {}),
       onAttempt: async (attempt) => {
         // Refresh the kill switch before every fetch, including retries and parallel weeks.
         const current = generationPolicy();
+        const snapshot = Object.freeze({ ...attempt });
+        let receipt: { attempt: Readonly<AiAttempt>; admitted: boolean } | undefined;
+        if (snapshot.receiptId !== undefined) {
+          generationKey(snapshot.receiptId);
+          if (receipts.has(snapshot.receiptId))
+            throw AppError.serviceUnavailable('Reçu de tentative IA déjà utilisé');
+          receipt = { attempt: snapshot, admitted: false };
+          receipts.set(snapshot.receiptId, receipt);
+        }
         await generationBudgetRepository.reserveAttempt(
           operationId,
           options.userId,
-          attempt,
+          snapshot,
           options.maxAttempts,
           current,
         );
+        if (receipt) receipt.admitted = true;
       },
-      onUsage: async (usage) => {
-        await generationBudgetRepository.recordUsage(operationId, options.userId, usage, policy);
+      onUsage: async (usage, attempt) => {
+        const receipt = usage.receiptId ? receipts.get(usage.receiptId) : undefined;
+        const proof =
+          receipt?.admitted &&
+          attempt !== undefined &&
+          attempt.receiptId === usage.receiptId &&
+          attempt.model === receipt.attempt.model &&
+          attempt.inputTokensUpperBound === receipt.attempt.inputTokensUpperBound &&
+          attempt.maxCompletionTokens === receipt.attempt.maxCompletionTokens
+            ? receipt.attempt
+            : undefined;
+        await generationBudgetRepository.recordUsage(
+          operationId,
+          options.userId,
+          usage,
+          policy,
+          proof,
+        );
       },
     };
     const work = async (persist?: CreditPersistence) => {
