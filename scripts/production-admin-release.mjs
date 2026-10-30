@@ -14,6 +14,32 @@ const fail = (message) => { throw new ReleaseError(message); };
 const production = (item) => !item.gitBranch && (Array.isArray(item.target) ? item.target : [item.target]).includes('production');
 const safeKey = (key) => /^[A-Z][A-Z0-9_]+$/.test(key);
 const mutableKeys = new Set(['DATABASE_URL', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'API_URL', 'NEXT_PUBLIC_API_URL', 'FRONTEND_URL']);
+const releaseStages = new Set(['input_validation', 'ci_verification', 'configuration_read', 'bootstrap_plan', 'source_reference', 'backup', 'rehearsal',
+  'prepared_backup_verification', 'api_reference', 'web_reference', 'bootstrap_apply', 'admin_lookup_source', 'admin_lookup_target', 'admin_identity_comparison',
+  ...['api', 'web'].flatMap((project) => ['cleanup', 'pull', 'build', 'deploy', 'health', 'denied_probe', 'promote', 'alias_health', 'alias_denied_probe',
+    ...[...mutableKeys].map((key) => `env_${key}`)].map((action) => `${project}_${action}`))]);
+const bootstrapFailureReasons = new Set(['admin_not_unique', 'admin_identity_lookup_failed', 'admin_identity_mismatch', 'explicit_admin_email_required']);
+
+export function safeReleaseFailure(error, stage) {
+  const classes = new Set(['Error', 'TypeError', 'RangeError', 'SyntaxError', 'DOMException', 'AbortError', 'TimeoutError', 'AggregateError', 'ReleaseError', 'BootstrapError']);
+  const errorClass = classes.has(error?.name) && error.name !== 'Error' ? error.name :
+    classes.has(error?.constructor?.name) ? error.constructor.name : 'UnknownError';
+  const pgCodes = new Set(['42501', '42P04', '3D000', '28P01', '28000', '08000', '08001', '08003', '08004', '08006', '08007', '08P01', '53300', '53400', '57014', '57P01', '57P02', '57P03', '55006', 'XX000']);
+  const networkCodes = new Set(['ECONNRESET', 'ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', 'EAI_AGAIN', 'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_HEADERS_TIMEOUT', 'UND_ERR_SOCKET', 'CERT_HAS_EXPIRED', 'UNABLE_TO_VERIFY_LEAF_SIGNATURE']);
+  const code = [error?.code, error?.cause?.code].find((value) => pgCodes.has(value) || networkCodes.has(value));
+  const httpStatus = error instanceof ReleaseError && /^vercel_http_\d{3}$/.test(error.message) ? Number(error.message.slice(-3)) :
+    Number.isInteger(error?.status) && error.status >= 100 && error.status <= 599 ? error.status : undefined;
+  return {
+    failedStage: releaseStages.has(stage) ? stage : 'unknown_stage', errorClass,
+    reason: error instanceof ReleaseError ? error.message : errorClass === 'BootstrapError' && bootstrapFailureReasons.has(error.reason) ? error.reason : 'private_diagnostics_required',
+    category: errorClass === 'TimeoutError' || ['ETIMEDOUT', 'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_HEADERS_TIMEOUT'].includes(code) ? 'timeout' :
+      errorClass === 'AbortError' ? 'aborted' : pgCodes.has(code) ? 'postgresql' : networkCodes.has(code) ? 'network' :
+        httpStatus >= 500 ? 'http_server_error' : httpStatus >= 400 ? 'http_client_error' : 'private_failure',
+    ...(pgCodes.has(code) ? { pgCode: code } : {}), ...(networkCodes.has(code) ? { networkCode: code } : {}),
+    ...(httpStatus === undefined ? {} : { httpStatus }),
+    ...(error instanceof ReleaseError && error.diagnostics ? { command: error.diagnostics } : {}),
+  };
+}
 
 export function validateReleaseInput(env) {
   const mode = env.RELEASE_MODE ?? 'plan';
@@ -225,42 +251,61 @@ export async function checkUnauthenticatedApiDenied(base, { fetcher = fetch, byp
 export async function deployClosedProduction(env, configuration, provider, { bootstrap = runAdminBootstrap, command = privateCommand, health = checkHealth,
   selectedAdminId = readSelectedAdminId, denied = checkUnauthenticatedApiDenied, cleanup = () => rm(resolve('.vercel'), { force: true, recursive: true }) } = {}) {
   const undo = [];
-  const previous = await Promise.all([provider.previousDeployment(env.VERCEL_API_PROJECT_ID), provider.previousDeployment(env.VERCEL_WEB_PROJECT_ID)]);
+  const previous = [];
+  let failedStage = 'api_reference';
   const cli = (project, args, action = args[0]) => command('npx', ['--yes', 'vercel@54.17.2', ...args, '--token', env.VERCEL_TOKEN], { ...env, VERCEL_PROJECT_ID: project, VERCEL_TELEMETRY_DISABLED: '1', VERCEL_FORCE_BUILD: '1', APP_REVISION: env.RELEASE_REVISION }, 1_200_000,
     { stage: `${project === env.VERCEL_API_PROJECT_ID ? 'api' : 'web'}_${action}` });
   const urls = [];
   let bootstrapResult;
   let promotionAttempted = false;
   try {
+    previous.push(await provider.previousDeployment(env.VERCEL_API_PROJECT_ID));
+    failedStage = 'web_reference';
+    previous.push(await provider.previousDeployment(env.VERCEL_WEB_PROJECT_ID));
+    failedStage = 'bootstrap_apply';
     bootstrapResult = await bootstrap({ ...env, ADMIN_IMPORT_POLICY: env.ADMIN_IMPORT_POLICY ?? 'account-only', SOURCE_DATABASE_URL: configuration.source, BOOTSTRAP_MODE: 'apply' });
     if (!bootstrapResult.complete || !bootstrapResult.ready || !bootstrapResult.adminCopyVerified) fail('production_admin_copy_failed');
     const newDatabase = targetDatabaseUrl(configuration.source, env.TARGET_DATABASE_NAME);
-    const [adminId, copiedAdminId] = await Promise.all([
-      selectedAdminId(configuration.source, env.BOOTSTRAP_ADMIN_EMAIL), selectedAdminId(newDatabase, env.BOOTSTRAP_ADMIN_EMAIL),
-    ]);
+    failedStage = 'admin_lookup_source';
+    const adminId = await selectedAdminId(configuration.source, env.BOOTSTRAP_ADMIN_EMAIL);
+    failedStage = 'admin_lookup_target';
+    const copiedAdminId = await selectedAdminId(newDatabase, env.BOOTSTRAP_ADMIN_EMAIL);
+    failedStage = 'admin_identity_comparison';
     if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(adminId ?? '') || adminId !== copiedAdminId) fail('copied_admin_identity_mismatch');
     const values = [
       { DATABASE_URL: newDatabase, PRODUCTION_ACCESS_MODE: 'admin-only', ADMIN_EMAILS: env.BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_USER_ID: adminId, APP_REVISION: env.RELEASE_REVISION, FRONTEND_URL: 'https://www.alcideai.fr' },
       { PRODUCTION_ACCESS_MODE: 'admin-only', ADMIN_EMAILS: env.BOOTSTRAP_ADMIN_EMAIL, APP_REVISION: env.RELEASE_REVISION, API_URL: 'https://ai-sport-api.vercel.app', NEXT_PUBLIC_API_URL: 'https://ai-sport-api.vercel.app' },
     ];
     for (const [index, project] of [env.VERCEL_API_PROJECT_ID, env.VERCEL_WEB_PROJECT_ID].entries()) {
-      for (const [key, value] of Object.entries(values[index])) await provider.replace(project, index === 0 ? configuration.api[key] : configuration.web[key], key, value, undo);
+      const component = index === 0 ? 'api' : 'web';
+      for (const [key, value] of Object.entries(values[index])) {
+        failedStage = `${component}_env_${key}`;
+        await provider.replace(project, index === 0 ? configuration.api[key] : configuration.web[key], key, value, undo);
+      }
       // Each project must get an independent pull/build cache.
+      failedStage = `${component}_cleanup`;
       await cleanup();
+      failedStage = `${component}_pull`;
       cli(project, ['pull', '--yes', '--environment=production']);
+      failedStage = `${component}_build`;
       cli(project, ['build', '--prod']);
+      failedStage = `${component}_deploy`;
       const output = cli(project, ['deploy', '--prebuilt', '--prod', '--skip-domain', '--meta', `sourceRevision=${env.RELEASE_REVISION}`]);
       const url = output.trim().split(/\r?\n/).at(-1)?.trim();
       if (!/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(url ?? '')) fail('invalid_created_deployment_url');
       urls.push(url);
+      failedStage = `${component}_health`;
       await health(`${url}${index === 0 ? '/health/ready' : '/api/health'}`, { service: index === 0 ? 'alcide-api' : 'alcide-web', status: index === 0 ? 'ready' : 'ok', revision: env.RELEASE_REVISION }, { bypassSecret: env.VERCEL_AUTOMATION_BYPASS_SECRET });
-      if (index === 0) await denied(url, { bypassSecret: env.VERCEL_AUTOMATION_BYPASS_SECRET });
+      if (index === 0) { failedStage = 'api_denied_probe'; await denied(url, { bypassSecret: env.VERCEL_AUTOMATION_BYPASS_SECRET }); }
     }
     for (const [index, project] of [env.VERCEL_API_PROJECT_ID, env.VERCEL_WEB_PROJECT_ID].entries()) {
+      const component = index === 0 ? 'api' : 'web';
+      failedStage = `${component}_promote`;
       promotionAttempted = true;
       cli(project, ['promote', urls[index], '--yes']);
+      failedStage = `${component}_alias_health`;
       await health(index === 0 ? 'https://ai-sport-api.vercel.app/health/ready' : 'https://www.alcideai.fr/api/health', { service: index === 0 ? 'alcide-api' : 'alcide-web', status: index === 0 ? 'ready' : 'ok', revision: env.RELEASE_REVISION });
-      if (index === 0) await denied('https://ai-sport-api.vercel.app');
+      if (index === 0) { failedStage = 'api_alias_denied_probe'; await denied('https://ai-sport-api.vercel.app'); }
     }
     return { complete: true, access: 'admin-only', revision: env.RELEASE_REVISION, deploymentUrls: urls, previousDeploymentUrls: previous, unauthenticatedProtectedApiStatus: 401, bootstrap: bootstrapResult };
   } catch (error) {
@@ -273,21 +318,24 @@ export async function deployClosedProduction(env, configuration, provider, { boo
     }
     for (const compensate of undo.reverse()) { try { await compensate(); } catch { rollbackComplete = false; } }
     return { complete: false, reason: rollbackComplete ? 'release_failed_rollback_completed' : 'release_failed_manual_rollback_required', rollbackComplete,
-      failure: { reason: error instanceof ReleaseError ? error.message : 'private_diagnostics_required', ...(error instanceof ReleaseError && error.diagnostics ? { command: error.diagnostics } : {}) },
+      failure: safeReleaseFailure(error, failedStage),
       newDatabaseRetained: bootstrapResult?.targetCreated === true, previousDeploymentUrls: previous };
   } finally { await cleanup(); }
 }
 
 export async function runProductionAdminRelease(input, { provider, bootstrap = runAdminBootstrap, fetcher = fetch } = {}) {
   const report = { performedAt: new Date().toISOString(), scope: 'closed-admin-technical-release', complete: false };
+  let failedStage = 'input_validation';
   try {
     const mode = validateReleaseInput(input);
     report.mode = mode; report.revision = input.RELEASE_REVISION;
     const env = { ...input, ADMIN_IMPORT_POLICY: input.ADMIN_IMPORT_POLICY ?? 'account-only' };
     const client = provider ?? new VercelProduction(env, fetcher);
-    if (mode === 'deploy') report.ci = await requireSuccessfulCi(env, fetcher);
+    if (mode === 'deploy') { failedStage = 'ci_verification'; report.ci = await requireSuccessfulCi(env, fetcher); }
+    failedStage = 'configuration_read';
     const configuration = await inspectConfiguration(env, client);
     report.configuration = configuration.checks; report.sourceDirectDerived = configuration.sourceDirectDerived;
+    failedStage = 'bootstrap_plan';
     report.bootstrap = await bootstrap({ ...env, SOURCE_DATABASE_URL: configuration.source, BOOTSTRAP_MODE: 'plan' });
     if (!report.bootstrap.complete || !report.bootstrap.ready || !configuration.ready) { report.reason = 'production_preconditions_failed'; return report; }
     if (mode === 'plan') { report.complete = true; return report; }
@@ -297,18 +345,23 @@ export async function runProductionAdminRelease(input, { provider, bootstrap = r
     const phase = env.RELEASE_PHASE ?? 'prepare';
     if (!['prepare', 'release'].includes(phase) || (mode !== 'deploy' && phase !== 'prepare')) fail('invalid_release_phase');
     if (phase === 'prepare') {
+      failedStage = 'source_reference';
       const identity = await readDatabaseIdentity(configuration.source);
       if (![16, 17, 18].includes(identity.databaseMajor)) fail('unsupported_postgresql_major');
       env.PG_TOOLS_DOCKER_IMAGE = `postgres:${identity.databaseMajor}-alpine`;
+      failedStage = 'backup';
       script('db-backup.mjs', { ...env, DATABASE_URL: configuration.source });
+      failedStage = 'rehearsal';
       report.rehearsal = await rehearse(env, directory, configuration.source, identity, bootstrap);
       report.complete = true; report.phase = 'prepared'; return report;
     }
+    failedStage = 'prepared_backup_verification';
     await verifyPreparedBackup(env, directory, configuration.source);
     Object.assign(report, await deployClosedProduction(env, configuration, client, { bootstrap }));
     return report;
   } catch (error) {
     report.reason = error instanceof ReleaseError ? error.message : 'private_diagnostics_required';
+    report.failure = safeReleaseFailure(error, failedStage);
     if (error instanceof ReleaseError && error.diagnostics) report.command = error.diagnostics;
     return report;
   }

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
-import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand } from './production-admin-release.mjs';
+import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand, safeReleaseFailure } from './production-admin-release.mjs';
 
 const revision = 'a'.repeat(40);
 const privateAdminId = 'd72a58b7-6d4f-4187-90f7-9c763cfe2975';
@@ -235,6 +235,50 @@ test('a copied admin UUID mismatch prevents every provider mutation and build', 
   });
   assert.equal(result.complete, false); assert.equal(result.rollbackComplete, true);
   assert.equal(result.newDatabaseRetained, true); assert.equal(JSON.stringify(result).includes(privateAdminId), false);
+});
+
+test('an environment fetch timeout reports its exact safe stage and category after rollback', async () => {
+  const provider = providerFixture(); let rolledBack = false;
+  provider.replace = async (_project, _original, _key, _value, undo) => {
+    undo.push(async () => { rolledBack = true; });
+    throw new DOMException('private-request-url-and-value', 'TimeoutError');
+  };
+  const result = await deployClosedProduction(env, { ...configuration(), source }, provider, {
+    bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }), selectedAdminId: async () => privateAdminId,
+    command: () => assert.fail('timeout must prevent build'), cleanup: async () => {},
+  });
+  assert.equal(rolledBack, true); assert.equal(result.rollbackComplete, true);
+  assert.equal(result.failure.failedStage, 'api_env_DATABASE_URL');
+  assert.equal(result.failure.errorClass, 'TimeoutError'); assert.equal(result.failure.category, 'timeout');
+  assert.equal(JSON.stringify(result).includes('private-request'), false);
+});
+
+test('private source and target admin lookup failures retain safe classes and allowlisted bootstrap reasons', async () => {
+  class BootstrapError extends Error { constructor(reason) { super('private lookup details'); this.reason = reason; } }
+  for (const [failingRead, error, expectedReason] of [
+    [0, Object.assign(new Error('private source DSN'), { code: '42501' }), 'private_diagnostics_required'],
+    [1, new BootstrapError('admin_identity_lookup_failed'), 'admin_identity_lookup_failed'],
+    [1, new BootstrapError('private-unrecognized-reason'), 'private_diagnostics_required'],
+  ]) {
+    let reads = 0;
+    const result = await deployClosedProduction(env, { ...configuration(), source }, providerFixture(), {
+      bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }),
+      selectedAdminId: async () => { if (reads++ === failingRead) throw error; return privateAdminId; },
+      command: () => assert.fail('lookup failure must prevent build'), cleanup: async () => {},
+    });
+    assert.equal(result.failure.failedStage, failingRead === 0 ? 'admin_lookup_source' : 'admin_lookup_target');
+    assert.equal(result.failure.reason, expectedReason);
+    if (failingRead === 0) { assert.equal(result.failure.pgCode, '42501'); assert.equal(result.failure.category, 'postgresql'); }
+    assert.equal(JSON.stringify(result).includes('private source'), false);
+    assert.equal(JSON.stringify(result).includes('private lookup'), false);
+    assert.equal(JSON.stringify(result).includes('private-unrecognized'), false);
+  }
+});
+
+test('diagnostics reject untrusted stage, class, code and message text', () => {
+  const result = safeReleaseFailure({ name: 'private-class', code: 'private-code', message: 'private-message', stack: 'private-stack', cause: { code: 'private-cause' } }, 'private-stage');
+  assert.equal(result.failedStage, 'unknown_stage'); assert.equal(result.errorClass, 'UnknownError');
+  assert.equal(JSON.stringify(result).includes('private-'), false);
 });
 
 test('protected API must deny an unauthenticated request even when health is green', async () => {
