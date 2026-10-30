@@ -17,6 +17,38 @@ const apiRequire = createRequire(resolve(apiRoot, 'package.json'));
 const origin = 'http://127.0.0.1:3007';
 const apiOrigin = 'http://127.0.0.1:3008';
 
+export function recipeRouteCategory(path) {
+  const route = String(path ?? '').split('?')[0];
+  if (route === '/workouts') return 'workout_history';
+  if (/^\/workouts\/[a-f0-9-]{36}$/.test(route)) return 'workout_detail';
+  if (route === '/programs') return 'program_history';
+  if (/^\/programs\/[a-f0-9-]{36}$/.test(route)) return 'program_detail';
+  if (route === '/session-logs') return 'session_logs';
+  return 'other';
+}
+
+export function summarizeRecipeFlight({ method, status, contentType, body }) {
+  // Never retain the Flight body, headers, action identifiers, URLs or account data.
+  return {
+    method: ['GET', 'POST'].includes(method) ? method : 'other',
+    status: Number.isInteger(status) ? status : 0,
+    flight: typeof contentType === 'string' && contentType.includes('text/x-component'),
+    fixtureWorkoutPresent: typeof body === 'string' && body.includes('Séance de recette locale'),
+    emptyWorkoutHistoryPresent:
+      typeof body === 'string' && body.includes('Aucune seance pour l instant'),
+  };
+}
+
+export function recipeBrowserErrorCategory(message) {
+  const text = String(message ?? '');
+  if (/content security policy|\bcsp\b|nonce/i.test(text)) return 'csp';
+  if (/hydration|hydrating/i.test(text)) return 'hydration';
+  if (/server components render|server action|failed to find server action/i.test(text))
+    return 'server_render_or_action';
+  if (/failed to fetch|networkerror|network error/i.test(text)) return 'network';
+  return 'other';
+}
+
 async function unusedPort(port) {
   const server = createServer();
   await new Promise((resolveReady, reject) => {
@@ -116,6 +148,10 @@ export async function runLocalRecipes() {
   let currentPage;
   let detail = 'startup';
   const apiRequests = [];
+  const historyResponses = [];
+  const browserErrors = [];
+  const responseTasks = new Set();
+  const diagnosticStarted = Date.now();
   let requestBuffer = '';
   const requestSummary = (chunk) => {
     requestBuffer += chunk.toString();
@@ -123,7 +159,8 @@ export async function runLocalRecipes() {
     for (const block of blocks) {
       const method = block[1].match(/method: '(GET|POST|PUT|DELETE|OPTIONS)'/)?.[1];
       const status = Number(block[1].match(/statusCode: (\d+)/)?.[1]);
-      if (method && Number.isInteger(status)) apiRequests.push({ method, status });
+      if (method && Number.isInteger(status))
+        apiRequests.push({ method, status, atMs: Date.now() - diagnosticStarted });
     }
     if (blocks.length)
       requestBuffer = requestBuffer.slice(blocks.at(-1).index + blocks.at(-1)[0].length);
@@ -211,6 +248,47 @@ export async function runLocalRecipes() {
     }
     const page = await contexts[0].newPage();
     currentPage = page;
+    page.on('console', (message) => {
+      if (message.type() === 'error' && browserErrors.length < 50) {
+        browserErrors.push({
+          category: recipeBrowserErrorCategory(message.text()),
+          atMs: Date.now() - diagnosticStarted,
+        });
+      }
+    });
+    page.on('pageerror', (error) => {
+      if (browserErrors.length < 50)
+        browserErrors.push({
+          category: recipeBrowserErrorCategory(error.message),
+          atMs: Date.now() - diagnosticStarted,
+        });
+    });
+    page.on('response', (response) => {
+      const url = new URL(response.url());
+      if (
+        url.origin !== origin ||
+        recipeRouteCategory(url.pathname) !== 'workout_history' ||
+        historyResponses.length >= 50
+      )
+        return;
+      const entry = { phase: currentCheck, receivedAtMs: Date.now() - diagnosticStarted };
+      historyResponses.push(entry);
+      const task = (async () => {
+        Object.assign(
+          entry,
+          summarizeRecipeFlight({
+            method: response.request().method(),
+            status: response.status(),
+            contentType: await response.headerValue('content-type'),
+            body: await response.text(),
+          }),
+        );
+      })().catch(() => {
+        entry.readFailed = true;
+      });
+      responseTasks.add(task);
+      void task.finally(() => responseTasks.delete(task));
+    });
     let workoutUrl;
     await check('authenticated_workout_generation_via_server_action', async () => {
       await page.goto(`${origin}/generate`);
@@ -386,6 +464,11 @@ export async function runLocalRecipes() {
         .evaluate(() => ({
           timerCompleted: Boolean(document.getElementById('session-complete-title')),
           journalSaved: document.body.textContent?.includes('Retour enregistre.') ?? false,
+          articleCount: document.querySelectorAll('[role="article"]').length,
+          fixtureWorkoutPresent:
+            document.body.textContent?.includes('Séance de recette locale') ?? false,
+          emptyWorkoutHistoryPresent:
+            document.body.textContent?.includes('Aucune seance pour l instant') ?? false,
           controls: Array.from(document.querySelectorAll('button'))
             .map((button) => button.textContent?.trim())
             .filter((text) =>
@@ -420,6 +503,11 @@ export async function runLocalRecipes() {
       ).rows[0] ?? null;
     process.exitCode = 1;
   } finally {
+    await Promise.race([
+      Promise.allSettled([...responseTasks]),
+      new Promise((done) => setTimeout(done, 2_000)),
+    ]);
+    report.diagnostics = { historyResponses, browserErrors };
     if (browser) await browser.close().catch(() => undefined);
     await stop(web);
     await stop(api);
