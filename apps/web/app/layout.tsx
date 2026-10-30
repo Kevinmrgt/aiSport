@@ -1,24 +1,34 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Barlow_Condensed, Urbanist } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 import { auth, signOut } from '@/lib/auth';
 import { type IconName } from '@/components/ui/Icon';
 import { ActiveNavLink } from '@/components/ActiveNavLink';
 import { SessionSignOut } from '@/components/SessionSignOut';
 
-const bodyFont = Urbanist({
-  subsets: ['latin'],
+const bodyFont = localFont({
+  src: [
+    { path: './fonts/Urbanist-Variable.ttf', weight: '400', style: 'normal' },
+    { path: './fonts/Urbanist-Variable.ttf', weight: '500', style: 'normal' },
+    { path: './fonts/Urbanist-Variable.ttf', weight: '600', style: 'normal' },
+    { path: './fonts/Urbanist-Variable.ttf', weight: '700', style: 'normal' },
+    { path: './fonts/Urbanist-Variable.ttf', weight: '800', style: 'normal' },
+    { path: './fonts/Urbanist-Variable.ttf', weight: '900', style: 'normal' },
+  ],
   display: 'swap',
-  weight: ['400', '500', '600', '700', '800', '900'],
   variable: '--font-sans',
 });
 
-const displayFont = Barlow_Condensed({
-  subsets: ['latin'],
+const displayFont = localFont({
+  src: [
+    { path: './fonts/BarlowCondensed-SemiBold.ttf', weight: '600', style: 'normal' },
+    { path: './fonts/BarlowCondensed-Bold.ttf', weight: '700', style: 'normal' },
+    { path: './fonts/BarlowCondensed-ExtraBold.ttf', weight: '800', style: 'normal' },
+    { path: './fonts/BarlowCondensed-Black.ttf', weight: '900', style: 'normal' },
+  ],
   display: 'swap',
-  weight: ['600', '700', '800', '900'],
   variable: '--font-display',
 });
 
