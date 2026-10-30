@@ -20,7 +20,7 @@ const owner = randomUUID(),
       !(
         target.pathname.startsWith('/alcide_admin_') ||
         target.pathname === '/alcide_restore_test' ||
-        (process.env['CI'] === 'true' && target.pathname === '/alcide')
+        (process.env['CI'] === 'true' && ['/alcide', '/alcide_test'].includes(target.pathname))
       )
     )
       throw new Error('Base admin locale isolée requise');
