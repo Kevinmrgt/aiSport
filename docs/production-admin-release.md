@@ -29,6 +29,12 @@ les fixe dans les configurations privées des fonctions Node construites ; les
 fonctions Edge conservent leur format. Aucun secret de ces fichiers n'est
 archivé dans les preuves.
 
+Pour vérifier les URL Web protégées par Vercel, la livraison crée si nécessaire
+un accès d'automatisation temporaire, transmis uniquement par en-tête au candidat.
+Elle vérifie aussi le callback Google canonique et révoque cet accès avant toute
+promotion. Un échec déclenche également sa révocation ; la protection du projet
+et les accès préexistants ne sont pas désactivés.
+
 ## Première connexion et contrôle d'accès
 
 Les deux services reçoivent `PRODUCTION_ACCESS_MODE=admin-only` et une
