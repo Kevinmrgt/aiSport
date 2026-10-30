@@ -38,6 +38,11 @@ export function safeVercelValidation(payload) {
     signals: {
       mentionsDeployment: /deployment/.test(message), mentionsSource: /\bsource\b/.test(message),
       mentionsProjectId: /project.?id/.test(message), mentionsTeamId: /team.?id/.test(message),
+      mentionsSecret: /secret/.test(message),
+      secretLengthConstraint: /secret/.test(message) && /length|characters?|minimum|maximum/.test(message),
+      mentionsMinLength: /min.?length|minimum|at least|shorter than/.test(message),
+      mentionsMaxLength: /max.?length|maximum|at most|longer than/.test(message),
+      mentions32: /\b32\b/.test(message),
       unsupported: /unsupported|not supported/.test(message), invalidId: /invalid.{0,80}\bid\b|invalid.{0,80}deployment/.test(message),
       invalidParameter: /invalid.{0,80}(parameter|query|property)|invalid request/.test(message),
       requiredParameter: /required|missing.{0,40}(parameter|property)/.test(message),
@@ -160,7 +165,9 @@ export class VercelProduction {
     return `https://${url}`;
   }
   async temporaryAutomationBypass(project, undo) {
-    const secret = randomBytes(32).toString('hex');
+    // Vercel's official provider validates /^[a-zA-Z0-9]{32}$/ for custom
+    // automation secrets. Sixteen random bytes become 32 valid hex chars.
+    const secret = randomBytes(16).toString('hex');
     const projectPath = `/v9/projects/${encodeURIComponent(project)}`;
     const bypassPath = `/v1/projects/${encodeURIComponent(project)}/protection-bypass`;
     let finished = false;

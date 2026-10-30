@@ -671,13 +671,14 @@ test('temporary project bypass compensates generation failures, revokes only its
     calls.push({ path, method, body });
     if (body?.generate) {
       assert.equal(undo.length, 1); assert.equal(body.generate.note, 'Alcide closed release validation 123-2');
+      assert.equal(/^[a-zA-Z0-9]{32}$/.test(body.generate.secret), true);
       state[body.generate.secret] = { scope: 'automation-bypass' };
     }
     if (body?.revoke) { assert.equal(Array.isArray(body.revoke), false); assert.equal(body.revoke.regenerate, false); delete state[body.revoke.secret]; }
     return { protectionBypass: { ...state } };
   };
   const lease = await provider.temporaryAutomationBypass('web', undo);
-  assert.match(lease.secret, /^[a-f0-9]{64}$/); assert.equal(Object.hasOwn(state, lease.secret), true);
+  assert.equal(/^[a-f0-9]{32}$/.test(lease.secret), true); assert.equal(Object.hasOwn(state, lease.secret), true);
   await lease.revoke(); await lease.revoke(); await undo[0]();
   assert.deepEqual(Object.keys(state), ['third-party-token']);
   assert.equal(calls.filter((call) => call.body?.revoke).length, 1);
@@ -748,6 +749,13 @@ test('Web OAuth configuration requires the exact canonical callback and refuses 
   assert.equal(result.canonicalCallbackVerified, true); assert.equal(calls, 1);
   await assert.rejects(checkWebOAuthConfiguration('https://web-validation.vercel.app', { fetcher: async () => response('https://ai-sport-web.vercel.app/api/auth/callback/google') }), /canonical_callback_mismatch/);
   await assert.rejects(checkWebOAuthConfiguration('https://web-validation.vercel.app', { bypassSecret: 'private-bypass', fetcher: async () => new Response(null, { status: 302, headers: { location: 'https://vercel.com/sso-api' } }) }), /redirect_refused/);
+});
+
+test('secret length validation exposes only fixed length constraint signals', () => {
+  const result = safeVercelValidation({ error: { code: 'bad_request', message: 'Secret must not be longer than 32 characters: private-token-value' } });
+  assert.equal(result.signals.mentionsSecret, true); assert.equal(result.signals.secretLengthConstraint, true);
+  assert.equal(result.signals.mentions32, true); assert.equal(result.signals.mentionsMaxLength, true);
+  assert.equal(JSON.stringify(result).includes('private-token'), false);
 });
 
 test('protected API must deny an unauthenticated request even when health is green', async () => {
