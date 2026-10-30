@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { and, eq, gt, sql } from 'drizzle-orm';
+import { and, eq, gt, inArray, lt, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { workouts, trainingPrograms } from '../db/schema.js';
 import {
@@ -18,6 +18,7 @@ import type {
 import type { AiAttempt, AiUsage } from '../services/ai.service.js';
 import type { GenerationPolicy } from '../services/generation-policy.js';
 import { AppError } from '../types/app-error.js';
+import { writeAdminAudit } from './admin-audit.repository.js';
 
 type Database = Pick<typeof db, 'transaction'>;
 type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
@@ -89,6 +90,7 @@ export class GenerationBudgetRepository {
       if (!policy.enabled)
         throw AppError.serviceUnavailable('La generation est temporairement suspendue');
       await enabled(tx);
+      await this.settleCompletedMeasurements(tx, userId);
       const [active] = await tx
         .select({
           total: sql<number>`count(*)::int`,
@@ -161,7 +163,8 @@ export class GenerationBudgetRepository {
         .from(budgets)
         .where(and(eq(budgets.day, day), sql`${budgets.scope} in ('global', ${userScope})`))
         .for('update');
-      const reserved = policy.inputTokensPerAttempt + policy.maxCompletionTokens;
+      // The transport already bounded this exact HTTP request against the policy ceilings.
+      const reserved = inputUpperBound + attempt.maxCompletionTokens;
       if (rows.length !== 2)
         throw AppError.serviceUnavailable('Comptabilisation de generation indisponible');
       for (const row of rows) {
@@ -196,13 +199,39 @@ export class GenerationBudgetRepository {
     userId: string,
     usage: AiUsage,
     policy: GenerationPolicy,
+    attempt?: Readonly<AiAttempt>,
   ): Promise<void> {
     const values = [usage.inputTokens, usage.outputTokens, usage.totalTokens];
+    if (
+      usage.receiptId !== undefined &&
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        usage.receiptId,
+      )
+    ) {
+      throw AppError.serviceUnavailable('Reçu de consommation IA invalide');
+    }
     if (
       values.some((value) => !Number.isSafeInteger(value) || value < 0 || value > 10_000_000) ||
       usage.model.length > 120
     ) {
       throw AppError.serviceUnavailable('Mesure de consommation IA invalide');
+    }
+    // Only an admitted, immutable HTTP receipt can release its exact provision.
+    // Legacy callers without proof add the full measurement; they cannot obtain a refund.
+    let reserved = 0;
+    if (attempt !== undefined) {
+      if (
+        !usage.receiptId ||
+        attempt.receiptId !== usage.receiptId ||
+        !Number.isSafeInteger(attempt.inputTokensUpperBound) ||
+        attempt.inputTokensUpperBound < 0 ||
+        attempt.inputTokensUpperBound > policy.inputTokensPerAttempt ||
+        !Number.isSafeInteger(attempt.maxCompletionTokens) ||
+        attempt.maxCompletionTokens < 1 ||
+        attempt.maxCompletionTokens > policy.maxCompletionTokens
+      )
+        throw AppError.serviceUnavailable('Borne de consommation IA invalide');
+      reserved = attempt.inputTokensUpperBound + attempt.maxCompletionTokens;
     }
     await this.database.transaction(async (tx) => {
       await limits(tx);
@@ -215,9 +244,12 @@ export class GenerationBudgetRepository {
       if (!operation || operation.attempts === 0)
         throw AppError.serviceUnavailable('Reservation IA introuvable');
       const total = Math.max(usage.totalTokens, usage.inputTokens + usage.outputTokens);
-      const eventKey = usage.requestId
-        ? createHash('sha256').update(usage.requestId).digest('hex')
-        : randomUUID();
+      // The local receipt remains identical if a callback is retried without a provider ID.
+      const eventKey = usage.receiptId
+        ? `receipt:${usage.receiptId}`
+        : usage.requestId
+          ? createHash('sha256').update(usage.requestId).digest('hex')
+          : randomUUID();
       const inserted = await tx
         .insert(usageEvents)
         .values({
@@ -231,14 +263,32 @@ export class GenerationBudgetRepository {
         .onConflictDoNothing()
         .returning({ id: usageEvents.id });
       if (inserted.length === 0) return;
-      // Worst-case reservations are never refunded. Unexpected excess is charged as well.
-      const excess = Math.max(0, total - policy.inputTokensPerAttempt - policy.maxCompletionTokens);
+      // Known usage replaces only its proven HTTP provision, including when it exceeds it.
+      // A missing proof has reserved=0, so uncertain provisions are never released.
+      const delta = total - reserved;
+      const daily = await tx
+        .select()
+        .from(budgets)
+        .where(
+          and(
+            eq(budgets.day, utcDay(operation)),
+            sql`${budgets.scope} in ('global', ${`user:${userId}`})`,
+          ),
+        )
+        .for('update');
+      if (
+        daily.length !== 2 ||
+        (delta < 0 &&
+          (operation.reservedTokens < -delta || daily.some((row) => row.reservedTokens < -delta)))
+      ) {
+        throw AppError.serviceUnavailable('Reglement du budget IA indisponible');
+      }
       await tx
         .update(budgets)
         .set({
           inputTokens: sql`${budgets.inputTokens} + ${usage.inputTokens}`,
           outputTokens: sql`${budgets.outputTokens} + ${usage.outputTokens}`,
-          reservedTokens: sql`${budgets.reservedTokens} + ${excess}`,
+          reservedTokens: sql`${budgets.reservedTokens} + ${delta}`,
           updatedAt: sql`now()`,
         })
         .where(
@@ -252,7 +302,7 @@ export class GenerationBudgetRepository {
         .set({
           inputTokens: sql`${operations.inputTokens} + ${usage.inputTokens}`,
           outputTokens: sql`${operations.outputTokens} + ${usage.outputTokens}`,
-          reservedTokens: sql`${operations.reservedTokens} + ${excess}`,
+          reservedTokens: sql`${operations.reservedTokens} + ${delta}`,
           updatedAt: sql`now()`,
         })
         .where(eq(operations.id, operationId));
@@ -355,6 +405,92 @@ export class GenerationBudgetRepository {
       return created;
     };
     return executor ? save(executor) : this.database.transaction(save);
+  }
+
+  /** Called under the admission lock. Only complete legacy provider receipts are eligible. */
+  private async settleCompletedMeasurements(tx: Transaction, userId: string): Promise<void> {
+    const completed = await tx
+      .select()
+      .from(operations)
+      .where(
+        and(
+          eq(operations.userId, userId),
+          sql`${operations.createdAt} >= (date_trunc('day', now() at time zone 'UTC') at time zone 'UTC')`,
+          sql`${operations.createdAt} < ((date_trunc('day', now() at time zone 'UTC') + interval '1 day') at time zone 'UTC')`,
+          inArray(operations.status, ['succeeded', 'failed']),
+          lt(operations.leaseExpiresAt, sql`now()`),
+          gt(operations.attempts, 0),
+          sql`${operations.reservedTokens} > ${operations.inputTokens} + ${operations.outputTokens}`,
+        ),
+      )
+      .orderBy(operations.id)
+      .for('update');
+    for (const operation of completed) {
+      const [measured] = await tx
+        .select({
+          count: sql<number>`count(*)::integer`,
+          // The old random UUID fallback does not prove one distinct provider receipt per HTTP.
+          knownReceipts: sql<boolean>`coalesce(bool_and(${usageEvents.eventKey} ~ '^[a-f0-9]{64}$'), false)`,
+          inputTokens: sql<number>`coalesce(sum(${usageEvents.inputTokens}), 0)::integer`,
+          outputTokens: sql<number>`coalesce(sum(${usageEvents.outputTokens}), 0)::integer`,
+          totalTokens: sql<number>`coalesce(sum(${usageEvents.totalTokens}), 0)::integer`,
+        })
+        .from(usageEvents)
+        .where(eq(usageEvents.operationId, operation.id));
+      if (
+        !measured ||
+        measured.knownReceipts !== true ||
+        measured.count !== operation.attempts ||
+        measured.inputTokens !== operation.inputTokens ||
+        measured.outputTokens !== operation.outputTokens ||
+        measured.totalTokens !== measured.inputTokens + measured.outputTokens
+      )
+        continue;
+      const delta = operation.reservedTokens - measured.totalTokens;
+      if (delta <= 0) continue;
+      const day = utcDay(operation);
+      const userScope = `user:${userId}`;
+      const daily = await tx
+        .select()
+        .from(budgets)
+        .where(and(eq(budgets.day, day), sql`${budgets.scope} in ('global', ${userScope})`))
+        .for('update');
+      if (
+        daily.length !== 2 ||
+        daily.some(
+          (row) =>
+            row.reservedTokens < operation.reservedTokens ||
+            row.inputTokens < measured.inputTokens ||
+            row.outputTokens < measured.outputTokens ||
+            row.attempts < operation.attempts,
+        )
+      ) {
+        throw AppError.serviceUnavailable('Rapprochement du budget IA indisponible');
+      }
+      await tx
+        .update(budgets)
+        .set({ reservedTokens: sql`${budgets.reservedTokens} - ${delta}`, updatedAt: sql`now()` })
+        .where(and(eq(budgets.day, day), sql`${budgets.scope} in ('global', ${userScope})`));
+      await tx
+        .update(operations)
+        .set({ reservedTokens: measured.totalTokens, updatedAt: sql`now()` })
+        .where(eq(operations.id, operation.id));
+      await writeAdminAudit(tx, {
+        actorEmail: 'system',
+        userId,
+        action: 'generation.budget.settled',
+        reason: 'Rapprochement des réserves avec des reçus fournisseur complets et mesurés',
+        changes: {
+          operationId: operation.id,
+          day,
+          attempts: operation.attempts,
+          reservedBefore: operation.reservedTokens,
+          measuredTokens: measured.totalTokens,
+          releasedTokens: delta,
+        },
+        requestKey: `generation-budget-settled:v1:${operation.id}`,
+      });
+    }
   }
 
   private async lockRunning(

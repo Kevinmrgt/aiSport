@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { AppError } from '../types/app-error.js';
 
 export type AiProvider = 'openai';
@@ -7,11 +8,13 @@ export interface AiConfig {
   model?: string;
 }
 export interface AiAttempt {
+  receiptId?: string;
   model: string;
   maxCompletionTokens: number;
   inputTokensUpperBound: number;
 }
 export interface AiUsage {
+  receiptId?: string;
   model: string;
   inputTokens: number;
   outputTokens: number;
@@ -23,7 +26,7 @@ export interface AiExecutionOptions {
   /** Awaited before each HTTP attempt. Rejecting prevents the provider call. */
   onAttempt?: (attempt: AiAttempt) => void | Promise<void>;
   /** Reported before content validation, including refused/truncated results. */
-  onUsage?: (usage: AiUsage) => void | Promise<void>;
+  onUsage?: (usage: AiUsage, attempt?: Readonly<AiAttempt>) => void | Promise<void>;
 }
 export interface AiCallOptions extends AiExecutionOptions {
   jsonSchema?: { name: string; schema: Record<string, unknown> };
@@ -131,10 +134,16 @@ export async function callAiProvider(
         prompt +
         (options.jsonSchema ? JSON.stringify(options.jsonSchema) : ''),
     ).byteLength + 256;
+  const attempt = Object.freeze({
+    receiptId: randomUUID(),
+    model,
+    maxCompletionTokens,
+    inputTokensUpperBound,
+  });
   throwIfCancelled(options.signal);
   if (options.onAttempt) {
     try {
-      await options.onAttempt({ model, maxCompletionTokens, inputTokensUpperBound });
+      await options.onAttempt(attempt);
     } catch (error) {
       if (error instanceof AppError) throw error;
       throw new AiAccountingError();
@@ -150,7 +159,7 @@ export async function callAiProvider(
     controller.abort();
   }, timeoutMs);
   try {
-    return await callOpenAi(config.apiKey, model, prompt, controller.signal, options);
+    return await callOpenAi(config.apiKey, model, prompt, controller.signal, options, attempt);
   } catch (error) {
     if (options.signal?.aborted) throw new AiCancelledError();
     if (timedOut) throw new AiTimeoutError(timeoutMs);
@@ -174,6 +183,7 @@ async function callOpenAi(
   prompt: string,
   signal: AbortSignal,
   options: AiCallOptions,
+  attempt: Readonly<AiAttempt>,
 ): Promise<string> {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -188,7 +198,7 @@ async function callOpenAi(
         { role: 'user', content: prompt },
       ],
       temperature: options.temperature ?? 0.7,
-      max_completion_tokens: options.maxTokens ?? 2048,
+      max_completion_tokens: attempt.maxCompletionTokens,
       response_format: options.jsonSchema
         ? { type: 'json_schema', json_schema: { ...options.jsonSchema, strict: true } }
         : { type: 'json_object' },
@@ -229,13 +239,17 @@ async function callOpenAi(
     ) {
       try {
         const requestId = response.headers?.get('x-request-id');
-        await options.onUsage({
-          model: data.model ?? model,
-          inputTokens: input,
-          outputTokens: output,
-          totalTokens: total,
-          ...(requestId ? { requestId } : {}),
-        });
+        await options.onUsage(
+          {
+            ...(attempt.receiptId ? { receiptId: attempt.receiptId } : {}),
+            model: data.model ?? model,
+            inputTokens: input,
+            outputTokens: output,
+            totalTokens: total,
+            ...(requestId ? { requestId } : {}),
+          },
+          attempt,
+        );
       } catch {
         throw new AiAccountingError();
       }

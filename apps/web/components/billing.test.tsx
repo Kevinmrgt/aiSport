@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GenerationQuotaNotice } from './GenerationQuotaNotice';
 import { ProgramForm } from './ProgramForm';
 import { BillingOffers } from './BillingOffers';
@@ -7,6 +7,11 @@ vi.mock('./useFormReady', () => ({ useFormReady: () => true }));
 
 describe('offres et crédits', () => {
   beforeEach(() => vi.clearAllMocks());
+  afterEach(async () => {
+    // Vitest globals are disabled, so Testing Library cannot register auto-cleanup.
+    // Await React's pending work before jsdom removes window for this test file.
+    await act(() => Promise.resolve(cleanup()));
+  });
   it('affiche les deux offres avec les composants existants', () => {
     const { container } = render(<BillingOffers />);
     expect(screen.getByText('9,99 €')).toBeTruthy();
@@ -33,7 +38,7 @@ describe('offres et crédits', () => {
     );
     expect(screen.queryByText(/Acces jury/)).toBeNull();
   });
-  it('bloque un programme lorsque les semaines dépassent le solde même non nul', () => {
+  it('bloque un programme lorsque les semaines dépassent le solde même non nul', async () => {
     render(
       <ProgramForm
         onSubmit={vi.fn()}
@@ -51,7 +56,7 @@ describe('offres et crédits', () => {
       screen.getByRole<HTMLButtonElement>('button', { name: /Crédits insuffisants/ }).disabled,
     ).toBe(true);
     const weeks = document.querySelector('select[name="weeks_count"]')!;
-    fireEvent.change(weeks, { target: { value: '2' } });
+    await act(() => Promise.resolve(fireEvent.change(weeks, { target: { value: '2' } })));
     expect(
       screen.getByRole<HTMLButtonElement>('button', { name: /Générer le programme/ }).disabled,
     ).toBe(false);
