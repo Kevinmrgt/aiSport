@@ -8,6 +8,7 @@ import {
 } from '@alcide/shared';
 import {
   DraftExerciseSchema,
+  DraftWorkoutSchema,
   correctionFeedback,
   generationDiagnostics,
   planSession,
@@ -37,6 +38,77 @@ const phases = {
 };
 
 describe('composition des séances', () => {
+  it('bounds oversized feedback by UTF-8 bytes, keeps every session diagnostic and never splits an emoji', () => {
+    const error = new SessionPlanningError(
+      Array.from(
+        { length: 5 },
+        (_, index) => `Séance ${index + 1} : ${'Diagnostic accentué 😀 '.repeat(50)}`,
+      ),
+    );
+    const feedback = correctionFeedback(
+      error,
+      JSON.stringify({ privateModelDraft: '😀'.repeat(24000) }),
+      1000,
+    );
+    expect(new TextEncoder().encode(feedback).byteLength).toBeLessThanOrEqual(1000);
+    for (let session = 1; session <= 5; session++) expect(feedback).toContain(`Séance ${session}`);
+    expect(feedback).not.toContain('privateModelDraft');
+    expect(feedback).not.toContain('\uFFFD');
+    for (const limit of [0, 1, 2, 3, 4, 99]) {
+      const bounded = correctionFeedback(error, '😀'.repeat(24000), limit);
+      expect(new TextEncoder().encode(bounded).byteLength).toBeLessThanOrEqual(limit);
+      expect(bounded).not.toContain('\uFFFD');
+    }
+  });
+  it.each([
+    [1380, 1380, 1380],
+    [1080, 1140, 1140],
+  ])(
+    'rejects an infeasible candidate with a numeric minimum instead of silently removing movements: %j',
+    (...workSeconds) => {
+      const draft = DraftWorkoutSchema.parse({
+        title: 'Candidate synthétique',
+        sport: 'marche',
+        difficulty: 'beginner',
+        duration_minutes: 15,
+        ...phases,
+        exercises: workSeconds.map((work_seconds, index) => ({
+          name: `Marche ${index}`,
+          description: 'Allure confortable',
+          tips: null,
+          prescription: {
+            version: 2,
+            category: 'cardio',
+            mode: 'continuous',
+            sets: 1,
+            reps: null,
+            work_seconds,
+            rest_seconds: 0,
+            transition_seconds: 0,
+            circuit_id: null,
+          },
+        })),
+      });
+      const original = structuredClone(draft);
+      let failure: unknown;
+      try {
+        planSession(draft, 'beginner');
+      } catch (error) {
+        failure = error;
+      }
+      expect(failure).toBeInstanceOf(SessionPlanningError);
+      expect((failure as Error).message).toContain('1200s');
+      expect((failure as Error).message).toContain('990s');
+      expect((failure as Error).message).toContain(
+        `Brouillon : ${workSeconds.reduce((sum, seconds) => sum + seconds, 300)}s`,
+      );
+      const feedback = correctionFeedback(failure, JSON.stringify(draft));
+      expect(feedback).toContain('Regénère');
+      expect(feedback).toContain('3 blocs continuous');
+      expect(feedback).not.toContain(JSON.stringify(draft));
+      expect(draft).toEqual(original);
+    },
+  );
   it('réserve le diagnostic de correction à toutes les séances sans publier les noms des exercices', () => {
     const error = new SessionPlanningError([
       ...Array.from(
@@ -353,7 +425,7 @@ describe('composition des séances', () => {
       ).plannedSeconds;
       expect(total).toBeGreaterThanOrEqual(getSessionDurationBounds(duration_minutes).minSeconds);
       expect(total).toBeLessThanOrEqual(getSessionDurationBounds(duration_minutes).maxSeconds);
-      expect(result.exercises[0]?.prescription?.work_seconds % 60).toBe(0);
+      expect(result.exercises[0]!.prescription!.work_seconds % 60).toBe(0);
     },
   );
   it('refuse un créneau irréalisable plutôt que transformer deux pompes en blocs de 16min30', () => {

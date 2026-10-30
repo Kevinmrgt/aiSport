@@ -119,6 +119,20 @@ export function assertTrainingContentSafe(content: unknown): void {
 function throwIfCancelled(signal?: AbortSignal): void {
   if (signal?.aborted) throw new AiCancelledError();
 }
+/** The same conservative UTF-8 bound is used for preflight and actual admission. */
+export function getAiInputTokensUpperBound(
+  prompt: string,
+  options: Pick<AiCallOptions, 'systemMessage' | 'jsonSchema'> = {},
+): number {
+  return (
+    new TextEncoder().encode(
+      (options.systemMessage ?? 'Réponds uniquement avec un objet JSON valide.') +
+        prompt +
+        (options.jsonSchema ? JSON.stringify(options.jsonSchema) : ''),
+    ).byteLength + 256
+  );
+}
+
 export async function callAiProvider(
   config: AiConfig,
   prompt: string,
@@ -127,13 +141,7 @@ export async function callAiProvider(
   const model = config.model ?? DEFAULT_OPENAI_MODEL;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxCompletionTokens = options.maxTokens ?? 2048;
-  // A UTF-8 byte bound is conservative for text tokens; include chat framing.
-  const inputTokensUpperBound =
-    new TextEncoder().encode(
-      (options.systemMessage ?? 'Réponds uniquement avec un objet JSON valide.') +
-        prompt +
-        (options.jsonSchema ? JSON.stringify(options.jsonSchema) : ''),
-    ).byteLength + 256;
+  const inputTokensUpperBound = getAiInputTokensUpperBound(prompt, options);
   const attempt = Object.freeze({
     receiptId: randomUUID(),
     model,

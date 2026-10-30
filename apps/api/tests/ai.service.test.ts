@@ -6,6 +6,7 @@ import {
   AiProviderError,
   AiResponseError,
   callAiProvider,
+  getAiInputTokensUpperBound,
   waitForAiRetry,
 } from '../src/services/ai.service.js';
 import { AppError } from '../src/types/app-error.js';
@@ -35,6 +36,31 @@ describe('contrat fournisseur IA', () => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
   });
+
+  it.each(['été accentué', '😀🚶🏽 marche', '漢字 et contrôle'])(
+    'shares the unchanged UTF-8 bound with actual admission for %s',
+    async (prompt) => {
+      const jsonSchema = {
+        name: 'synthetic',
+        schema: { type: 'object', description: 'Données françaises 😀' },
+      };
+      const systemMessage = 'Réponds en français 😀';
+      const expected =
+        new TextEncoder().encode(systemMessage + prompt + JSON.stringify(jsonSchema)).byteLength +
+        256;
+      expect(getAiInputTokensUpperBound(prompt, { systemMessage, jsonSchema })).toBe(expected);
+      fetchMock.mockResolvedValue(response());
+      const onAttempt = vi.fn();
+      await callAiProvider(config, prompt, { systemMessage, jsonSchema, onAttempt });
+      expect(onAttempt).toHaveBeenCalledWith(
+        expect.objectContaining({ inputTokensUpperBound: expected }),
+      );
+      expect(getAiInputTokensUpperBound(prompt)).toBe(
+        new TextEncoder().encode('Réponds uniquement avec un objet JSON valide.' + prompt)
+          .byteLength + 256,
+      );
+    },
+  );
 
   it('réserve avant HTTP, sépare instructions et données et mesure la consommation', async () => {
     const events: string[] = [];

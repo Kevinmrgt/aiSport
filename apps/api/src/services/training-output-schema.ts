@@ -1,3 +1,8 @@
+import {
+  sessionDurationBudget,
+  MINIMUM_WARMUP_SECONDS,
+  MINIMUM_COOLDOWN_SECONDS,
+} from './session-duration-policy.js';
 import { getPrescriptionLimits, REST_STEPS, TRANSITION_STEPS } from '@alcide/shared';
 import type {
   GenerateProgramInput,
@@ -33,6 +38,7 @@ const array = (items: JsonSchema, minItems: number, maxItems: number): JsonSchem
 
 /** Generation boundary only. Shared validation remains authoritative for stored workouts. */
 function sessionProperties(level: TrainingLevel, minutes: number) {
+  const budget = sessionDurationBudget(minutes, level);
   const variants: [Prescription['category'], Prescription['mode']][] = [
     ['strength', 'repetitions'],
     ['strength', 'interval'],
@@ -52,7 +58,11 @@ function sessionProperties(level: TrainingLevel, minutes: number) {
         sets: integer(1, limits.maxSets),
         reps:
           mode === 'repetitions' ? integer(4, level === 'beginner' ? 15 : 25) : { type: 'null' },
-        work_seconds: integer(limits.minWork, limits.maxWork, mode === 'continuous' ? 60 : 5),
+        work_seconds: integer(
+          limits.minWork,
+          mode === 'continuous' ? budget.continuousMaximumSeconds : limits.maxWork,
+          mode === 'continuous' ? 60 : 5,
+        ),
         rest_seconds: {
           type: 'integer',
           enum:
@@ -64,25 +74,35 @@ function sessionProperties(level: TrainingLevel, minutes: number) {
       });
     }),
   };
-  const phase = object({
-    name: text(100),
-    duration_seconds: integer(30, 900, 30),
-    description: text(300),
-  });
+  const phase = (maximum: number) =>
+    object({
+      name: text(100),
+      duration_seconds: integer(30, maximum, 30),
+      description: text(300),
+    });
   return {
     duration_minutes: literal(minutes),
-    exercises: array(
-      object({
-        name: text(100),
-        description: text(300),
-        tips: { anyOf: [text(250), { type: 'null' }] },
-        prescription,
-      }),
-      1,
-      16,
-    ),
-    warmup: array(phase, 1, 6),
-    cooldown: array(phase, 1, 6),
+    exercises: {
+      ...array(
+        object({
+          name: text(100),
+          description: text(300),
+          tips: { anyOf: [text(250), { type: 'null' }] },
+          prescription,
+        }),
+        1,
+        16,
+      ),
+      description: `Efforts/repos/transitions au total : ${budget.movementMaximumSeconds}s maximum. Continuous : ${budget.continuousMinimumSeconds}s minimum chacun, au plus ${budget.continuousMaximumCount} blocs. Tous modes : 1–16 mouvements.`,
+    },
+    warmup: {
+      ...array(phase(budget.warmupMaximumSeconds), 1, 6),
+      description: `Somme des éléments : ${MINIMUM_WARMUP_SECONDS}–${budget.warmupMaximumSeconds}s, comprise dans le créneau.`,
+    },
+    cooldown: {
+      ...array(phase(budget.cooldownMaximumSeconds), 1, 6),
+      description: `Somme des éléments : ${MINIMUM_COOLDOWN_SECONDS}–${budget.cooldownMaximumSeconds}s, comprise dans le créneau.`,
+    },
   };
 }
 

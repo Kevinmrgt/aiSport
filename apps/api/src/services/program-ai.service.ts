@@ -1,9 +1,12 @@
+import { generationPolicy } from './generation-policy.js';
+import { sessionDurationPrompt } from './session-duration-policy.js';
 import { ProgramWeekSchema, TrainingProgramSchema } from '@alcide/shared';
 import type { ProgramWeek, TrainingProgram, GenerateProgramInput } from '@alcide/shared';
 import { AppError } from '../types/app-error.js';
 import {
   AiTimeoutError,
   callAiProvider,
+  getAiInputTokensUpperBound,
   assertTrainingRequestSafe,
   assertTrainingContentSafe,
   waitForAiRetry,
@@ -52,6 +55,7 @@ function buildWeekPrompt(
 
 Niveau : ${input.level}
 Duree par seance : ${input.session_duration_minutes} minutes
+${sessionDurationPrompt(input.session_duration_minutes, input.level)}
 Nombre de seances : ${input.sessions_per_week}
 Phase : ${phaseLabel}
 Objectifs : ${input.goals}
@@ -143,6 +147,11 @@ async function generateWeekWithRetry(
   const start = Date.now();
   let feedback = '';
   const prompt = `${SYSTEM_MESSAGE}\n\n${buildWeekPrompt(input, weekNumber, getProgressionPhase(weekNumber, input.weeks_count))}`;
+  const jsonSchema = weekOutputSchema(input, weekNumber);
+  const feedbackBytes = Math.max(
+    0,
+    generationPolicy().inputTokensPerAttempt - getAiInputTokensUpperBound(prompt, { jsonSchema }),
+  );
 
   for (let attempt = 1; attempt <= 2; attempt++) {
     let previousJson = '';
@@ -159,7 +168,7 @@ async function generateWeekWithRetry(
         timeoutMs,
         temperature: 0.2,
         maxTokens: Math.min(11000, 1500 + input.sessions_per_week * 1800),
-        jsonSchema: weekOutputSchema(input, weekNumber),
+        jsonSchema,
       });
       previousJson = content.match(/\{[\s\S]*\}/)?.[0] ?? '';
       if (!previousJson) throw new Error('Aucun JSON trouve dans la reponse IA');
@@ -173,7 +182,7 @@ async function generateWeekWithRetry(
       assertTrainingContentSafe(week);
       return week;
     } catch (error) {
-      feedback = correctionFeedback(error, previousJson);
+      feedback = correctionFeedback(error, previousJson, feedbackBytes);
       logAiProgramCall({
         success: false,
         weekNumber,

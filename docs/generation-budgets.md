@@ -33,6 +33,14 @@ de sortie demandé pour cet appel doivent rester sous les plafonds serveur.
 Le débit préalable utilise **leur somme**, et non les deux maxima de
 configuration pour tous les appels.
 
+La génération calcule la place restante pour son retour de correction avec
+la même formule UTF-8 que le transport, après le prompt original et le schéma.
+Si la proposition précédente ne tient pas, le retour conserve des diagnostics
+bornés et demande une nouvelle composition au lieu de recopier ce brouillon.
+Les objectifs utilisateur et le schéma restent intacts ; les caractères UTF-8
+ne sont pas coupés et le plafond d'entrée n'est pas augmenté. Une demande
+initiale qui dépasse la politique reste refusée avant l'appel fournisseur.
+
 L'orchestrateur conserve la preuve des admissions réussies par reçu, avec
 une copie immuable de leurs bornes. La réponse de ce même HTTP transporte
 son reçu vers la comptabilisation ; des semaines parallèles ne peuvent pas
