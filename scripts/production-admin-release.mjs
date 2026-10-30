@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { resolve, sep } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { runAdminBootstrap, targetDatabaseUrl, readSelectedAdminId } from './production-admin-bootstrap.mjs';
 import { Client, databaseUrl, readDatabaseIdentity, fileHash, migrationFingerprint } from './db-operations.mjs';
@@ -15,7 +15,7 @@ const production = (item) => !item.gitBranch && (Array.isArray(item.target) ? it
 const safeKey = (key) => /^[A-Z][A-Z0-9_]+$/.test(key);
 const mutableKeys = new Set(['DATABASE_URL', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'API_URL', 'NEXT_PUBLIC_API_URL', 'FRONTEND_URL']);
 const releaseStages = new Set(['input_validation', 'ci_verification', 'configuration_read', 'bootstrap_plan', 'source_reference', 'backup', 'rehearsal',
-  'diagnostic_input', 'diagnostic_deployment_lookup', 'diagnostic_environment_pull', 'diagnostic_project_database_read', 'diagnostic_database_sql',
+  'diagnostic_input', 'diagnostic_deployment_lookup', 'diagnostic_environment_pull', 'diagnostic_project_environment_pull', 'diagnostic_project_database_read', 'diagnostic_database_sql',
   'prepared_backup_verification', 'api_reference', 'web_reference', 'bootstrap_apply', 'admin_lookup_source', 'admin_lookup_target', 'admin_identity_comparison',
   ...['api', 'web'].flatMap((project) => ['env_readback', 'cleanup', 'pull', 'build', 'deploy', 'health', 'denied_probe', 'promote', 'alias_health', 'alias_denied_probe',
     ...[...mutableKeys].map((key) => `env_${key}`)].map((action) => `${project}_${action}`))]);
@@ -29,6 +29,23 @@ const healthFailureReasons = new Map([
 ]);
 const safeHealthChecks = (checks) => Object.fromEntries(['database', 'schema', 'aiConfiguration']
   .filter((key) => ['ok', 'missing', 'unavailable'].includes(checks?.[key])).map((key) => [key, checks[key]]));
+
+export function safeVercelValidation(payload) {
+  const error = payload?.error ?? payload;
+  const message = typeof error?.message === 'string' ? error.message.slice(0, 4096).toLowerCase() : '';
+  return {
+    ...(typeof error?.code === 'string' && /^[a-z_]{1,60}$/.test(error.code) ? { code: error.code } : {}),
+    signals: {
+      mentionsDeployment: /deployment/.test(message), mentionsSource: /\bsource\b/.test(message),
+      mentionsProjectId: /project.?id/.test(message), mentionsTeamId: /team.?id/.test(message),
+      unsupported: /unsupported|not supported/.test(message), invalidId: /invalid.{0,80}\bid\b|invalid.{0,80}deployment/.test(message),
+      invalidParameter: /invalid.{0,80}(parameter|query|property)|invalid request/.test(message),
+      requiredParameter: /required|missing.{0,40}(parameter|property)/.test(message),
+      additionalParameter: /additional propert|unknown (query|parameter)|unexpected (query|parameter)/.test(message),
+      decryptionForbidden: /(decrypt.{0,80}(forbidden|denied|not allowed))|((forbidden|denied|not allowed).{0,80}decrypt)/.test(message),
+    },
+  };
+}
 
 export function safeReleaseFailure(error, stage) {
   const classes = new Set(['Error', 'TypeError', 'RangeError', 'SyntaxError', 'DOMException', 'AbortError', 'TimeoutError', 'AggregateError', 'ReleaseError', 'BootstrapError']);
@@ -53,6 +70,7 @@ export function safeReleaseFailure(error, stage) {
     ...(httpStatus === undefined ? {} : { httpStatus }),
     ...(healthStage && Object.keys(safeHealthChecks(error?.healthChecks)).length ? { healthChecks: safeHealthChecks(error.healthChecks) } : {}),
     ...(error instanceof ReleaseError && error.diagnostics ? { command: error.diagnostics } : {}),
+    ...(error instanceof ReleaseError && error.providerValidation ? { providerValidation: error.providerValidation } : {}),
   };
 }
 
@@ -104,7 +122,11 @@ export class VercelProduction {
     const response = await this.fetcher(url, { method, redirect: 'error', signal: AbortSignal.timeout(30_000),
       headers: { Authorization: `Bearer ${this.env.VERCEL_TOKEN}`, 'Content-Type': 'application/json' },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
-    if (!response.ok) fail(`vercel_http_${response.status}`);
+    if (!response.ok) {
+      const error = new ReleaseError(`vercel_http_${response.status}`);
+      try { error.providerValidation = safeVercelValidation(await response.json()); } catch { /* Never retain raw response/error text. */ }
+      throw error;
+    }
     return response.status === 204 ? {} : response.json();
   }
   async list(project) {
@@ -317,7 +339,21 @@ export async function inspectDeploymentDatabase(env, { provider = new VercelProd
     report.deploymentUrl = candidate;
     failedStage = 'diagnostic_environment_pull';
     // The pinned CLI always identifies the pull source with this query value.
-    const resolved = await provider.request(`/v3/env/pull/${encodeURIComponent(deployment.id)}?source=vercel-cli%3Apull`);
+    let resolved;
+    try { resolved = await provider.request(`/v3/env/pull/${encodeURIComponent(deployment.id)}?source=vercel-cli%3Apull`); }
+    catch (error) {
+      if (error instanceof ReleaseError && error.message === 'vercel_http_400') {
+        const control = { scope: 'current-project-production-only', immutableDeploymentObserved: false, complete: false };
+        try {
+          const current = await provider.request(`/v3/env/pull/${encodeURIComponent(env.VERCEL_API_PROJECT_ID)}/production?source=vercel-cli%3Apull`);
+          control.complete = true;
+          control.databaseConfigurationPresent = typeof current.env?.DATABASE_URL === 'string';
+          if (control.databaseConfigurationPresent) control.databaseNameMatchesTarget = decodeURIComponent(databaseUrl(current.env.DATABASE_URL).pathname.slice(1)) === env.TARGET_DATABASE_NAME;
+        } catch (controlError) { control.failure = safeReleaseFailure(controlError, 'diagnostic_project_environment_pull'); }
+        report.projectEnvironmentPullDiagnostic = control;
+      }
+      throw error;
+    }
     failedStage = 'diagnostic_project_database_read';
     const configured = await provider.snapshot(env.VERCEL_API_PROJECT_ID, ['DATABASE_URL']);
     if (typeof resolved.env?.DATABASE_URL !== 'string' || !configured.DATABASE_URL?.value) fail('deployment_runtime_database_unavailable');
@@ -369,13 +405,28 @@ export async function checkReleaseHealth(url, expected, { bypassSecret, fetcher 
   } });
 }
 
+export async function cleanupVercelCheckout(env, { cwd = process.cwd() } = {}) {
+  const root = resolve(cwd);
+  if (env.GITHUB_ACTIONS !== 'true' || !env.GITHUB_WORKSPACE || resolve(env.GITHUB_WORKSPACE) !== root) fail('vercel_cleanup_requires_github_checkout');
+  const actualRoot = await realpath(root);
+  for (const relative of ['.vercel', 'apps/api/.vercel', 'apps/web/.vercel']) {
+    const target = resolve(root, relative);
+    if (!target.startsWith(`${root}${sep}`)) fail('vercel_cleanup_path_outside_checkout');
+    let actual;
+    try { actual = await realpath(target); } catch (error) { if (error.code === 'ENOENT') continue; throw error; }
+    if (!actual.startsWith(`${actualRoot}${sep}`)) fail('vercel_cleanup_path_outside_checkout');
+    await rm(target, { force: true, recursive: true });
+  }
+}
+
 export async function deployClosedProduction(env, configuration, provider, { bootstrap = runAdminBootstrap, command = privateCommand, health = checkReleaseHealth,
   verifyConfiguration = verifyReleaseConfiguration,
-  selectedAdminId = readSelectedAdminId, denied = checkUnauthenticatedApiDenied, cleanup = () => rm(resolve('.vercel'), { force: true, recursive: true }) } = {}) {
+  selectedAdminId = readSelectedAdminId, denied = checkUnauthenticatedApiDenied, cleanup = () => cleanupVercelCheckout(env) } = {}) {
   const undo = [];
   const previous = [];
+  const releaseValuesByProject = new Map();
   let failedStage = 'api_reference';
-  const cli = (project, args, action = args[0]) => command('npx', ['--yes', 'vercel@54.17.2', ...args, '--token', env.VERCEL_TOKEN], { ...env, VERCEL_PROJECT_ID: project, VERCEL_TELEMETRY_DISABLED: '1', VERCEL_FORCE_BUILD: '1', APP_REVISION: env.RELEASE_REVISION }, 1_200_000,
+  const cli = (project, args, action = args[0]) => command('npx', ['--yes', 'vercel@54.17.2', ...args, '--token', env.VERCEL_TOKEN], { ...env, ...releaseValuesByProject.get(project), VERCEL_PROJECT_ID: project, VERCEL_TELEMETRY_DISABLED: '1', VERCEL_FORCE_BUILD: '1', APP_REVISION: env.RELEASE_REVISION }, 1_200_000,
     { stage: `${project === env.VERCEL_API_PROJECT_ID ? 'api' : 'web'}_${action}` });
   const urls = [];
   let bootstrapResult;
@@ -407,6 +458,7 @@ export async function deployClosedProduction(env, configuration, provider, { boo
       }
       failedStage = `${component}_env_readback`;
       await verifyConfiguration(project, values[index], provider);
+      releaseValuesByProject.set(project, values[index]);
       // Each project must get an independent pull/build cache.
       failedStage = `${component}_cleanup`;
       await cleanup();
@@ -415,7 +467,10 @@ export async function deployClosedProduction(env, configuration, provider, { boo
       failedStage = `${component}_build`;
       cli(project, ['build', '--prod']);
       failedStage = `${component}_deploy`;
-      const output = cli(project, ['deploy', '--prebuilt', '--prod', '--skip-domain', '--meta', `sourceRevision=${env.RELEASE_REVISION}`]);
+      // Bare --env KEY makes the pinned CLI read the value from child env.
+      // Secret values never become command arguments or persisted CLI logs.
+      const output = cli(project, ['deploy', '--prebuilt', '--prod', '--skip-domain',
+        ...Object.keys(values[index]).flatMap((key) => ['--env', key]), '--meta', `sourceRevision=${env.RELEASE_REVISION}`]);
       const url = output.trim().split(/\r?\n/).at(-1)?.trim();
       if (!/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(url ?? '')) fail('invalid_created_deployment_url');
       urls.push(url);

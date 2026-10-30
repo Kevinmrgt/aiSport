@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFile } from 'node:fs/promises';
-import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand, safeReleaseFailure, verifyReleaseConfiguration, checkReleaseHealth, inspectDeploymentDatabase } from './production-admin-release.mjs';
+import { access, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand, safeReleaseFailure, verifyReleaseConfiguration, checkReleaseHealth, inspectDeploymentDatabase, safeVercelValidation, cleanupVercelCheckout } from './production-admin-release.mjs';
 
 const revision = 'a'.repeat(40);
 const privateAdminId = 'd72a58b7-6d4f-4187-90f7-9c763cfe2975';
@@ -416,17 +418,89 @@ test('diagnostics accept an explicit deployment ID and expose the failing read s
   const calls = [];
   const provider = new VercelProduction(env);
   const underlyingRequest = provider.request.bind(provider);
-  provider.fetcher = async () => ({ ok: false, status: 400, json: async () => ({ error: { message: 'private-provider-details' } }) });
+  provider.fetcher = async () => ({ ok: false, status: 400, json: async () => ({ error: { code: 'bad_request', message: 'Invalid request: source is a required parameter. private-provider-details' } }) });
   provider.request = async (path) => {
     calls.push(path);
     return path.startsWith('/v13/') ? { id: 'dpl_fixture', projectId: 'api', url: 'candidate-fixture.vercel.app' } : underlyingRequest(path);
   };
   provider.snapshot = async () => assert.fail('failed deployment pull must not proceed to project variables');
   const report = await inspectDeploymentDatabase({ ...env, DIAGNOSTIC_DEPLOYMENT_ID: 'dpl_fixture' }, { provider });
-  assert.deepEqual(calls, ['/v13/deployments/dpl_fixture', '/v3/env/pull/dpl_fixture?source=vercel-cli%3Apull']);
+  assert.deepEqual(calls, ['/v13/deployments/dpl_fixture', '/v3/env/pull/dpl_fixture?source=vercel-cli%3Apull', '/v3/env/pull/api/production?source=vercel-cli%3Apull']);
   assert.equal(report.complete, false); assert.equal(report.failure.failedStage, 'diagnostic_environment_pull');
   assert.equal(report.failure.httpStatus, 400); assert.equal(report.deploymentUrl, 'https://candidate-fixture.vercel.app');
+  assert.equal(report.failure.providerValidation.code, 'bad_request');
+  assert.equal(report.failure.providerValidation.signals.mentionsSource, true);
+  assert.equal(report.failure.providerValidation.signals.requiredParameter, true);
   assert.equal(JSON.stringify(report).includes('private-provider'), false);
+});
+
+test('a successful project-production fallback never becomes evidence of an immutable deployment environment', async () => {
+  const provider = new VercelProduction(env);
+  provider.fetcher = async () => ({ ok: false, status: 400, json: async () => ({ error: { code: 'bad_request', message: 'Deployment not supported' } }) });
+  const original = provider.request.bind(provider);
+  provider.request = async (path) => path.startsWith('/v13/') ? { id: 'dpl_fixture', projectId: 'api', url: 'candidate-fixture.vercel.app' } :
+    path.includes('/api/production?') ? { env: { DATABASE_URL: source, PRIVATE_VALUE: 'private-fallback-secret' } } : original(path);
+  const report = await inspectDeploymentDatabase({ ...env, DIAGNOSTIC_DEPLOYMENT_ID: 'dpl_fixture' }, { provider,
+    databaseInspector: async () => assert.fail('project fallback cannot substitute runtime SQL proof') });
+  assert.equal(report.complete, false); assert.equal(report.failure.failedStage, 'diagnostic_environment_pull');
+  assert.equal(report.projectEnvironmentPullDiagnostic.complete, true);
+  assert.equal(report.projectEnvironmentPullDiagnostic.immutableDeploymentObserved, false);
+  assert.equal(report.projectEnvironmentPullDiagnostic.databaseNameMatchesTarget, false);
+  assert.equal(JSON.stringify(report).includes('private-fallback'), false);
+});
+
+test('build and deploy receive exact release values in child env and deploy arguments contain keys only', async () => {
+  const provider = providerFixture(); provider.replace = async () => {};
+  const observed = [];
+  const result = await deployClosedProduction(env, { ...configuration(), source }, provider, {
+    bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }), selectedAdminId: async () => privateAdminId,
+    verifyConfiguration: async () => {}, cleanup: async () => {}, health: async () => {}, denied: async () => {},
+    command: (_command, args, child) => {
+      if (args.includes('build') || args.includes('deploy')) {
+        observed.push([child.VERCEL_PROJECT_ID, args.includes('deploy') ? 'deploy' : 'build']);
+        assert.equal(child.PRODUCTION_ACCESS_MODE, 'admin-only'); assert.equal(child.ADMIN_EMAILS, env.BOOTSTRAP_ADMIN_EMAIL);
+        assert.equal(child.APP_REVISION, revision);
+        for (const privateValue of [env.BOOTSTRAP_ADMIN_EMAIL, privateAdminId, 'private_password']) assert.equal(args.some((arg) => arg.includes(privateValue)), false);
+        if (child.VERCEL_PROJECT_ID === 'api') {
+          assert.equal(new URL(child.DATABASE_URL).pathname, `/${env.TARGET_DATABASE_NAME}`);
+          assert.equal(child.BOOTSTRAP_ADMIN_USER_ID, privateAdminId);
+          if (args.includes('deploy')) assert.ok(args.some((arg, index) => arg === '--env' && args[index + 1] === 'DATABASE_URL'));
+        } else {
+          assert.equal(child.API_URL, 'https://ai-sport-api.vercel.app');
+          if (args.includes('deploy')) assert.ok(args.some((arg, index) => arg === '--env' && args[index + 1] === 'API_URL'));
+        }
+      }
+      return args.includes('deploy') ? `https://${child.VERCEL_PROJECT_ID}-deterministic.vercel.app` : '';
+    },
+  });
+  assert.equal(result.complete, true);
+  assert.deepEqual(observed, [['api', 'build'], ['api', 'deploy'], ['web', 'build'], ['web', 'deploy']]);
+});
+
+test('cache cleanup is limited to the three verified paths inside an explicitly identified GHA checkout', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'alcide-release-clean-'));
+  const checkout = join(directory, 'checkout');
+  try {
+    for (const path of ['.vercel', 'apps/api/.vercel', 'apps/web/.vercel']) {
+      await mkdir(join(checkout, path), { recursive: true }); await writeFile(join(checkout, path, 'private.fixture'), 'private');
+    }
+    await writeFile(join(directory, 'preserve.fixture'), 'preserve');
+    await assert.rejects(cleanupVercelCheckout({}, { cwd: checkout }), /requires_github_checkout/);
+    await access(join(checkout, '.vercel', 'private.fixture'));
+    await assert.rejects(cleanupVercelCheckout({ GITHUB_ACTIONS: 'true', GITHUB_WORKSPACE: directory }, { cwd: checkout }), /requires_github_checkout/);
+    await cleanupVercelCheckout({ GITHUB_ACTIONS: 'true', GITHUB_WORKSPACE: checkout }, { cwd: checkout });
+    for (const path of ['.vercel', 'apps/api/.vercel', 'apps/web/.vercel']) await assert.rejects(access(join(checkout, path)), { code: 'ENOENT' });
+    assert.equal(await readFile(join(directory, 'preserve.fixture'), 'utf8'), 'preserve');
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test('vendor validation reveals only a bounded machine code and static message categories', () => {
+  const unsupported = safeVercelValidation({ error: { code: 'unsupported_deployment', message: 'Deployment is not supported: private-url private-value' } });
+  assert.equal(unsupported.signals.mentionsDeployment, true); assert.equal(unsupported.signals.unsupported, true);
+  assert.equal(JSON.stringify(unsupported).includes('private-'), false);
+  const unsafe = safeVercelValidation({ error: { code: 'Private-Secret-123', message: 'Decryption forbidden for private-password' } });
+  assert.equal(unsafe.code, undefined); assert.equal(unsafe.signals.decryptionForbidden, true);
+  assert.equal(JSON.stringify(unsafe).includes('private-password'), false);
 });
 
 test('protected API must deny an unauthenticated request even when health is green', async () => {

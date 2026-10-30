@@ -34,8 +34,12 @@ automatique par email.
 ## Exploitation et reliquat
 
 L'adresse est fournie par le secret GitHub `BOOTSTRAP_ADMIN_EMAIL` ; elle n'est
-jamais codée dans le dépôt. La nouvelle base doit être absente. Aucun `DROP`
-ni écrasement n'est prévu. Les diagnostics n'exposent ni stderr brut, ni valeurs
+jamais codée dans le dépôt. La création exige une base absente. Une reprise
+explicite avec `reuse_existing=true` ne réutilise une base existante qu'après
+vérification intégrale en lecture seule : même compte et mêmes identités,
+historique canonique exact, aucune séance, session, préférence ou compteur.
+Toute différence bloque la reprise, sans correction ni écrasement. Aucun `DROP`
+n'est prévu. Les diagnostics n'exposent ni stderr brut, ni valeurs
 d'environnement. La livraison automatique générale `ENABLE_GHA_VERCEL_CD` est
 désactivée pendant la transition ; le workflow fermé effectue la livraison.
 Avant réactivation, synchroniser ses connexions avec la nouvelle cible et
