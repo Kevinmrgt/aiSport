@@ -11,6 +11,7 @@ const env = {
 const valid = { workouts: 0, training_programs: 0, session_logs: 0, user_settings: 0 };
 function harness({ adminCount = 1, createdb = true, exists = false, accounts = [], incompatible = valid,
   foreignWorkout = false, targetFailure = false, createFailure = false, suspended = false, otherOwner = false,
+  reuseTarget = false,
 } = {}) {
   const queries = { source: [], control: [], target: [] };
   const sourceRows = {
@@ -26,7 +27,7 @@ function harness({ adminCount = 1, createdb = true, exists = false, accounts = [
   let connections = 0;
   const closed = [];
   const clientFactory = () => {
-    const kind = ['source', 'control', 'target'][connections++];
+    const kind = (reuseTarget ? ['source', 'target'] : ['source', 'control', 'target'])[connections++];
     return {
       connect: async () => {}, end: async () => { closed.push(kind); },
       query: async (sql, values = []) => {
@@ -45,6 +46,11 @@ function harness({ adminCount = 1, createdb = true, exists = false, accounts = [
         if (kind === 'control' && createFailure) throw Object.assign(new Error('PRIVATE_DRIVER_ERROR'), { code: '42501' });
         if (kind === 'target') {
           if (sql === 'select current_database() as database') return { rows: [{ database: env.TARGET_DATABASE_NAME }] };
+          if (sql.startsWith('select n.nspname as schema')) return { rows: [
+            ...['users', 'accounts', 'workouts', 'training_programs', 'session_logs', 'user_settings', 'sessions', 'generation_quotas',
+              'generation_control', 'generation_operations', 'generation_daily_budgets', 'generation_usage_events', 'account_revocations', 'session_log_operations']
+              .map((name) => ({ schema: 'public', name })), { schema: 'drizzle', name: '__drizzle_migrations' },
+          ] };
           if (sql.includes('from pg_class')) return { rows: [{ present: false }] };
           if (sql.startsWith('insert')) {
             if (targetFailure) throw new Error('PRIVATE_DRIVER_ERROR');
@@ -67,6 +73,7 @@ function harness({ adminCount = 1, createdb = true, exists = false, accounts = [
     clientFactory, validateData: async () => incompatible,
     migrateTarget: async (client) => { await client.query('select 13 as synthetic_migration_count'); },
     readLineage: async () => Array(13).fill({}),
+    inspectTargetLineage: async () => ({ appliedMigrations: 13, pendingMigrations: 0 }),
   } };
 }
 function safe(report) { assert.doesNotMatch(JSON.stringify(report), /private_admin|private_role|private_password|private\.|PRIVATE_|11111111|22222222|postgresql|@|provider_account_id/); }
@@ -224,4 +231,83 @@ test('selected admin UUID is returned only in memory after exact unique-email lo
   await assert.rejects(readSelectedAdminId(env.SOURCE_DATABASE_URL, env.BOOTSTRAP_ADMIN_EMAIL, {
     clientFactory: () => ({ connect: async () => { throw Error(env.SOURCE_DATABASE_URL); }, end: async () => {} }),
   }), (error) => error.message === 'admin_identity_lookup_failed');
+});
+
+const reuse = { ...apply, ADMIN_IMPORT_POLICY: 'account-only', BOOTSTRAP_REUSE_EXISTING: 'verified-admin-copy' };
+function reusableHarness(options = {}) {
+  const h = harness({ ...options, exists: true, reuseTarget: true });
+  h.imported.users.push(structuredClone(h.sourceRows.users[0]));
+  h.imported.accounts.push(...structuredClone(h.sourceRows.accounts));
+  h.dependencies.migrateTarget = async () => { throw Error('existing target must never be migrated'); };
+  return h;
+}
+
+test('explicit reuse verifies an exact account-only copy in plan and apply with read-only queries only', async () => {
+  for (const mode of ['plan', 'apply']) {
+    const h = reusableHarness({ createdb: false });
+    const result = await runAdminBootstrap({ ...reuse, BOOTSTRAP_MODE: mode }, h.dependencies);
+    assert.equal(result.complete, true); assert.equal(result.ready, true); assert.equal(result.targetCreated, false);
+    assert.equal(result.targetReused, true); assert.equal(result.existingTargetVerified, true);
+    assert.equal(result.adminCopyVerified, mode === 'apply' ? true : undefined);
+    assert.deepEqual(result.verifiedRowCounts, { users: 1, accounts: 0 });
+    assert.equal(result.migrationCount, 13); assert.equal(h.queries.control.length, 0);
+    assert.ok(h.queries.source.concat(h.queries.target).every(({ sql }) => sql.startsWith('select') || sql === 'begin isolation level repeatable read read only' || sql === 'rollback'));
+    assert.deepEqual(h.closed, ['target', 'source']); safe(result);
+  }
+});
+
+test('existing target still requires exact opt-in and account-only policy', async () => {
+  for (const change of [{ BOOTSTRAP_REUSE_EXISTING: undefined }, { BOOTSTRAP_REUSE_EXISTING: 'PRIVATE_BAD_CONFIRM' },
+    { ADMIN_IMPORT_POLICY: 'compatible-history' }, { TARGET_DATABASE_NAME: 'legacy' }]) {
+    const h = reusableHarness(); const result = await runAdminBootstrap({ ...reuse, ...change }, h.dependencies);
+    assert.equal(result.ready, false); assert.notEqual(result.targetReused, true); assert.notEqual(result.adminCopyVerified, true);
+    assert.equal(h.queries.control.length, 0); assert.equal(h.queries.target.length, 0); safe(result);
+  }
+});
+
+test('reuse rejects modified profile, UUID, accounts, histories, settings, sessions or counters without repairing them', async () => {
+  const mutations = [
+    (h) => h.imported.users.push({ ...h.imported.users[0], id: workoutId }),
+    (h) => { h.imported.users[0].name = 'PRIVATE_CHANGED_PROFILE'; },
+    (h) => { h.imported.users[0].id = workoutId; },
+    (h) => h.imported.accounts.push({ id: workoutId, user_id: adminId, provider: 'google', provider_account_id: 'PRIVATE_SUBJECT' }),
+    ...['workouts', 'training_programs', 'session_logs', 'user_settings', 'sessions', 'generation_quotas', 'generation_control',
+      'generation_operations', 'generation_daily_budgets', 'generation_usage_events', 'account_revocations', 'session_log_operations']
+      .map((table) => (h) => { h.imported[table] = [{ id: workoutId }]; }),
+  ];
+  for (const mutate of mutations) {
+    const h = reusableHarness(); mutate(h); const before = JSON.stringify(h.imported);
+    const result = await runAdminBootstrap(reuse, h.dependencies);
+    assert.equal(result.complete, false); assert.equal(result.ready, false); assert.notEqual(result.targetReused, true);
+    assert.equal(result.targetCreated, false); assert.equal(JSON.stringify(h.imported), before);
+    assert.ok(h.queries.source.concat(h.queries.target).every(({ sql }) => !/\b(insert|update|delete|create|alter|drop|truncate)\b/i.test(sql)));
+    safe(result);
+  }
+});
+
+test('reuse rejects incomplete or divergent migration history, unexpected tables, credentials and unvalidated FKs', async () => {
+  for (const failure of ['pending', 'divergent', 'tables', 'credentials', 'foreign_keys', 'database_name']) {
+    const h = reusableHarness();
+    if (failure === 'pending') h.dependencies.inspectTargetLineage = async () => ({ appliedMigrations: 12, pendingMigrations: 1 });
+    if (failure === 'divergent') h.dependencies.inspectTargetLineage = async () => { throw Error('PRIVATE_DRIVER_HISTORY'); };
+    const factory = h.dependencies.clientFactory; let connections = 0;
+    h.dependencies.clientFactory = (configuration) => {
+      const client = factory(configuration);
+      if (++connections === 2) {
+        const query = client.query;
+        client.query = async (sql, values) => {
+          if (failure === 'database_name' && sql === 'select current_database() as database') return { rows: [{ database: 'legacy' }] };
+          if (failure === 'credentials' && sql.includes('where refresh_token')) return { rows: [{ count: '1' }] };
+          if (failure === 'foreign_keys' && sql.includes('from pg_constraint')) return { rows: [{ count: '1' }] };
+          const response = await query(sql, values);
+          if (failure === 'tables' && sql.startsWith('select n.nspname as schema')) response.rows.push({ schema: 'public', name: 'unexpected_archive' });
+          return response;
+        };
+      }
+      return client;
+    };
+    const result = await runAdminBootstrap(reuse, h.dependencies);
+    assert.equal(result.complete, false); assert.equal(result.ready, false); assert.notEqual(result.existingTargetVerified, true);
+    assert.equal(result.targetCreated, false); assert.equal(h.queries.control.length, 0); safe(result);
+  }
 });

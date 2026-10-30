@@ -48,12 +48,19 @@ export function validateReleaseInput(env) {
   if (!/^[a-z][a-z0-9_]{2,62}$/.test(env.TARGET_DATABASE_NAME ?? '')) fail('explicit_new_database_name_required');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(env.BOOTSTRAP_ADMIN_EMAIL ?? '')) fail('explicit_admin_email_required');
   if (env.ADMIN_IMPORT_POLICY && env.ADMIN_IMPORT_POLICY !== 'account-only') fail('account_only_import_required');
+  if (env.BOOTSTRAP_REUSE_EXISTING && env.BOOTSTRAP_REUSE_EXISTING !== 'verified-admin-copy') fail('explicit_reuse_confirmation_required');
   for (const key of ['VERCEL_TOKEN', 'VERCEL_ORG_ID', 'VERCEL_API_PROJECT_ID', 'VERCEL_WEB_PROJECT_ID']) {
     if (!env[key]) fail(`missing_${key.toLowerCase()}`);
   }
   if (mode === 'deploy' && env.BOOTSTRAP_CONFIRM !== 'selective-admin-copy-to-new-database') fail('explicit_bootstrap_confirmation_required');
   if (mode !== 'plan' && Buffer.from(env.BACKUP_ENCRYPTION_KEY ?? '', 'base64').length !== 32) fail('backup_encryption_key_required');
   return mode;
+}
+
+function requireVerifiedReuse(report, env) {
+  const requested = env.BOOTSTRAP_REUSE_EXISTING === 'verified-admin-copy';
+  if ((report.targetReused === true || (report.targetExists === true && report.ready === true)) &&
+      (!requested || report.targetReused !== true || report.existingTargetVerified !== true || report.targetCreated !== false)) fail('existing_target_reuse_not_verified');
 }
 
 export function strongSecret(value) {
@@ -212,7 +219,9 @@ async function rehearse(env, directory, source, identity, bootstrap) {
     script('db-restore-check.mjs', { ...env, RESTORE_DATABASE_URL: local, RESTORE_CONFIRM: 'isolated-empty-database', RESTORE_EVIDENCE_FILE: proof, RESTORE_APPLY_CANDIDATE_MIGRATIONS: '0' });
     const copied = await bootstrap({ ...env, SOURCE_DATABASE_URL: local, BOOTSTRAP_MODE: 'apply', BOOTSTRAP_CONFIRM: 'selective-admin-copy-to-new-database' });
     if (!copied.complete || !copied.ready || !copied.adminCopyVerified) fail('isolated_admin_copy_rehearsal_failed');
+    if (copied.targetCreated !== true || copied.targetReused === true) fail('isolated_admin_copy_must_create_fresh_target');
     const evidence = { formatVersion: 1, revision: env.RELEASE_REVISION, targetDatabaseName: env.TARGET_DATABASE_NAME, importPolicy: env.ADMIN_IMPORT_POLICY,
+      reuseExistingRequested: env.BOOTSTRAP_REUSE_EXISTING === 'verified-admin-copy', isolatedTargetCreated: true, isolatedTargetReused: false,
       sourceIdentity: identity.sourceIdentity, databaseMajor: identity.databaseMajor,
       performedAt: new Date().toISOString(), restoredCountsMatch: true, selectiveCopyVerified: true,
       encryptedSha256: await fileHash(`${env.BACKUP_FILE}.enc`), migrationFingerprint: JSON.parse(await readFile(`${env.BACKUP_FILE}.manifest.json`, 'utf8')).migrationFingerprint };
@@ -232,6 +241,7 @@ async function verifyPreparedBackup(env, directory, source) {
       manifest.candidateRevision !== env.RELEASE_REVISION || proof.revision !== env.RELEASE_REVISION ||
       proof.targetDatabaseName !== env.TARGET_DATABASE_NAME || proof.sourceIdentity !== identity.sourceIdentity ||
       proof.importPolicy !== env.ADMIN_IMPORT_POLICY || env.ADMIN_IMPORT_POLICY !== 'account-only' ||
+      proof.reuseExistingRequested !== (env.BOOTSTRAP_REUSE_EXISTING === 'verified-admin-copy') || proof.isolatedTargetCreated !== true || proof.isolatedTargetReused !== false ||
       proof.selectiveCopyVerified !== true || proof.restoredCountsMatch !== true ||
       proof.migrationFingerprint !== manifest.migrationFingerprint || manifest.migrationFingerprint !== await migrationFingerprint() ||
       Date.now() - Date.parse(proof.performedAt) > 3_600_000 || Date.parse(proof.performedAt) > Date.now() + 60_000 || !Number.isFinite(Date.parse(proof.performedAt)) ||
@@ -265,6 +275,7 @@ export async function deployClosedProduction(env, configuration, provider, { boo
     failedStage = 'bootstrap_apply';
     bootstrapResult = await bootstrap({ ...env, ADMIN_IMPORT_POLICY: env.ADMIN_IMPORT_POLICY ?? 'account-only', SOURCE_DATABASE_URL: configuration.source, BOOTSTRAP_MODE: 'apply' });
     if (!bootstrapResult.complete || !bootstrapResult.ready || !bootstrapResult.adminCopyVerified) fail('production_admin_copy_failed');
+    requireVerifiedReuse(bootstrapResult, env);
     const newDatabase = targetDatabaseUrl(configuration.source, env.TARGET_DATABASE_NAME);
     failedStage = 'admin_lookup_source';
     const adminId = await selectedAdminId(configuration.source, env.BOOTSTRAP_ADMIN_EMAIL);
@@ -307,7 +318,7 @@ export async function deployClosedProduction(env, configuration, provider, { boo
       await health(index === 0 ? 'https://ai-sport-api.vercel.app/health/ready' : 'https://www.alcideai.fr/api/health', { service: index === 0 ? 'alcide-api' : 'alcide-web', status: index === 0 ? 'ready' : 'ok', revision: env.RELEASE_REVISION });
       if (index === 0) { failedStage = 'api_alias_denied_probe'; await denied('https://ai-sport-api.vercel.app'); }
     }
-    return { complete: true, access: 'admin-only', revision: env.RELEASE_REVISION, deploymentUrls: urls, previousDeploymentUrls: previous, unauthenticatedProtectedApiStatus: 401, bootstrap: bootstrapResult };
+    return { complete: true, access: 'admin-only', revision: env.RELEASE_REVISION, reuseExistingRequested: env.BOOTSTRAP_REUSE_EXISTING === 'verified-admin-copy', deploymentUrls: urls, previousDeploymentUrls: previous, unauthenticatedProtectedApiStatus: 401, bootstrap: bootstrapResult };
   } catch (error) {
     let rollbackComplete = true;
     if (promotionAttempted) {
@@ -319,7 +330,7 @@ export async function deployClosedProduction(env, configuration, provider, { boo
     for (const compensate of undo.reverse()) { try { await compensate(); } catch { rollbackComplete = false; } }
     return { complete: false, reason: rollbackComplete ? 'release_failed_rollback_completed' : 'release_failed_manual_rollback_required', rollbackComplete,
       failure: safeReleaseFailure(error, failedStage),
-      newDatabaseRetained: bootstrapResult?.targetCreated === true, previousDeploymentUrls: previous };
+      newDatabaseRetained: bootstrapResult?.targetCreated === true, existingDatabaseRetained: bootstrapResult?.targetReused === true, previousDeploymentUrls: previous };
   } finally { await cleanup(); }
 }
 
@@ -328,7 +339,7 @@ export async function runProductionAdminRelease(input, { provider, bootstrap = r
   let failedStage = 'input_validation';
   try {
     const mode = validateReleaseInput(input);
-    report.mode = mode; report.revision = input.RELEASE_REVISION;
+    report.mode = mode; report.revision = input.RELEASE_REVISION; report.reuseExistingRequested = input.BOOTSTRAP_REUSE_EXISTING === 'verified-admin-copy';
     const env = { ...input, ADMIN_IMPORT_POLICY: input.ADMIN_IMPORT_POLICY ?? 'account-only' };
     const client = provider ?? new VercelProduction(env, fetcher);
     if (mode === 'deploy') { failedStage = 'ci_verification'; report.ci = await requireSuccessfulCi(env, fetcher); }
@@ -338,6 +349,7 @@ export async function runProductionAdminRelease(input, { provider, bootstrap = r
     failedStage = 'bootstrap_plan';
     report.bootstrap = await bootstrap({ ...env, SOURCE_DATABASE_URL: configuration.source, BOOTSTRAP_MODE: 'plan' });
     if (!report.bootstrap.complete || !report.bootstrap.ready || !configuration.ready) { report.reason = 'production_preconditions_failed'; return report; }
+    requireVerifiedReuse(report.bootstrap, env);
     if (mode === 'plan') { report.complete = true; return report; }
     const directory = resolve(env.RELEASE_DIRECTORY ?? resolve(env.RUNNER_TEMP ?? '.', 'alcide-admin-release'));
     await mkdir(directory, { recursive: true, mode: 0o700 });

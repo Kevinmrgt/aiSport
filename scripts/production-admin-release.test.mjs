@@ -30,6 +30,7 @@ test('plan defaults read-only and requires an immutable revision and private adm
   assert.throws(() => validateReleaseInput({ ...env, RELEASE_MODE: 'deploy' }), /confirmation/);
   assert.throws(() => validateReleaseInput({ ...env, BOOTSTRAP_ADMIN_EMAIL: '' }), /admin_email/);
   assert.throws(() => validateReleaseInput({ ...env, ADMIN_IMPORT_POLICY: 'compatible-history' }), /account_only/);
+  assert.throws(() => validateReleaseInput({ ...env, BOOTSTRAP_REUSE_EXISTING: 'true' }), /reuse_confirmation/);
 });
 
 test('plan only reads provider and calls bootstrap in read-only mode, keeping private values out of evidence', async () => {
@@ -52,6 +53,22 @@ test('plan exposes factual missing privilege while making no writes', async () =
   const result = await runProductionAdminRelease(env, { provider: providerFixture(), bootstrap: async () => ({ ...ready, ready: false, createDatabasePrivilege: false, reason: 'create_database_privilege_missing' }) });
   assert.equal(result.complete, false);
   assert.equal(result.bootstrap.reason, 'create_database_privilege_missing');
+});
+
+test('opted-in existing target plans require read-only verification and never claim creation', async () => {
+  const input = { ...env, BOOTSTRAP_REUSE_EXISTING: 'verified-admin-copy' };
+  const reusable = { ...ready, targetExists: true, targetReused: true, existingTargetVerified: true, targetCreated: false };
+  const result = await runProductionAdminRelease(input, { provider: providerFixture(), bootstrap: async (configuration) => {
+    assert.equal(configuration.BOOTSTRAP_REUSE_EXISTING, 'verified-admin-copy'); return reusable;
+  } });
+  assert.equal(result.complete, true); assert.equal(result.reuseExistingRequested, true);
+  assert.equal(result.bootstrap.targetCreated, false); assert.equal(result.bootstrap.existingTargetVerified, true);
+  for (const override of [{ existingTargetVerified: false }, { targetCreated: true }]) {
+    const blocked = await runProductionAdminRelease(input, { provider: providerFixture(), bootstrap: async () => ({ ...reusable, ...override }) });
+    assert.equal(blocked.complete, false); assert.equal(blocked.reason, 'existing_target_reuse_not_verified');
+  }
+  const notOptedIn = await runProductionAdminRelease(env, { provider: providerFixture(), bootstrap: async () => reusable });
+  assert.equal(notOptedIn.complete, false);
 });
 
 test('critical service secrets must be strong, identical and distinct from auth', async () => {
@@ -237,6 +254,33 @@ test('a copied admin UUID mismatch prevents every provider mutation and build', 
   assert.equal(result.newDatabaseRetained, true); assert.equal(JSON.stringify(result).includes(privateAdminId), false);
 });
 
+test('an unverified reused apply target blocks provider writes and builds', async () => {
+  const result = await deployClosedProduction({ ...env, BOOTSTRAP_REUSE_EXISTING: 'verified-admin-copy' }, { ...configuration(), source }, providerFixture(), {
+    bootstrap: async () => ({ ...ready, targetExists: true, targetReused: true, existingTargetVerified: false, targetCreated: false, adminCopyVerified: true }),
+    selectedAdminId: async () => assert.fail('unverified reuse must not reach identity lookup'),
+    command: () => assert.fail('unverified reuse must not build'), cleanup: async () => {},
+  });
+  assert.equal(result.complete, false); assert.equal(result.failure.reason, 'existing_target_reuse_not_verified');
+  assert.equal(result.newDatabaseRetained, false);
+});
+
+test('a strictly verified reused target can deploy without falsely claiming database creation', async () => {
+  const provider = providerFixture(); const requested = { ...env, BOOTSTRAP_REUSE_EXISTING: 'verified-admin-copy' };
+  provider.replace = async () => {};
+  let deployments = 0;
+  const result = await deployClosedProduction(requested, { ...configuration(), source }, provider, {
+    bootstrap: async (input) => {
+      assert.equal(input.BOOTSTRAP_REUSE_EXISTING, 'verified-admin-copy');
+      return { ...ready, targetExists: true, targetReused: true, existingTargetVerified: true, targetCreated: false, adminCopyVerified: true };
+    },
+    selectedAdminId: async () => privateAdminId, cleanup: async () => {}, health: async () => {}, denied: async () => {},
+    command: (_command, args) => args.includes('deploy') ? `https://verified-reuse-${deployments++}.vercel.app` : '',
+  });
+  assert.equal(result.complete, true); assert.equal(result.reuseExistingRequested, true);
+  assert.equal(result.bootstrap.targetCreated, false); assert.equal(result.bootstrap.targetReused, true);
+  assert.equal(result.bootstrap.existingTargetVerified, true); assert.equal(deployments, 2);
+});
+
 test('an environment fetch timeout reports its exact safe stage and category after rollback', async () => {
   const provider = providerFixture(); let rolledBack = false;
   provider.replace = async (_project, _original, _key, _value, undo) => {
@@ -298,6 +342,8 @@ test('workflow preserves encrypted backup before release under the shared produc
   assert.match(workflow, /actions: read/);
   assert.match(workflow, /persist-credentials: false/);
   assert.match(workflow, /ADMIN_IMPORT_POLICY: account-only/);
+  assert.match(workflow, /reuse_existing:\s*\n\s*description:[^\n]*\n\s*type: boolean\s*\n\s*default: false/);
+  assert.match(workflow, /BOOTSTRAP_REUSE_EXISTING: \$\{\{ inputs.reuse_existing && 'verified-admin-copy' \|\| '' \}\}/);
   assert.ok(workflow.indexOf('Preserve encrypted source backup') < workflow.indexOf('RELEASE_PHASE: release'));
   assert.equal(workflow.includes('GITHUB_ENV'), false);
   assert.equal(workflow.includes('RESTORE_APPLY_CANDIDATE_MIGRATIONS: 1'), false);
