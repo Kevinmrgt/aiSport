@@ -16,6 +16,11 @@ production. Ils restent dans l'ancienne base et sa sauvegarde pour retour arriè
 Seuls le profil et les éventuelles identités Google de l'administrateur sont
 copiés, sans secrets OAuth, sessions, anciens réglages ou clés IA.
 
+Le Web reçoit `AUTH_URL` et `NEXTAUTH_URL` à `https://www.alcideai.fr`.
+Le callback Google attendu est
+`https://www.alcideai.fr/api/auth/callback/google`. Les URI OAuth déjà autorisées
+sont conservées ; la configuration Google réelle doit autoriser ce callback.
+
 ## Première connexion et contrôle d'accès
 
 Les deux services reçoivent `PRODUCTION_ACCESS_MODE=admin-only` et une

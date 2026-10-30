@@ -19,7 +19,11 @@ const configuration = () => ({
 });
 function providerFixture() {
   const vars = configuration();
-  return { snapshot: async (project, keys) => { assert.ok(!keys.includes('AUTH_GOOGLE_SECRET')); return vars[project]; },
+  return { snapshot: async (project, keys) => {
+    assert.ok(!keys.includes('AUTH_GOOGLE_SECRET'));
+    if (project === 'web') { assert.ok(keys.includes('AUTH_URL')); assert.ok(keys.includes('NEXTAUTH_URL')); }
+    return vars[project];
+  },
     list: async () => ['AUTH_GOOGLE_ID', 'AUTH_GOOGLE_SECRET'].map((key) => ({ key, id: key, type: 'sensitive', target: ['production'] })),
     previousDeployment: async (project) => `https://old-${project}.vercel.app`,
     replace: async () => assert.fail('plan attempted environment write') };
@@ -450,9 +454,10 @@ test('a successful project-production fallback never becomes evidence of an immu
 });
 
 test('build and deploy receive exact release values in child env and deploy arguments contain keys only', async () => {
-  const provider = providerFixture(); provider.replace = async () => {};
+  const provider = providerFixture(); const canonicalWrites = [];
+  provider.replace = async (project, _original, key, value) => { if (['AUTH_URL', 'NEXTAUTH_URL'].includes(key)) canonicalWrites.push([project, key, value]); };
   const observed = [];
-  const result = await deployClosedProduction(env, { ...configuration(), source }, provider, {
+  const result = await deployClosedProduction({ ...env, AUTH_URL: 'https://legacy.example.test', NEXTAUTH_URL: 'https://legacy.example.test' }, { ...configuration(), source }, provider, {
     bootstrap: async () => ({ ...ready, targetCreated: true, adminCopyVerified: true }), selectedAdminId: async () => privateAdminId,
     verifyConfiguration: async () => {}, cleanup: async () => {}, health: async () => {}, denied: async () => {},
     command: (_command, args, child) => {
@@ -467,7 +472,10 @@ test('build and deploy receive exact release values in child env and deploy argu
           if (args.includes('deploy')) assert.ok(args.some((arg, index) => arg === '--env' && args[index + 1] === 'DATABASE_URL'));
         } else {
           assert.equal(child.API_URL, 'https://ai-sport-api.vercel.app');
-          if (args.includes('deploy')) assert.ok(args.some((arg, index) => arg === '--env' && args[index + 1] === 'API_URL'));
+          assert.equal(child.AUTH_URL, 'https://www.alcideai.fr'); assert.equal(child.NEXTAUTH_URL, 'https://www.alcideai.fr');
+          if (args.includes('deploy')) {
+            for (const key of ['API_URL', 'AUTH_URL', 'NEXTAUTH_URL']) assert.ok(args.some((arg, index) => arg === '--env' && args[index + 1] === key));
+          }
         }
       }
       return args.includes('deploy') ? `https://${child.VERCEL_PROJECT_ID}-deterministic.vercel.app` : '';
@@ -475,6 +483,13 @@ test('build and deploy receive exact release values in child env and deploy argu
   });
   assert.equal(result.complete, true);
   assert.deepEqual(observed, [['api', 'build'], ['api', 'deploy'], ['web', 'build'], ['web', 'deploy']]);
+  assert.deepEqual(canonicalWrites, [['web', 'AUTH_URL', 'https://www.alcideai.fr'], ['web', 'NEXTAUTH_URL', 'https://www.alcideai.fr']]);
+});
+
+test('canonical authentication origins are checked exactly before the Web build', async () => {
+  const expected = { AUTH_URL: 'https://www.alcideai.fr', NEXTAUTH_URL: 'https://www.alcideai.fr' };
+  await assert.rejects(verifyReleaseConfiguration('web', expected, { snapshot: async () => ({ AUTH_URL: { value: 'https://ai-sport-web.vercel.app' }, NEXTAUTH_URL: { value: expected.NEXTAUTH_URL } }) }), /release_environment_readback_mismatch/);
+  assert.equal((await verifyReleaseConfiguration('web', expected, { snapshot: async () => Object.fromEntries(Object.entries(expected).map(([key, value]) => [key, { value }])) })).matched, true);
 });
 
 test('cache cleanup is limited to the three verified paths inside an explicitly identified GHA checkout', async () => {
