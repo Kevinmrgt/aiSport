@@ -1,0 +1,175 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { runAdminBootstrap, targetDatabaseUrl } from './production-admin-bootstrap.mjs';
+
+const adminId = '11111111-1111-4111-8111-111111111111';
+const workoutId = '22222222-2222-4222-8222-222222222222';
+const env = {
+  SOURCE_DATABASE_URL: 'postgresql://private_role:private_password@private.invalid/legacy?sslmode=require',
+  TARGET_DATABASE_NAME: 'alcide_fresh_candidate', BOOTSTRAP_ADMIN_EMAIL: 'private_admin@example.test',
+};
+const valid = { workouts: 0, training_programs: 0, session_logs: 0, user_settings: 0 };
+function harness({ adminCount = 1, createdb = true, exists = false, accounts = [], incompatible = valid,
+  foreignWorkout = false, targetFailure = false, createFailure = false, suspended = false, otherOwner = false,
+} = {}) {
+  const queries = { source: [], control: [], target: [] };
+  const sourceRows = {
+    users: [{ id: adminId, name: 'PRIVATE_NAME', email: env.BOOTSTRAP_ADMIN_EMAIL, email_verified: null, image: null, created_at: new Date(0), updated_at: new Date(0) }],
+    accounts,
+    workouts: [{ id: workoutId, user_id: otherOwner ? workoutId : adminId, title: 'PRIVATE_WORKOUT', sport: 'course', difficulty: 'beginner', duration_minutes: 1,
+      data: { title: 'PRIVATE_WORKOUT', sport: 'course', difficulty: 'beginner', duration_minutes: 1, exercises: [{ name: 'Course', description: 'Footing', duration_seconds: 60, rest_seconds: 0 }] }, created_at: new Date(0), updated_at: new Date(0) }],
+    training_programs: [],
+    session_logs: foreignWorkout ? [{ id: '33333333-3333-4333-8333-333333333333', user_id: adminId, workout_id: '44444444-4444-4444-8444-444444444444', program_id: null }] : [],
+    user_settings: [{ id: '55555555-5555-4555-8555-555555555555', user_id: adminId, ai_provider: 'openai', ai_model: null, created_at: new Date(0), updated_at: new Date(0) }],
+  };
+  const imported = Object.fromEntries(Object.keys(sourceRows).map((table) => [table, []]));
+  let connections = 0;
+  const closed = [];
+  const clientFactory = () => {
+    const kind = ['source', 'control', 'target'][connections++];
+    return {
+      connect: async () => {}, end: async () => { closed.push(kind); },
+      query: async (sql, values = []) => {
+        queries[kind].push({ sql, values });
+        if (kind === 'source') {
+          if (sql.includes('from pg_roles')) return { rows: [{ rolcreatedb: createdb, rolsuper: false }] };
+          if (sql.includes('from pg_database')) return { rows: [{ present: exists }] };
+          if (sql.startsWith('select count(*)') && sql.includes('from public.users')) return { rows: [{ count: String(adminCount) }] };
+          if (sql.includes('information_schema.columns')) return { rows: [{ present: true }] };
+          if (sql.includes('suspended_at is not null')) return { rows: [{ suspended }] };
+          if (sql.startsWith('select count(*)') && sql.includes('from public.accounts')) return { rows: [{ count: '1' }] };
+          const table = sql.match(/from public\.(\w+)/)?.[1];
+          if (table) return { rows: sourceRows[table] };
+        }
+        if (kind === 'control' && createFailure) throw Object.assign(new Error('PRIVATE_DRIVER_ERROR'), { code: '42501' });
+        if (kind === 'target') {
+          if (sql === 'select current_database() as database') return { rows: [{ database: env.TARGET_DATABASE_NAME }] };
+          if (sql.includes('from pg_class')) return { rows: [{ present: false }] };
+          if (sql.startsWith('insert')) {
+            if (targetFailure) throw new Error('PRIVATE_DRIVER_ERROR');
+            const [, table, fields] = sql.match(/insert into public\.(\w+) \(([^)]+)\)/);
+            imported[table].push(Object.fromEntries(fields.split(', ').map((field, index) => [field, field === 'data' ? JSON.parse(values[index]) : values[index]])));
+          }
+          if (sql.startsWith('select count(*)')) {
+            if (sql.includes('from pg_constraint') || sql.includes('refresh_token') || sql.includes('ai_api_key_encrypted')) return { rows: [{ count: '0' }] };
+            const table = sql.match(/from public\.(\w+)/)?.[1];
+            return { rows: [{ count: String(imported[table]?.length ?? 0) }] };
+          }
+          const table = sql.match(/from public\.(\w+)/)?.[1];
+          if (table) return { rows: imported[table].filter((row) => row.id === values[0]) };
+        }
+        return { rows: [] };
+      },
+    };
+  };
+  return { queries, imported, sourceRows, closed, dependencies: {
+    clientFactory, validateData: async () => incompatible,
+    migrateTarget: async (client) => { await client.query('select 13 as synthetic_migration_count'); },
+    readLineage: async () => Array(13).fill({}),
+  } };
+}
+function safe(report) { assert.doesNotMatch(JSON.stringify(report), /private_admin|private_role|private_password|private\.|PRIVATE_|11111111|22222222|postgresql|@|provider_account_id/); }
+const apply = { ...env, BOOTSTRAP_MODE: 'apply', BOOTSTRAP_CONFIRM: 'selective-admin-copy-to-new-database' };
+
+test('plan probes privileges, unique admin, counts and identity linkage with no database writes', async () => {
+  const h = harness(); const result = await runAdminBootstrap(env, h.dependencies);
+  assert.equal(result.complete, true); assert.equal(result.ready, true); assert.equal(result.createDatabasePrivilege, true);
+  assert.equal(result.adminCount, 1); assert.equal(result.googleIdentityCount, 0); assert.equal(result.legacyGoogleLinkRequired, true);
+  assert.equal(result.retainedRows.workouts, 1); assert.equal(result.retainedRows.user_settings, 1);
+  assert.equal(result.targetCreated, false); assert.equal(h.queries.control.length, 0); assert.equal(h.queries.target.length, 0);
+  assert.ok(h.queries.source.every(({ sql }) => sql.startsWith('select') || sql === 'begin isolation level repeatable read read only' || sql === 'rollback'));
+  assert.ok(h.queries.source.every(({ sql }) => !sql.includes('select *') && !/access_token|refresh_token|ai_api_key_encrypted/.test(sql)));
+  assert.deepEqual(h.closed, ['source']); safe(result);
+});
+
+test('apply creates only an absent new database and copies whitelisted admin rows without credentials', async () => {
+  const accounts = [{ id: '66666666-6666-4666-8666-666666666666', user_id: adminId, type: 'oidc', provider: 'google', provider_account_id: 'PRIVATE_SUBJECT' }];
+  const h = harness({ accounts }); const result = await runAdminBootstrap(apply, h.dependencies);
+  assert.equal(result.complete, true); assert.equal(result.adminCopyVerified, true); assert.equal(result.targetCreated, true);
+  assert.equal(result.googleIdentityCount, 1); assert.equal(result.legacyGoogleLinkRequired, false);
+  assert.equal(h.queries.control[0].sql, 'create database "alcide_fresh_candidate" template template0');
+  assert.equal(h.queries.control.length, 1);
+  assert.equal(h.imported.users.length, 1); assert.equal(h.imported.users[0].id, adminId);
+  assert.deepEqual(h.imported.accounts[0], accounts[0]);
+  assert.ok(h.queries.target.filter(({ sql }) => sql.startsWith('insert')).every(({ sql }) => !/access_token|refresh_token|id_token|ai_api_key_encrypted|session_token/.test(sql)));
+  assert.ok(h.queries.source.every(({ sql }) => !/\b(insert|update|delete|create|drop)\b/i.test(sql)));
+  assert.ok(h.queries.target.some(({ sql }) => sql === 'commit')); assert.deepEqual(h.closed, ['target', 'control', 'source']); safe(result);
+});
+
+test('unsafe target names, source database, pooled endpoint and missing confirmation never connect', async () => {
+  for (const change of [
+    { TARGET_DATABASE_NAME: 'legacy' }, { TARGET_DATABASE_NAME: 'postgres' }, { TARGET_DATABASE_NAME: 'x"; drop database legacy' },
+    { SOURCE_DATABASE_URL: env.SOURCE_DATABASE_URL.replace('private.invalid', 'private-pooler.invalid') },
+    { BOOTSTRAP_CONFIRM: '' }, { BOOTSTRAP_ADMIN_USER_ID: 'not-a-uuid' }, { BOOTSTRAP_ADMIN_EMAIL: '' },
+  ]) {
+    const h = harness(); const result = await runAdminBootstrap({ ...apply, ...change }, h.dependencies);
+    assert.equal(result.complete, false); assert.equal(result.targetCreated, false); assert.deepEqual(h.closed, []); safe(result);
+  }
+  assert.throws(() => targetDatabaseUrl(env.SOURCE_DATABASE_URL, 'template0'));
+});
+
+test('missing privileges, existing target, duplicate/missing admin and incompatible data prohibit creation', async () => {
+  for (const change of [{ createdb: false }, { exists: true }, { adminCount: 0 }, { adminCount: 2 }, { suspended: true },
+    { foreignWorkout: true }, { incompatible: { ...valid, workouts: 1 } }, { otherOwner: true }]) {
+    const h = harness(change); const result = await runAdminBootstrap(apply, h.dependencies);
+    assert.equal(result.targetCreated, false); assert.notEqual(result.ready, true);
+    assert.equal(h.queries.control.length, 0); safe(result);
+  }
+});
+
+test('an explicit UUID mismatch refuses the copy and never substitutes a different user', async () => {
+  const h = harness(); const result = await runAdminBootstrap({ ...apply, BOOTSTRAP_ADMIN_USER_ID: workoutId }, h.dependencies);
+  assert.equal(result.reason, 'admin_identity_mismatch'); assert.equal(h.queries.control.length, 0); safe(result);
+});
+
+test('permission and target-write failures stay private, preserve source and roll back import', async () => {
+  const denied = harness({ createFailure: true }); const failedCreate = await runAdminBootstrap(apply, denied.dependencies);
+  assert.equal(failedCreate.reason, 'database_permission_denied'); assert.equal(failedCreate.targetCreated, false); safe(failedCreate);
+  const broken = harness({ targetFailure: true }); const failedCopy = await runAdminBootstrap(apply, broken.dependencies);
+  assert.equal(failedCopy.complete, false); assert.equal(failedCopy.targetCreated, true); assert.equal(failedCopy.reason, 'private_diagnostics_required');
+  assert.ok(broken.queries.target.some(({ sql }) => sql === 'rollback'));
+  assert.ok(broken.queries.source.some(({ sql }) => sql === 'rollback'));
+  assert.ok([...broken.queries.source, ...broken.queries.control, ...broken.queries.target].every(({ sql }) => !/\bdrop\b|\btruncate\b/i.test(sql)));
+  safe(failedCopy);
+});
+
+test('a duplicate Google subject is rejected without selecting OAuth secrets', async () => {
+  const identity = { id: workoutId, user_id: adminId, type: 'oidc', provider: 'google', provider_account_id: 'PRIVATE_SUBJECT' };
+  const h = harness({ accounts: [identity, { ...identity, id: adminId }] });
+  const result = await runAdminBootstrap(apply, h.dependencies);
+  assert.equal(result.reason, 'duplicate_google_identity'); assert.equal(result.targetCreated, false); safe(result);
+});
+
+test('real shared schemas detect incompatible historical workout data without silently rewriting it', async () => {
+  const good = harness(); delete good.dependencies.validateData;
+  assert.equal((await runAdminBootstrap(env, good.dependencies)).ready, true);
+  const bad = harness(); delete bad.dependencies.validateData;
+  bad.sourceRows.workouts[0].data.exercises[0].duration_seconds = 59;
+  const result = await runAdminBootstrap(apply, bad.dependencies);
+  assert.equal(result.reason, 'admin_data_incompatible'); assert.equal(result.incompatibleRows.workouts, 1);
+  assert.equal(bad.sourceRows.workouts[0].data.exercises[0].duration_seconds, 59);
+  assert.equal(bad.queries.control.length, 0); safe(result);
+});
+
+test('invalid modes are reported as a fixed category rather than echoing input', async () => {
+  const h = harness(); const result = await runAdminBootstrap({ ...env, BOOTSTRAP_MODE: 'PRIVATE_SECRET_MODE' }, h.dependencies);
+  assert.equal(result.mode, 'invalid'); assert.equal(result.reason, 'invalid_mode'); safe(result);
+});
+
+test('target database name must be confirmed through SQL before migrations or inserts', async () => {
+  const h = harness(); const original = h.dependencies.clientFactory;
+  let created = 0;
+  h.dependencies.clientFactory = (configuration) => {
+    const client = original(configuration);
+    if (++created === 3) {
+      const query = client.query;
+      client.query = async (sql, values) => sql === 'select current_database() as database'
+        ? { rows: [{ database: 'legacy' }] } : query(sql, values);
+    }
+    return client;
+  };
+  const result = await runAdminBootstrap(apply, h.dependencies);
+  assert.equal(result.reason, 'target_database_name_mismatch'); assert.equal(result.targetCreated, true);
+  assert.equal(h.queries.target.some(({ sql }) => sql.startsWith('insert') || sql.includes('synthetic_migration_count')), false);
+  safe(result);
+});
