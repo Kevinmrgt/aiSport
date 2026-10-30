@@ -4,24 +4,28 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: Read-only plan, isolated rehearsal, or closed production release
+        description: Plan, isolated rehearsal, initial release or preserve-data update
         type: choice
-        options: [plan, rehearse, deploy]
+        options: [plan, rehearse, deploy, update]
         default: plan
       revision:
-        description: Full immutable SHA with successful CI (deploy)
+        description: Full immutable SHA with successful CI (deploy/update)
         required: true
         type: string
       target_database_name:
-        description: Database on the existing endpoint (existing requires verified reuse)
+        description: Initial copy target, or current live database for update
         required: true
         type: string
       reuse_existing:
-        description: Reuse an existing account-only target after strict read-only verification
+        description: Initial release only, reuse a strictly verified account-only target
         type: boolean
         default: false
       bootstrap_confirm:
         description: For deploy only, selective-admin-copy-to-new-database
+        type: string
+        default: ''
+      update_confirm:
+        description: For update only, preserve-live-admin-production
         type: string
         default: ''
 
@@ -43,6 +47,7 @@ jobs:
       RELEASE_REVISION: ${{ inputs.revision }}
       TARGET_DATABASE_NAME: ${{ inputs.target_database_name }}
       BOOTSTRAP_CONFIRM: ${{ inputs.bootstrap_confirm }}
+      UPDATE_CONFIRM: ${{ inputs.update_confirm }}
       BOOTSTRAP_REUSE_EXISTING: ${{ inputs.reuse_existing && 'verified-admin-copy' || '' }}
       BOOTSTRAP_ADMIN_EMAIL: ${{ secrets.BOOTSTRAP_ADMIN_EMAIL }}
       ADMIN_IMPORT_POLICY: account-only
@@ -101,8 +106,8 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Verify or create selective admin database and stage, verify, promote deployments
-        if: inputs.mode == 'deploy'
+      - name: Preserve live database or create initial copy, then stage, verify and promote
+        if: inputs.mode == 'deploy' || inputs.mode == 'update'
         env:
           RELEASE_PHASE: release
           ADMIN_RELEASE_EVIDENCE_FILE: ${{ runner.temp }}/admin-release-final.json

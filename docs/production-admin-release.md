@@ -52,6 +52,22 @@ adresses autorisées, une session non vérifiée ou révoquée, ou un autre comp
 déjà lié empêchent cette liaison. Le mode public ne réalise aucun rapprochement
 automatique par email.
 
+## Mises à jour après la première connexion
+
+Dès que la base active contient une identité Google ou de nouvelles données,
+le mode `update` remplace le bootstrap initial. Il exige le SHA exact qualifié,
+le nom actuel de la base et `update_confirm=preserve-live-admin-production`,
+avec `reuse_existing=false` et sans confirmation de copie.
+
+Ce mode vérifie en lecture seule la connexion applicative dédiée, le nom SQL,
+le compte administrateur et son UUID, les politiques fermées et la lignée
+exacte sans migration en attente. Il sauvegarde la base active entière et
+vérifie sa restauration, puis déploie sur cette même connexion. Les séances,
+programmes, identités, réglages et compteurs sont conservés ; aucune copie
+sélective, réinitialisation ou migration de la source n'est exécutée.
+Les contrôles de candidats, de callback et de révision et le retour arrière
+restent applicables.
+
 ## Exploitation et reliquat
 
 L'adresse est fournie par le secret GitHub `BOOTSTRAP_ADMIN_EMAIL` ; elle n'est
