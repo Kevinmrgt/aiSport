@@ -2,8 +2,7 @@
 
 **Date** : 2026-06-30  
 **Statut** : Accepte  
-**Remplace** : ADR-003 pour la decision fournisseur IA courante  
-**Note RNCP** : cette ADR documente l'etat applicatif post-presentation Bloc 1 ; les supports Bloc 1 deja presentes restent figes.
+**Remplace** : ADR-003 pour la decision fournisseur IA courante
 
 ## Contexte
 
@@ -17,7 +16,7 @@ OpenAI est le seul fournisseur IA expose par l'application. La cle `OPENAI_API_K
 
 - `apps/api/src/services/ai.service.ts` appelle uniquement l'endpoint OpenAI cote serveur.
 - `apps/api/src/controllers/settings.controller.ts` resout toujours `provider: 'openai'` et lit la cle depuis `OPENAI_API_KEY`.
-- `apps/web/components/SettingsForm.tsx` permet seulement de choisir le modele OpenAI, pas un fournisseur ni une cle.
+- La page Coach ne demande ni fournisseur, ni modèle, ni clé à l’utilisateur ; la configuration du moteur reste côté serveur.
 - La table `user_settings` conserve les colonnes historiques `ai_provider` et `ai_api_key_encrypted` pour compatibilite, mais le code force `ai_provider = 'openai'` et `ai_api_key_encrypted = NULL`.
 - La migration `0004_openai_only_settings.sql` nettoie les anciennes valeurs.
 
@@ -29,9 +28,9 @@ OpenAI est le seul fournisseur IA expose par l'application. La cle `OPENAI_API_K
 - Timeout, retry limite et erreurs utilisateur propres.
 - Rate limiting utilisateur pour maitriser le cout et l'abus.
 
-## Impact RNCP
+## Validation
 
-Cette decision aligne le code avec le support Bloc 1 : "la cle API appartient a Alcide". Pour le Bloc 2, les controles a prouver sont donc :
+Les contrôles à vérifier sont les suivants :
 
 - `OPENAI_API_KEY` configuree en environnement serveur ;
 - absence de cle OpenAI dans les requetes navigateur ;

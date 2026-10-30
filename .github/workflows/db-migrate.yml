@@ -3,32 +3,116 @@ name: DB - Drizzle migrations
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Target environment'
+      mode:
+        description: 'verify is read-only on production; migrate applies an approved candidate'
         required: true
-        default: 'production'
+        default: verify
         type: choice
-        options:
-          - production
+        options: [verify, migrate, admin-plan, admin-rehearse]
+      revision:
+        description: 'Exact 40-character candidate SHA; empty uses selected workflow revision'
+        required: false
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
-  group: db-migrate-${{ inputs.environment }}
+  group: production-database-release
   cancel-in-progress: false
 
 env:
   NODE_VERSION: '24'
+  RELEASE_REVISION: ${{ inputs.revision || github.sha }}
 
 jobs:
-  migrate:
-    name: Run Drizzle migrations
+  admin-plan:
+    name: Plan or rehearse isolated admin-only production without source writes
+    if: inputs.mode == 'admin-plan' || inputs.mode == 'admin-rehearse'
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
+    environment: production
     steps:
-      - name: Checkout
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.revision || github.sha }}
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter shared build
+      - name: Inspect actual Vercel source and admin migration feasibility
+        env:
+          RELEASE_MODE: ${{ inputs.mode == 'admin-rehearse' && 'rehearse' || 'plan' }}
+          TARGET_DATABASE_NAME: alcide_admin_20261030
+          BOOTSTRAP_ADMIN_EMAIL: ${{ secrets.BOOTSTRAP_ADMIN_EMAIL }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_WEB_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
+          VERCEL_API_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          ADMIN_RELEASE_EVIDENCE_FILE: ${{ runner.temp }}/admin-release-plan.json
+        run: node scripts/production-admin-release.mjs
+      - name: Preserve sanitized feasibility result
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: admin-release-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/admin-release-plan.json
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Preserve encrypted actual source backup and isolated rehearsal evidence
+        if: always() && inputs.mode == 'admin-rehearse'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: admin-rehearsal-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/alcide-admin-release/release.dump.enc
+            ${{ runner.temp }}/alcide-admin-release/release.dump.manifest.json
+            ${{ runner.temp }}/alcide-admin-release/restore.json
+            ${{ runner.temp }}/alcide-admin-release/rehearsal.json
+          if-no-files-found: warn
+          retention-days: 30
+  target-inventory:
+    name: Read production target metadata without exporting secret values
+    if: inputs.mode == 'verify'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.revision || github.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+      - name: Read whitelisted project, domain and environment metadata
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_WEB_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
+          VERCEL_API_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
+          TARGET_INVENTORY_FILE: ${{ runner.temp }}/target-inventory.json
+        run: node scripts/production-target-inventory.mjs
+      - name: Preserve access results including unavailable targets
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: target-inventory-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/target-inventory.json
+          if-no-files-found: error
+          retention-days: 7
+  database:
+    name: Verify isolated restore or apply qualified migrations
+    if: inputs.mode != 'admin-plan' && inputs.mode != 'admin-rehearse'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout exact candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.revision || github.sha }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
@@ -42,16 +126,131 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Validate database secret
+      - name: Validate revision and backup configuration
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
         run: |
-          if [ -z "$DATABASE_URL" ]; then
-            echo "::error::Missing GitHub secret: DATABASE_URL"
-            exit 1
-          fi
+          node --input-type=module -e '
+            if (!/^[a-f0-9]{40}$/i.test(process.env.RELEASE_REVISION || "")) throw Error("Exact candidate SHA required");
+            if (!process.env.DATABASE_URL) throw Error("DATABASE_URL is missing");
+            if (Buffer.from(process.env.BACKUP_ENCRYPTION_KEY || "", "base64").length !== 32) throw Error("Backup encryption key missing or invalid");
+          '
+          mkdir -m 700 "$RUNNER_TEMP/alcide-db-review"
+          echo "BACKUP_FILE=$RUNNER_TEMP/alcide-db-review/release.dump" >> "$GITHUB_ENV"
+          echo "RESTORE_EVIDENCE_FILE=$RUNNER_TEMP/alcide-db-review/restore-evidence.json" >> "$GITHUB_ENV"
 
-      - name: Run migrations
+      - name: Verify main revision and successful CI before writes
+        if: inputs.mode == 'migrate'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          main_sha="$(gh api "repos/${GITHUB_REPOSITORY}/branches/main" --jq '.commit.sha')"
+          test "$main_sha" = "$RELEASE_REVISION"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${RELEASE_REVISION}&status=completed" \
+            --jq '.workflow_runs | any(.conclusion == "success" and .head_branch == "main")' | grep -qx true
+
+      - name: Require release evidence before production writes
+        if: inputs.mode == 'migrate'
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: pnpm db:migrate
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL || secrets.DATABASE_URL }}
+          LEGAL_OPERATOR_NAME: ${{ vars.LEGAL_OPERATOR_NAME }}
+          LEGAL_CONTACT_EMAIL: ${{ vars.LEGAL_CONTACT_EMAIL }}
+          LEGAL_HOSTING_NAME: ${{ vars.LEGAL_HOSTING_NAME }}
+          LEGAL_HOSTING_CONTACT: ${{ vars.LEGAL_HOSTING_CONTACT }}
+          LEGAL_PROCESSING_BASIS: ${{ vars.LEGAL_PROCESSING_BASIS }}
+          LEGAL_TRANSFERS_NOTICE: ${{ vars.LEGAL_TRANSFERS_NOTICE }}
+          PRODUCTION_RESTORE_EVIDENCE_JSON: ${{ vars.PRODUCTION_RESTORE_EVIDENCE_JSON }}
+          PRODUCTION_RELEASE_CHECKLIST_JSON: ${{ vars.PRODUCTION_RELEASE_CHECKLIST_JSON }}
+        run: node scripts/cd-release-preflight.mjs
+
+      - name: Compare configured Vercel API database with the GitHub migration target
+        if: inputs.mode == 'verify'
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_API_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
+          DATABASE_TARGET_EVIDENCE_FILE: ${{ runner.temp }}/alcide-db-review/database-target.json
+        run: node scripts/production-database-target-check.mjs
+
+      - name: Inventory source in a read-only transaction
+        id: inventory
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          INVENTORY_FILE: ${{ runner.temp }}/alcide-db-review/inventory.json
+        run: node scripts/db-inventory.mjs
+
+      - name: Create encrypted consistent backup without changing source
+        id: backup
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          PG_TOOLS_DOCKER_IMAGE: postgres:${{ steps.inventory.outputs.database_major }}-alpine
+        run: node scripts/db-backup.mjs
+
+      - name: Start isolated restore database
+        id: restore-db
+        if: inputs.mode == 'verify'
+        env:
+          DATABASE_MAJOR: ${{ steps.inventory.outputs.database_major }}
+        run: |
+          set -euo pipefail
+          password="$(openssl rand -hex 24)"
+          echo "::add-mask::${password}"
+          echo "RESTORE_DATABASE_URL=postgresql://alcide_restore:${password}@127.0.0.1:55432/alcide_restore" >> "$GITHUB_ENV"
+          docker run --detach --name "alcide-restore-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --label "alcide.restore-run=${GITHUB_RUN_ID}" \
+            --publish 127.0.0.1:55432:5432 \
+            --env POSTGRES_USER=alcide_restore --env "POSTGRES_PASSWORD=${password}" \
+            --env POSTGRES_DB=alcide_restore "postgres:${DATABASE_MAJOR}-alpine"
+          ready=false
+          for attempt in $(seq 1 30); do
+            if docker exec "alcide-restore-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" pg_isready -U alcide_restore -d alcide_restore; then
+              ready=true; break
+            fi
+            sleep 2
+          done
+          test "$ready" = true
+
+      - name: Restore, compare counts and rehearse candidate migrations on the isolated copy
+        if: inputs.mode == 'verify'
+        env:
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          PG_TOOLS_DOCKER_IMAGE: postgres:${{ steps.inventory.outputs.database_major }}-alpine
+          RESTORE_CONFIRM: isolated-empty-database
+          RESTORE_APPLY_CANDIDATE_MIGRATIONS: '1'
+        run: node scripts/db-restore-check.mjs
+
+      - name: Apply production migrations under the database advisory lock
+        if: inputs.mode == 'migrate'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL || secrets.DATABASE_URL }}
+        run: node scripts/db-migrate-locked.mjs
+
+      - name: Preserve encrypted archive and sanitized verification evidence
+        if: always() && steps.backup.outcome == 'success'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: database-verification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/alcide-db-review/release.dump.enc
+            ${{ runner.temp }}/alcide-db-review/release.dump.manifest.json
+            ${{ runner.temp }}/alcide-db-review/restore-evidence.json
+            ${{ runner.temp }}/alcide-db-review/inventory.json
+            ${{ runner.temp }}/alcide-db-review/database-target.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Remove only this run's isolated restore database
+        if: always() && steps.restore-db.outcome == 'success'
+        run: |
+          set -euo pipefail
+          name="alcide-restore-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          label="$(docker inspect --format '{{ index .Config.Labels "alcide.restore-run" }}' "$name")"
+          test "$label" = "$GITHUB_RUN_ID"
+          docker rm --force --volumes "$name"

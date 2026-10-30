@@ -1,189 +1,85 @@
-# CI/CD — Alcide
+# Intégration et déploiement continus
 
-> Version de référence mise à jour le 2026-09-07. Les preuves distinguent le SHA
-> applicatif correctif, le repère documentaire et le SHA finalement archivé.
+## Intégration
 
-## Cibles
+`.github/workflows/ci.yml` contrôle les push `main`/`develop`, les pull
+requests vers `main` et les exécutions manuelles.
 
-| Composant   | Plateforme | URL canonique                     |
-| ----------- | ---------- | --------------------------------- |
-| Web Next.js | Vercel     | `https://ai-sport-web.vercel.app` |
-| API Hono    | Vercel     | `https://ai-sport-api.vercel.app` |
-| PostgreSQL  | Neon       | secret `DATABASE_URL`             |
+- Installation avec lockfile figé, Node.js 24 et pnpm 11.9.
+- Build partagé, lint et contrôle TypeScript.
+- Tests et couverture API/Web/shared ; intégration PostgreSQL 16 réelle,
+  dont la recette de sécurité SQL auparavant absente de la CI.
+- Build de production et images Docker.
+- Playwright public Chromium/Firefox et accessibilité axe sur un build
+  terminé, avec `E2E_PRODUCTION=1` et `next start`, sans compilation dev à froid.
+- Audit des dépendances bloquant dès le niveau `low`.
+- Tests des politiques de déploiement et des sessions E2E.
 
-## Séquence CI
+Les rapports sont séparés par périmètre. Les seuils de couverture restent dans
+les configurations Vitest ; leur résultat ne remplace pas une recette métier.
 
-Le workflow `.github/workflows/ci.yml` s'exécute sur push `main`/`develop`, PR
-vers `main` et lancement manuel de contrôle. Ses gates sont :
+## Déploiement
 
-1. installation pnpm figée par `pnpm-lock.yaml` ;
-2. build de `packages/shared` ;
-3. typecheck et lint du monorepo ;
-4. démarrage d'un PostgreSQL 16 de test ;
-5. application des migrations Drizzle ;
-6. tests et couvertures unitaires API/Web ;
-7. tests d'intégration repositories avec PostgreSQL réel et rapport séparé ;
-8. build de production shared/API/Web ;
-9. Playwright public et axe ;
-10. build des images Docker ;
-11. `pnpm audit --audit-level=low`, désormais bloquant ;
-12. test unitaire de la politique d'ignorance Vercel.
+`.github/workflows/deploy-vercel.yml` est le chemin nominal : il réagit à
+`CI - Alcide` uniquement après succès sur `main`, avec
+`ENABLE_GHA_VERCEL_CD=true`. Il déploie le `head_sha` de cette CI.
 
-Les rapports API, intégration DB, Web et Playwright sont publiés comme artefacts
-distincts. Un pourcentage de couverture n'est jamais présenté sans son
-périmètre et ses exclusions.
+L'ordre bloquant est : migrations PostgreSQL, API, smoke/readiness API, Web,
+puis smoke Web. Un échec interrompt la suite.
 
-La baseline `0.13.0-rc.8` exécute 261 tests unitaires et de composants : 14
-pour `packages/shared`, 179 pour l'API et 68 pour le Web. Le job PostgreSQL
-ajoute un test d'intégration dédié au quota jury : 31 réservations concurrentes
-produisent exactement 30 acceptations et un refus. Les tests E2E restent une
-gate distincte.
+Avant les écritures, `cd-release-preflight.mjs` exige les informations
+d'éditeur et les preuves de restauration, de migration et de recette de la
+révision exacte. La sauvegarde précédant chaque migration est chiffrée
+AES-256-GCM et son artefact est conservé avant toute modification de la base.
+Une absence de preuve interrompt le CD ; elle n'est pas remplacée par une
+attestation inventée. Voir le [runbook](production-runbook.md).
 
-## Playwright authentifié
+`APP_REVISION` est transmis au build puis à l'environnement d'exécution
+Vercel. Les sondes exposent uniquement un SHA de quarante caractères, ou
+`null` en développement. Les smokes contrôlent service, statut JSON,
+fraîcheur, checks de readiness et SHA attendu, sur l'URL du nouveau build
+**et** sur l'alias public. Un ancien build sain ou une page HTML 200 échoue.
 
-Les tests authentifiés exigent `PLAYWRIGHT_AUTH_STORAGE`, un fichier
-`storageState` contenant un cookie Auth.js réel et valide. La fausse fixture vide
-a été supprimée. Sans cet état, la commande authentifiée échoue explicitement ;
-le smoke public ne prétend donc plus couvrir ce parcours.
+La maintenance manuelle possède deux modes : `verify`, par défaut, lit la
+source et restaure uniquement dans un PostgreSQL temporaire ; `migrate`
+exige le SHA actuel de `main`, sa CI réussie et le même préflight. CD et
+maintenance partagent le groupe `production-database-release` et un verrou
+consultatif PostgreSQL de session. Ce verrou exige une connexion directe,
+pas un endpoint de pooler en mode transaction.
 
-Commande :
+Les previews Vercel restent actives. En production, le script
+`scripts/vercel-ignore-build.mjs` ignore les builds automatiques de
+l'intégration Git ; le workflow CD force sa propre construction.
+Les politiques sont couvertes par `pnpm test:cd-policy` et
+`pnpm test:vercel-ignore`.
 
-```bash
-PLAYWRIGHT_AUTH_STORAGE=/chemin/session-auth.json pnpm --filter web test:e2e:authenticated
-```
+## Parcours Google authentifié
 
-Ce fichier contient un secret de session : il ne doit jamais être committé ni
-joint au dossier. Seul le rapport Playwright expurgé est conservé.
+Le workflow manuel `.github/workflows/authenticated-e2e.yml` utilise une vraie
+session d'un compte Google de test dédié. Il exige `E2E_AUTH_EMAIL` et
+`E2E_AUTH_STORAGE_B64`. La session restaurée reste ignorée et ne doit jamais
+être publiée dans les artefacts. Sans session valide, la suite doit échouer.
+Voir [testing-authenticated-e2e.md](testing-authenticated-e2e.md).
 
-## Déploiement continu
+## Surveillance
 
-`.github/workflows/deploy-vercel.yml` n'offre plus de déclenchement manuel qui
-contourne les gates. Le déploiement se lance uniquement après un workflow
-`CI - Alcide` réussi sur `main` et lorsque `ENABLE_GHA_VERCEL_CD=true`.
+`.github/workflows/production-health-monitor.yml` demande une exécution
+horaire ; la ponctualité du scheduler GitHub n'est pas garantie. Le contrôle
+compare les SHA Web/API, JSON, horodatages et checks. Lors de sa prochaine
+exécution, il détecte aussi un intervalle supérieur à deux heures entre
+sondes planifiées. Il ne peut pas alerter pendant que son propre scheduler
+est arrêté : une surveillance externe est nécessaire pour une garantie de
+délai indépendante. `PROD_EXPECTED_REVISION`, si renseigné, impose en plus
+une révision attendue.
 
-L'intégration Git Vercel reste connectée pour les previews. Son build automatique
-est ignoré en production par `scripts/vercel-ignore-build.mjs` lorsque
-`VERCEL_ENV=production`. Le workflow GitHub Actions définit
-`VERCEL_FORCE_BUILD=1` et reste l'unique chemin nominal de mise en production.
-Cette règle est couverte par `pnpm test:vercel-ignore`.
+Le workflow ouvre une issue en cas d'échec et suit la reprise. Ses modes de
+simulation restent séparés de la production. Réception effective de
+l'alerte et disponibilité du responsable doivent être vérifiées ; une
+issue créée ne les prouve pas. Le contrôle de santé ne couvre ni OAuth ni
+une génération IA réelle.
 
-Séquence :
+## Révision livrée et retour arrière
 
-1. checkout du `head_sha` de la CI réussie ;
-2. validation du secret `DATABASE_URL` et application des migrations Drizzle ;
-3. validation des secrets Vercel ;
-4. `vercel pull`, build et déploiement API ;
-5. smoke/readiness API ;
-6. build et déploiement Web ;
-7. smoke Web.
-
-La CLI Vercel est figée par `VERCEL_CLI_VERSION`. Le job `migrate-db` est une
-dépendance bloquante de `deploy-api`, lui-même préalable à `deploy-web` : une
-migration échouée arrête donc le déploiement. Le workflow manuel
-`DB - Drizzle migrations` reste disponible pour une intervention contrôlée ou
-une reprise. Au relevé du 2026-07-20, l'environnement GitHub `production`
-n'avait ni règle de protection ni approbateur : il ne faut pas présenter ce
-rattachement comme une validation humaine bloquante.
-
-Le chemin positif de la baseline applicative courante est prouvé sur
-`0a2caffc314bbb4697baf2fbbfe39ec74248e038` par la CI `34108724410`, puis la
-CD `34109152619` : audits, tests avec couverture et PostgreSQL, E2E, builds,
-images Docker, migrations, API, Web et smoke tests sont réussis. Après
-déploiement, 150/150 sondes Web/liveness/readiness ont réussi et les trois
-objectifs p95 sont restés sous 1 000 ms. La présence du formulaire jury en
-production confirme que sa configuration est disponible sans exposer les
-identifiants. La recette navigateur authentifiée et l'affichage de 29
-générations restantes demeurent des preuves historiques de `rc.7`. Le workflow
-authentifié `34109534059` a révélé une session OAuth sauvegardée expirée avant
-les assertions métier ; elle doit être renouvelée seulement si le parcours
-Google est retenu. L'accès choisi reste à contrôler à H-15 avec les identifiants
-confidentiels.
-Le repère documentaire `b3ca385c0014c6acfd5c29ebbe14fa38ca766c02`,
-descendant sans changement
-applicatif de `b002adb`, a ensuite passé la CI `29847808450` et la CD
-`29848187523`. Cette seconde exécution ne remplace pas la contre-recette métier
-et accessibilité de `b002adb` ; elle confirme que le snapshot documentaire
-n'introduit aucune régression dans la chaîne complète.
-
-### Preuve négative et clôture maîtrisée de CR-062
-
-Une exécution historique apporte une preuve dynamique de la condition d'échec :
-
-- CI `28506873066`, push `main` sur `5c2cf08c56794bcf2885e69713b7bddd8521ae87`,
-  conclue `failure` après l'échec ESLint ;
-- CD `28506912686`, événement `workflow_run` sur le même SHA, conclue `skipped` ;
-- ses jobs `Deploy API to Vercel` et `Deploy Web to Vercel` sont `skipped` et
-  ne contiennent aucune étape exécutée.
-
-Ces éléments prouvent l'absence d'exécution du CD GitHub Actions historique.
-La version courante a été contre-recettée sans pousser de commit défaillant sur
-`main` : la PR brouillon isolée `#46`, SHA `ef393f8`, a produit la CI rouge
-`29856584668` sur l'erreur ESLint volontaire. Les jobs tests, build, E2E et
-Docker sont `skipped`, aucun run CD n'est associé au SHA et la PR a été fermée
-sans fusion.
-
-Les inventaires Vercel `production` ont été relevés avant et après : le dernier
-déploiement API reste `ai-sport-beo6pvdnl-kevinmrgts-projects.vercel.app`, et le
-dernier Web reste `ai-sport-hbjk1xwvs-kevinmrgts-projects.vercel.app`, tous deux
-sur `b3ca385`, avec les mêmes dates de création. Aucune production n'a été
-ajoutée. La preview de PR est distincte de la cible production.
-
-Enfin, `pnpm test:cd-policy` passe 6/6 et vérifie le déclencheur `workflow_run`
-sur `main`, l'absence de `workflow_dispatch`, la condition de succès, la gate
-d'activation et le checkout du `head_sha` sur `migrate-db`, `deploy-api` et
-`deploy-web`. B2-A38 conserve les sorties et les limites. CR-062 est fermé par
-cette combinaison de preuves, sans prétendre qu'un commit rouge a été poussé
-sur `main`.
-
-## Secrets et variables
-
-Secrets CD :
-
-- `VERCEL_TOKEN` ;
-- `VERCEL_ORG_ID` ;
-- `VERCEL_API_PROJECT_ID` ;
-- `VERCEL_WEB_PROJECT_ID`.
-
-Secrets applicatifs :
-
-- Web : `SERVICE_SECRET`, `AUTH_SECRET`, `AUTH_GOOGLE_ID`,
-  `AUTH_GOOGLE_SECRET`, `NEXTAUTH_URL`, `NEXT_PUBLIC_API_URL` ;
-- API : `DATABASE_URL`, `SERVICE_SECRET`, `OPENAI_API_KEY`, `FRONTEND_URL`.
-
-`SERVICE_SECRET` doit être identique côté Web/API et faire l'objet d'une
-rotation coordonnée.
-
-## Health et readiness
-
-- `/health` : liveness du processus API, sans promesse sur ses dépendances ;
-- `/health/ready` : accès PostgreSQL et configuration OpenAI ;
-- `/api/health` : liveness Web.
-
-Le smoke de production doit utiliser readiness pour l'API lorsque toutes les
-dépendances métier sont attendues. Un simple liveness 200 ne suffit pas à
-valider la génération, l'authentification ou la base.
-
-## Rollback
-
-Pour Web/API, promouvoir dans Vercel le dernier déploiement sain identifié par
-SHA. Pour PostgreSQL, privilégier les migrations additives ; avant une migration
-sensible, créer une branche/backup Neon et préparer une migration compensatoire.
-
-Après rollback, rejouer liveness, readiness et le parcours métier concerné.
-
-## État des preuves
-
-| Nature                                 | SHA                                        | CI                   | CD                                                   | Portée                                                                                                                        |
-| -------------------------------------- | ------------------------------------------ | -------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Baseline quota jury `rc.7`             | `d42e7f2c8fc86f26c46f850d32eb748870c6140d` | `29994929981` succès | `29995297354` succès                                 | Quota persistant et atomique de 30 générations partagées, remboursement des échecs, test concurrent et recette à 29 restantes |
-| Baseline accès jury `rc.6`             | `b5f941311fb034831f2c6a310c61585ad7b3f092` | `29990178784` succès | `29990426551` succès                                 | Accès jury sécurisé, Firewall, healthchecks et recette navigateur de production                                               |
-| Baseline applicative corrective `rc.5` | `c63439e8ac8d68efd5ba091211b326ee8575fbba` | `29930722308` succès | `29931146789` succès                                 | Preuve canonique des correctifs NVDA, de leurs tests et de leur déploiement                                                   |
-| Baseline applicative corrective `rc.4` | `ea703aef912ce9e7c49c4c9b7872a5a7b595b666` | `29907294766` succès | `29907642144` succès                                 | Preuve canonique des dépendances, du reflow, du focus, des onglets et de leur déploiement                                     |
-| Snapshot documentaire `v5`             | `b3ca385c0014c6acfd5c29ebbe14fa38ca766c02` | `29847808450` succès | `29848187523` succès                                 | Diff avec `b002adb` limité aux documents/PDF ; chaîne complète rejouée avant la correction documentaire `v6`                  |
-| Chemin rouge courant isolé             | `ef393f873ce3337c4ba83b84cf75eb5ce07549b4` | `29856584668` échec  | aucun run associé, conformément au filtre de branche | PR `#46` fermée sans fusion ; quatre jobs aval ignorés et inventaires Vercel production inchangés, B2-A38                     |
-| Chemin rouge historique                | `5c2cf08c56794bcf2885e69713b7bddd8521ae87` | `28506873066` échec  | `28506912686` skipped                                | API/Web non exécutés dans GitHub Actions ; pas de relevé Vercel avant/après ; ancien workflow encore lançable manuellement    |
-
-Le run CI `29489995458` et le run CD en échec `29490217892` décrivent un ancien
-incident de configuration Vercel sur le SHA `533f17b` : la CI était verte et la
-CD a démarré, puis a échoué pendant `vercel pull`. Ils ne constituent donc pas
-une preuve « CI rouge ⇒ CD bloquée » et restent historiques.
+Conserver la référence du run et le SHA servi dans le suivi de livraison.
+Les rapports d'anciens runs ne prouvent pas l'état d'une nouvelle révision.
+Voir [deployment.md](deployment.md) et [maintenance.md](maintenance.md).

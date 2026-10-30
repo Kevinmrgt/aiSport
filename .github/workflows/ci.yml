@@ -6,12 +6,6 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      live_training_qa:
-        description: 'Run opt-in synthetic training checks against the paid AI provider (no database writes)'
-        required: false
-        default: false
-        type: boolean
 
 permissions:
   contents: read
@@ -62,7 +56,7 @@ jobs:
         run: pnpm test:vercel-ignore
 
       - name: Test CD workflow policy
-        run: pnpm test:cd-policy
+        run: node --test scripts/*.test.mjs
 
       - name: Test authenticated E2E storage policy
         run: pnpm test:e2e:auth-policy
@@ -77,11 +71,11 @@ jobs:
         env:
           POSTGRES_USER: alcide
           POSTGRES_PASSWORD: alcide_dev
-          POSTGRES_DB: alcide
+          POSTGRES_DB: alcide_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U alcide -d alcide"
+          --health-cmd "pg_isready -U alcide -d alcide_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -107,35 +101,26 @@ jobs:
       - name: Apply database migrations for integration tests
         run: pnpm --filter api db:migrate
         env:
-          DATABASE_URL: postgresql://alcide:alcide_dev@localhost:5432/alcide
+          DATABASE_URL: postgresql://alcide:alcide_dev@localhost:5432/alcide_test
 
       - name: Run API and Web tests with coverage
         run: pnpm test:coverage
         env:
-          DATABASE_URL: postgresql://alcide:alcide_dev@localhost:5432/alcide
-          TEST_DATABASE_URL: postgresql://alcide:alcide_dev@localhost:5432/alcide
+          DATABASE_URL: postgresql://alcide:alcide_dev@localhost:5432/alcide_test
+          TEST_DATABASE_URL: postgresql://alcide:alcide_dev@localhost:5432/alcide_test
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       - name: Run PostgreSQL repository tests with dedicated coverage
         run: pnpm --filter api test:integration:coverage
         env:
-          DATABASE_URL: postgresql://alcide:alcide_dev@localhost:5432/alcide
-          TEST_DATABASE_URL: postgresql://alcide:alcide_dev@localhost:5432/alcide
+          DATABASE_URL: postgresql://alcide:alcide_dev@localhost:5432/alcide_test
+          TEST_DATABASE_URL: postgresql://alcide:alcide_dev@localhost:5432/alcide_test
 
-      - name: Check real AI prescriptions with synthetic inputs
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.live_training_qa }}
-        working-directory: apps/api
-        run: node --import tsx scripts/training-quality-smoke.ts --live
+      - name: Run PostgreSQL security recipe without skipping
+        run: pnpm --filter api exec vitest run --config vitest.security.config.ts
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
-      - name: Upload synthetic AI check results
-        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.live_training_qa }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: training-quality-live
-          path: output/design/timing-validation/live-results.json
-          if-no-files-found: error
+          DATABASE_URL: postgresql://alcide:alcide_dev@localhost:5432/alcide_test
+          TEST_DATABASE_URL: postgresql://alcide:alcide_dev@localhost:5432/alcide_test
 
       - name: Upload API coverage report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -173,6 +158,20 @@ jobs:
     name: Build packages
     runs-on: ubuntu-latest
     needs: test-unit
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: alcide_audit
+          POSTGRES_PASSWORD: ci-local-test-only
+          POSTGRES_DB: alcide_audit
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U alcide_audit -d alcide_audit"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -192,8 +191,30 @@ jobs:
       - name: Build all packages
         run: pnpm build
         env:
-          DATABASE_URL: postgresql://alcide:alcide_dev@localhost:5432/alcide
+          DATABASE_URL: postgresql://alcide_audit:ci-local-test-only@127.0.0.1:5432/alcide_audit
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Migrate isolated recipe database
+        run: pnpm db:migrate
+        env:
+          DATABASE_URL: postgresql://alcide_audit:ci-local-test-only@127.0.0.1:5432/alcide_audit
+
+      - name: Install Chromium for synthetic authenticated recipes
+        run: pnpm --filter web exec playwright install --with-deps chromium
+
+      - name: Run compiled Web and API recipes with synthetic sessions and provider
+        run: node apps/web/scripts/local-production-recipes.mjs
+        env:
+          LOCAL_PRODUCTION_RECIPES: '1'
+          TEST_DATABASE_URL: postgresql://alcide_audit:ci-local-test-only@127.0.0.1:5432/alcide_audit
+
+      - name: Preserve sanitized synthetic recipe result
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: local-production-recipes
+          path: tmp/production-remediation/fullstack.json
+          if-no-files-found: ignore
 
   test-e2e-smoke:
     name: E2E smoke and accessibility
@@ -222,9 +243,12 @@ jobs:
         run: pnpm --filter web exec playwright install --with-deps chromium firefox
 
       - name: Run public E2E smoke tests
-        run: pnpm test:e2e:smoke
+        # The build is completed before next start; cold dev compilation is not a release test.
+        # Keep this separate from the ordinary build job so Playwright owns its local server.
+        run: pnpm --filter web build && pnpm test:e2e:smoke
         env:
           CI: true
+          E2E_PRODUCTION: '1'
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -280,3 +304,4 @@ jobs:
 
       - name: Security audit
         run: pnpm audit --audit-level=low
+

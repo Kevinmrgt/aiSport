@@ -1,7 +1,7 @@
-name: Anomalie Bloc 4
-description: Consigner une anomalie, un incident ou un bug pour le dossier MCO RNCP.
+name: Anomalie
+description: Consigner une anomalie, un incident ou un bug pour le suivi du produit.
 title: '[BUG-XXX] '
-labels: ['rncp:bloc4', 'type:bug', 'status:triage']
+labels: ['type:bug', 'status:triage']
 body:
   - type: markdown
     attributes:
@@ -102,7 +102,7 @@ body:
     id: impact
     attributes:
       label: Impact
-      description: Utilisateur, securite, donnees, disponibilite, CI/CD ou demonstration RNCP.
+      description: Utilisateur, securite, donnees, disponibilite, CI/CD ou parcours utilisateur.
     validations:
       required: true
   - type: textarea

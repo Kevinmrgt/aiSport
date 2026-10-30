@@ -5,17 +5,33 @@ Toutes les modifications notables de Alcide sont documentées dans ce fichier.
 Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
-> Ce fichier est un livrable **ÉLIMINATOIRE** du Bloc 4 RNCP (C4.3.2).
-
 ---
 
 ## [Unreleased]
 
+### Changed
+
+- Identité Google stable, budgets de génération persistants et opérations
+  idempotentes ; contrôles renforcés des données et des réponses IA.
+- Export et effacement du compte, révocation des sessions, conservation
+  paramétrable, formulaires et minuterie fiabilisés.
+- Livraison liée au SHA, sauvegarde chiffrée et répétition des migrations
+  sur une copie isolée ; les informations légales restent à renseigner.
+- Documentation recentrée sur le produit, son exploitation et les travaux
+  avant ouverture publique ; anciens livrables et outils de présentation retirés.
+- Authentification Google seule ; les cookies d'anciens fournisseurs sont refusés.
+- Retrait de l'accès temporaire de démonstration, de son quota et de ses écrans.
+  Les migrations appliquées et le schéma historique restent conservés.
+- Suites de sécurité, métier et accessibilité conservées sous leurs noms produit ;
+  captures générées rangées dans les répertoires de travail ignorés par Git.
+
 ### Security
 
-- Mise à jour de Hono vers `4.12.34` et des résolutions transitives de
-  `brace-expansion`, `js-yaml`, `nanoid` et `postcss` vers leurs versions
-  corrigées. L'audit pnpm ne signale plus aucune vulnérabilité connue.
+- Mise à jour des dépendances applicatives et outils : l'audit complet
+  du 29 octobre 2026 ne signale plus de vulnérabilité connue après corrections.
+- CSP à nonce pour les scripts, validation de l'environnement et des requêtes,
+  journaux expurgés et contrôle de la lignée des migrations avant écriture.
+  Les preuves et préconditions d'ouverture sont dans `docs/release-readiness.md`.
 
 ---
 
@@ -36,7 +52,7 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ### Added
 
-- Quota persistant de **30 générations** pour l'identité jury, partagé entre
+- Quota persistant de **30 générations** pour l'identité de démonstration, partagé entre
   les séances et les programmes.
 - Affichage du nombre de générations restantes sur les deux formulaires et
   désactivation de la soumission lorsque le quota est épuisé.
@@ -57,24 +73,22 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ### Added
 
-- Accès jury temporaire sur `/login` avec une véritable session Auth.js et une
+- Accès temporaire de démonstration temporaire sur `/login` avec une véritable session Auth.js et une
   identité PostgreSQL dédiée, sans dépendance à un compte Google.
-- Révocation immédiate des sessions jury par expiration absolue, kill switch
+- Révocation immédiate des sessions temporaires par expiration absolue, kill switch
   ou rotation du secret, avec hash `scrypt` salé et comparaison constante.
 - Tests unitaires des identifiants, de l'expiration et des callbacks JWT, plus
   un parcours Playwright connexion/session/déconnexion.
-- URL Vercel cliquable dans les PDF Bloc 2 et générateur séparé d'une édition
-  jury confidentielle, ignorée par Git.
 
 ### Security
 
-- Aucun mot de passe jury en clair dans le code, le dépôt, les variables
+- Aucun mot de passe temporaire en clair dans le code, le dépôt, les variables
   d'exemple, les PDF publics ou l'archive source.
 - Message d'échec générique, limites de taille des entrées et configuration
   protégée par une règle Vercel Firewall de 10 tentatives par minute et par IP.
 - Version `b5f941311fb034831f2c6a310c61585ad7b3f092` validée par la CI
   `29990178784`, déployée par la CD `29990426551`, puis contre-recettée dans le
-  navigateur intégré avec l'identité jury.
+  navigateur intégré avec l'identité de démonstration.
 
 ---
 
@@ -83,7 +97,7 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 > La version `0.13.0-rc.5` a été publiée initialement le 22 juillet 2026, puis
 > consolidée sur le SHA `c63439e8ac8d68efd5ba091211b326ee8575fbba`, validé
 > par la CI `29930722308` et déployé par la CD `29931146789`. Les trois endpoints de
-> santé ont répondu HTTP 200 en version `rc.5` ; le candidat a ensuite déclaré
+> santé ont répondu HTTP 200 en version `rc.5` ; le mainteneur a ensuite déclaré
 > avoir exécuté et validé les tests NVDA.
 
 ### Fixed
@@ -105,25 +119,6 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ### Added
 
-- Recettes finales Bloc 2 B2-A34 à B2-A36 : erreurs IA, journal/douleur/dashboard, SQL-like PostgreSQL réel, XSS, secrets/CORS/CSP et audit accessibilité public/privé.
-- Tests RNCP dédiés API, Web, Playwright et PostgreSQL pour les scénarios C2.3.1 et C2.2.3 restés ouverts.
-- Annexe B2-A39 retraçant la détection, la correction et la validation CI/CD
-  des nouveaux avis `sharp`, `hono` et `@hono/node-server`.
-- Annexe B2-A40 retraçant l'audit sémantique authentifié, la confirmation de
-  suppression et la contre-recette de production du focus et des onglets.
-- Annexe B2-A41 retraçant un parcours réel NVDA 2026.1.1 sur dix scénarios de
-  production, ses transcriptions techniques, ses limites et les anomalies
-  B2-BUG-042 à 045, puis la validation NVDA déclarée par le candidat après le
-  déploiement `rc.5`.
-- Matrice de traçabilité reliant 11 user stories aux écrans, au code, aux
-  recettes et aux preuves du Bloc 2.
-- Paquet d'annexes enrichi des quatre livrables structurants complets, avec
-  signets et gate d'anonymisation du texte, des liens, métadonnées, flux PDF et
-  archives ZIP.
-- Paquet final Bloc 2 `rc.5` construit et contrôlé : 11 pages de dossier, 84
-  pages d'annexes, anonymisation validée, décompression réussie et empreintes
-  internes comparées.
-
 ### Security
 
 - `sharp` résolu en `0.35.3`, `hono` en `4.12.31` et
@@ -137,7 +132,7 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
   déploiement : 78/79 signatures et 165/166 contextes passent
   l'échantillonnage automatisé. Le dernier contexte est fermé par une borne
   conservatrice à 15,00:1. Un parcours réel NVDA et la validation NVDA déclarée
-  par l'utilisateur après déploiement sont consignés dans B2-A41, sans
+  par l'utilisateur après déploiement sont consignés dans les rapports historiques, sans
   déclaration de conformité RGAA exhaustive.
 
 ---
@@ -168,12 +163,12 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 - Invariants Zod et tests de cohérence des durées, semaines, séances et numérotations des sorties IA.
 - Couverture Vitest Web sur le périmètre `app`, `components` et `lib`, avec tests de composants via Testing Library.
 - Tests et commandes Playwright publics/authentifiés séparés ; un état Auth.js réel est désormais obligatoire pour la suite authentifiée.
-- Plan d'audit RGAA 4.1.2/WCAG 2.1 AA, manifeste de dépôt Bloc 2 et information de confidentialité utilisateur.
+- Plan d'audit RGAA 4.1.2/WCAG 2.1 AA et information de confidentialité utilisateur.
 - Services Docker Compose `migrate` et `seed` basés sur le stage outillage.
 - Workflow GitHub Actions `Monitoring - Production health` : verification horaire des healthchecks API/Web, artifact de preuve et issue automatique en cas d'echec.
-- Templates GitHub Issues Bloc 4 : consignation d'anomalie et cas support client.
-- Pull request template avec checklist MCO/RNCP.
-- `docs/rncp/bloc4-preuves-mco-a-completer.md` : checklist des preuves restantes avant depot.
+- Templates GitHub Issues : consignation d'anomalie et cas support client.
+- Pull request template avec checklist exploitation.
+
 - Test unitaire API pour le healthcheck.
 - Recette navigateur instrumentée des pages publiques avec artefacts JSON/PNG, reflow 320 px, axe, console, focus et redirections sans session sur Chromium et Firefox.
 
@@ -189,12 +184,11 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 - Navigation clavier : onglets avec flèches/Home/End, confirmation de suppression avec gestion du focus et plein écran Timer accessible.
 - Gestion Web des erreurs : distinction 404/403/5xx, timeouts explicites et suppression des valeurs de secours trompeuses.
 - CSP de production durcie ; `unsafe-eval` est limité au développement.
-- Dossier Bloc 2, matrice et recettes réécrits pour distinguer code, test automatisé, recette exécutée et preuve finale.
+
 - Documentation Docker, URLs de production, Next.js 15 et décision OpenAI alignées sur le code courant.
 - Healthchecks API/Web rendus non cacheables et alignés sur la version candidate `0.13.0-rc.1`.
-- Documentation RNCP et projet harmonisée : distinction entre la production `0.12.0` et la candidate `0.13.0-rc.1`, métriques `pnpm test` / `pnpm test:coverage`, cible Vercel Web/API + Neon, cahier de recettes et preuves OWASP.
+
 - Manifests racine, API, Web et shared alignés sur `0.13.0-rc.1` ; cette candidate ne sera annoncée en production qu'après déploiement et vérification des healthchecks.
-- `docs/rncp/audit-coherence-documentaire.md` ajouté pour tracer les incohérences corrigées et les points à valider avant dépôt.
 
 ### Fixed
 
@@ -252,14 +246,11 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 - `apps/api/tests/validate-env.test.ts` : 4 tests unitaires pour `validateEnv()` (process.exit spy, isolation par variable)
 - `apps/api/fly.toml` : configuration Fly.io pour le déploiement de l'API Hono (région cdg, shared-cpu-1x, healthcheck)
 - `vercel.json` : configuration monorepo pour le déploiement Next.js sur Vercel (rootDirectory, buildCommand)
-- `docs/bloc2/cahier-recettes.md` : CR-040 (GET /health API), CR-041 (GET /api/health web), CR-042 (fail-fast validateEnv)
 
 ### Changed
 
 - `docs/adr/ADR-006-deployment-architecture.md` : mise à jour — remplace Railway (non gratuit) par Fly.io + Neon (free tier sans limite)
 - `docs/deployment.md` : réécriture Option A avec Fly.io + Neon — instructions `fly launch`, secrets, migration Neon
-- `docs/dossier-professionnel.md` : Sprint 09 et 10 ajoutés à la chronologie, métriques finales corrigées (0.10.0)
-- `docs/bloc4/compte-rendu-activite.md` : Sprints 08/09/10 ajoutés, métriques 10 sprints / 32 tests unitaires / 29 E2E
 - `docs/security/owasp-review.md` : section A05 enrichie — `validateEnv()` documenté (Fail-Safe Defaults)
 - `package.json` : version `0.1.0` → `0.10.0`
 
@@ -295,11 +286,8 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 ### Added
 
 - `.gitattributes` : force UTF-8 + LF pour tous les fichiers texte (prévient la récurrence)
-- `docs/bloc4/bugs/BUG-002-readme-utf16.md` : rapport de bug encodage (Bloc 4 RNCP)
 
 ### Changed
-
-- `docs/dossier-professionnel.md` : Sprint 08 ajouté, métriques E2E mises à jour (27→29 tests)
 
 ---
 
@@ -318,8 +306,6 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 
 ### Added
 
-- `docs/dossier-professionnel.md` : synthèse des 4 blocs RNCP (livrable clé soutenance)
-- `docs/bloc4/compte-rendu-activite.md` : CRA avec chronologie, compétences, métriques
 - Cahier de recettes : CR-035/036 (rate limiting) + CR-037/038/039 (loading states)
 - Cahier de recettes : table des suites de tests complète (55 tests : 28 unitaires + 27 E2E)
 
@@ -355,8 +341,6 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 - `AppError.tooManyRequests()` : factory 429 `RATE_LIMIT_EXCEEDED` avec header `Retry-After`
 - `loading.tsx` pour `/workouts`, `/generate`, `/workouts/[id]` : skeletons accessibles (RGAA 4.1, `aria-busy`)
 - 5 nouveaux tests unitaires pour `rateLimitMiddleware` (quota, isolation userId, Retry-After, A09 logging)
-- `docs/bloc4/bugs/BUG-001-coverage-threshold.md` : rapport de bug RNCP Bloc 4
-- `docs/bloc4/veille-technologique.md` : veille IA, frameworks, sécurité, testing, accessibilité
 
 ### Security
 
@@ -444,7 +428,6 @@ version sémantique selon [SemVer](https://semver.org/lang/fr/).
 - Schéma PostgreSQL avec Drizzle ORM
 - Middleware Auth.js pour l'authentification OAuth
 - Pipeline CI/CD GitHub Actions (lint → typecheck → test → build)
-- Documentation RNCP initiale (ADRs, cahier de recettes, sprint-01)
 
 ---
 

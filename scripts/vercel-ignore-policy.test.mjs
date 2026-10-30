@@ -9,12 +9,14 @@ import { getIgnoreDecision } from './vercel-ignore-policy.mjs';
 const cliPath = fileURLToPath(new URL('./vercel-ignore-build.mjs', import.meta.url));
 const vercelIgnorePath = fileURLToPath(new URL('../.vercelignore', import.meta.url));
 
-test('excludes generated output, including private jury PDFs, from Vercel uploads', () => {
+test('excludes generated output, including private reports, from Vercel uploads', () => {
   const patterns = readFileSync(vercelIgnorePath, 'utf8')
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
-  assert.ok(patterns.includes('output'));
+  for (const directory of ['output', 'outputs', 'tmp']) {
+    assert.ok(patterns.includes(directory));
+  }
 });
 
 test('ignores automatic production deployments from the Git integration', () => {

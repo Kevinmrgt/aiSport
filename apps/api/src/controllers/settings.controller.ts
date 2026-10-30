@@ -1,33 +1,44 @@
 import type { Context } from 'hono';
 import { z } from 'zod';
-import { findPlatformSettings, findSettingsByUser, upsertSettings } from '../repositories/settings.repository.js';
+import { findSettingsByUser, upsertSettings } from '../repositories/settings.repository.js';
 import { AppError } from '../types/app-error.js';
 import type { AiProvider } from '../services/ai.service.js';
-import { DEFAULT_OPENAI_MODEL, normalizeOpenAiModel, OpenAiModelSchema } from '../config/ai-models.js';
+import { generationPolicy } from '../services/generation-policy.js';
 
 const DEFAULT_AI_PROVIDER: AiProvider = 'openai';
+const OpenAiModelSchema = z
+  .string()
+  .max(100)
+  .refine(
+    (value) => generationPolicy().allowedModels.includes(value),
+    'Ce modele ne fait pas partie de la politique du service',
+  );
 
 const SaveSettingsSchema = z.object({
   model: OpenAiModelSchema.optional(),
 });
+
+function normalizeOpenAiModel(model?: string | null): string {
+  const parsed = OpenAiModelSchema.safeParse(model);
+  return parsed.success ? parsed.data : generationPolicy().defaultModel;
+}
 
 export async function handleGetSettings(ctx: Context): Promise<Response> {
   const auth = ctx.get('auth');
 
   try {
     const row = await findSettingsByUser(auth.userId);
-    const platform = row?.aiModel ? null : await findPlatformSettings();
     return ctx.json({
       provider: DEFAULT_AI_PROVIDER,
       hasApiKey: false,
-      model: normalizeOpenAiModel(row?.aiModel ?? platform?.defaultAiModel),
+      model: normalizeOpenAiModel(row?.aiModel),
     });
   } catch {
     // Table pas encore migree : renvoyer les valeurs par defaut.
     return ctx.json({
       provider: DEFAULT_AI_PROVIDER,
       hasApiKey: false,
-      model: DEFAULT_OPENAI_MODEL,
+      model: generationPolicy().defaultModel,
     });
   }
 }
@@ -48,8 +59,8 @@ export async function handleSaveSettings(ctx: Context): Promise<Response> {
     await upsertSettings(auth.userId, {
       aiModel: normalizeOpenAiModel(parsed.data.model),
     });
-  } catch (err) {
-    console.error('[Settings] Erreur upsertSettings:', err);
+  } catch {
+    console.error('[Settings]', { code: 'SETTINGS_WRITE_FAILED' });
     throw AppError.internal(
       'Impossible de sauvegarder les parametres. Reessayez dans quelques instants.',
     );
@@ -64,16 +75,11 @@ export async function resolveAiConfig(userId: string): Promise<{
   apiKey: string;
   model?: string;
 }> {
-  let model = DEFAULT_OPENAI_MODEL;
+  let model = generationPolicy().defaultModel;
 
   try {
     const row = await findSettingsByUser(userId);
-    if (row?.aiModel) {
-      model = normalizeOpenAiModel(row.aiModel);
-    } else {
-      const platform = await findPlatformSettings();
-      model = normalizeOpenAiModel(platform?.defaultAiModel);
-    }
+    model = normalizeOpenAiModel(row?.aiModel);
   } catch {
     console.warn('[resolveAiConfig] user_settings table inaccessible, fallback cle serveur');
   }

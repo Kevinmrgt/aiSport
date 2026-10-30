@@ -6,6 +6,7 @@ export const SessionDifficultySchema = z.enum(['beginner', 'intermediate', 'adva
 
 export const CreateSessionLogInputSchema = z
   .object({
+    operationId: z.string().uuid().optional(),
     sourceType: SessionSourceTypeSchema,
     workoutId: z.string().uuid().optional(),
     programId: z.string().uuid().optional(),
@@ -15,7 +16,11 @@ export const CreateSessionLogInputSchema = z
     sport: z.string().min(1).max(100),
     difficulty: SessionDifficultySchema,
     plannedDurationMinutes: z.number().int().min(1).max(240),
-    durationSeconds: z.number().int().min(0).max(24 * 60 * 60),
+    durationSeconds: z
+      .number()
+      .int()
+      .min(0)
+      .max(24 * 60 * 60),
     perceivedEffort: z.number().int().min(1).max(10),
     feedback: SessionFeedbackSchema,
     painNotes: z.string().max(500).optional(),

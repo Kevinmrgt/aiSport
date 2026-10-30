@@ -7,7 +7,8 @@ validateEnv();
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { secureHeaders } from 'hono/secure-headers';
-import { logger } from 'hono/logger';
+import { requestId } from './lib/logging.js';
+import { bodyLimit } from 'hono/body-limit';
 import { handleError } from './middleware/error.middleware.js';
 import { registerRoutes } from './routes/index.js';
 
@@ -32,17 +33,46 @@ app.use(
       'x-user-id',
       'x-user-email',
       'x-user-name',
-      'x-user-name-utf8',
-      'x-auth-method',
-      'x-beta-session-version',
+      'x-user-name-encoded',
+      'x-request-id',
+      'x-auth-issued-at',
+      'idempotency-key',
     ],
     credentials: true,
+    exposeHeaders: ['x-request-id', 'Retry-After'],
     maxAge: 86_400,
   }),
 );
 
-// OWASP A09: logging structuré
-app.use('*', logger());
+app.use('*', async (ctx, next) => {
+  const id = requestId(ctx.req.header('x-request-id'));
+  ctx.set('requestId', id);
+  ctx.header('x-request-id', id);
+  const started = performance.now();
+  await next();
+  console.info('[Request]', {
+    requestId: id,
+    method: ctx.req.method,
+    statusCode: ctx.res.status,
+    durationMs: Math.round(performance.now() - started),
+  });
+});
+// Bound untrusted input before JSON parsing and Zod validation.
+app.use(
+  '*',
+  bodyLimit({
+    maxSize: 32 * 1024,
+    onError: (ctx) =>
+      ctx.json(
+        {
+          error: 'PAYLOAD_TOO_LARGE',
+          message: 'Le contenu de la requete est trop volumineux',
+          statusCode: 413,
+        },
+        413,
+      ),
+  }),
+);
 
 // Handler d'erreurs centralisé — API idiomatique Hono (architecture.md)
 app.onError(handleError);

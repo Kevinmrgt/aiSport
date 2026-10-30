@@ -1,6 +1,7 @@
 import { findProgramById } from '../repositories/program.repository.js';
 import {
   createSessionLog,
+  findSessionLogOperation,
   type CreateSessionLogInput,
 } from '../repositories/session-log.repository.js';
 import { findWorkoutById } from '../repositories/workout.repository.js';
@@ -16,6 +17,10 @@ export async function createOwnedSessionLog(
   userId: string,
   input: CreateSessionLogInput,
 ): Promise<SessionLogRow> {
+  if (input.operationId) {
+    const replay = await findSessionLogOperation(userId, input);
+    if (replay) return replay;
+  }
   if (input.sourceType === 'workout') {
     if (!input.workoutId) {
       throw AppError.badRequest("L'ID de la seance est requis");

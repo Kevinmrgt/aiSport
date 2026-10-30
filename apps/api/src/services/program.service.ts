@@ -1,7 +1,6 @@
 import { generateProgram } from './program-ai.service.js';
 import { resolveAiConfig } from '../controllers/settings.controller.js';
 import {
-  createProgram,
   findProgramsByUser,
   findProgramById,
   deleteProgram,
@@ -11,19 +10,27 @@ import type {
   TrainingProgramRecord,
   ProgramListResponse,
 } from '@alcide/shared';
-import { runWithGenerationQuota, type GenerationAccessMode } from './generation-quota.service.js';
+import { executeBudgetedGeneration } from './generation-budget.service.js';
+import { generationBudgetRepository } from '../repositories/generation-budget.repository.js';
 
 // Logique metier : ne connait pas HTTP ni Drizzle.
 export async function generateAndSaveProgram(
   userId: string,
   input: GenerateProgramInput,
-  accessMode: GenerationAccessMode = 'standard',
+  operationId?: string,
+  signal?: AbortSignal,
 ): Promise<TrainingProgramRecord> {
-  return runWithGenerationQuota(userId, accessMode, async (persist) => {
-    const aiConfig = await resolveAiConfig(userId);
-    const program = await generateProgram(input, aiConfig);
-    return persist ? persist((tx) => createProgram(userId, program, tx)) : createProgram(userId, program);
-  }, input.weeks_count);
+  return executeBudgetedGeneration({
+    userId,
+    kind: 'program',
+    input,
+    maxAttempts: input.weeks_count * 2,
+    ...(operationId !== undefined ? { operationId } : {}),
+    ...(signal ? { signal } : {}),
+    generate: async (execution) => generateProgram(input, await resolveAiConfig(userId), execution),
+    replay: (resourceId) => findProgramById(resourceId, userId),
+    complete: (id, program) => generationBudgetRepository.completeProgram(id, userId, program),
+  });
 }
 
 export async function getUserPrograms(
@@ -37,6 +44,7 @@ export async function getProgramDetail(
   programId: string,
   userId: string,
 ): Promise<TrainingProgramRecord> {
+  // Historical content is validated by the repository, never rewritten on read.
   return findProgramById(programId, userId);
 }
 

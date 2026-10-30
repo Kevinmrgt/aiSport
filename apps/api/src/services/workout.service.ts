@@ -1,7 +1,6 @@
 import { generateWorkout } from './workout-ai.service.js';
 import { resolveAiConfig } from '../controllers/settings.controller.js';
 import {
-  createWorkout,
   findWorkoutsByUser,
   findWorkoutById,
   deleteWorkout,
@@ -13,18 +12,26 @@ import type {
   WorkoutListResponse,
   WorkoutStats,
 } from '@alcide/shared';
-import { runWithGenerationQuota, type GenerationAccessMode } from './generation-quota.service.js';
+import { executeBudgetedGeneration } from './generation-budget.service.js';
+import { generationBudgetRepository } from '../repositories/generation-budget.repository.js';
 
 // Logique metier : ne connait pas HTTP ni Drizzle.
 export async function generateAndSaveWorkout(
   userId: string,
   input: GenerateWorkoutInput,
-  accessMode: GenerationAccessMode = 'standard',
+  operationId?: string,
+  signal?: AbortSignal,
 ): Promise<WorkoutRecord> {
-  return runWithGenerationQuota(userId, accessMode, async (persist) => {
-    const aiConfig = await resolveAiConfig(userId);
-    const workout = await generateWorkout(input, aiConfig);
-    return persist ? persist((tx) => createWorkout(userId, workout, tx)) : createWorkout(userId, workout);
+  return executeBudgetedGeneration({
+    userId,
+    kind: 'workout',
+    input,
+    maxAttempts: 2,
+    ...(operationId !== undefined ? { operationId } : {}),
+    ...(signal ? { signal } : {}),
+    generate: async (execution) => generateWorkout(input, await resolveAiConfig(userId), execution),
+    replay: (resourceId) => findWorkoutById(resourceId, userId),
+    complete: (id, workout) => generationBudgetRepository.completeWorkout(id, userId, workout),
   });
 }
 

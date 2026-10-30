@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: production-vercel
+  group: production-database-release
   cancel-in-progress: false
 
 env:
@@ -18,6 +18,8 @@ env:
   VERCEL_CLI_VERSION: '54.17.2'
   VERCEL_FORCE_BUILD: '1'
   VERCEL_TELEMETRY_DISABLED: '1'
+  APP_REVISION: ${{ github.event.workflow_run.head_sha }}
+  RELEASE_REVISION: ${{ github.event.workflow_run.head_sha }}
 
 jobs:
   migrate-db:
@@ -52,10 +54,57 @@ jobs:
             exit 1
           fi
 
-      - name: Run Drizzle migrations
+      - name: Require release evidence before production writes
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: pnpm db:migrate
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL || secrets.DATABASE_URL }}
+          LEGAL_OPERATOR_NAME: ${{ vars.LEGAL_OPERATOR_NAME }}
+          LEGAL_CONTACT_EMAIL: ${{ vars.LEGAL_CONTACT_EMAIL }}
+          LEGAL_HOSTING_NAME: ${{ vars.LEGAL_HOSTING_NAME }}
+          LEGAL_HOSTING_CONTACT: ${{ vars.LEGAL_HOSTING_CONTACT }}
+          LEGAL_PROCESSING_BASIS: ${{ vars.LEGAL_PROCESSING_BASIS }}
+          LEGAL_TRANSFERS_NOTICE: ${{ vars.LEGAL_TRANSFERS_NOTICE }}
+          PRODUCTION_RESTORE_EVIDENCE_JSON: ${{ vars.PRODUCTION_RESTORE_EVIDENCE_JSON }}
+          PRODUCTION_RELEASE_CHECKLIST_JSON: ${{ vars.PRODUCTION_RELEASE_CHECKLIST_JSON }}
+        run: node scripts/cd-release-preflight.mjs
+
+      - name: Prepare fresh encrypted pre-migration backup
+        env:
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+        run: |
+          node --input-type=module -e 'if (Buffer.from(process.env.BACKUP_ENCRYPTION_KEY || "", "base64").length !== 32) throw Error("Backup encryption key required")'
+          mkdir -m 700 "$RUNNER_TEMP/alcide-db-release"
+          echo "BACKUP_FILE=$RUNNER_TEMP/alcide-db-release/release.dump" >> "$GITHUB_ENV"
+
+      - name: Inventory production before migration
+        id: inventory
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: node scripts/db-inventory.mjs
+
+      - name: Create encrypted consistent backup
+        id: backup
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          PG_TOOLS_DOCKER_IMAGE: postgres:${{ steps.inventory.outputs.database_major }}-alpine
+        run: node scripts/db-backup.mjs
+
+      - name: Preserve encrypted backup before changing production
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: production-backup-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/alcide-db-release/release.dump.enc
+            ${{ runner.temp }}/alcide-db-release/release.dump.manifest.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Run Drizzle migrations under database advisory lock
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL || secrets.DATABASE_URL }}
+        run: node scripts/db-migrate-locked.mjs
 
   deploy-api:
     name: Deploy API to Vercel
@@ -112,7 +161,7 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
         run: |
-          output="$(npx --yes "vercel@${VERCEL_CLI_VERSION}" deploy --prebuilt --prod --token="$VERCEL_TOKEN")"
+          output="$(npx --yes "vercel@${VERCEL_CLI_VERSION}" deploy --prebuilt --prod --env "APP_REVISION=${APP_REVISION}" --meta "sourceRevision=${APP_REVISION}" --token="$VERCEL_TOKEN")"
           echo "$output"
           url="$(echo "$output" | tail -n 1)"
           echo "url=${url}" >> "$GITHUB_OUTPUT"
@@ -121,7 +170,11 @@ jobs:
       - name: Smoke test API
         env:
           API_HEALTH_URL: ${{ vars.PROD_API_HEALTH_URL || 'https://ai-sport-api.vercel.app/health/ready' }}
-        run: curl --fail --show-error --silent --max-time 30 "$API_HEALTH_URL"
+          DEPLOYMENT_URL: ${{ steps.deploy-api.outputs.url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          node scripts/cd-health-check.mjs "${DEPLOYMENT_URL}/health/ready" alcide-api ready "$APP_REVISION"
+          node scripts/cd-health-check.mjs "$API_HEALTH_URL" alcide-api ready "$APP_REVISION"
 
   deploy-web:
     name: Deploy Web to Vercel
@@ -178,7 +231,7 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
         run: |
-          output="$(npx --yes "vercel@${VERCEL_CLI_VERSION}" deploy --prebuilt --prod --token="$VERCEL_TOKEN")"
+          output="$(npx --yes "vercel@${VERCEL_CLI_VERSION}" deploy --prebuilt --prod --env "APP_REVISION=${APP_REVISION}" --meta "sourceRevision=${APP_REVISION}" --token="$VERCEL_TOKEN")"
           echo "$output"
           url="$(echo "$output" | tail -n 1)"
           echo "url=${url}" >> "$GITHUB_OUTPUT"
@@ -186,5 +239,9 @@ jobs:
 
       - name: Smoke test Web
         env:
-          WEB_HEALTH_URL: ${{ vars.PROD_WEB_HEALTH_URL || 'https://ai-sport-web.vercel.app/api/health' }}
-        run: curl --fail --show-error --silent --max-time 30 "$WEB_HEALTH_URL"
+          WEB_HEALTH_URL: ${{ vars.PROD_WEB_HEALTH_URL || 'https://www.alcideai.fr/api/health' }}
+          DEPLOYMENT_URL: ${{ steps.deploy-web.outputs.url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          node scripts/cd-health-check.mjs "${DEPLOYMENT_URL}/api/health" alcide-web ok "$APP_REVISION"
+          node scripts/cd-health-check.mjs "$WEB_HEALTH_URL" alcide-web ok "$APP_REVISION"

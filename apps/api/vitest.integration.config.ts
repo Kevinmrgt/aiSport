@@ -4,11 +4,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
-    include: [
-      'tests/repositories.integration.test.ts',
-      'tests/billing.integration.test.ts',
-      'tests/admin.integration.test.ts',
-    ],
+    include: ['tests/**/*.integration.test.ts'],
+    // Suites share only synthetic global budget controls; run files sequentially.
     fileParallelism: false,
     coverage: {
       provider: 'v8',

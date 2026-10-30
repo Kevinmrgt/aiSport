@@ -15,68 +15,18 @@ test.describe('Page de connexion', () => {
     await expect(googleBtn.first()).toBeVisible();
   });
 
+  test('propose uniquement Google et aucun formulaire de mot de passe', async ({ page }) => {
+    await expect(page.locator('input[type="password"]')).toHaveCount(0);
+    const response = await page.request.get('/api/auth/providers');
+    expect(response.ok()).toBe(true);
+    expect(Object.keys(await response.json())).toEqual(['google']);
+  });
+
   test('RGAA 4.1 — le bouton Google a un aria-label ou texte explicite', async ({ page }) => {
     const googleBtn = page
       .getByRole('button', { name: /google/i })
       .or(page.getByRole('link', { name: /google/i }));
     await expect(googleBtn.first()).toBeVisible();
-  });
-
-  test('affiche un accès jury avec des champs explicitement étiquetés', async ({ page }) => {
-    await expect(page.getByRole('group', { name: /accès jury/i })).toBeVisible();
-    await expect(page.getByLabel(/identifiant jury/i)).toHaveAttribute('autocomplete', 'username');
-    await expect(page.getByLabel('Mot de passe', { exact: true })).toHaveAttribute(
-      'autocomplete',
-      'current-password',
-    );
-  });
-
-  test('crée une vraie session Auth.js jury puis permet la déconnexion', async ({ page }) => {
-    await page.goto('/login?callbackUrl=%2F');
-    const identifier = process.env['E2E_JURY_IDENTIFIER'] ?? 'jury-playwright';
-    const password = process.env['E2E_JURY_PASSWORD'] ?? 'jury-playwright-password-2026';
-
-    await page.getByLabel(/identifiant jury/i).fill(identifier);
-    await page.getByLabel('Mot de passe', { exact: true }).fill(password);
-    await page
-      .getByRole('button', { name: 'Se connecter avec les accès jury', exact: true })
-      .click();
-
-    await expect(page).toHaveURL(/\/$/);
-    const session = await page.request.get('/api/auth/session');
-    expect(session.ok()).toBe(true);
-    await expect
-      .poll(async () => ((await session.json()) as { user?: { email?: string } }).user?.email)
-      .toBe('jury-playwright@alcide.invalid');
-
-    await page.getByRole('button', { name: /se deconnecter/i }).click();
-    await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole('link', { name: /se connecter/i })).toBeVisible();
-    await expect
-      .poll(async () => {
-        const signedOutSession = await page.request.get('/api/auth/session');
-        const body = (await signedOutSession.json()) as { user?: unknown } | null;
-        return body?.user ?? null;
-      })
-      .toBeNull();
-    await page.goto('/generate');
-    await expect(page).toHaveURL(/\/login/);
-  });
-
-  test('refuse un mauvais secret avec un message générique et sans session', async ({ page }) => {
-    await page.getByLabel(/identifiant jury/i).fill('jury-playwright');
-    await page.getByLabel('Mot de passe', { exact: true }).fill('mot-de-passe-invalide');
-    await page
-      .getByRole('button', { name: 'Se connecter avec les accès jury', exact: true })
-      .click();
-
-    await expect(page).toHaveURL(/\/login\?error=CredentialsSignin/);
-    await expect(
-      page.getByRole('alert').filter({ hasText: /connexion impossible/i }),
-    ).toBeVisible();
-    const response = await page.request.get('/api/auth/session');
-    const session = (await response.json()) as { user?: unknown } | null;
-    expect(session?.user ?? null).toBeNull();
   });
 });
 

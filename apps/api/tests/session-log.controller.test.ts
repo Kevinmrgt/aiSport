@@ -27,7 +27,7 @@ const mockAuth = {
   email: 'test@example.com',
   accessMode: 'standard' as const,
 };
-const workoutId = '22222222-2222-2222-2222-222222222222';
+const workoutId = '22222222-2222-4222-8222-222222222222';
 
 function createTestApp() {
   const app = new Hono();
@@ -66,6 +66,29 @@ describe('SessionLogController', () => {
   });
 
   describe('handleCreateSessionLog', () => {
+    it('refuse une nouvelle note de douleur sans appeler le service de persistance', async () => {
+      const app = createTestApp();
+      app.post('/session-logs', handleCreateSessionLog);
+      const response = await app.request('/session-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sourceType: 'workout',
+          workoutId,
+          title: 'Séance',
+          sport: 'course',
+          difficulty: 'beginner',
+          plannedDurationMinutes: 20,
+          durationSeconds: 1200,
+          perceivedEffort: 5,
+          feedback: 'good',
+          painNotes: 'PRIVATE_NOTE_SENTINEL',
+        }),
+      });
+      expect(response.status).toBe(400);
+      expect(createOwnedSessionLog).not.toHaveBeenCalled();
+      expect(await response.text()).not.toContain('PRIVATE_NOTE_SENTINEL');
+    });
     it('retourne 201 avec le journal cree', async () => {
       vi.mocked(createOwnedSessionLog).mockResolvedValue(mockSessionLog);
 

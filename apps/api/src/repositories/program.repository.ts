@@ -1,15 +1,23 @@
-import { eq, desc, sql } from 'drizzle-orm';
+import { and, eq, desc, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { trainingPrograms } from '../db/schema.js';
 import type { TrainingProgramRow } from '../db/schema.js';
 import type { TrainingProgram } from '@alcide/shared';
 import type { TrainingProgramRecord, ProgramListResponse } from '@alcide/shared';
+import { TrainingProgramSchema } from '@alcide/shared';
 import { AppError } from '../types/app-error.js';
 
 // Seul endroit qui touche la BDD pour les programmes (architecture.md — repository layer)
 // OWASP A03: Drizzle ORM uniquement, pas de SQL brut
 
 function rowToRecord(row: TrainingProgramRow): TrainingProgramRecord {
+  const parsed = TrainingProgramSchema.safeParse(row.data);
+  if (!parsed.success)
+    throw new AppError(
+      422,
+      'STORED_DATA_INVALID',
+      'Cet ancien programme ne peut pas être affiché. Contactez le responsable du service ou supprimez-le.',
+    );
   return {
     id: row.id,
     userId: row.userId,
@@ -19,7 +27,7 @@ function rowToRecord(row: TrainingProgramRow): TrainingProgramRecord {
     weeksCount: row.weeksCount,
     sessionsPerWeek: row.sessionsPerWeek,
     sessionDurationMinutes: row.sessionDurationMinutes,
-    data: row.data,
+    data: parsed.data,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -28,11 +36,10 @@ function rowToRecord(row: TrainingProgramRow): TrainingProgramRecord {
 export async function createProgram(
   userId: string,
   program: TrainingProgram,
-  executor: Pick<typeof db, 'insert'> = db,
 ): Promise<TrainingProgramRecord> {
   let created: TrainingProgramRow | undefined;
   try {
-    const result = await executor
+    const result = await db
       .insert(trainingPrograms)
       .values({
         userId,
@@ -46,11 +53,10 @@ export async function createProgram(
       })
       .returning();
     created = result[0];
-  } catch (error) {
+  } catch {
     // OWASP A09: logger l'erreur DB native avant de la convertir en AppError
     console.error('[ProgramRepository] Erreur DB createProgram:', {
-      userId,
-      error: error instanceof Error ? error.message : error,
+      code: 'DB_WRITE_FAILED',
       timestamp: new Date().toISOString(),
     });
     throw AppError.internal('Erreur de base de données lors de la création du programme');
@@ -67,50 +73,55 @@ export async function findProgramsByUser(
   userId: string,
   opts: { page?: number; limit?: number } = {},
 ): Promise<ProgramListResponse> {
-  const { page = 1, limit = 9 } = opts;
+  return db.transaction(
+    async (snapshot) => {
+      const { page = 1, limit = 9 } = opts;
 
-  // OWASP A01: filtrer par userId — l'utilisateur accède uniquement à SES programmes
-  const where = eq(trainingPrograms.userId, userId);
+      // OWASP A01: filtrer par userId — l'utilisateur accède uniquement à SES programmes
+      const where = eq(trainingPrograms.userId, userId);
 
-  const countResult = await db
-    .select({ total: sql<number>`count(*)::int` })
-    .from(trainingPrograms)
-    .where(where);
-  const total = countResult[0]?.total ?? 0;
+      const countResult = await snapshot
+        .select({ total: sql<number>`count(*)::int` })
+        .from(trainingPrograms)
+        .where(where);
+      const total = countResult[0]?.total ?? 0;
 
-  const rows = await db
-    .select({
-      id: trainingPrograms.id,
-      title: trainingPrograms.title,
-      sport: trainingPrograms.sport,
-      difficulty: trainingPrograms.difficulty,
-      weeksCount: trainingPrograms.weeksCount,
-      sessionsPerWeek: trainingPrograms.sessionsPerWeek,
-      sessionDurationMinutes: trainingPrograms.sessionDurationMinutes,
-      createdAt: trainingPrograms.createdAt,
-    })
-    .from(trainingPrograms)
-    .where(where)
-    .orderBy(desc(trainingPrograms.createdAt))
-    .limit(limit)
-    .offset((page - 1) * limit);
+      const rows = await snapshot
+        .select({
+          id: trainingPrograms.id,
+          title: trainingPrograms.title,
+          sport: trainingPrograms.sport,
+          difficulty: trainingPrograms.difficulty,
+          weeksCount: trainingPrograms.weeksCount,
+          sessionsPerWeek: trainingPrograms.sessionsPerWeek,
+          sessionDurationMinutes: trainingPrograms.sessionDurationMinutes,
+          createdAt: trainingPrograms.createdAt,
+        })
+        .from(trainingPrograms)
+        .where(where)
+        .orderBy(desc(trainingPrograms.createdAt), desc(trainingPrograms.id))
+        .limit(limit)
+        .offset((page - 1) * limit);
 
-  return {
-    programs: rows.map((row) => ({
-      id: row.id,
-      title: row.title,
-      sport: row.sport,
-      difficulty: row.difficulty,
-      weeksCount: row.weeksCount,
-      sessionsPerWeek: row.sessionsPerWeek,
-      sessionDurationMinutes: row.sessionDurationMinutes,
-      createdAt: row.createdAt.toISOString(),
-    })),
-    total,
-    page,
-    limit,
-    hasMore: page * limit < total,
-  };
+      return {
+        programs: rows.map((row) => ({
+          id: row.id,
+          title: row.title,
+          sport: row.sport,
+          difficulty: row.difficulty,
+          weeksCount: row.weeksCount,
+          sessionsPerWeek: row.sessionsPerWeek,
+          sessionDurationMinutes: row.sessionDurationMinutes,
+          createdAt: row.createdAt.toISOString(),
+        })),
+        total,
+        page,
+        limit,
+        hasMore: page * limit < total,
+      };
+    },
+    { isolationLevel: 'repeatable read', accessMode: 'read only' },
+  );
 }
 
 export async function findProgramById(
@@ -130,10 +141,8 @@ export async function findProgramById(
   // OWASP A01: vérifier que le programme appartient bien à l'utilisateur connecté
   if (row.userId !== userId) {
     // OWASP A09: logger la tentative d'accès non autorisé
-    console.warn('[ProgramRepository] Tentative d\'accès non autorisé', {
-      requestedProgramId: programId,
-      requestingUserId: userId,
-      ownerUserId: row.userId,
+    console.warn("[ProgramRepository] Tentative d'accès non autorisé", {
+      operation: 'read',
     });
     throw AppError.forbidden('Vous ne pouvez pas accéder à ce programme');
   }
@@ -142,7 +151,9 @@ export async function findProgramById(
 }
 
 export async function deleteProgram(programId: string, userId: string): Promise<void> {
-  // OWASP A01: vérifier l'ownership avant suppression
-  await findProgramById(programId, userId);
-  await db.delete(trainingPrograms).where(eq(trainingPrograms.id, programId));
+  const deleted = await db
+    .delete(trainingPrograms)
+    .where(and(eq(trainingPrograms.id, programId), eq(trainingPrograms.userId, userId)))
+    .returning({ id: trainingPrograms.id });
+  if (!deleted.length) throw AppError.notFound('Programme');
 }

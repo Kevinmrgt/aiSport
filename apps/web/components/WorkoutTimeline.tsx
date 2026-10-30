@@ -1,6 +1,4 @@
-import { buildSessionSchedule, type Exercise, type Phase } from '@alcide/shared';
-import { Icon } from './ui/Icon';
-import { WorkoutTimelineTrack } from './WorkoutTimelineTrack';
+import type { Exercise, Phase } from '@alcide/shared';
 
 interface WorkoutTimelineProps {
   exercises: Exercise[];
@@ -13,60 +11,73 @@ interface TimelineBlock {
   label: string;
   sublabel?: string;
   seconds: number;
-  type: 'warmup' | 'exercise' | 'rest' | 'transition' | 'cooldown';
+  type: 'warmup' | 'exercise' | 'rest' | 'cooldown';
   isTimed: boolean;
-  description?: string;
-  tips?: string;
-  restSeconds?: number;
-  exerciseIndex?: number;
-  previewLabel: string;
 }
 
-function buildBlocks(exercises: Exercise[], warmup?: Phase[], cooldown?: Phase[]): TimelineBlock[] {
-  const schedule = buildSessionSchedule(exercises, warmup, cooldown);
-  return schedule.map((step, index) => {
-    const exercise = step.exerciseIndex !== undefined ? exercises[step.exerciseIndex] : undefined;
-    const sublabel =
-      step.setNumber !== undefined
-        ? `${step.circuitId ? 'Tour' : 'Série'} ${step.setNumber}/${step.sets}${step.reps ? ` · ${step.reps} répétitions` : ''}`
-        : exercise?.sets && exercise.reps
-          ? `${exercise.sets}x${exercise.reps}`
-          : undefined;
-    return {
-      id: step.id,
-      label: step.title,
-      previewLabel:
-        step.type === 'rest' && exercise
-          ? `Après ${exercise.name}`
-          : step.type === 'transition'
-            ? (step.description ?? step.title)
-            : step.title,
-      type: step.type,
-      seconds: step.plannedSeconds,
-      isTimed: step.durationSeconds !== null,
-      ...(sublabel ? { sublabel } : {}),
-      ...(step.description ? { description: step.description } : {}),
-      ...(step.tips ? { tips: step.tips } : {}),
-      ...(step.type === 'exercise' && schedule[index + 1]?.type === 'rest'
-        ? { restSeconds: schedule[index + 1]!.plannedSeconds }
-        : {}),
-      ...(step.exerciseIndex !== undefined ? { exerciseIndex: step.exerciseIndex } : {}),
-    };
+function buildBlocks(
+  exercises: Exercise[],
+  warmup?: Phase[],
+  cooldown?: Phase[],
+): TimelineBlock[] {
+  const blocks: TimelineBlock[] = [];
+
+  (warmup ?? []).forEach((p, i) => {
+    blocks.push({
+      id: `warmup-${i}`,
+      label: p.name,
+      seconds: p.duration_seconds,
+      type: 'warmup',
+      isTimed: true,
+    });
   });
+
+  exercises.forEach((ex, i) => {
+    const isTimed = ex.duration_seconds != null;
+    const duration = ex.duration_seconds ?? 0;
+    blocks.push({
+      id: `ex-${i}`,
+      label: ex.name,
+      sublabel: ex.sets && ex.reps ? `${ex.sets}x${ex.reps}` : isTimed ? formatDuration(duration) : 'Libre',
+      seconds: duration,
+      type: 'exercise',
+      isTimed,
+    });
+    if (ex.rest_seconds > 0) {
+      blocks.push({
+        id: `rest-${i}`,
+        label: 'Repos',
+        seconds: ex.rest_seconds,
+        type: 'rest',
+        isTimed: true,
+      });
+    }
+  });
+
+  (cooldown ?? []).forEach((p, i) => {
+    blocks.push({
+      id: `cooldown-${i}`,
+      label: p.name,
+      seconds: p.duration_seconds,
+      type: 'cooldown',
+      isTimed: true,
+    });
+  });
+
+  return blocks;
 }
+
 const TYPE_STYLES: Record<TimelineBlock['type'], string> = {
-  warmup: 'bg-primary-500',
+  warmup: 'bg-sport-orange',
   exercise: 'bg-primary-300',
   rest: 'bg-white/25',
-  transition: 'bg-white/40',
   cooldown: 'bg-primary-100',
 };
 
 const TYPE_LABELS: Record<TimelineBlock['type'], string> = {
-  warmup: 'Échauffement',
+  warmup: 'Echauffement',
   exercise: 'Exercice',
   rest: 'Repos',
-  transition: 'Installation',
   cooldown: 'Retour calme',
 };
 
@@ -80,14 +91,13 @@ function formatDuration(seconds: number): string {
 }
 
 function getBlockWidth(block: TimelineBlock, totalTimedSeconds: number): string {
-  if (block.seconds === 0 || totalTimedSeconds === 0) return '2%';
+  if (!block.isTimed || totalTimedSeconds === 0) return '2%';
   return `${Math.max(2, (block.seconds / totalTimedSeconds) * 100)}%`;
 }
 
 export function WorkoutTimeline({ exercises, warmup, cooldown }: WorkoutTimelineProps) {
   const blocks = buildBlocks(exercises, warmup, cooldown);
   const totalTimedSeconds = blocks.reduce((acc, b) => acc + b.seconds, 0);
-  const estimated = blocks.some((block) => !block.isTimed && block.seconds > 0);
   const totalLabel = totalTimedSeconds > 0 ? formatDuration(totalTimedSeconds) : 'aucun chrono';
   const exerciseBlocks = blocks.filter((b) => b.type === 'exercise');
 
@@ -95,92 +105,68 @@ export function WorkoutTimeline({ exercises, warmup, cooldown }: WorkoutTimeline
 
   return (
     <div className="space-y-6">
-      <div
-        className="flex flex-wrap items-center gap-3 text-xs"
-        aria-label="Legende de la timeline"
-      >
-        {(['warmup', 'exercise', 'rest', 'transition', 'cooldown'] as const)
+      <div className="flex flex-wrap gap-2 text-xs" aria-label="Legende de la timeline">
+        {(['warmup', 'exercise', 'rest', 'cooldown'] as const)
           .filter((t) => blocks.some((b) => b.type === t))
           .map((t) => (
-            <span key={t} className="inline-flex items-center gap-2">
-              <span className={`h-2 w-2 rounded-full ${TYPE_STYLES[t]}`} aria-hidden="true" />
-              {TYPE_LABELS[t]}
-            </span>
+            <div key={t} className="premium-chip">
+              <span className={`inline-block h-3 w-3 rounded-full ${TYPE_STYLES[t]}`} aria-hidden="true" />
+              <span>{TYPE_LABELS[t]}</span>
+            </div>
           ))}
-        <span className="ml-auto text-primary-200">
-          {estimated ? 'Durée estimée' : 'Total chrono'} : {totalLabel}
-        </span>
+        <span className="premium-chip ml-auto text-primary-200">Total chrono : {totalLabel}</span>
       </div>
-      {estimated && (
-        <p className="muted-copy text-sm">
-          Les séries en répétitions se font à votre rythme. La durée inclut une estimation de ces
-          séries, les repos et les transitions.
-        </p>
-      )}
-      <WorkoutTimelineTrack
-        label={`Timeline de ${totalLabel}`}
-        segments={blocks.map((block) => ({
-          id: block.id,
-          label: block.previewLabel,
-          phase: TYPE_LABELS[block.type],
-          color: TYPE_STYLES[block.type],
-          width: getBlockWidth(block, totalTimedSeconds),
-          detail:
-            block.type === 'rest'
-              ? (block.description ?? '')
-              : block.type === 'exercise'
-                ? (block.sublabel ?? '')
-                : '',
-          duration: block.isTimed
-            ? formatDuration(block.seconds)
-            : block.seconds > 0
-              ? `≈ ${formatDuration(block.seconds)} · À votre rythme`
-              : 'À votre rythme',
-        }))}
-      />
-      <ol className="space-y-3" aria-label="Detail des exercices">
+
+      <div
+        className="flex h-14 overflow-hidden rounded-full border border-white/10 bg-zinc-950/60 p-1 shadow-inner shadow-black/30"
+        role="img"
+        aria-label={`Timeline de ${totalLabel}`}
+      >
+        {blocks.map((block) => {
+          const ratio = totalTimedSeconds > 0 ? block.seconds / totalTimedSeconds : 0;
+
+          return (
+            <div
+              key={block.id}
+              className={`${TYPE_STYLES[block.type]} relative flex shrink-0 items-center justify-center overflow-hidden first:rounded-l-full last:rounded-r-full`}
+              style={{ width: getBlockWidth(block, totalTimedSeconds) }}
+              title={`${block.label} - ${block.isTimed ? formatDuration(block.seconds) : 'libre'}`}
+            >
+              {ratio > 0.08 && (
+                <span className="truncate px-1 text-[10px] font-black text-zinc-950">
+                  {formatDuration(block.seconds)}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <ol className="grid gap-3" aria-label="Detail des exercices">
         {blocks
-          .filter((b) => b.type !== 'rest' && b.type !== 'transition')
+          .filter((b) => b.type !== 'rest')
           .map((block) => (
-            <li key={block.id}>
-              <details
-                className="timeline-block"
-                open={block.type === 'exercise' && exerciseBlocks.indexOf(block) === 0}
-              >
-                <summary>
-                  <span
-                    className={`h-2 w-2 shrink-0 rounded-full ${TYPE_STYLES[block.type]}`}
-                    aria-hidden="true"
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="text-xs text-primary-200">
-                      {TYPE_LABELS[block.type]}
-                      {block.type === 'exercise' ? ` ${(block.exerciseIndex ?? 0) + 1}` : ''}
+            <li
+              key={block.id}
+              className="flex items-center gap-3 rounded-[1.35rem] border border-white/10 bg-zinc-950/[0.45] p-3"
+            >
+              <span className={`h-3 w-3 shrink-0 rounded-full ${TYPE_STYLES[block.type]}`} aria-hidden="true" />
+              <div className="min-w-0 flex-1">
+                <p className="break-words text-sm font-black text-white">
+                  {block.type === 'exercise' && (
+                    <span className="mr-1 font-normal text-zinc-400">
+                      {exerciseBlocks.indexOf(block) + 1}.
                     </span>
-                    <span className="mt-1 block break-words font-bold">{block.label}</span>
-                    {block.sublabel && (
-                      <span className="mt-1 block text-xs text-primary-200">{block.sublabel}</span>
-                    )}
-                  </span>
-                  <span className="shrink-0 text-sm">
-                    {block.isTimed ? formatDuration(block.seconds) : 'Libre'}
-                  </span>
-                  <Icon name="plus" className="timeline-toggle h-5 w-5 shrink-0" />
-                </summary>
-                <div className="mt-4 space-y-3 border-t border-white/15 pt-4">
-                  {block.description && <p className="muted-copy">{block.description}</p>}
-                  {block.tips && (
-                    <p className="muted-copy text-sm">
-                      <strong>Conseil :</strong> {block.tips}
-                    </p>
                   )}
-                  {Boolean(block.restSeconds) && (
-                    <p className="text-sm text-primary-200">
-                      Repos : {formatDuration(block.restSeconds!)}
-                    </p>
-                  )}
-                </div>
-              </details>
+                  {block.label}
+                </p>
+                {block.sublabel && (
+                  <p className="mt-0.5 text-xs font-semibold text-zinc-400">{block.sublabel}</p>
+                )}
+              </div>
+              <span className="shrink-0 rounded-full bg-white/[0.07] px-3 py-1 text-xs font-black text-primary-300">
+                {block.isTimed ? formatDuration(block.seconds) : 'Libre'}
+              </span>
             </li>
           ))}
       </ol>

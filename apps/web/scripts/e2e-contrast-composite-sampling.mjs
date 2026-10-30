@@ -22,7 +22,7 @@ const outputPath = resolve(
 if (!existsSync(storagePath)) throw new Error(`Session OAuth locale absente : ${storagePath}`);
 if (!existsSync(samplingPath)) {
   throw new Error(
-    `Liste de controle absente : ${samplingPath}. Executer d'abord rncp-a11y-contrast-sampling.ps1.`,
+    `Liste de controle absente : ${samplingPath}. Executer d'abord a11y-contrast-sampling.ps1.`,
   );
 }
 

@@ -1,7 +1,7 @@
-name: Cas support client Bloc 4
+name: Cas support client
 description: Tracer un retour utilisateur ou support pour C4.3.3.
 title: '[SUPPORT] '
-labels: ['rncp:bloc4', 'type:support', 'status:triage']
+labels: ['type:support', 'status:triage']
 body:
   - type: markdown
     attributes:
@@ -21,7 +21,7 @@ body:
       options:
         - Email
         - GitHub Issue
-        - Oral jury / commanditaire
+        - Entretien utilisateur
         - Test utilisateur
         - Monitoring
         - Autre

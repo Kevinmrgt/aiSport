@@ -50,7 +50,8 @@ export async function handleGenerateProgram(ctx: Context): Promise<Response> {
       goals: parsed.data.goals,
       constraints: parsed.data.constraints,
     },
-    auth.accessMode,
+    ctx.req.header('idempotency-key'),
+    ctx.req.raw.signal,
   );
 
   return ctx.json(

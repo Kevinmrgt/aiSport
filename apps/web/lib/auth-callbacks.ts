@@ -1,48 +1,40 @@
 import type { NextAuthConfig } from 'next-auth';
-import { isJurySessionActive } from '@/lib/jury-auth';
+import { hasProductionAccess } from './access-policy';
 
 type JwtCallback = NonNullable<NonNullable<NextAuthConfig['callbacks']>['jwt']>;
 type JwtCallbackParameters = Parameters<JwtCallback>[0];
 
-export function juryAwareJwt({ token, user, account }: JwtCallbackParameters) {
-  if (account?.provider === 'google') {
-    token.authMethod = 'standard';
-    delete token.betaSessionVersion;
-    delete token.betaMustChangePassword;
-    delete token.juryAccessExpiresAt;
-    delete token.juryAccessFingerprint;
+export function googleJwt({ token, account, profile }: JwtCallbackParameters) {
+  if (account) {
+    if (account.provider !== 'google' || !account.providerAccountId) return null;
+    token.authMethod = 'google';
+    token.identityVersion = 2;
+    token.userId = account.providerAccountId;
+    token.authIssuedAt = Date.now();
+    // Only the validated Google profile can establish this signed claim.
+    // Ignore client-triggered session updates and claims from older cookies.
+    token.googleEmailVerified =
+      profile?.email_verified === true && typeof profile.email === 'string';
+    if (typeof profile?.email === 'string') token.email = profile.email;
   }
-  if (account?.provider === 'jury' && user?.id) {
-    const juryUser = user as typeof user & {
-      juryAccessExpiresAt?: string;
-      juryAccessFingerprint?: string;
-    };
-    token.authMethod = 'jury';
-    token.userId = user.id;
-    token.juryAccessExpiresAt = juryUser.juryAccessExpiresAt;
-    token.juryAccessFingerprint = juryUser.juryAccessFingerprint;
-  }
-
-  if (account?.provider === 'beta' && user?.id) {
-    const betaUser = user as typeof user & {
-      betaSessionVersion?: string;
-      betaMustChangePassword?: boolean;
-    };
-    token.authMethod = 'beta';
-    token.userId = user.id;
-    token.betaSessionVersion = betaUser.betaSessionVersion;
-    token.betaMustChangePassword = betaUser.betaMustChangePassword === true;
-  }
-
+  // Require a fresh Google login for cookies issued before stable provider binding.
   if (
-    token.authMethod === 'jury' &&
-    !isJurySessionActive(token.juryAccessExpiresAt, token.juryAccessFingerprint)
-  ) {
+    token.authMethod !== 'google' ||
+    token.identityVersion !== 2 ||
+    typeof token.userId !== 'string' ||
+    !token.userId ||
+    typeof token.authIssuedAt !== 'number' ||
+    !Number.isSafeInteger(token.authIssuedAt)
+  )
     return null;
-  }
-
-  if (user?.id) {
-    token.userId = user.id;
-  }
+  if (!hasProductionAccess({ email: token.email, googleEmailVerified: token.googleEmailVerified }))
+    return null;
   return token;
 }
+
+type SignInCallback = NonNullable<NonNullable<NextAuthConfig['callbacks']>['signIn']>;
+
+export const googleSignIn: SignInCallback = ({ account, profile }) =>
+  account?.provider === 'google' &&
+  Boolean(account.providerAccountId) &&
+  hasProductionAccess({ email: profile?.email, googleEmailVerified: profile?.email_verified });

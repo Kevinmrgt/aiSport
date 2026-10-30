@@ -19,6 +19,7 @@ RUN pnpm install --frozen-lockfile
 # Copier les sources
 COPY packages/shared/ ./packages/shared/
 COPY apps/api/ ./apps/api/
+COPY scripts/ ./scripts/
 COPY tsconfig.base.json ./
 
 # Build shared puis api

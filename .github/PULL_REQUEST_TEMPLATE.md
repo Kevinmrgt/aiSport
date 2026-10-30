@@ -11,9 +11,9 @@ Decrire le changement et le probleme traite.
 - [ ] `pnpm build`
 - [ ] Healthchecks Web/API verifies si le changement touche le deploiement
 
-## Impact MCO / RNCP
+## Impact exploitation
 
 - [ ] Anomalie ou retour support lie dans les issues
 - [ ] Changelog mis a jour si le changement est notable
 - [ ] Rollback ou contournement documente si necessaire
-- [ ] Preuve ajoutee au dossier Bloc 4 si utile
+- [ ] Documentation d’exploitation mise a jour si necessaire

@@ -2,26 +2,20 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Hono } from 'hono';
 import { authMiddleware } from '../src/middleware/auth.middleware.js';
 import { handleError } from '../src/middleware/error.middleware.js';
+import { resolveGoogleIdentity } from '../src/repositories/identity.repository.js';
+import { assertGoogleSessionActive } from '../src/services/account-session.service.js';
+import type * as AccountSession from '../src/services/account-session.service.js';
 
 const MOCK_DB_UUID = 'db-uuid-from-upsert';
-const { insertMock, valuesMock } = vi.hoisted(() => ({
-  insertMock: vi.fn(),
-  valuesMock: vi.fn(),
-}));
 
-// Mock DB — évite la connexion réelle en tests unitaires
-vi.mock('../src/db/index.js', () => ({
-  db: {
-    insert: insertMock.mockImplementation(() => ({
-      values: valuesMock.mockImplementation(() => ({
-        onConflictDoUpdate: vi.fn(() => ({
-          returning: vi.fn().mockResolvedValue([{ id: MOCK_DB_UUID }]),
-        })),
-      })),
-    })),
-  },
+// Identity persistence has its own PostgreSQL integration tests.
+vi.mock('../src/repositories/identity.repository.js', () => ({
+  resolveGoogleIdentity: vi.fn().mockResolvedValue('db-uuid-from-upsert'),
 }));
-vi.mock('../src/db/schema.js', () => ({ users: {} }));
+vi.mock('../src/services/account-session.service.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof AccountSession>()),
+  assertGoogleSessionActive: vi.fn().mockResolvedValue(undefined),
+}));
 
 // OWASP A01: tests de la validation du secret service-to-service
 function createApp() {
@@ -41,10 +35,13 @@ describe('authMiddleware', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env['SERVICE_SECRET'] = VALID_SECRET;
+    vi.stubEnv('PRODUCTION_ACCESS_MODE', 'public');
+    vi.stubEnv('ADMIN_EMAILS', '');
   });
 
   afterEach(() => {
     delete process.env['SERVICE_SECRET'];
+    vi.unstubAllEnvs();
   });
 
   it('retourne 401 si le header x-internal-secret est absent', async () => {
@@ -54,6 +51,74 @@ describe('authMiddleware', () => {
     expect(res.status).toBe(401);
     const body = (await res.json()) as { error: string };
     expect(body.error).toBe('UNAUTHORIZED');
+  });
+
+  describe('production reservee aux administrateurs verifies', () => {
+    beforeEach(() => {
+      vi.stubEnv('PRODUCTION_ACCESS_MODE', 'admin-only');
+      vi.stubEnv('ADMIN_EMAILS', 'admin@example.test');
+    });
+    const headers = (email = 'admin@example.test', verified = 'true') => ({
+      'x-internal-secret': VALID_SECRET,
+      'x-user-id': 'google-admin',
+      'x-user-email': email,
+      'x-email-verified': verified,
+      'x-auth-issued-at': String(Date.now()),
+    });
+
+    it('autorise une attestation admin verifiee par le service', async () => {
+      expect(
+        (await createApp().request('/protected', { headers: headers('Admin@EXAMPLE.test') }))
+          .status,
+      ).toBe(200);
+      expect(resolveGoogleIdentity).toHaveBeenCalledOnce();
+      expect(resolveGoogleIdentity).toHaveBeenCalledWith(
+        expect.objectContaining({ verifiedEmail: true }),
+      );
+    });
+
+    it.each([
+      ['other@example.test', 'true'],
+      ['admin@example.test', 'false'],
+      ['admin@example.test', 'True'],
+      ['admin@example.test', '1'],
+      ['admin@example.test', ''],
+    ])('refuse %s avec preuve %s avant toute creation de compte', async (email, verified) => {
+      const result = await createApp().request('/protected', { headers: headers(email, verified) });
+      expect(result.status).toBe(403);
+      expect(((await result.json()) as { message: string }).message).toContain('Accès réservé');
+      expect(resolveGoogleIdentity).not.toHaveBeenCalled();
+      expect(assertGoogleSessionActive).not.toHaveBeenCalled();
+    });
+
+    it('refuse une ancienne attestation sans verification et une liste vide', async () => {
+      const old = headers();
+      delete (old as Partial<typeof old>)['x-email-verified'];
+      expect((await createApp().request('/protected', { headers: old })).status).toBe(403);
+      vi.stubEnv('ADMIN_EMAILS', '');
+      expect((await createApp().request('/protected', { headers: headers() })).status).toBe(403);
+      expect(resolveGoogleIdentity).not.toHaveBeenCalled();
+    });
+
+    it('une preuve seule ne remplace jamais le secret du service', async () => {
+      expect(
+        (
+          await createApp().request('/protected', {
+            headers: {
+              ...headers(),
+              'x-internal-secret': 'wrong-secret',
+            },
+          })
+        ).status,
+      ).toBe(401);
+      expect(resolveGoogleIdentity).not.toHaveBeenCalled();
+    });
+
+    it('un mode inconnu reste ferme meme pour une attestation admin valide', async () => {
+      vi.stubEnv('PRODUCTION_ACCESS_MODE', 'typo');
+      expect((await createApp().request('/protected', { headers: headers() })).status).toBe(403);
+      expect(resolveGoogleIdentity).not.toHaveBeenCalled();
+    });
   });
 
   it('retourne 401 si le secret est incorrect', async () => {
@@ -82,12 +147,14 @@ describe('authMiddleware', () => {
 
   it('peuple ctx.auth et appelle next() si le secret et x-user-id sont valides', async () => {
     const app = createApp();
+    const issuedAt = Date.now();
     const res = await app.fetch(
       new Request('http://localhost/protected', {
         headers: {
           'x-internal-secret': VALID_SECRET,
           'x-user-id': 'user-abc',
           'x-user-email': 'user@example.com',
+          'x-auth-issued-at': String(issuedAt),
         },
       }),
     );
@@ -96,94 +163,72 @@ describe('authMiddleware', () => {
     const body = (await res.json()) as {
       userId: string;
       email: string;
-      accessMode: string;
     };
     expect(body.userId).toBe(MOCK_DB_UUID);
     expect(body.email).toBe('user@example.com');
-    expect(body.accessMode).toBe('standard');
+    expect(resolveGoogleIdentity).toHaveBeenCalledWith({
+      subject: 'user-abc',
+      email: 'user@example.com',
+      name: null,
+      issuedAt,
+      verifiedEmail: false,
+    });
+    expect(assertGoogleSessionActive).toHaveBeenCalledBefore(vi.mocked(resolveGoogleIdentity));
   });
 
-  it('propage le mode jury depuis le contexte service-to-service', async () => {
-    const app = createApp();
-    const res = await app.fetch(
-      new Request('http://localhost/protected', {
-        headers: {
-          'x-internal-secret': VALID_SECRET,
-          'x-user-id': 'jury-session',
-          'x-user-email': 'jury@alcide.invalid',
-          'x-auth-method': 'jury',
-        },
-      }),
+  it('refuse une session sans date avant toute résolution ou recréation de compte', async () => {
+    const res = await createApp().request('/protected', {
+      headers: {
+        'x-internal-secret': VALID_SECRET,
+        'x-user-id': 'google-sub',
+        'x-user-email': 'user@example.com',
+      },
+    });
+    expect(res.status).toBe(401);
+    expect(resolveGoogleIdentity).not.toHaveBeenCalled();
+  });
+
+  it('decode un nom Unicode borne et rejette un encodage invalide avant la base', async () => {
+    const issuedAt = Date.now();
+    const headers = {
+      'x-internal-secret': VALID_SECRET,
+      'x-user-id': 'google-unicode',
+      'x-user-email': 'synthetic@example.test',
+      'x-auth-issued-at': String(issuedAt),
+      'x-user-name-encoded': encodeURIComponent('张伟 💪 Élodie'),
+    };
+    expect((await createApp().request('/protected', { headers })).status).toBe(200);
+    expect(resolveGoogleIdentity).toHaveBeenCalledWith(
+      expect.objectContaining({ name: '张伟 💪 Élodie' }),
     );
-
-    expect(res.status).toBe(200);
-    expect((await res.json()) as object).toMatchObject({ accessMode: 'jury' });
+    vi.mocked(resolveGoogleIdentity).mockClear();
+    for (const invalid of ['%ZZ', '%0Ainjection', 'x'.repeat(4097)]) {
+      expect(
+        (
+          await createApp().request('/protected', {
+            headers: {
+              ...headers,
+              'x-user-name-encoded': invalid,
+            },
+          })
+        ).status,
+      ).toBe(400);
+    }
+    expect(resolveGoogleIdentity).not.toHaveBeenCalled();
   });
 
-  it.each(['Jury — Alcide', '東京 太郎', 'Élodie 🏃'])(
-    'restitue le nom Unicode %s à la base sans changer l identité',
-    async (name) => {
-      const res = await createApp().fetch(
-        new Request('http://localhost/protected', {
-          headers: {
-            'x-internal-secret': VALID_SECRET,
-            'x-user-id': 'user-abc',
-            'x-user-email': 'user@example.com',
-            'x-user-name-utf8': encodeURIComponent(name),
-            'x-user-name': 'Ancien nom',
-          },
-        }),
-      );
-
-      expect(res.status).toBe(200);
-      expect(valuesMock).toHaveBeenCalledWith({ email: 'user@example.com', name });
-      expect(await res.json()).toMatchObject({
-        userId: MOCK_DB_UUID,
-        email: 'user@example.com',
-      });
-    },
-  );
-
-  it('préserve les pourcentages littéraux de l ancien en-tête', async () => {
-    const name = '100% Max %C3%A9';
+  it('rejette un sujet contenant des espaces avant de résoudre le compte', async () => {
     const res = await createApp().fetch(
       new Request('http://localhost/protected', {
         headers: {
           'x-internal-secret': VALID_SECRET,
-          'x-user-id': 'user-abc',
+          'x-user-id': 'bad subject',
           'x-user-email': 'user@example.com',
-          'x-user-name': name,
         },
       }),
     );
-
-    expect(res.status).toBe(200);
-    expect(valuesMock).toHaveBeenCalledWith({ email: 'user@example.com', name });
+    expect(res.status).toBe(401);
   });
-
-  it.each(['%', '%ZZ', '%E2%28', '%ED%A0%80'])(
-    'rejette le nouvel en-tête mal encodé %s avant tout accès base',
-    async (encodedName) => {
-      const res = await createApp().fetch(
-        new Request('http://localhost/protected', {
-          headers: {
-            'x-internal-secret': VALID_SECRET,
-            'x-user-id': 'user-abc',
-            'x-user-email': 'user@example.com',
-            'x-user-name-utf8': encodedName,
-            'x-user-name': 'Ancien nom',
-          },
-        }),
-      );
-
-      expect(res.status).toBe(400);
-      expect(await res.json()).toMatchObject({
-        error: 'BAD_REQUEST',
-        message: 'Encodage du nom utilisateur invalide',
-      });
-      expect(insertMock).not.toHaveBeenCalled();
-    },
-  );
 
   it("retourne 401 si SERVICE_SECRET n'est pas configuré", async () => {
     delete process.env['SERVICE_SECRET'];

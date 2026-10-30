@@ -1,0 +1,66 @@
+# Maintenance et incidents
+
+Le mainteneur assure le code, les déploiements, les données et le suivi des
+retours. Les incidents et demandes de support utilisent les modèles GitHub.
+
+## Diagnostic courant
+
+1. Noter le parcours, l'heure, l'environnement et le SHA déployé.
+2. Vérifier Web `/api/health`, API `/health` et `/health/ready`.
+3. Consulter les logs Vercel et le dernier run CI/CD.
+4. Vérifier configuration OAuth, secrets interservices et PostgreSQL selon le
+   composant en panne, sans recopier de secret dans le ticket.
+5. Reproduire avec des données de test et qualifier l'impact.
+
+| Incident                                                             | Priorité |
+| -------------------------------------------------------------------- | -------- |
+| Perte de données, faille exploitable ou service indisponible         | P0       |
+| Authentification ou génération bloquée pour de nombreux utilisateurs | P1       |
+| Fonction dégradée avec contournement                                 | P2       |
+| Défaut cosmétique ou documentation mineure                           | P3       |
+
+En P0/P1, privilégier la restauration du service et conserver les éléments
+utiles au diagnostic. Les délais dépendent de la disponibilité réelle du
+mainteneur ; aucun support permanent n'est actuellement établi.
+
+## Correction et validation
+
+Documenter cause, impact, solution et retour arrière. Exécuter le test de
+non-régression concerné, puis lint, types, tests et build. Vérifier la CI sur le
+commit à livrer et le parcours après déploiement avant de clore l'issue.
+Ne pas masquer un échec en abaissant un seuil ou en ignorant le test concerné.
+
+## Base de données
+
+Avant une migration sensible, créer et identifier une sauvegarde ou branche
+Neon ; vérifier sa restauration sur une cible distincte. Utiliser des
+migrations additives et ne pas modifier un fichier déjà appliqué.
+`docker compose down` conserve les données locales ; l'option `-v` supprime
+le volume et son contenu et n'est pas une procédure de restauration.
+
+Les scripts `db-backup.mjs` et `db-restore-check.mjs` utilisent un snapshot
+cohérent, des comptages et un chiffrement authentifié. La restauration exige
+une confirmation explicite, une base distincte et vide et le même majeur
+PostgreSQL. Elle refuse d'écraser la source. Le mode `verify` du workflow DB
+effectue cette répétition puis applique les migrations candidates sur la
+copie seulement. Aucun dump clair ni ligne utilisateur n'est publié en artefact.
+
+Les archives chiffrées Actions expirent après trente jours. Ce mécanisme
+manuel n'établit ni cadence de sauvegarde, ni RPO/RTO, ni archivage indépendant.
+Définir ces objectifs, organiser une copie extérieure si nécessaire et
+conserver la clé de déchiffrement avec un accès et une récupération documentés.
+Voir [production-runbook.md](production-runbook.md) pour les commandes,
+preuves et conditions de reprise. Les preuves de restauration doivent être
+renouvelées après changement de migrations ou expiration de leur validité.
+
+## Mise à jour et support
+
+Installer depuis le lockfile, examiner les dépendances, exécuter les contrôles,
+puis livrer par la CI/CD. Réévaluer l'audit à la date de la livraison.
+
+Un ticket contient : symptôme, étapes, résultat attendu/obtenu, environnement,
+impact, version et éventuel contournement. Masquer données personnelles,
+cookies, clés et informations de connexion.
+
+Les points déjà identifiés sont dans
+[release-readiness.md](release-readiness.md).

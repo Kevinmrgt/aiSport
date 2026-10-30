@@ -1,248 +1,90 @@
-# Guide de deploiement - Alcide
+# Déploiement
 
-> Version applicative déployée contrôlée: 0.13.0-rc.8
-> Baseline applicative déployée contrôlée: 0a2caffc314bbb4697baf2fbbfe39ec74248e038
-> Date de verification documentaire initiale: 2026-05-07
-> Derniere vérification de production et du Bloc 3: 2026-09-07
+## Cibles configurées
 
-La version `0.13.0-rc.8` conserve les correctifs de restitution NVDA, l'accès
-jury temporaire sécurisé et le quota global de 30 générations, puis simplifie
-l'interface en retirant les informations techniques IA. La baseline contrôlée
-a passé la CI `34108724410`, la CD `34109152619` et les smoke tests ; après ce
-déploiement, les trois healthchecks ont totalisé 150/150 réponses valides le 7
-septembre 2026.
+| Composant | Cible                                                                      |
+| --------- | -------------------------------------------------------------------------- |
+| Web       | Vercel, `https://www.alcideai.fr` ; ancien alias `ai-sport-web.vercel.app` |
+| API       | Vercel, `https://ai-sport-api.vercel.app`                                  |
+| Données   | PostgreSQL Neon, connexion via `DATABASE_URL`                              |
 
-## Production canonique
+Ces adresses décrivent la configuration du dépôt. Un état de production doit
+être vérifié sur la révision effectivement servie après chaque livraison.
+Runtime : Node.js 24, pnpm 11.9. Voir [ci-cd.md](ci-cd.md).
 
-| Composant       | Plateforme      | URL                               |
-| --------------- | --------------- | --------------------------------- |
-| Frontend        | Vercel          | `https://ai-sport-web.vercel.app` |
-| API             | Vercel          | `https://ai-sport-api.vercel.app` |
-| Base de donnees | Neon PostgreSQL | via `DATABASE_URL`                |
+## Configuration
 
-La CI/CD est documentee dans `docs/ci-cd.md`.
+Web : `API_URL`, `NEXT_PUBLIC_API_URL`, `SERVICE_SECRET`, `AUTH_SECRET`,
+`AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `NEXTAUTH_URL`.
+API : `DATABASE_URL`, `SERVICE_SECRET`, `OPENAI_API_KEY`, `FRONTEND_URL`,
+`NODE_ENV=production`.
 
-## Variables d'environnement Vercel
+Web et API : `APP_REVISION`, SHA Git immuable de quarante caractères,
+transmis par le CD au build et au déploiement. `VERCEL_GIT_COMMIT_SHA` sert
+de repli lorsqu'il est disponible ; une valeur absente ou invalide donne
+`revision: null` et échoue au contrôle de livraison.
 
-Projet Web:
+`SERVICE_SECRET` doit être identique sur le Web et l'API. La clé OpenAI reste
+sur l'API. Les valeurs `NEXTAUTH_URL`, `FRONTEND_URL` et la redirection OAuth
+Google doivent correspondre à l'origine Web livrée.
+La redirection est `/api/auth/callback/google`.
 
-```text
-API_URL=https://ai-sport-api.vercel.app
-NEXT_PUBLIC_API_URL=https://ai-sport-api.vercel.app
-SERVICE_SECRET=<same value as API>
-AUTH_SECRET=<Auth.js secret>
-AUTH_GOOGLE_ID=<Google OAuth client id>
-AUTH_GOOGLE_SECRET=<Google OAuth client secret>
-JURY_ACCESS_ENABLED=false
-JURY_ACCESS_IDENTIFIER=<identifiant temporaire>
-JURY_ACCESS_PASSWORD_HASH=<hash scrypt salé>
-JURY_ACCESS_USER_ID=<identité de session stable>
-JURY_ACCESS_EMAIL=<email technique dédié>
-JURY_ACCESS_NAME=<nom affiché>
-JURY_ACCESS_EXPIRES_AT=<date ISO 8601 absolue avec fuseau>
-JURY_ACCESS_SESSION_VERSION=<nonce à renouveler à chaque activation>
-NEXTAUTH_URL=https://ai-sport-web.vercel.app
-```
+Ne jamais versionner les fichiers d'environnement, cookies ou secrets.
 
-L'accès jury est limité à l'environnement Vercel `Production`. Le mot de passe
-en clair ne doit jamais être ajouté à Vercel ou au dépôt. Pour produire son hash
-sans écrire le secret dans l'historique PowerShell :
+## Livraison nominale
 
-```powershell
-$securePassword = Read-Host "Mot de passe jury" -AsSecureString
-$secretPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
-try {
-  $env:JURY_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($secretPointer)
-  pnpm jury:hash
-} finally {
-  [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($secretPointer)
-  Remove-Item Env:JURY_PASSWORD -ErrorAction SilentlyContinue
-}
-```
+1. Vérifier les changements et la CI sur la révision prévue.
+2. Le workflow `CD - Vercel`, activé par `ENABLE_GHA_VERCEL_CD=true`, se lance
+   après une CI réussie sur `main`.
+3. Exécuter le préflight, conserver une sauvegarde chiffrée, appliquer les
+   migrations sous verrou, puis déployer l'API et le Web.
+4. Vérifier JSON et SHA du build créé et des domaines publics, puis le
+   parcours utilisateur concerné.
 
-La sortie `scrypt$...` devient `JURY_ACCESS_PASSWORD_HASH`. À chaque
-réactivation, renouveler aussi `JURY_ACCESS_SESSION_VERSION` pour que les
-anciens cookies ne puissent pas redevenir valides. Le callback
-`POST /api/auth/callback/jury` est protégé dans Vercel Firewall par une fenêtre
-fixe de 10 tentatives par minute et par IP.
+Secrets GitHub : `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_API_PROJECT_ID`,
+`VERCEL_WEB_PROJECT_ID`, `DATABASE_URL`, `BACKUP_ENCRYPTION_KEY` (32 octets
+aléatoires encodés en base64). `MIGRATION_DATABASE_URL` est nécessaire si
+`DATABASE_URL` utilise un pooler ; il doit viser la même base via une
+connexion directe. `VERCEL_AUTOMATION_BYPASS_SECRET` est facultatif pour
+sonder les URLs Vercel protégées ; il n'est pas transféré au domaine canonique.
 
-Projet API:
+Les variables publiques légales et les preuves de release sont décrites
+dans le [runbook de production](production-runbook.md). Le workflow manuel
+`DB - Drizzle migrations` vérifie par défaut sans écrire sur la source.
+Son mode `migrate` est explicite et soumis aux mêmes preuves que le CD.
 
-```text
-DATABASE_URL=<Neon pooled PostgreSQL URL>
-SERVICE_SECRET=<same value as Web>
-OPENAI_API_KEY=<OpenAI API key geree par Alcide cote serveur>
-FRONTEND_URL=https://ai-sport-web.vercel.app
-NODE_ENV=production
-```
+Les migrations déjà appliquées restent versionnées avec leurs snapshots et
+leur journal. La table historique `generation_quotas` reste dans le schéma ;
+aucun parcours applicatif ne l'utilise. Sa suppression éventuelle nécessite
+une nouvelle migration, préparée avec sauvegarde et retour arrière.
 
-## GitHub Actions
+## Contrôle après livraison
 
-1. `CI - Alcide` vérifie lint, types, tests et couvertures API/Web/PostgreSQL,
-   build, smoke E2E public, audit dès le niveau low, politique de déploiement
-   Vercel et Docker.
-2. `CD - Vercel` se lance uniquement après une CI verte sur `main` si la
-   variable GitHub `ENABLE_GHA_VERCEL_CD=true` est définie. Il n'existe plus de
-   lancement manuel contournant les gates.
-3. `CD - Vercel` applique les migrations Drizzle avant le déploiement API ; un
-   échec bloque ensuite l'API et le Web. `DB - Drizzle migrations` reste un
-   chemin manuel de reprise, rattaché à l'environnement `production`. Au relevé
-   du 2026-07-20, cet environnement ne possédait aucune règle de protection ni
-   approbateur ; ce n'est donc pas encore une gate humaine.
-4. Les previews Vercel de pull request restent actives. Pour `VERCEL_ENV=production`,
-   `ignoreCommand` ignore le déploiement automatique de l'intégration Git ; le
-   workflow CD force explicitement le chemin canonique après CI verte.
+- API : `/health` puis `/health/ready`.
+- Web : `/api/health` et page d'accueil.
+- Vérifier le champ `revision` du JSON et le SHA exact attendu dans Vercel/Actions.
+- Tester connexion Google, génération, consultation et suppression avec un
+  compte de test dédié. Retirer ensuite les données de recette.
 
-Secrets GitHub requis pour la CD:
+Un healthcheck de processus ne valide ni OAuth, ni la génération, ni
+l'ensemble du parcours métier.
 
-```text
-VERCEL_TOKEN
-VERCEL_ORG_ID
-VERCEL_API_PROJECT_ID
-VERCEL_WEB_PROJECT_ID
-DATABASE_URL
-```
+## Reprise
 
-Le token doit autoriser `vercel pull/build/deploy` sur les deux projets. Le run
-CD courant `34109152619`, déclenché automatiquement après la CI `34108724410`,
-a réussi sur le SHA `0a2caffc314bbb4697baf2fbbfe39ec74248e038` : migrations,
-API, Web et smoke tests de production. Les productions automatiques de
-l'intégration Git sont annulées par `ignoreCommand`, puis une seule production
-GitHub Actions aboutit par projet. Les runs `29747228594` et `29747592571`
-restent des preuves historiques du même protocole avant la correction finale de
-reflow.
+Identifier le dernier déploiement sain et son SHA, puis le promouvoir dans
+Vercel. Les migrations ne sont pas annulées par un rollback Web/API : préparer
+une migration compensatoire ou restaurer une sauvegarde de base si nécessaire.
+Rejouer readiness et le parcours impacté.
 
-## Quota de génération du jury
+Ne pas promouvoir un ancien Web/API incompatible avec les migrations déjà
+appliquées. Le runbook conserve les conditions de restauration et les
+preuves à vérifier ; aucun script fourni ne restaure automatiquement sur
+une base contenant des tables utilisateur.
 
-Le quota s'applique uniquement à la session Auth.js identifiée comme accès jury.
-Les comptes Google restent illimités. Il autorise 30 générations réussies au
-total, avec un compteur unique partagé par `/generate` et
-`/programs/generate`. Le compteur est stocké dans PostgreSQL et ne dépend donc
-pas de l'instance Vercel qui traite la requête.
+## Autohébergement
 
-La réservation d'une unité est atomique et précède l'appel à l'IA. La 31e
-demande reçoit un refus HTTP 429, y compris en cas de concurrence. La
-suppression ultérieure d'une séance ou d'un programme ne rembourse pas une
-génération réussie. Un échec de l'appel IA ou de l'enregistrement en base libère
-en revanche la réservation afin de ne pas pénaliser le jury pour une erreur
-technique. Le test d'intégration PostgreSQL dédié lance 31 réservations
-concurrentes et vérifie 30 acceptations pour un refus.
-
-La contre-recette navigateur de production a effectué une génération de
-validation et vérifié l'affichage de 29 générations restantes sur l'interface
-jury.
-
-## Deploiement manuel Vercel
-
-Cette procédure est réservée au diagnostic ou à une intervention d'urgence
-autorisée. Elle ne doit pas servir à contourner la CI ni à constituer la preuve
-de la version remise ; le chemin nominal reste le workflow CD après CI verte.
-
-Depuis la racine du depot:
-
-```bash
-pnpm install --frozen-lockfile
-pnpm build
-```
-
-API:
-
-```bash
-cd apps/api
-vercel pull --yes --environment=production
-vercel build --prod
-vercel deploy --prebuilt --prod
-```
-
-Web:
-
-```bash
-cd apps/web
-vercel pull --yes --environment=production
-vercel build --prod
-vercel deploy --prebuilt --prod
-```
-
-## Migrations Neon
-
-Dans le chemin nominal, le job `migrate-db` du workflow `CD - Vercel` applique
-les migrations avant le déploiement API. Pour une reprise autorisée ou une
-migration isolée, lancer le workflow manuel `DB - Drizzle migrations`.
-
-En local, uniquement si `DATABASE_URL` pointe volontairement vers la cible:
-
-```bash
-pnpm install --frozen-lockfile
-pnpm db:migrate
-```
-
-## Verification post-deploiement
-
-```bash
-curl https://ai-sport-api.vercel.app/health
-curl https://ai-sport-api.vercel.app/health/ready
-curl https://ai-sport-web.vercel.app/api/health
-curl -I https://ai-sport-web.vercel.app
-```
-
-Checklist:
-
-- [x] CI verte sur le SHA applicatif livré
-- [x] Migrations Drizzle appliquées par la CD
-- [x] `SERVICE_SECRET` cohérent côté Web et API, prouvé par les smoke tests service-to-service
-- [x] OAuth Google démarre avec le callback `https://ai-sport-web.vercel.app/api/auth/callback/google`
-- [x] API liveness et readiness HTTP 200 après déploiement
-- [x] Web healthcheck HTTP 200 après déploiement
-- [x] Génération d'une séance testée avec un compte authentifié, puis donnée de recette supprimée (B2-A25)
-- [x] Génération d'un programme testée avec un compte authentifié, puis donnée de recette supprimée (B2-A25)
-- [x] Quota jury persistant affiché à 29/30 après une génération de validation
-- [x] 31 réservations concurrentes testées sur PostgreSQL : 30 acceptées, 1 refusée
-- [x] 261 tests unitaires/composants verts (Shared 14, API 179, Web 68), intégration PostgreSQL dédiée et E2E verts
-- [x] run CI automatique vert sur la baseline applicative livrée (`34108724410`)
-- [x] run CD automatique vert sur la baseline applicative livrée (`34109152619`)
-- [x] zoom natif 200/400 % contre-recetté en production, 16/16, puis suite
-      d'accessibilité rejouée, 33/33
-
-## Alternative Docker Compose
-
-Pour une demonstration locale ou un auto-hebergement:
-
-```bash
-cp .env.example .env
-# Remplacer OPENAI_API_KEY, SERVICE_SECRET et les secrets OAuth de démonstration.
-docker compose up -d postgres
-docker compose --profile tools run --rm migrate
-docker compose --profile tools run --rm seed  # facultatif
-docker compose up --build -d
-```
-
-Les commandes de migration et de seed utilisent des services outillage basés
-sur le stage Docker `builder`. Elles ne sont pas exécutées dans l'image API de
-production, qui ne contient volontairement ni `drizzle-kit`, ni `tsx`, ni les
-sources TypeScript.
-
-URLs locales:
-
-| Service    | URL                     |
-| ---------- | ----------------------- |
-| Web        | `http://localhost:3000` |
-| API        | `http://localhost:3001` |
-| PostgreSQL | `localhost:5432`        |
-
-## Alternative Fly.io pour l'API
-
-Le fichier `apps/api/fly.toml` reste disponible. Depuis la racine:
-
-```bash
-fly deploy --config apps/api/fly.toml --remote-only .
-```
-
-Secrets Fly requis:
-
-```text
-DATABASE_URL
-OPENAI_API_KEY
-SERVICE_SECRET
-FRONTEND_URL=https://ai-sport-web.vercel.app
-NODE_ENV=production
-```
+Le [README](../README.md) décrit Docker Compose pour le développement.
+Pour une exposition publique, configurer HTTPS, secrets, accès PostgreSQL,
+sauvegardes et alertes ; remplacer les identifiants locaux du Compose.
+Les services `migrate` et `seed` utilisent le stage Docker `builder`, qui
+contient les outils absents des images de production.

@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.middleware.js';
-import { betaPasswordChangedMiddleware } from '../middleware/beta-password.middleware.js';
 import {
   handleGetSettings,
   handleSaveSettings,
@@ -10,7 +9,6 @@ const settingsRouter = new Hono();
 
 // OWASP A01: toutes les routes settings necessitent une session valide
 settingsRouter.use('*', authMiddleware);
-settingsRouter.use('*', betaPasswordChangedMiddleware);
 
 // GET /settings - lire les parametres IA de l'utilisateur
 settingsRouter.get('/', handleGetSettings);

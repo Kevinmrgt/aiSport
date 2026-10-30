@@ -18,6 +18,8 @@ out
 build
 docs
 output
+outputs
+tmp
 alcide-claude-config
 CLAUDE.md
 *.pdf

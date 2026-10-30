@@ -11,18 +11,15 @@ const storagePath = resolve(
   process.cwd(),
   process.env.PLAYWRIGHT_AUTH_STORAGE ?? 'playwright/.auth/google-e2e.json',
 );
-const extensionPath = resolve(
-  scriptDirectory,
-  '../tests/e2e/fixtures/native-zoom-extension',
-);
+const extensionPath = resolve(scriptDirectory, '../tests/e2e/fixtures/native-zoom-extension');
 const evidenceDirectory = resolve(repositoryRoot, 'tmp/accessibility-final/native-zoom');
 const userDataDirectory = mkdtempSync(join(tmpdir(), 'alcide-native-zoom-'));
 
 const publicRoutes = ['/', '/login', '/confidentialite'];
 const privateRoutes = ['/dashboard', '/generate', '/programs', '/workouts', '/settings'];
 const sessionCookieNames = ['authjs.session-token', '__Secure-authjs.session-token'];
-const publicOnly = process.env.RNCP_ZOOM_SCOPE === 'public';
-const correctivePreview = process.env.RNCP_ZOOM_WRAP_FIX_PREVIEW === '1';
+const publicOnly = process.env.A11Y_ZOOM_SCOPE === 'public';
+const correctivePreview = process.env.A11Y_ZOOM_WRAP_FIX_PREVIEW === '1';
 const auditedRoutes = publicOnly ? publicRoutes : [...publicRoutes, ...privateRoutes];
 
 function invariant(condition, message) {
@@ -90,13 +87,16 @@ async function measure(page, route, factor, baselineWidth) {
     bodyScrollWidth: document.body.scrollWidth,
     mainVisible: Boolean(document.querySelector('main#main-content')?.getClientRects().length),
     headingVisible: Boolean(document.querySelector('h1')?.getClientRects().length),
-    clippedElements: [...document.querySelectorAll('h1, h2, h3, p, a, button, input, select, textarea, label')]
+    clippedElements: [
+      ...document.querySelectorAll('h1, h2, h3, p, a, button, input, select, textarea, label'),
+    ]
       .filter((element) => element instanceof HTMLElement && element.getClientRects().length > 0)
       .filter((element) => !(element.clientWidth <= 1 && element.clientHeight <= 1))
       .flatMap((element) => {
         const rect = element.getBoundingClientRect();
         const style = getComputedStyle(element);
-        const outsideViewport = rect.left < -1 || rect.right > document.documentElement.clientWidth + 1;
+        const outsideViewport =
+          rect.left < -1 || rect.right > document.documentElement.clientWidth + 1;
         const internallyClipped =
           element.scrollWidth > element.clientWidth + 1 &&
           ['hidden', 'clip'].includes(style.overflowX);

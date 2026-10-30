@@ -4,27 +4,14 @@ import { workoutRouter } from './workout.routes.js';
 import { programRouter } from './program.routes.js';
 import { settingsRouter } from './settings.routes.js';
 import { sessionLogRouter } from './session-log.routes.js';
-import { generationQuotaRouter } from './generation-quota.routes.js';
-import { betaAuthRouter } from './beta-auth.routes.js';
-import { adminBetaRouter } from './admin-beta.routes.js';
-import { billingRouter } from './billing.routes.js';
-import { visitorAnalyticsRouter } from './visitor-analytics.routes.js';
-import { authMiddleware } from '../middleware/auth.middleware.js';
+import { accountRouter } from './account.routes.js';
 
 // Registre central de toutes les routes (architecture.md)
 export function registerRoutes(app: Hono): void {
-  app.get('/account/status', authMiddleware, (ctx) => {
-    ctx.header('Cache-Control', 'no-store');
-    return ctx.json({ suspended: ctx.get('accountSuspended') });
-  });
-  app.route('/billing', billingRouter);
   app.route('/health', healthRouter);
   app.route('/workouts', workoutRouter);
   app.route('/programs', programRouter);
   app.route('/settings', settingsRouter);
   app.route('/session-logs', sessionLogRouter);
-  app.route('/generation-quota', generationQuotaRouter);
-  app.route('/auth/beta', betaAuthRouter);
-  app.route('/admin', adminBetaRouter);
-  app.route('/analytics', visitorAnalyticsRouter);
+  app.route('/account', accountRouter);
 }

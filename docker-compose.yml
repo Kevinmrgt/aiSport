@@ -29,7 +29,9 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      NODE_ENV: production
+      # This Compose stack is for local development (plain local HTTP/PostgreSQL).
+      # The production image and Vercel keep their strict production validation.
+      NODE_ENV: development
       PORT: 3001
       DATABASE_URL: postgresql://alcide:alcide_dev@postgres:5432/alcide
       # OWASP A02: les secrets sensibles viennent du fichier .env (non commité)

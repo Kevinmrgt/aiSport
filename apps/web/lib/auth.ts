@@ -1,43 +1,20 @@
 import NextAuth from 'next-auth';
 import type { NextAuthConfig } from 'next-auth';
-import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
-import { juryAwareJwt } from '@/lib/auth-callbacks';
-import { verifyJuryCredentials } from '@/lib/jury-auth';
-import { verifyBetaCredentials } from '@/lib/beta-auth';
-import { isLocalPreview } from '@/lib/local-preview';
+import { googleJwt, googleSignIn } from '@/lib/auth-callbacks';
+
+declare module 'next-auth' {
+  interface User {
+    authIssuedAt?: number;
+    googleEmailVerified?: boolean;
+  }
+}
 
 export const authConfig = {
   providers: [
-    ...(isLocalPreview()
-      ? []
-      : [
-          Google({
-            clientId: process.env['AUTH_GOOGLE_ID'],
-            clientSecret: process.env['AUTH_GOOGLE_SECRET'],
-          }),
-        ]),
-    Credentials({
-      id: 'jury',
-      name: 'Accès jury',
-      credentials: {
-        identifier: { label: 'Identifiant jury', type: 'text' },
-        password: { label: 'Mot de passe', type: 'password' },
-      },
-      authorize(credentials) {
-        return verifyJuryCredentials(credentials);
-      },
-    }),
-    Credentials({
-      id: 'beta',
-      name: 'Accès bêta',
-      credentials: {
-        email: { label: 'Adresse e-mail', type: 'email' },
-        password: { label: 'Mot de passe', type: 'password' },
-      },
-      authorize(credentials) {
-        return verifyBetaCredentials(credentials);
-      },
+    Google({
+      clientId: process.env['AUTH_GOOGLE_ID'],
+      clientSecret: process.env['AUTH_GOOGLE_SECRET'],
     }),
   ],
   // Requis sur Vercel — le host est derrière un proxy
@@ -48,23 +25,15 @@ export const authConfig = {
     error: '/login',
   },
   callbacks: {
-    // OWASP A07 : révocation immédiate des sessions jury au changement de
-    // secret, à l'expiration absolue ou à l'activation du kill switch.
-    jwt: juryAwareJwt,
+    signIn: googleSignIn,
+    jwt: googleJwt,
     session({ session, token }) {
       if (token.userId && typeof token.userId === 'string') {
         session.user.id = token.userId;
       }
-      const user = session.user as typeof session.user & {
-        authMethod?: 'standard' | 'jury' | 'beta';
-        betaSessionVersion?: string;
-        betaMustChangePassword?: boolean;
-      };
-      if (token.authMethod === 'beta' || token.authMethod === 'jury') {
-        user.authMethod = token.authMethod;
-      }
-      if (typeof token.betaSessionVersion === 'string') user.betaSessionVersion = token.betaSessionVersion;
-      if (token.betaMustChangePassword === true) user.betaMustChangePassword = true;
+      if (typeof token.authIssuedAt === 'number') session.user.authIssuedAt = token.authIssuedAt;
+      if (typeof token.email === 'string') session.user.email = token.email;
+      session.user.googleEmailVerified = token.googleEmailVerified === true;
       return session;
     },
   },

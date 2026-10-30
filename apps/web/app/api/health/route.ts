@@ -7,6 +7,10 @@ export function GET() {
     {
       status: 'ok',
       service: 'alcide-web',
+      revision: (() => {
+        const candidate = process.env['APP_REVISION'] ?? process.env['VERCEL_GIT_COMMIT_SHA'];
+        return candidate && /^[a-f0-9]{40}$/i.test(candidate) ? candidate.toLowerCase() : null;
+      })(),
       timestamp: new Date().toISOString(),
       version:
         process.env['NEXT_PUBLIC_APP_VERSION'] ??

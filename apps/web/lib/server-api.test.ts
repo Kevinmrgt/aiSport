@@ -20,19 +20,24 @@ function response(body: unknown, status = 200): Response {
 describe('serverApi', () => {
   beforeEach(() => {
     authMock.mockResolvedValue({
-      user: { id: 'user-1', email: 'sportif@example.test', name: 'Sportif Test' },
+      user: {
+        id: 'user-1',
+        email: 'sportif@example.test',
+        name: 'Sportif Test',
+        authIssuedAt: 1_798_000_000_000,
+      },
     } as never);
     vi.spyOn(console, 'info').mockImplementation(() => undefined);
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     process.env['SERVICE_SECRET'] = 'secret-test';
-    delete process.env['JURY_ACCESS_EMAIL'];
+    vi.stubEnv('PRODUCTION_ACCESS_MODE', 'public');
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     vi.useRealTimers();
-    delete process.env['JURY_ACCESS_EMAIL'];
+    vi.unstubAllEnvs();
   });
 
   it('refuse tout appel sans session avant de contacter l API', async () => {
@@ -42,6 +47,36 @@ describe('serverApi', () => {
 
     await expect(serverApi.getStats()).rejects.toThrow('Non authentifie');
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('atteste la verification du JWT serveur et refuse les sessions interdites avant fetch', async () => {
+    vi.stubEnv('PRODUCTION_ACCESS_MODE', 'admin-only');
+    vi.stubEnv('ADMIN_EMAILS', 'admin@example.test');
+    const fetchMock = vi
+      .fn<(url: string, init: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(response({}));
+    vi.stubGlobal('fetch', fetchMock);
+    for (const user of [
+      { id: 'admin', email: 'admin@example.test' },
+      { id: 'other', email: 'other@example.test', googleEmailVerified: true },
+    ]) {
+      authMock.mockResolvedValue({ user } as never);
+      await expect(serverApi.getStats()).rejects.toMatchObject({
+        status: 403,
+        code: 'ACCESS_RESTRICTED',
+      });
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+    authMock.mockResolvedValue({
+      user: {
+        id: 'admin',
+        email: 'admin@example.test',
+        googleEmailVerified: true,
+        authIssuedAt: Date.now(),
+      },
+    } as never);
+    await serverApi.getStats();
+    expect(fetchMock.mock.calls[0]?.[1].headers).toMatchObject({ 'x-email-verified': 'true' });
   });
 
   it('transmet l identite serveur et encode les filtres de liste', async () => {
@@ -62,50 +97,29 @@ describe('serverApi', () => {
       'x-internal-secret': 'secret-test',
       'x-user-id': 'user-1',
       'x-user-email': 'sportif@example.test',
-      'x-user-name-utf8': 'Sportif%20Test',
-      'x-auth-method': 'standard',
+      'x-user-name-encoded': 'Sportif%20Test',
+      'x-auth-issued-at': '1798000000000',
     });
   });
 
-  it.each(['Jury — Alcide', '東京 太郎', 'Élodie 🏃'])(
-    'transmet le nom Unicode %s dans de vrais en-têtes HTTP',
-    async (name) => {
-      authMock.mockResolvedValue({
-        user: { id: 'user-1', email: 'sportif@example.test', name },
-      } as never);
-      let sentHeaders: Headers | undefined;
-      const fetchMock = vi.fn((_url: string, init: RequestInit) => {
-        // Exerce la conversion ByteString réelle, ignorée par un simple mock fetch.
-        sentHeaders = new Headers(init.headers);
-        return Promise.resolve(response({ workouts: [], total: 0 }));
-      });
-      vi.stubGlobal('fetch', fetchMock);
-
-      await serverApi.getWorkouts();
-
-      expect(fetchMock).toHaveBeenCalledOnce();
-      expect(sentHeaders?.has('x-user-name')).toBe(false);
-      expect(decodeURIComponent(sentHeaders?.get('x-user-name-utf8') ?? '')).toBe(name);
-      expect(sentHeaders?.get('x-user-id')).toBe('user-1');
-      expect(sentHeaders?.get('x-user-email')).toBe('sportif@example.test');
-    },
-  );
-
-  it('marque le contexte jury uniquement pour l email jury configure', async () => {
-    process.env['JURY_ACCESS_EMAIL'] = 'jury@alcide.invalid';
+  it('transporte les noms Unicode dans un header ASCII sans erreur Fetch', async () => {
     authMock.mockResolvedValue({
-      user: { id: 'jury-session', email: 'JURY@ALCIDE.INVALID', name: 'Jury' },
+      user: {
+        id: 'user-unicode',
+        email: 'synthetic@example.test',
+        name: '张伟 💪 Élodie',
+        authIssuedAt: Date.now(),
+      },
     } as never);
-    const fetchMock = vi
-      .fn<(url: string, init: RequestInit) => Promise<Response>>()
-      .mockResolvedValue(response({ limited: true, limit: 30, used: 0, remaining: 30 }));
-    vi.stubGlobal('fetch', fetchMock);
-
-    await serverApi.getGenerationQuota();
-
-    expect(fetchMock.mock.calls[0]?.[1]?.headers).toMatchObject({
-      'x-auth-method': 'jury',
+    const fetchMock = vi.fn((_url: string, options: RequestInit) => {
+      const headers = new Headers(options.headers);
+      expect(headers.has('x-user-name')).toBe(false);
+      expect(decodeURIComponent(headers.get('x-user-name-encoded')!)).toBe('张伟 💪 Élodie');
+      return Promise.resolve(response({}));
     });
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(serverApi.getStats()).resolves.toEqual({});
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 
   it('couvre les routes de seances, programmes, suivi et parametres', async () => {
@@ -115,7 +129,6 @@ describe('serverApi', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await serverApi.generateWorkout({ sport: 'course' } as never);
-    await serverApi.getGenerationQuota();
     await serverApi.getStats();
     await serverApi.getWorkout('workout-1');
     await serverApi.deleteWorkout('workout-1');
@@ -129,9 +142,6 @@ describe('serverApi', () => {
     await serverApi.getRecentSessionLogs(12);
     await serverApi.getAiSettings();
     await serverApi.saveAiSettings({ model: 'gpt-5.4-mini' });
-    await serverApi.getAdminOverview();
-    await serverApi.savePlatformSettings({ defaultAiModel: 'gpt-5.4-mini', defaultBetaGenerationBalance: 10 });
-    await serverApi.deleteBetaTester('beta-user-1');
 
     const calls = fetchMock.mock.calls.map(([url, init]) => ({
       url,
@@ -141,7 +151,6 @@ describe('serverApi', () => {
     expect(calls).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ url: 'http://localhost:3001/workouts/generate', method: 'POST' }),
-        expect.objectContaining({ url: 'http://localhost:3001/generation-quota', method: 'GET' }),
         expect.objectContaining({
           url: 'http://localhost:3001/workouts/workout-1',
           method: 'DELETE',
@@ -149,13 +158,6 @@ describe('serverApi', () => {
         expect.objectContaining({ url: 'http://localhost:3001/programs?page=3&limit=4' }),
         expect.objectContaining({ url: 'http://localhost:3001/session-logs/recent?limit=5' }),
         expect.objectContaining({ url: 'http://localhost:3001/session-logs/recent?limit=12' }),
-        expect.objectContaining({ url: 'http://localhost:3001/admin/beta-testers/beta-user-1', method: 'DELETE' }),
-        expect.objectContaining({ url: 'http://localhost:3001/admin/overview', method: 'GET' }),
-        expect.objectContaining({
-          url: 'http://localhost:3001/admin/platform-settings',
-          method: 'PUT',
-          body: JSON.stringify({ defaultAiModel: 'gpt-5.4-mini', defaultBetaGenerationBalance: 10 }),
-        }),
         expect.objectContaining({
           url: 'http://localhost:3001/settings',
           method: 'PUT',

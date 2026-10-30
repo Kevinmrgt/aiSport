@@ -24,23 +24,22 @@
     "test:e2e:auth-policy": "node --test scripts/e2e-auth-policy.test.mjs",
     "test:vercel-ignore": "node --test scripts/vercel-ignore-policy.test.mjs",
     "test:cd-policy": "node --test scripts/cd-workflow-policy.test.mjs",
-    "jury:hash": "node apps/web/scripts/hash-jury-password.mjs",
     "measure:production-health": "node scripts/measure-production-health.mjs",
     "test:coverage": "pnpm --filter shared test:coverage && pnpm --filter shared build && pnpm --filter api test:coverage && pnpm --filter web test:coverage",
     "lint": "pnpm build:shared && pnpm --recursive lint",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore",
     "typecheck": "pnpm build:shared && pnpm --recursive typecheck",
     "db:generate": "pnpm --filter api db:generate",
-    "db:migrate": "pnpm --filter api db:migrate",
+    "db:migrate": "node scripts/db-migrate-locked.mjs",
     "db:seed": "pnpm --filter api db:seed",
     "db:studio": "pnpm --filter api db:studio"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^8.0.0",
-    "@typescript-eslint/parser": "^8.0.0",
-    "concurrently": "^9.1.0",
+    "@typescript-eslint/eslint-plugin": "^8.72.1",
+    "@typescript-eslint/parser": "^8.72.1",
+    "concurrently": "^9.2.5",
     "eslint": "^8.57.1",
-    "prettier": "^3.4.2",
+    "prettier": "^3.9.10",
     "typescript": "5.7.3"
   },
   "engines": {

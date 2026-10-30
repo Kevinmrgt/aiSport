@@ -1,6 +1,6 @@
 import 'server-only';
-import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
+import { hasProductionAccess } from '@/lib/access-policy';
 import type {
   WorkoutDetail,
   WorkoutListResponse,
@@ -14,8 +14,6 @@ import type {
   ProgramListItem,
 } from '@alcide/shared';
 import type { CreateSessionLogInput, SessionLogListItem, SessionLogStats } from '@alcide/shared';
-import type { GenerationQuota } from '@alcide/shared';
-import type { BillingStatus } from '@alcide/shared';
 
 export interface UserAiSettings {
   provider: 'openai';
@@ -25,51 +23,6 @@ export interface UserAiSettings {
 
 export interface SaveAiSettingsInput {
   model?: string;
-}
-
-export interface BetaTesterSummary {
-  userId: string;
-  name: string | null;
-  email: string;
-  active: boolean;
-  generationBalance: number;
-  mustChangePassword: boolean;
-  createdAt: string;
-}
-
-export interface AdminOverview {
-  stats: {
-    totalUsers: number;
-    betaTesterCount: number;
-    activeBetaTesterCount: number;
-    pendingPasswordChangeCount: number;
-    availableGenerations: number;
-    workoutCount: number;
-    programCount: number;
-    completedSessionCount: number;
-    newUsersLast30Days: number;
-  };
-  analytics: {
-    daily: Array<{
-      date: string;
-      newUsers: number;
-      workouts: number;
-      programs: number;
-      completedSessions: number;
-      visits: number;
-    }>;
-    sportActivity: Array<{
-      date: string;
-      sport: string;
-      workouts: number;
-      completedSessions: number;
-    }>;
-  };
-  settings: {
-    defaultAiModel: string;
-    defaultBetaGenerationBalance: number;
-  };
-  availableModels: Array<{ id: string; label: string }>;
 }
 
 // API_URL utilise le réseau interne en Docker. Le fallback public conserve la
@@ -83,6 +36,7 @@ export class ServerApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    readonly code?: string,
   ) {
     super(message);
     this.name = 'ServerApiError';
@@ -95,7 +49,7 @@ export function isServerApiNotFound(error: unknown): error is ServerApiError {
 
 // Helper interne - appel Hono avec auth service-to-service (OWASP A01)
 // Le secret n'est jamais expose cote client : ce module est server-only
-export async function serverFetch<T>(
+async function serverFetch<T>(
   path: string,
   options?: RequestInit,
   timeoutMs = DEFAULT_TIMEOUT_MS,
@@ -105,32 +59,15 @@ export async function serverFetch<T>(
   if (!session?.user?.id) {
     throw new Error('Non authentifie');
   }
-
-  const sessionUser = session.user as typeof session.user & {
-    authMethod?: 'standard' | 'jury' | 'beta';
-    betaSessionVersion?: string;
-    betaMustChangePassword?: boolean;
-  };
-  const juryEmail = process.env['JURY_ACCESS_EMAIL']?.trim().toLowerCase();
-  const authMethod = sessionUser.authMethod === 'beta'
-    ? 'beta'
-    : sessionUser.authMethod === 'jury' ||
-    juryEmail && session.user.email?.trim().toLowerCase() === juryEmail ? 'jury' : 'standard';
-
-  // Le guard client ne peut intervenir qu'après le rendu serveur. Sans cette
-  // redirection, les pages privées appellent l'API trop tôt et affichent une
-  // erreur générique à un bêta-testeur qui doit encore changer son mot de passe.
-  if (authMethod === 'beta' && sessionUser.betaMustChangePassword && !['/auth/beta/password', '/account/status'].includes(path)) {
-    redirect('/change-password');
+  if (!hasProductionAccess(session.user)) {
+    throw new ServerApiError('Accès réservé à l’administration.', 403, 'ACCESS_RESTRICTED');
   }
 
-  // OWASP A09: trace structuree de chaque appel API cote Next.js server
+  const requestId = crypto.randomUUID();
+  // Correlate services without logging account data, filters or payloads.
   console.info('[ServerAPI] Appel:', {
     method: options?.method ?? 'GET',
-    path,
-    userId: session.user.id,
-    apiUrl: API_URL,
-    timestamp: new Date().toISOString(),
+    requestId,
   });
 
   const timeoutController = new AbortController();
@@ -142,22 +79,26 @@ export async function serverFetch<T>(
   try {
     response = await fetch(`${API_URL}${path}`, {
       ...options,
-      cache: 'no-store',
       signal: timeoutController.signal,
       headers: {
+        ...(options?.headers as Record<string, string>),
         'Content-Type': 'application/json',
         // OWASP A01: secret partage valide par le middleware Hono
         'x-internal-secret': process.env['SERVICE_SECRET'] ?? '',
         'x-user-id': session.user.id,
         'x-user-email': session.user.email ?? '',
-        // Les en-têtes HTTP n'acceptent pas directement tous les caractères Unicode.
-        'x-user-name-utf8': encodeURIComponent(session.user.name ?? ''),
-        // Ce contexte est fiable car il voyage avec le secret service-to-service.
-        'x-auth-method': authMethod,
-        ...(authMethod === 'beta' && sessionUser.betaSessionVersion
-          ? { 'x-beta-session-version': sessionUser.betaSessionVersion }
-          : {}),
-        ...(options?.headers as Record<string, string>),
+        'x-email-verified': session.user.googleEmailVerified === true ? 'true' : 'false',
+        'x-user-name-encoded': encodeURIComponent(
+          new TextDecoder()
+            .decode(new TextEncoder().encode((session.user.name ?? '').slice(0, 256)))
+            .split('')
+            .map((character) =>
+              character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127 ? ' ' : character,
+            )
+            .join(''),
+        ),
+        'x-request-id': requestId,
+        'x-auth-issued-at': String(session.user.authIssuedAt ?? ''),
       },
     });
   } catch (error) {
@@ -179,35 +120,29 @@ export async function serverFetch<T>(
       error?: string;
       statusCode?: number;
     };
-    if (err.error === 'ACCOUNT_SUSPENDED') redirect('/compte-suspendu');
     // OWASP A09: logger l'erreur API complete cote Next.js server (visible dans les logs Vercel)
     console.error('[ServerAPI] Erreur reponse API:', {
-      url: `${API_URL}${path}`,
+      requestId,
       status: response.status,
-      statusText: response.statusText,
-      apiError: err,
-      timestamp: new Date().toISOString(),
     });
-    throw new ServerApiError(err.message ?? `Erreur API: ${response.status}`, response.status);
+    throw new ServerApiError(
+      err.message ?? `Erreur API: ${response.status}`,
+      response.status,
+      err.error,
+    );
   }
 
   return response.json() as Promise<T>;
 }
 
 export const serverApi = {
-  getBillingStatus: (): Promise<BillingStatus> => serverFetch<BillingStatus>('/billing/status'),
-  createCheckout: (): Promise<{ url: string }> => serverFetch('/billing/checkout', { method: 'POST' }, 55_000),
-  createBillingPortal: (): Promise<{ url: string }> => serverFetch('/billing/portal', { method: 'POST' }, 30_000),
-  syncCheckout: (sessionId: string): Promise<{ ok: true }> => serverFetch('/billing/sync', { method: 'POST', body: JSON.stringify({ sessionId }) }, 55_000),
-  getGenerationQuota: (): Promise<GenerationQuota> =>
-    serverFetch<GenerationQuota>('/generation-quota'),
-
-  generateWorkout: (input: GenerateWorkoutInput): Promise<WorkoutDetail> =>
+  generateWorkout: (input: GenerateWorkoutInput, operationId?: string): Promise<WorkoutDetail> =>
     serverFetch<WorkoutDetail>(
       '/workouts/generate',
       {
         method: 'POST',
         body: JSON.stringify(input),
+        ...(operationId ? { headers: { 'idempotency-key': operationId } } : {}),
       },
       GENERATION_TIMEOUT_MS,
     ),
@@ -236,12 +171,13 @@ export const serverApi = {
 
   // --- Programmes multi-semaines ---
 
-  generateProgram: (input: GenerateProgramInput): Promise<ProgramListItem> =>
+  generateProgram: (input: GenerateProgramInput, operationId?: string): Promise<ProgramListItem> =>
     serverFetch<ProgramListItem>(
       '/programs/generate',
       {
         method: 'POST',
         body: JSON.stringify(input),
+        ...(operationId ? { headers: { 'idempotency-key': operationId } } : {}),
       },
       GENERATION_TIMEOUT_MS,
     ),
@@ -284,33 +220,11 @@ export const serverApi = {
       body: JSON.stringify(input),
     }),
 
-  changeBetaPassword: (input: { currentPassword: string; newPassword: string }): Promise<{ ok: boolean }> =>
-    serverFetch<{ ok: boolean }>('/auth/beta/password', { method: 'PUT', body: JSON.stringify(input) }),
+  exportAccount: (): Promise<unknown> => serverFetch<unknown>('/account/export'),
 
-  listBetaTesters: (): Promise<{ betaTesters: BetaTesterSummary[] }> =>
-    serverFetch<{ betaTesters: BetaTesterSummary[] }>('/admin/beta-testers'),
-
-  getAdminOverview: (): Promise<AdminOverview> =>
-    serverFetch<AdminOverview>('/admin/overview'),
-
-  savePlatformSettings: (input: AdminOverview['settings']): Promise<{ settings: AdminOverview['settings'] }> =>
-    serverFetch<{ settings: AdminOverview['settings'] }>('/admin/platform-settings', {
-      method: 'PUT',
-      body: JSON.stringify(input),
+  deleteAccount: (): Promise<{ ok: boolean }> =>
+    serverFetch<{ ok: boolean }>('/account', {
+      method: 'DELETE',
+      body: JSON.stringify({ confirmation: 'SUPPRIMER' }),
     }),
-
-  createBetaTester: (input: { name: string; email: string; generationBalance: number }): Promise<BetaTesterSummary & { temporaryPassword: string }> =>
-    serverFetch<BetaTesterSummary & { temporaryPassword: string }>('/admin/beta-testers', { method: 'POST', body: JSON.stringify(input) }),
-
-  adjustBetaCredits: (userId: string, amount: number): Promise<{ generationBalance: number }> =>
-    serverFetch<{ generationBalance: number }>(`/admin/beta-testers/${userId}/credits`, { method: 'POST', body: JSON.stringify({ amount }) }),
-
-  setBetaStatus: (userId: string, active: boolean): Promise<{ ok: boolean }> =>
-    serverFetch<{ ok: boolean }>(`/admin/beta-testers/${userId}/status`, { method: 'PATCH', body: JSON.stringify({ active }) }),
-
-  resetBetaPassword: (userId: string): Promise<{ temporaryPassword: string }> =>
-    serverFetch<{ temporaryPassword: string }>(`/admin/beta-testers/${userId}/password-reset`, { method: 'POST' }),
-
-  deleteBetaTester: (userId: string): Promise<{ ok: boolean }> =>
-    serverFetch<{ ok: boolean }>(`/admin/beta-testers/${userId}`, { method: 'DELETE' }),
 };

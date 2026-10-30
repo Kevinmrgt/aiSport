@@ -1,40 +1,14 @@
 # Alcide
 
-Alcide est une application Web qui prépare des séances et des programmes
-sportifs personnalisés. Une séance peut ensuite être suivie avec un minuteur,
-puis enregistrée dans un journal pour alimenter le tableau de bord.
+Alcide prépare des séances et des programmes sportifs personnalisés, avec un
+minuteur, un journal de séances et un tableau de bord de progression.
 
-- Application : <https://ai-sport-web.vercel.app>
-- Dépôt : <https://github.com/Kevinmrgt/aiSport>
-- API : <https://ai-sport-api.vercel.app/health>
-- Version présentée : `0.13.0-rc.8`
-- Révision déployée contrôlée : `0a2caffc314bbb4697baf2fbbfe39ec74248e038`
-
-Le projet utilise Next.js 15, Hono, PostgreSQL 16, Drizzle ORM, Auth.js,
-OpenAI, Vitest et Playwright. Le monorepo fonctionne avec Node.js 24 et pnpm
-11.9.
-
-## Livrables Bloc 2
-
-Les deux documents remis au jury sont conservés dans `output/pdf/` :
-
-- dossier principal Bloc 2, limité à 30 pages hors annexes ;
-- annexes avec les preuves, le cahier de recettes, le plan de correction, la
-  revue OWASP, la matrice user stories et les trois manuels.
-
-La source du dossier se trouve dans
-[`docs/rncp/bloc2-dossier-conception-developpement-rncp39583.md`](docs/rncp/bloc2-dossier-conception-developpement-rncp39583.md).
+Le monorepo utilise Next.js 15, Hono, PostgreSQL 16, Drizzle ORM, Auth.js,
+OpenAI, Vitest et Playwright. Runtime : Node.js 24 et pnpm 11.9.
 
 ## Démarrage avec Docker
 
-### Prérequis
-
-- Git ;
-- Docker Desktop avec Docker Compose v2 ;
-- un client OAuth Google ;
-- une clé OpenAI pour tester la génération réelle.
-
-Après le clonage :
+Prérequis : Git, Docker Compose v2, un client OAuth Google et une clé OpenAI.
 
 ```bash
 git clone https://github.com/Kevinmrgt/aiSport.git
@@ -42,39 +16,17 @@ cd aiSport
 cp .env.example .env
 ```
 
-Sous PowerShell, la copie du fichier peut être faite avec :
-
-```powershell
-Copy-Item .env.example .env
-```
-
-Deux secrets distincts doivent être générés : `AUTH_SECRET` pour Auth.js et
-`SERVICE_SECRET` pour les échanges entre le Web et l'API. Cette commande peut
-être exécutée deux fois :
+Sous PowerShell : `Copy-Item .env.example .env`.
+Renseigner `OPENAI_API_KEY`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`,
+`AUTH_SECRET` et `SERVICE_SECRET`. Générer deux secrets distincts pour
+Auth.js et les échanges Web/API, par exemple en exécutant deux fois :
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Dans Google Cloud Console, le client OAuth Web doit autoriser :
-
-- origine JavaScript : `http://localhost:3000` ;
-- URI de redirection : `http://localhost:3000/api/auth/callback/google`.
-
-Les valeurs `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `AUTH_SECRET`,
-`SERVICE_SECRET` et `OPENAI_API_KEY` sont ensuite renseignées dans `.env`.
-Ce fichier est ignoré par Git.
-
-Pour activer l’espace d’administration, ajouter également `ADMIN_EMAILS`
-avec l’adresse Google du développeur autorisé (plusieurs adresses peuvent être
-séparées par des virgules). Les bêta-testeurs sont ensuite créés depuis
-`/admin` : leur mot de passe temporaire n’est affiché qu’une fois et doit être
-transmis par un canal choisi par l’administrateur.
-
-L’espace comprend aussi les membres, les suspensions, les abonnements, les crédits,
-les contenus sportifs et le journal. Voir [le guide de l’administration](docs/admin-workspace.md).
-
-La stack peut alors être lancée :
+Dans le client OAuth Google, autoriser l'origine `http://localhost:3000` et
+la redirection `http://localhost:3000/api/auth/callback/google`.
 
 ```bash
 docker compose up -d postgres
@@ -82,33 +34,15 @@ docker compose --profile tools run --rm migrate
 docker compose up --build -d
 ```
 
-Points de contrôle attendus :
+- Web : <http://localhost:3000>
+- API : <http://localhost:3001/health>
+- Readiness API : <http://localhost:3001/health/ready>
 
-- Web : <http://localhost:3000> ;
-- API liveness : <http://localhost:3001/health> ;
-- API readiness : <http://localhost:3001/health/ready>.
+`docker compose logs -f web api` affiche les journaux ;
+`docker compose down` arrête la stack en conservant les données.
+Le mot de passe PostgreSQL du Compose est réservé au développement local.
 
-Pour consulter les journaux ou arrêter la stack :
-
-```bash
-docker compose logs -f web api
-docker compose down
-```
-
-La commande suivante supprime aussi le volume PostgreSQL et toutes les données
-locales. Elle ne doit être utilisée que pour repartir de zéro :
-
-```bash
-docker compose down -v
-```
-
-Le seed est une fixture technique associée à `demo@alcide.app`. Il n'apparaît
-pas pour un autre compte Google. Pour une démonstration fonctionnelle, il est
-plus simple de créer une séance avec le compte utilisé lors de la connexion.
-
-## Démarrage sans conteneur Web/API
-
-Prérequis supplémentaires : Node.js 24 et pnpm 11.9.
+## Développement sans conteneurs Web/API
 
 ```bash
 pnpm install --frozen-lockfile
@@ -119,67 +53,58 @@ pnpm db:migrate
 pnpm dev
 ```
 
-Les fichiers `apps/api/.env` et `apps/web/.env.local` doivent recevoir les
-mêmes valeurs de `SERVICE_SECRET`. Les identifiants Google sont configurés
-uniquement côté Web. La clé OpenAI reste uniquement côté API.
+Configurer les fichiers copiés : même `SERVICE_SECRET` côté Web et API,
+OAuth côté Web et clé OpenAI uniquement côté API.
+Le script de migration verrouillé exige `DATABASE_URL` dans l'environnement
+du terminal ; sélectionner explicitement la base locale avant `pnpm db:migrate`.
+Le Compose utilise une configuration de développement pour ses adresses HTTP
+et sa base locale ; la validation stricte de production exige HTTPS et TLS.
+La connexion utilisateur se fait avec Google.
+`pnpm db:seed` est facultatif : ses données appartiennent à `demo@alcide.app`
+et ne sont pas automatiquement visibles depuis un autre compte.
 
-## Parcours de vérification rapide
-
-1. Ouvrir `/login` et se connecter avec Google.
-2. Créer une séance courte depuis `/generate`.
-3. Ouvrir la séance, démarrer le minuteur puis enregistrer le ressenti.
-4. Vérifier l'apparition de l'activité dans `/dashboard`.
-5. Créer un programme depuis `/programs/generate`.
-6. Vérifier les listes, les filtres, les paramètres et la suppression.
-
-Le jury dispose en production d'un accès temporaire distinct de Google. Cet
-accès est plafonné à 30 générations réussies au total, partagées entre les
-séances et les programmes. Le compteur est persistant et sa réservation est
-atomique : 31 demandes concurrentes donnent 30 acceptations et un refus. Une
-suppression ne recrédite pas le quota ; un échec IA ou d'enregistrement en base
-libère en revanche la réservation. Les comptes Google restent illimités. La
-recette navigateur de production affiche 29 générations restantes après une
-génération de validation.
-
-Sans identifiants Google, les pages publiques et les healthchecks restent
-consultables. Sans clé OpenAI, l'application démarre mais la génération ne peut
-pas être testée.
-
-## Contrôles qualité
-
-Toutes les commandes suivantes construisent d'abord le package partagé, ce qui
-permet leur exécution depuis un clone propre :
+## Vérification
 
 ```bash
 pnpm lint
 pnpm typecheck
-pnpm test
 pnpm test:coverage
+pnpm test:vercel-ignore
+pnpm test:cd-policy
+pnpm test:e2e:auth-policy
 pnpm test:e2e:smoke
 pnpm build
 pnpm audit --prod --audit-level=low
 ```
 
-La baseline comprend 261 tests unitaires et de composants : 14 dans le package
-partagé, 179 côté API et 68 côté Web. La CI exécute en plus PostgreSQL 16, dont
-le test dédié des 31 réservations concurrentes du quota jury, les tests
-Playwright E2E, l'audit de dépendances et la construction des images Docker. La
-CI `34108724410` et la CD `34109152619` ont réussi sur la révision indiquée en
-tête de ce README.
+Les tests PostgreSQL exigent une base de test dédiée ; les parcours Google
+authentifiés exigent une vraie session de test. Voir
+[les procédures de validation](docs/testing.md).
+
+## Documentation
+
+- [Guide utilisateur](docs/user-guide.md)
+- [Déploiement](docs/deployment.md) et [CI/CD](docs/ci-cd.md)
+- [Maintenance et incidents](docs/maintenance.md)
+- [Tests et recette](docs/testing.md)
+- [Recette locale de production avec données synthétiques](docs/testing-local-production.md)
+- [Procédure de mise en production](docs/production-runbook.md)
+- [Accessibilité](docs/accessibility.md)
+- [Sécurité](docs/security/owasp-review.md)
+- [Travaux avant ouverture publique](docs/release-readiness.md)
+- [Décisions d'architecture](docs/adr/)
 
 ## Structure
 
 ```text
-apps/web/          interface Next.js et authentification
-apps/api/          API Hono, services métier et repositories
-packages/shared/   types et schémas Zod partagés
-docs/adr/          décisions d'architecture
-docs/bloc2/        cahier de recettes
-docs/rncp/         dossier, annexes et manuels Bloc 2
-docs/security/     revue OWASP
-.github/workflows/ intégration et déploiement continus
+apps/web/           interface Next.js et authentification Google
+apps/api/           API Hono, services et repositories
+packages/shared/    schémas Zod et types partagés
+scripts/            contrôles de livraison et outils de diagnostic
+docs/               documentation produit et exploitation
+.github/workflows/  intégration, déploiement et surveillance
 ```
 
-Les procédures détaillées se trouvent dans
-[`docs/deployment.md`](docs/deployment.md) et
-[`docs/ci-cd.md`](docs/ci-cd.md).
+Les rapports générés restent dans `tmp/`, `output/` ou `outputs/`, ignorés par
+Git. Les secrets, sessions de navigateur et données utilisateur ne doivent
+jamais être ajoutés au dépôt.

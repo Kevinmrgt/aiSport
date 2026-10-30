@@ -1,18 +1,16 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
-import { betaCreditAdjustments, betaTesters, users } from '../src/db/schema.js';
+import { eq, inArray } from 'drizzle-orm';
+import { accounts, users, workouts } from '../src/db/schema.js';
 import type { TrainingProgram, Workout } from '@alcide/shared';
 
 const testDatabaseUrl = process.env['TEST_DATABASE_URL'];
 const describeWithDatabase = testDatabaseUrl ? describe : describe.skip;
 const ownerId = randomUUID();
 const otherUserId = randomUUID();
-const quotaOwnerId = randomUUID();
 const ownerEmail = `integration-${ownerId}@alcide.test`;
 const otherEmail = `integration-${otherUserId}@alcide.test`;
-const quotaOwnerEmail = `integration-quota-${quotaOwnerId}@alcide.test`;
-const betaEmail = `integration-beta-${randomUUID()}@alcide.test`;
+const identityUsers: string[] = [];
 
 function workoutFixture(overrides: Partial<Workout> = {}): Workout {
   return {
@@ -73,7 +71,6 @@ describeWithDatabase('repositories PostgreSQL', () => {
     await db.insert(users).values([
       { id: ownerId, email: ownerEmail, name: 'Integration owner' },
       { id: otherUserId, email: otherEmail, name: 'Integration other' },
-      { id: quotaOwnerId, email: quotaOwnerEmail, name: 'Integration quota owner' },
     ]);
   });
 
@@ -81,150 +78,104 @@ describeWithDatabase('repositories PostgreSQL', () => {
     const { db, pool } = await import('../src/db/index.js');
     await db.delete(users).where(eq(users.id, ownerId));
     await db.delete(users).where(eq(users.id, otherUserId));
-    await db.delete(users).where(eq(users.id, quotaOwnerId));
-    await db.delete(users).where(eq(users.email, betaEmail));
+    if (identityUsers.length) await db.delete(users).where(inArray(users.id, identityUsers));
     await pool.end();
   });
 
-  it('reserve au plus 30 generations meme avec 31 requetes concurrentes', async () => {
-    const { getGenerationQuotaUsage, releaseGenerationSlot, reserveGenerationSlot } =
-      await import('../src/repositories/generation-quota.repository.js');
-
-    const reservations = await Promise.all(
-      Array.from({ length: 31 }, () => reserveGenerationSlot(quotaOwnerId, 30)),
-    );
-
-    expect(reservations.filter((reservation) => reservation !== null)).toHaveLength(30);
-    expect(reservations.filter((reservation) => reservation === null)).toHaveLength(1);
-    await expect(getGenerationQuotaUsage(quotaOwnerId, 30)).resolves.toBe(30);
-
-    await releaseGenerationSlot(quotaOwnerId);
-    await expect(getGenerationQuotaUsage(quotaOwnerId, 30)).resolves.toBe(29);
-    await expect(reserveGenerationSlot(quotaOwnerId, 30)).resolves.toMatchObject({
-      used: 30,
-      remaining: 0,
+  it('isole les sujets Google partageant un email et préserve le compte après changement d adresse', async () => {
+    const { resolveGoogleIdentity } = await import('../src/repositories/identity.repository.js');
+    const { createWorkout, findWorkoutById } =
+      await import('../src/repositories/workout.repository.js');
+    const email = `shared-${randomUUID()}@alcide.test`;
+    const subject = `subject-${randomUUID()}`;
+    const first = await resolveGoogleIdentity({ subject, email, name: 'First' });
+    identityUsers.push(first);
+    const other = await resolveGoogleIdentity({
+      subject: `other-${randomUUID()}`,
+      email,
+      name: 'Other',
     });
+    identityUsers.push(other);
+    expect(other).not.toBe(first);
+    const workout = await createWorkout(first, workoutFixture());
+    await expect(findWorkoutById(workout.id, other)).rejects.toMatchObject({ statusCode: 403 });
+    expect(
+      await resolveGoogleIdentity({
+        subject,
+        email: `renamed-${randomUUID()}@alcide.test`,
+        name: 'Renamed',
+      }),
+    ).toBe(first);
+    await expect(findWorkoutById(workout.id, first)).resolves.toMatchObject({ id: workout.id });
   });
 
-  it('gère atomiquement le solde beta, son audit et les sessions révoquées', async () => {
-    const {
-      adjustBetaBalance,
-      changeBetaPassword,
-      createBetaTester,
-      deleteBetaTester,
-      findActiveBetaSession,
-      findBetaByUserId,
-      findBetaForAuthentication,
-      listBetaTesters,
-      releaseBetaGeneration,
-      reserveBetaGeneration,
-      resetBetaPassword,
-      setBetaStatus,
-    } = await import('../src/repositories/beta-tester.repository.js');
+  it('sérialise les premières connexions concurrentes du même sujet', async () => {
+    const { resolveGoogleIdentity } = await import('../src/repositories/identity.repository.js');
+    const identity = {
+      subject: `concurrent-${randomUUID()}`,
+      email: `concurrent-${randomUUID()}@alcide.test`,
+      name: null,
+    };
+    const ids = await Promise.all(Array.from({ length: 6 }, () => resolveGoogleIdentity(identity)));
+    identityUsers.push(...new Set(ids));
+    expect(new Set(ids).size).toBe(1);
+  });
+
+  it('refuse le rapprochement implicite legacy, dry-run ne modifie rien et mapping explicite conserve les données', async () => {
     const { db } = await import('../src/db/index.js');
-    const initialSessionVersion = randomUUID();
-
-    const created = await createBetaTester({
-      name: 'Integration beta tester',
-      email: betaEmail,
-      passwordHash: 'initial-hash',
-      generationBalance: 3,
-      sessionVersion: initialSessionVersion,
-      adminEmail: 'admin@alcide.test',
-    });
-    expect(created).toMatchObject({
-      email: betaEmail,
-      active: true,
-      generationBalance: 3,
-      mustChangePassword: true,
-    });
-    const betaUserId = created.userId;
-
-    const existingUserBeta = await createBetaTester({
-      name: 'Nom beta ignore car le compte existe déjà',
-      email: ownerEmail,
-      passwordHash: 'existing-user-hash',
-      generationBalance: 2,
-      sessionVersion: randomUUID(),
-      adminEmail: 'admin@alcide.test',
-    });
-    expect(existingUserBeta).toMatchObject({
-      userId: ownerId,
-      email: ownerEmail,
-      name: 'Integration owner',
-      generationBalance: 2,
-    });
-    await expect(deleteBetaTester(ownerId, 'admin@alcide.test')).resolves.toBe(true);
-    await expect(deleteBetaTester(ownerId, 'admin@alcide.test')).resolves.toBe(false);
-    await expect(db.select().from(users).where(eq(users.id, ownerId))).resolves.toHaveLength(1);
-
-    await expect(findBetaForAuthentication(betaEmail)).resolves.toMatchObject({
-      userId: betaUserId,
-      passwordHash: 'initial-hash',
-      active: 1,
-      mustChangePassword: 1,
-      sessionVersion: initialSessionVersion,
-    });
-    await expect(findActiveBetaSession(betaUserId, initialSessionVersion)).resolves.toMatchObject({
-      active: 1,
-      generationBalance: 3,
-    });
-    await expect(listBetaTesters()).resolves.toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ userId: betaUserId, active: true, mustChangePassword: true }),
-      ]),
-    );
-
-    await expect(adjustBetaBalance(betaUserId, 5, 'admin@alcide.test')).resolves.toBe(8);
-    await expect(adjustBetaBalance(betaUserId, -9, 'admin@alcide.test')).resolves.toBeNull();
-    const adjustments = await db
-      .select()
-      .from(betaCreditAdjustments)
-      .where(eq(betaCreditAdjustments.betaUserId, betaUserId));
-    expect(adjustments.map((adjustment) => [adjustment.amount, adjustment.balanceAfter])).toEqual([
-      [3, 3],
-      [5, 8],
-    ]);
-
-    const reservations = await Promise.all(
-      Array.from({ length: 9 }, () => reserveBetaGeneration(betaUserId)),
-    );
-    expect(reservations.filter(Boolean)).toHaveLength(8);
-    expect(reservations.filter((reservation) => reservation === null)).toHaveLength(1);
-    await releaseBetaGeneration(betaUserId);
-    await expect(reserveBetaGeneration(betaUserId)).resolves.toMatchObject({ remaining: 0 });
-
-    const revokedSessionVersion = randomUUID();
+    const { resolveGoogleIdentity, linkLegacyGoogleIdentity } =
+      await import('../src/repositories/identity.repository.js');
+    const legacyId = randomUUID();
+    const email = `legacy-${randomUUID()}@alcide.test`;
+    const subject = `legacy-sub-${randomUUID()}`;
+    await db.insert(users).values({ id: legacyId, email });
+    identityUsers.push(legacyId);
     await expect(
-      setBetaStatus(betaUserId, false, revokedSessionVersion, 'admin@alcide.test'),
-    ).resolves.toBe(true);
-    await expect(findActiveBetaSession(betaUserId, initialSessionVersion)).resolves.toBeUndefined();
-    await expect(reserveBetaGeneration(betaUserId)).resolves.toBeNull();
-    await expect(setBetaStatus(betaUserId, true, randomUUID(), 'admin@alcide.test')).resolves.toBe(
-      true,
-    );
+      resolveGoogleIdentity({ subject, email: email.toUpperCase(), name: null }),
+    ).rejects.toMatchObject({ code: 'IDENTITY_LINK_REQUIRED', statusCode: 409 });
+    const mapping = { userId: legacyId, subject, expectedEmail: email };
+    await linkLegacyGoogleIdentity(mapping, false);
+    expect(await db.select().from(accounts).where(eq(accounts.userId, legacyId))).toHaveLength(0);
     await expect(
-      setBetaStatus(randomUUID(), true, randomUUID(), 'admin@alcide.test'),
-    ).resolves.toBe(false);
+      linkLegacyGoogleIdentity({ ...mapping, expectedEmail: 'wrong@alcide.test' }, true),
+    ).rejects.toThrow('Mapping refusé');
+    await linkLegacyGoogleIdentity(mapping, true);
+    expect(await resolveGoogleIdentity({ subject, email, name: null })).toBe(legacyId);
+    await expect(linkLegacyGoogleIdentity(mapping, true)).rejects.toThrow('identité déjà liée');
+  });
 
+  it('bloque les nouvelles valeurs scalaires invalides et rend les JSON anciens invalides supprimables', async () => {
+    const { db } = await import('../src/db/index.js');
+    const { findWorkoutById, deleteWorkout } =
+      await import('../src/repositories/workout.repository.js');
     await expect(
-      resetBetaPassword(betaUserId, 'reset-hash', randomUUID(), 'admin@alcide.test'),
-    ).resolves.toBe(true);
-    await expect(
-      resetBetaPassword(randomUUID(), 'reset-hash', randomUUID(), 'admin@alcide.test'),
-    ).resolves.toBe(false);
-    await expect(findBetaByUserId(betaUserId)).resolves.toEqual({
-      passwordHash: 'reset-hash',
-      active: 1,
+      db.insert(workouts).values({
+        userId: ownerId,
+        title: 'Invalid',
+        sport: 'test',
+        difficulty: 'beginner',
+        durationMinutes: -1,
+        data: workoutFixture(),
+      }),
+    ).rejects.toThrow();
+    const [row] = await db
+      .insert(workouts)
+      .values({
+        userId: ownerId,
+        title: 'Ancien JSON',
+        sport: 'test',
+        difficulty: 'beginner',
+        durationMinutes: 30,
+        data: { exercises: [] } as unknown as Workout,
+      })
+      .returning({ id: workouts.id });
+    expect(row).toBeDefined();
+    await expect(findWorkoutById(row!.id, ownerId)).rejects.toMatchObject({
+      statusCode: 422,
+      code: 'STORED_DATA_INVALID',
     });
-    await changeBetaPassword(betaUserId, 'changed-hash');
-    await expect(findBetaByUserId(betaUserId)).resolves.toEqual({
-      passwordHash: 'changed-hash',
-      active: 1,
-    });
-    await expect(
-      db.select().from(betaTesters).where(eq(betaTesters.userId, betaUserId)),
-    ).resolves.toEqual([expect.objectContaining({ mustChangePassword: 0 })]);
+    await deleteWorkout(row!.id, ownerId);
+    expect(await db.select().from(workouts).where(eq(workouts.id, row!.id))).toHaveLength(0);
   });
 
   it('persiste, relit et protege une seance par son proprietaire', async () => {
@@ -471,63 +422,58 @@ describeWithDatabase('repositories PostgreSQL', () => {
     await expect(findSettingsByUser(ownerId)).resolves.toMatchObject({ aiModel: null });
   });
 
-  it('persiste les reglages par defaut de la plateforme', async () => {
-    const { findPlatformSettings, upsertPlatformSettings } =
-      await import('../src/repositories/settings.repository.js');
-
+  it('départage les dates égales par UUID sans doublon entre pages', async () => {
     const { db } = await import('../src/db/index.js');
-    const { platformSettings } = await import('../src/db/schema.js');
-    await db.delete(platformSettings);
-    await expect(findPlatformSettings()).resolves.toBeNull();
-
-    await upsertPlatformSettings({
-      defaultAiModel: 'gpt-5.4-mini',
-      defaultBetaGenerationBalance: 12,
-    });
-    await expect(findPlatformSettings()).resolves.toEqual({
-      defaultAiModel: 'gpt-5.4-mini',
-      defaultBetaGenerationBalance: 12,
-    });
-
-    await upsertPlatformSettings({
-      defaultAiModel: 'gpt-5.5',
-      defaultBetaGenerationBalance: 24,
-    });
-    await expect(findPlatformSettings()).resolves.toEqual({
-      defaultAiModel: 'gpt-5.5',
-      defaultBetaGenerationBalance: 24,
-    });
+    const { findWorkoutsByUser } = await import('../src/repositories/workout.repository.js');
+    const account = randomUUID();
+    identityUsers.push(account);
+    await db.insert(users).values({ id: account, email: `pages-${account}@alcide.test` });
+    const ids = Array.from({ length: 5 }, () => randomUUID());
+    const fixture = workoutFixture();
+    await db.insert(workouts).values(
+      ids.map((id) => ({
+        id,
+        userId: account,
+        title: fixture.title,
+        sport: fixture.sport,
+        difficulty: fixture.difficulty,
+        durationMinutes: fixture.duration_minutes,
+        data: fixture,
+        createdAt: new Date('2026-01-01T00:00:00Z'),
+      })),
+    );
+    const first = await findWorkoutsByUser(account, { page: 1, limit: 2 });
+    const second = await findWorkoutsByUser(account, { page: 2, limit: 2 });
+    const third = await findWorkoutsByUser(account, { page: 3, limit: 2 });
+    expect([...first.workouts, ...second.workouts, ...third.workouts].map((row) => row.id)).toEqual(
+      [...ids].sort().reverse(),
+    );
+    expect(first.total).toBe(5);
+    expect(third.hasMore).toBe(false);
   });
 
-  it('calcule les statistiques globales de la plateforme', async () => {
-    const { getAdminPlatformAnalytics, getAdminPlatformStats } =
-      await import('../src/repositories/admin-dashboard.repository.js');
-    const { recordPageVisit } = await import('../src/repositories/visitor-analytics.repository.js');
-
-    const stats = await getAdminPlatformStats();
-
-    expect(stats.totalUsers).toBeGreaterThanOrEqual(4);
-    expect(stats.betaTesterCount).toBe(1);
-    expect(stats.activeBetaTesterCount).toBe(1);
-    expect(stats.pendingPasswordChangeCount).toBe(0);
-    expect(stats.availableGenerations).toBe(0);
-    expect(stats.workoutCount).toBeGreaterThanOrEqual(5);
-    expect(stats.programCount).toBeGreaterThanOrEqual(4);
-    expect(stats.completedSessionCount).toBe(3);
-    expect(stats.newUsersLast30Days).toBeGreaterThanOrEqual(4);
-
-    await recordPageVisit();
-    await recordPageVisit();
-
-    const analytics = await getAdminPlatformAnalytics();
-    expect(analytics.daily).toHaveLength(90);
-    expect(analytics.daily.every((day) => /^\d{4}-\d{2}-\d{2}$/.test(day.date))).toBe(true);
-    expect(analytics.daily.some((day) => day.workouts > 0)).toBe(true);
-    expect(analytics.daily.some((day) => day.programs > 0)).toBe(true);
-    expect(analytics.daily.some((day) => day.completedSessions > 0)).toBe(true);
-    expect(analytics.daily.some((day) => day.visits >= 2)).toBe(true);
-    expect(analytics.sportActivity).toEqual(
-      expect.arrayContaining([expect.objectContaining({ sport: 'course' })]),
-    );
+  it('conserve les totaux statistiques cohérents pendant des créations concurrentes', async () => {
+    const { db } = await import('../src/db/index.js');
+    const { createWorkout, getWorkoutStatsByUser } =
+      await import('../src/repositories/workout.repository.js');
+    const account = randomUUID();
+    identityUsers.push(account);
+    await db.insert(users).values({ id: account, email: `stats-${account}@alcide.test` });
+    await Promise.all([
+      (async () => {
+        for (let index = 0; index < 8; index++) await createWorkout(account, workoutFixture());
+      })(),
+      (async () => {
+        for (let index = 0; index < 8; index++) {
+          const stats = await getWorkoutStatsByUser(account);
+          expect(Object.values(stats.byLevel).reduce((sum, count) => sum + count, 0)).toBe(
+            stats.total,
+          );
+          expect(Object.values(stats.bySport).reduce((sum, count) => sum + count, 0)).toBe(
+            stats.total,
+          );
+        }
+      })(),
+    ]);
   });
 });

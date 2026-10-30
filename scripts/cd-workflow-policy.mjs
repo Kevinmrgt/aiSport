@@ -39,6 +39,24 @@ export function validateProductionCdWorkflow(source) {
   if (/^  workflow_dispatch:/m.test(source)) {
     problems.push('le CD ne doit pas proposer de contournement workflow_dispatch');
   }
+  if (!/^  group: production-database-release$/m.test(source)) {
+    problems.push('verrou de workflow production commun absent');
+  }
+  if (!source.includes('node scripts/cd-release-preflight.mjs') ||
+      !source.includes('node scripts/db-migrate-locked.mjs')) {
+    problems.push('preflight et verrou PostgreSQL obligatoires');
+  }
+  if (!source.includes('Preserve encrypted backup before changing production')) {
+    problems.push('sauvegarde chiffree avant migration obligatoire');
+  }
+  for (const component of ['api', 'web']) {
+    const block = jobBlock(source, `deploy-${component}`);
+    if (!block.includes('cd-health-check.mjs "${DEPLOYMENT_URL}') ||
+        !block.includes(`cd-health-check.mjs "$${component.toUpperCase()}_HEALTH_URL"`) ||
+        !block.includes('--env "APP_REVISION=${APP_REVISION}"')) {
+      problems.push(`verification JSON/SHA du build et alias obligatoire: ${component}`);
+    }
+  }
 
   for (const jobName of REQUIRED_JOBS) {
     const block = jobBlock(source, jobName);
@@ -57,5 +75,20 @@ export function validateProductionCdWorkflow(source) {
     }
   }
 
+  return problems;
+}
+
+export function validateDatabaseMaintenanceWorkflow(source) {
+  const problems = [];
+  if (!source.includes('default: verify')) problems.push('verification read-only obligatoire par defaut');
+  if (!source.includes('group: production-database-release')) problems.push('verrou commun CD/migration absent');
+  const migration = source.split('      - name: Apply production migrations under the database advisory lock')[1]?.split('      - name:')[0] ?? '';
+  if (!migration.includes("if: inputs.mode == 'migrate'") || !migration.includes('db-migrate-locked.mjs')) {
+    problems.push('ecriture production non isolee dans le mode migrate');
+  }
+  if (!source.includes('head_branch == "main"') || !source.includes('cd-release-preflight.mjs')) {
+    problems.push('CI de main et preuves de release requises avant migration');
+  }
+  if (source.includes('release.dump\n')) problems.push('dump clair interdit dans les artefacts');
   return problems;
 }
