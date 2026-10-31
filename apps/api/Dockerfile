@@ -11,6 +11,7 @@ COPY pnpm-workspace.yaml ./
 COPY pnpm-lock.yaml ./
 COPY package.json ./
 COPY packages/shared/package.json ./packages/shared/
+COPY packages/minimatch-legacy-compat/ ./packages/minimatch-legacy-compat/
 COPY apps/api/package.json ./apps/api/
 
 # Installer les dépendances (frozen pour reproductibilité — OWASP A08)
@@ -40,6 +41,7 @@ COPY pnpm-workspace.yaml ./
 COPY pnpm-lock.yaml ./
 COPY package.json ./
 COPY packages/shared/package.json ./packages/shared/
+COPY packages/minimatch-legacy-compat/ ./packages/minimatch-legacy-compat/
 COPY apps/api/package.json ./apps/api/
 
 RUN pnpm install --frozen-lockfile --prod
