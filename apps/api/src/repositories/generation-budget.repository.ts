@@ -19,6 +19,12 @@ import type { AiAttempt, AiUsage } from '../services/ai.service.js';
 import type { GenerationPolicy } from '../services/generation-policy.js';
 import { AppError } from '../types/app-error.js';
 import { writeAdminAudit } from './admin-audit.repository.js';
+import {
+  admitPilot,
+  markPilotUnknown,
+  reservePilotAttempt,
+  settlePilotAttempt,
+} from './pilot.repository.js';
 
 type Database = Pick<typeof db, 'transaction'>;
 type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
@@ -36,7 +42,6 @@ async function admissionLock(tx: Transaction): Promise<void> {
 }
 
 async function enabled(tx: Transaction): Promise<void> {
-  await tx.insert(generationControl).values({ id: 'global' }).onConflictDoNothing();
   const [control] = await tx
     .select()
     .from(generationControl)
@@ -116,6 +121,7 @@ export class GenerationBudgetRepository {
         })
         .returning();
       if (!created) throw AppError.serviceUnavailable('Reservation de generation indisponible');
+      await admitPilot(tx, userId, created.id);
       return { operation: created, replay: false };
     });
   }
@@ -174,6 +180,7 @@ export class GenerationBudgetRepository {
         if (row.attempts + 1 > attempts || row.reservedTokens + reserved > tokens)
           throw AppError.tooManyRequests('Le budget quotidien de generation est atteint');
       }
+      await reservePilotAttempt(tx, operationId, userId, attempt);
       await tx
         .update(budgets)
         .set({
@@ -239,10 +246,15 @@ export class GenerationBudgetRepository {
       const [operation] = await tx
         .select()
         .from(operations)
-        .where(and(eq(operations.id, operationId), eq(operations.userId, userId)))
+        .where(eq(operations.id, operationId))
         .for('update');
-      if (!operation || operation.attempts === 0)
+      if (operation && operation.userId !== userId)
         throw AppError.serviceUnavailable('Reservation IA introuvable');
+      const newReceipt = await settlePilotAttempt(tx, operationId, usage);
+      if (!newReceipt) return;
+      // Account erasure removes content/token bookkeeping, never the financial receipt.
+      if (!operation) return;
+      if (operation.attempts === 0) throw AppError.serviceUnavailable('Reservation IA introuvable');
       const total = Math.max(usage.totalTokens, usage.inputTokens + usage.outputTokens);
       // The local receipt remains identical if a callback is retried without a provider ID.
       const eventKey = usage.receiptId
@@ -312,7 +324,8 @@ export class GenerationBudgetRepository {
   async fail(operationId: string, userId: string): Promise<void> {
     await this.database.transaction(async (tx) => {
       await limits(tx);
-      await tx
+      await admissionLock(tx);
+      const changed = await tx
         .update(operations)
         .set({ status: 'failed', updatedAt: sql`now()` })
         .where(
@@ -321,7 +334,9 @@ export class GenerationBudgetRepository {
             eq(operations.userId, userId),
             eq(operations.status, 'running'),
           ),
-        );
+        )
+        .returning({ id: operations.id });
+      if (changed.length) await markPilotUnknown(tx, operationId);
     });
   }
 
@@ -347,6 +362,7 @@ export class GenerationBudgetRepository {
   ): Promise<WorkoutRecord> {
     const save = async (tx: Transaction): Promise<WorkoutRecord> => {
       await limits(tx);
+      await admissionLock(tx);
       const operation = await this.lockRunning(tx, operationId, userId);
       if (operation.kind !== 'workout' || operation.attempts === 0)
         throw conflict('Reservation de seance incoherente');
@@ -363,6 +379,7 @@ export class GenerationBudgetRepository {
         })
         .returning();
       if (!created) throw AppError.internal('Enregistrement de la seance impossible');
+      await markPilotUnknown(tx, operationId);
       await tx
         .update(operations)
         .set({ status: 'succeeded', updatedAt: sql`now()` })
@@ -380,6 +397,7 @@ export class GenerationBudgetRepository {
   ): Promise<TrainingProgramRecord> {
     const save = async (tx: Transaction): Promise<TrainingProgramRecord> => {
       await limits(tx);
+      await admissionLock(tx);
       const operation = await this.lockRunning(tx, operationId, userId);
       if (operation.kind !== 'program' || operation.attempts === 0)
         throw conflict('Reservation de programme incoherente');
@@ -398,6 +416,7 @@ export class GenerationBudgetRepository {
         })
         .returning();
       if (!created) throw AppError.internal('Enregistrement du programme impossible');
+      await markPilotUnknown(tx, operationId);
       await tx
         .update(operations)
         .set({ status: 'succeeded', updatedAt: sql`now()` })

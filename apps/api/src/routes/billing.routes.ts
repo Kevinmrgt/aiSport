@@ -5,6 +5,7 @@ import { rateLimitMiddleware } from '../middleware/rate-limit.middleware.js';
 import { AppError } from '../types/app-error.js';
 import { stripeClient } from '../lib/stripe.js';
 import { readBillingStatus } from '../repositories/billing.repository.js';
+import { assertBillingSimulationEnabled } from '../services/billing-policy.js';
 import {
   createCheckout,
   createPortal,
@@ -45,6 +46,12 @@ protectedBilling.get('/status', async (ctx) => {
   const suspended = ctx.get('accountSuspended') === true;
   return ctx.json({ ...status, suspended, canSubscribe: !suspended && status.canSubscribe });
 });
+for (const path of ['/checkout', '/portal', '/sync']) {
+  protectedBilling.use(path, async (_ctx, next) => {
+    assertBillingSimulationEnabled();
+    await next();
+  });
+}
 protectedBilling.post('/checkout', rateLimitMiddleware, async (ctx) => {
   const { userId, email } = ctx.get('auth');
   return ctx.json(await createCheckout(userId, email));

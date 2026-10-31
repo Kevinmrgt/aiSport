@@ -20,6 +20,7 @@ const owner = randomUUID(),
       !(
         target.pathname.startsWith('/alcide_admin_') ||
         target.pathname === '/alcide_restore_test' ||
+        target.pathname === '/alcide_pilot_qualification_test' ||
         (process.env['CI'] === 'true' && ['/alcide', '/alcide_test'].includes(target.pathname))
       )
     )

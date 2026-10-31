@@ -5,6 +5,7 @@ import type { GenerationKind } from '../repositories/generation-budget.repositor
 import type { AiAttempt, AiExecutionOptions } from './ai.service.js';
 import { generationPolicy } from './generation-policy.js';
 import { AppError } from '../types/app-error.js';
+import { validatePilotInput } from './pilot-policy.js';
 
 function canonical(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonical);
@@ -47,6 +48,7 @@ export async function executeBudgetedGeneration<Content, Record>(options: {
     throw AppError.badRequest('Nombre de tentatives de generation invalide');
   }
   const policy = generationPolicy();
+  validatePilotInput(options.kind, options.input);
   const inputHash = createHash('sha256')
     .update(JSON.stringify(canonical({ kind: options.kind, input: options.input })))
     .digest('hex');

@@ -6,6 +6,7 @@ import { getSessionDurationBounds, type GenerateProgramInput } from '@alcide/sha
 import type { AiConfig } from '../src/services/ai.service.js';
 
 // Mock fetch global (OWASP A10: pas d'appels réels à l'IA en test)
+const accounting = { onAttempt: vi.fn(), onUsage: vi.fn() };
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
@@ -81,6 +82,7 @@ const validWeekResponse = (weekNumber: number) => ({
 });
 
 const mockApiResponse = (weekNumber: number) => ({
+  usage: { prompt_tokens: 12, completion_tokens: 8, total_tokens: 20 },
   choices: [
     { finish_reason: 'stop', message: { content: JSON.stringify(validWeekResponse(weekNumber)) } },
   ],
@@ -144,7 +146,7 @@ describe('ProgramAiService', () => {
     it('retourne un programme valide pour une réponse IA correcte (2 semaines)', async () => {
       mockSuccessfulWeeksByPrompt();
 
-      const result = await generateProgram(defaultInput, mockAiConfig);
+      const result = await generateProgram(defaultInput, mockAiConfig, accounting);
 
       expect(mockFetch).toHaveBeenCalledTimes(2);
       expect(result.title).toContain('course à pied');
@@ -167,6 +169,7 @@ describe('ProgramAiService', () => {
             ok: true,
             json: () =>
               Promise.resolve({
+                usage: { prompt_tokens: 12, completion_tokens: 8, total_tokens: 20 },
                 choices: [{ finish_reason: 'stop', message: { content: wrappedJson } }],
               }),
           });
@@ -178,7 +181,7 @@ describe('ProgramAiService', () => {
         });
       });
 
-      const result = await generateProgram(defaultInput, mockAiConfig);
+      const result = await generateProgram(defaultInput, mockAiConfig, accounting);
       expect(result.weeks).toHaveLength(2);
     });
 
@@ -195,6 +198,7 @@ describe('ProgramAiService', () => {
             ok: true,
             json: () =>
               Promise.resolve({
+                usage: { prompt_tokens: 12, completion_tokens: 8, total_tokens: 20 },
                 choices: [
                   { finish_reason: 'stop', message: { content: JSON.stringify(invalidWeek) } },
                 ],
@@ -208,7 +212,7 @@ describe('ProgramAiService', () => {
         });
       });
 
-      const result = await generateProgram(defaultInput, mockAiConfig);
+      const result = await generateProgram(defaultInput, mockAiConfig, accounting);
 
       expect(mockFetch).toHaveBeenCalledTimes(3);
       expect(result.weeks).toHaveLength(2);
@@ -231,11 +235,12 @@ describe('ProgramAiService', () => {
           ok: true,
           json: () =>
             Promise.resolve({
+              usage: { prompt_tokens: 12, completion_tokens: 8, total_tokens: 20 },
               choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(week) } }],
             }),
         });
       });
-      const result = await generateProgram(defaultInput, mockAiConfig);
+      const result = await generateProgram(defaultInput, mockAiConfig, accounting);
       expect(result.weeks).toHaveLength(2);
       expect(mockFetch).toHaveBeenCalledTimes(2);
       expect(result.weeks[0]!.sessions[0]!.exercises[0]!.prescription!.circuit_id).toBeUndefined();
@@ -246,12 +251,15 @@ describe('ProgramAiService', () => {
         ok: true,
         json: () =>
           Promise.resolve({
+            usage: { prompt_tokens: 12, completion_tokens: 8, total_tokens: 20 },
             choices: [{ finish_reason: 'stop', message: { content: 'pas du JSON' } }],
           }),
       });
 
-      await expect(generateProgram(defaultInput, mockAiConfig)).rejects.toThrow(AppError);
-      await expect(generateProgram(defaultInput, mockAiConfig)).rejects.toMatchObject({
+      await expect(generateProgram(defaultInput, mockAiConfig, accounting)).rejects.toThrow(
+        AppError,
+      );
+      await expect(generateProgram(defaultInput, mockAiConfig, accounting)).rejects.toMatchObject({
         statusCode: 503,
       });
     });
@@ -259,7 +267,7 @@ describe('ProgramAiService', () => {
     it('lance AppError.serviceUnavailable sur erreur HTTP du provider (429)', async () => {
       mockFetch.mockResolvedValue({ ok: false, status: 429, statusText: 'Too Many Requests' });
 
-      await expect(generateProgram(defaultInput, mockAiConfig)).rejects.toMatchObject({
+      await expect(generateProgram(defaultInput, mockAiConfig, accounting)).rejects.toMatchObject({
         statusCode: 503,
       });
     });
@@ -273,7 +281,7 @@ describe('ProgramAiService', () => {
         });
       });
 
-      const generation = generateProgram(defaultInput, mockAiConfig);
+      const generation = generateProgram(defaultInput, mockAiConfig, accounting);
       const assertion = expect(generation).rejects.toMatchObject({ statusCode: 503 });
 
       await vi.advanceTimersByTimeAsync(45_000);
@@ -291,6 +299,7 @@ describe('ProgramAiService', () => {
         const response =
           weekNumber === 1
             ? {
+                usage: { prompt_tokens: 12, completion_tokens: 8, total_tokens: 20 },
                 choices: [
                   { finish_reason: 'stop', message: { content: JSON.stringify(invalidWeek) } },
                 ],
@@ -307,7 +316,7 @@ describe('ProgramAiService', () => {
         });
       });
 
-      const generation = generateProgram(defaultInput, mockAiConfig);
+      const generation = generateProgram(defaultInput, mockAiConfig, accounting);
       const assertion = expect(generation).rejects.toMatchObject({ statusCode: 503 });
 
       await vi.advanceTimersByTimeAsync(42_000);

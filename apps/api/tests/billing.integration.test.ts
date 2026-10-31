@@ -2,31 +2,71 @@ import type { Workout } from '@alcide/shared';
 import type { CreditPersistence } from '../src/repositories/billing.repository.js';
 import type { AiExecutionOptions } from '../src/services/ai.service.js';
 import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import type Stripe from 'stripe';
+import type * as StripeLibrary from '../src/lib/stripe.js';
 import { sql } from 'drizzle-orm';
 import type * as BillingRepository from '../src/repositories/billing.repository.js';
 import type * as Database from '../src/db/index.js';
+import type * as BillingService from '../src/services/billing.service.js';
+const stripeMocks = vi.hoisted(() => ({ retrieveSubscription: vi.fn(), retrieveSession: vi.fn() }));
+vi.mock('../src/lib/stripe.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof StripeLibrary>()),
+  stripeClient: () => ({
+    subscriptions: { retrieve: stripeMocks.retrieveSubscription },
+    checkout: { sessions: { retrieve: stripeMocks.retrieveSession } },
+  }),
+}));
 const databaseUrl = process.env['TEST_DATABASE_URL'];
 const suite = databaseUrl ? describe : describe.skip;
 const userId = randomUUID();
 let repo: typeof BillingRepository;
 let database: typeof Database;
+let billing: typeof BillingService;
+const webhookIds = [0, 1, 2].map((n) => `evt_billing_isolation_${userId}_${n}`);
+const testEvent = (id: string) =>
+  ({
+    id,
+    type: 'invoice.paid',
+    livemode: false,
+    data: {
+      object: {
+        id: 'in_fixture',
+        customer: `cus_${userId}`,
+        parent: { subscription_details: { subscription: `sub_${userId}` } },
+      },
+    },
+  }) as unknown as Stripe.Event;
 suite('facturation PostgreSQL', () => {
   beforeAll(async () => {
-    if (!databaseUrl || !['localhost', '127.0.0.1'].includes(new URL(databaseUrl).hostname))
-      throw new Error('Base de test locale requise');
+    if (
+      !databaseUrl ||
+      !['localhost', '127.0.0.1'].includes(new URL(databaseUrl).hostname) ||
+      new URL(databaseUrl).pathname !== '/alcide_pilot_qualification_test'
+    )
+      throw new Error('Base de qualification locale dédiée requise');
     process.env['DATABASE_URL'] = databaseUrl;
+    vi.stubEnv('STRIPE_TEST_SIMULATION_ENABLED', '');
     database = await import('../src/db/index.js');
     repo = await import('../src/repositories/billing.repository.js');
+    billing = await import('../src/services/billing.service.js');
     await database.db.execute(
       sql`INSERT INTO users(id,email) VALUES (${userId}::uuid,${'billing-' + userId + '@alcide.invalid'})`,
     );
   });
   afterAll(async () => {
     if (database) {
+      // This suite accepts only the disposable qualification DB above. Financial
+      // rows are append-only in the product; reset is exclusively test fixture cleanup.
+      await database.db.execute(
+        sql`TRUNCATE pilot_attempts,pilot_admissions,pilot_invitations,pilot_control CASCADE`,
+      );
+      for (const id of webhookIds)
+        await database.db.execute(sql`DELETE FROM billing_webhook_events WHERE id=${id}`);
       await database.db.execute(sql`DELETE FROM users WHERE id=${userId}::uuid`);
       await database.pool.end();
     }
+    vi.unstubAllEnvs();
   });
   it('attribue trois crédits une seule fois malgré des premières connexions concurrentes', async () => {
     const statuses = await Promise.all(
@@ -84,47 +124,121 @@ suite('facturation PostgreSQL', () => {
       statusCode: 503,
     });
   });
-  it('utilise Premium avant le gratuit, expire les anciens crédits et ne reporte pas les remboursements', async () => {
+  it('neutralise les anciens grants TEST au solde et à la réservation sans effacer les crédits offerts', async () => {
     const sub = 'sub_fixture_' + userId;
     await database.db.execute(
       sql`INSERT INTO billing_subscriptions(id,user_id,status,period_end) VALUES (${sub},${userId}::uuid,'active',now()+interval '1 month')`,
     );
     await database.db
       .execute(sql`INSERT INTO billing_credit_grants(user_id,source_key,subscription_id,amount,remaining,expires_at)
-      VALUES (${userId}::uuid,${'month1:' + userId},${sub},30,30,now()+interval '1 month')`);
-    const reservation = await repo.reserveCredits(userId, 4);
-    expect(await repo.readBillingStatus(userId)).toMatchObject({
-      plan: 'premium',
-      premiumCredits: 26,
-      freeCredits: 2,
-    });
+      VALUES (${userId}::uuid,${'premium:' + userId},${sub},30,30,now()+interval '1 month')`);
     await database.db
-      .execute(sql`UPDATE billing_credit_grants SET starts_at=now()-interval '2 months',expires_at=now()-interval '1 month'
-      WHERE source_key=${'month1:' + userId}`);
-    await database.db
-      .execute(sql`INSERT INTO billing_credit_grants(user_id,source_key,subscription_id,amount,remaining,expires_at)
-      VALUES (${userId}::uuid,${'month2:' + userId},${sub},30,30,now()+interval '1 month')`);
-    await repo.releaseCredits(userId, reservation);
-    expect(await repo.readBillingStatus(userId)).toMatchObject({
-      premiumCredits: 30,
-      freeCredits: 2,
-    });
-    await database.db.execute(
-      sql`UPDATE billing_subscriptions SET cancel_at_period_end=true WHERE id=${sub}`,
-    );
-    expect(await repo.readBillingStatus(userId)).toMatchObject({
-      plan: 'premium',
-      cancelAtPeriodEnd: true,
-    });
-    await database.db.execute(
-      sql`UPDATE billing_subscriptions SET status='canceled' WHERE id=${sub}`,
-    );
+      .execute(sql`INSERT INTO billing_credit_grants(user_id,source_key,amount,remaining)
+      VALUES (${userId}::uuid,${'premium:legacy:' + userId},30,30),
+        (${userId}::uuid,${'admin:fixture:' + userId},1,1)`);
     expect(await repo.readBillingStatus(userId)).toMatchObject({
       plan: 'free',
+      subscriptionStatus: 'active',
       premiumCredits: 0,
-      freeCredits: 2,
-      canSubscribe: true,
+      freeCredits: 3,
+      offeredCredits: 1,
+      remaining: 3,
+      canSubscribe: false,
+      canManage: false,
     });
+    await expect(repo.reserveCredits(userId, 4)).rejects.toMatchObject({ statusCode: 402 });
+    const reservation = await repo.reserveCredits(userId, 3);
+    expect((await repo.readBillingStatus(userId)).remaining).toBe(0);
+    const oldGrants = await database.db.execute(sql`SELECT remaining FROM billing_credit_grants
+      WHERE user_id=${userId}::uuid AND source_key LIKE 'premium:%'`);
+    expect(oldGrants.rows).toHaveLength(2);
+    expect(oldGrants.rows.every((row) => row['remaining'] === 30)).toBe(true);
+    await repo.releaseCredits(userId, reservation);
+    expect((await repo.readBillingStatus(userId)).remaining).toBe(3);
+  });
+  it('rejette une ancienne réservation financée par TEST sans sauver de résultat', async () => {
+    const result = await database.db.execute(sql`SELECT id FROM billing_credit_grants
+      WHERE user_id=${userId}::uuid AND subscription_id IS NOT NULL LIMIT 1`);
+    const grantId = result.rows[0]?.['id'];
+    await database.db.execute(
+      sql`UPDATE billing_credit_grants SET remaining=remaining-1 WHERE id=${grantId}::uuid`,
+    );
+    const created = await database.db
+      .execute(sql`INSERT INTO billing_credit_reservations(user_id,allocations)
+      VALUES (${userId}::uuid,${JSON.stringify([{ id: grantId, amount: 1 }])}::jsonb) RETURNING id`);
+    const reservation = created.rows[0]?.['id'] as string;
+    const save = vi.fn().mockResolvedValue('must not save');
+    await expect(repo.persistWithCredits(userId, reservation, save)).rejects.toMatchObject({
+      statusCode: 503,
+    });
+    expect(save).not.toHaveBeenCalled();
+    await repo.releaseCredits(userId, reservation);
+    expect((await repo.readBillingStatus(userId)).remaining).toBe(3);
+  });
+  it('déduplique un webhook TEST fermé sans appel fournisseur ni nouveau crédit', async () => {
+    await database.db.execute(
+      sql`UPDATE billing_accounts SET stripe_customer_id=${`cus_${userId}`} WHERE user_id=${userId}::uuid`,
+    );
+    const before = (await repo.readBillingStatus(userId)).remaining;
+    await Promise.all(
+      Array.from({ length: 4 }, () => billing.handleStripeEvent(testEvent(webhookIds[0]!))),
+    );
+    expect(stripeMocks.retrieveSubscription).not.toHaveBeenCalled();
+    const receipts = await database.db.execute(
+      sql`SELECT id FROM billing_webhook_events WHERE id=${webhookIds[0]}`,
+    );
+    expect(receipts.rows).toHaveLength(1);
+    expect((await repo.readBillingStatus(userId)).remaining).toBe(before);
+  });
+  it('retente atomiquement une simulation échouée et ne crée aucun crédit pour le paiement TEST', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('STRIPE_TEST_SIMULATION_ENABLED', 'true');
+    vi.stubEnv('STRIPE_PREMIUM_MONTHLY_PRICE_ID', 'price_fixture');
+    stripeMocks.retrieveSubscription.mockRejectedValueOnce(new Error('synthetic Stripe failure'));
+    await expect(billing.handleStripeEvent(testEvent(webhookIds[1]!))).rejects.toThrow(
+      'synthetic Stripe failure',
+    );
+    const receipts = await database.db.execute(
+      sql`SELECT id FROM billing_webhook_events WHERE id=${webhookIds[1]}`,
+    );
+    expect(receipts.rows).toHaveLength(0);
+    stripeMocks.retrieveSubscription.mockResolvedValue({
+      id: `sub_${userId}`,
+      customer: `cus_${userId}`,
+      status: 'active',
+      livemode: false,
+      metadata: { alcide_user_id: userId },
+      cancel_at_period_end: false,
+      items: {
+        data: [{ quantity: 1, price: { id: 'price_fixture' }, current_period_end: 1900000000 }],
+      },
+    });
+    const before = (await repo.readBillingStatus(userId)).remaining;
+    const grantsBefore = await database.db
+      .execute(sql`SELECT id,source_key,remaining FROM billing_credit_grants
+      WHERE user_id=${userId}::uuid ORDER BY id`);
+    await billing.handleStripeEvent(testEvent(webhookIds[1]!));
+    await billing.handleStripeEvent(testEvent(webhookIds[1]!));
+    expect(stripeMocks.retrieveSubscription).toHaveBeenCalledTimes(2); // failure and successful retry
+    stripeMocks.retrieveSession.mockResolvedValue({
+      livemode: false,
+      client_reference_id: userId,
+      customer: `cus_${userId}`,
+      status: 'complete',
+      subscription: `sub_${userId}`,
+    });
+    await billing.syncCheckout(userId, 'cs_test_fixture');
+    expect(await repo.readBillingStatus(userId)).toMatchObject({
+      remaining: before,
+      premiumCredits: 0,
+      plan: 'free',
+      subscriptionStatus: 'active',
+    });
+    const grantsAfter = await database.db
+      .execute(sql`SELECT id,source_key,remaining FROM billing_credit_grants
+      WHERE user_id=${userId}::uuid ORDER BY id`);
+    expect(grantsAfter.rows).toEqual(grantsBefore.rows);
+    vi.stubEnv('STRIPE_TEST_SIMULATION_ENABLED', '');
   });
   it('associe atomiquement les crédits à la génération persistante et ne débite pas un rejeu', async () => {
     const { generationBudgetRepository: budget } =
@@ -134,6 +248,17 @@ suite('facturation PostgreSQL', () => {
     const { withBillingCredits } = await import('../src/services/billing-credits.service.js');
     const { findWorkoutById } = await import('../src/repositories/workout.repository.js');
     await budget.setEnabled(true);
+    const { PilotRepository } = await import('../src/repositories/pilot.repository.js');
+    const pilot = new PilotRepository(database.db);
+    await pilot.activate({
+      reviewer: 'synthetic-billing-qualifier',
+      reviewReference: 'disposable-fixture-no-production-activation',
+      legacyProvisionsReviewed: true,
+      providerBalanceReviewed: true,
+      allGenerationPathsReviewed: true,
+      legacyNanoUsd: 0,
+    });
+    await pilot.invite(userId);
     const before = (await repo.readBillingStatus(userId)).remaining;
     let calls = 0;
     const options = {
@@ -145,12 +270,25 @@ suite('facturation PostgreSQL', () => {
       withEntitlement: <T>(work: (persist?: CreditPersistence) => Promise<T>) =>
         withBillingCredits(userId, 1, work),
       generate: async (execution: AiExecutionOptions) => {
-        await execution.onAttempt?.({
+        const attempt = {
+          receiptId: randomUUID(),
           model: 'gpt-5.4-mini',
           maxCompletionTokens: 2048,
           inputTokensUpperBound: 500,
-        });
+        };
+        await execution.onAttempt?.(attempt);
         calls += 1;
+        await execution.onUsage?.(
+          {
+            receiptId: attempt.receiptId,
+            requestId: randomUUID(),
+            model: attempt.model,
+            inputTokens: 10,
+            outputTokens: 10,
+            totalTokens: 20,
+          },
+          attempt,
+        );
         return {
           title: 'Synthetic credits and budget',
           sport: 'course',

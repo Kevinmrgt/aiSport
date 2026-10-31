@@ -99,6 +99,13 @@
       "when": 1793367208396,
       "tag": "0013_restore_september_product",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793453127096,
+      "tag": "0015_pilot_protections",
+      "breakpoints": true
     }
   ]
 }

@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { users, workouts } from '../src/db/schema.js';
@@ -16,12 +16,18 @@ import { generationPolicy, type GenerationPolicy } from '../src/services/generat
 import type { TrainingProgram, Workout } from '@alcide/shared';
 import type { AiAttempt } from '../src/services/ai.service.js';
 import type { GenerationBudgetRepository } from '../src/repositories/generation-budget.repository.js';
+import { pilotAdmissions, pilotAttempts, pilotInvitations } from '../src/db/pilot.schema.js';
 
 const testUrl = process.env['TEST_DATABASE_URL'];
 const suite = testUrl ? describe : describe.skip;
 const userIds = [randomUUID(), randomUUID()];
 const hash = 'a'.repeat(64);
-const attempt = { model: 'gpt-5.4-mini', maxCompletionTokens: 2048, inputTokensUpperBound: 500 };
+const attempt = {
+  receiptId: randomUUID(),
+  model: 'gpt-5.4-mini',
+  maxCompletionTokens: 2048,
+  inputTokensUpperBound: 500,
+};
 const fixture: Workout = {
   title: 'Budget test',
   sport: 'course',
@@ -87,6 +93,10 @@ suite('PostgreSQL persistent generation budgets', () => {
     closeDefaultPool = () => defaults.pool.end();
   });
   beforeEach(async () => {
+    // Test-only reset on the guarded dedicated local database. Runtime never resets this ledger.
+    await database.execute(
+      sql`truncate pilot_attempts, pilot_admissions, pilot_invitations, pilot_control`,
+    );
     await database.delete(users).where(inArray(users.id, userIds));
     // This suite runs against a dedicated ephemeral database, serially with other SQL suites.
     await database.delete(generationDailyBudgets).where(eq(generationDailyBudgets.scope, 'global'));
@@ -94,6 +104,17 @@ suite('PostgreSQL persistent generation budgets', () => {
     await database
       .insert(users)
       .values(userIds.map((id) => ({ id, email: `budget-${id}@alcide.test` })));
+    const { PilotRepository } = await import('../src/repositories/pilot.repository.js');
+    const pilot = new PilotRepository(database as never);
+    await pilot.activate({
+      reviewer: 'integration-test',
+      reviewReference: 'synthetic-local-fixture',
+      legacyProvisionsReviewed: true,
+      providerBalanceReviewed: true,
+      allGenerationPathsReviewed: true,
+      legacyNanoUsd: 0,
+    });
+    for (const id of userIds) await pilot.invite(id);
     policy = {
       ...generationPolicy(),
       userConcurrency: 10,
@@ -106,6 +127,9 @@ suite('PostgreSQL persistent generation budgets', () => {
   });
   afterAll(async () => {
     if (database) {
+      await database.execute(
+        sql`truncate pilot_attempts, pilot_admissions, pilot_invitations, pilot_control`,
+      );
       await repositoryA.setEnabled(true);
       await database.delete(users).where(inArray(users.id, userIds));
       await database
@@ -245,7 +269,7 @@ suite('PostgreSQL persistent generation budgets', () => {
     ).resolves.toHaveProperty('replay', false);
   });
 
-  it('records unproven usage once without releasing its provision and cascades accounting on account erasure', async () => {
+  it('records a receipt once and retains pilot accounting on account erasure', async () => {
     const { operation } = await repositoryA.begin(
       userIds[0]!,
       randomUUID(),
@@ -255,6 +279,7 @@ suite('PostgreSQL persistent generation budgets', () => {
     );
     await repositoryA.reserveAttempt(operation.id, userIds[0]!, attempt, 2, policy);
     const usage = {
+      receiptId: attempt.receiptId,
       model: attempt.model,
       inputTokens: 100,
       outputTokens: 200,
@@ -281,6 +306,11 @@ suite('PostgreSQL persistent generation budgets', () => {
         .from(generationOperations)
         .where(eq(generationOperations.id, operation.id)),
     ).toHaveLength(0);
+    expect(await database.select().from(pilotAdmissions)).toHaveLength(1);
+    expect(await database.select().from(pilotAttempts)).toHaveLength(1);
+    expect(
+      (await database.select().from(pilotInvitations)).find((row) => row.userId === null),
+    ).toBeDefined();
     expect(
       await database
         .select()

@@ -3,6 +3,8 @@ import { BILLING_OFFER } from '@alcide/shared';
 import { GlassPanel } from './PremiumPrimitives';
 import { Icon } from './ui/Icon';
 
+const monthlyPrice = `${new Intl.NumberFormat('fr-FR').format(BILLING_OFFER.monthlyPriceCents / 100)} €`;
+
 export function BillingOffers() {
   return (
     <div className="grid gap-6 md:grid-cols-2">
@@ -41,7 +43,9 @@ export function BillingOffers() {
         </div>
         <h2 className="panel-title mt-3">Premium</h2>
         <p className="my-7">
-          <span className="text-5xl font-black tracking-tight text-primary-100">9,99 €</span>
+          <span className="text-5xl font-black tracking-tight text-primary-100">
+            {monthlyPrice}
+          </span>
           <span className="muted-copy ml-2">TTC / mois</span>
         </p>
         <p className="muted-copy">

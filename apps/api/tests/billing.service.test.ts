@@ -3,6 +3,7 @@ import type Stripe from 'stripe';
 import type * as StripeLibrary from '../src/lib/stripe.js';
 import type { SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
+import { BILLING_OFFER } from '@alcide/shared';
 
 const mocks = vi.hoisted(() => ({
   execute: vi.fn(),
@@ -41,6 +42,7 @@ vi.mock('../src/lib/stripe.js', async (importOriginal) => ({
 }));
 import {
   createCheckout,
+  createPortal,
   handleStripeEvent,
   syncCheckout,
 } from '../src/services/billing.service.js';
@@ -75,6 +77,8 @@ async function* iterable(values: unknown[]) {
 describe('synchronisation Stripe', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('STRIPE_TEST_SIMULATION_ENABLED', 'true');
     vi.stubEnv('STRIPE_PREMIUM_MONTHLY_PRICE_ID', 'price_test');
     mocks.execute.mockResolvedValue({ rows: [{ id: 'evt_1' }] });
     mocks.findUser.mockResolvedValue('user');
@@ -101,7 +105,7 @@ describe('synchronisation Stripe', () => {
       id: 'price_test',
       livemode: false,
       active: true,
-      unit_amount: 999,
+      unit_amount: BILLING_OFFER.monthlyPriceCents,
       currency: 'eur',
       tax_behavior: 'inclusive',
       recurring: { interval: 'month', interval_count: 1 },
@@ -110,17 +114,17 @@ describe('synchronisation Stripe', () => {
     mocks.listSessions.mockResolvedValue({ data: [] });
     mocks.createSession.mockResolvedValue({ id: 'cs_new', url: 'https://checkout.stripe.com/new' });
   });
-  it('attribue les crédits du mois seulement à partir d’une facture payée', async () => {
+  it('synchronise un statut TEST sans attribuer de crédits, même pour une facture payée', async () => {
     await handleStripeEvent(event());
-    expect(mocks.retrieveInvoice).toHaveBeenCalledWith('in_paid');
-    expect(mocks.listLines).toHaveBeenCalledOnce();
-    expect(mocks.execute).toHaveBeenCalledTimes(3); // event, subscription, one period grant
-    vi.clearAllMocks();
-    mocks.execute.mockResolvedValue({ rows: [{ id: 'evt_2' }] });
-    mocks.retrieveInvoice.mockResolvedValue({ status: 'open' });
-    await handleStripeEvent(event('evt_2'));
+    expect(mocks.retrieveInvoice).not.toHaveBeenCalled();
     expect(mocks.listLines).not.toHaveBeenCalled();
     expect(mocks.execute).toHaveBeenCalledTimes(2);
+    const statements = mocks.execute.mock.calls.map(
+      ([query]) => new PgDialect().sqlToQuery(query as SQL).sql,
+    );
+    expect(statements.some((query) => query.includes('INSERT INTO billing_credit_grants'))).toBe(
+      false,
+    );
   });
   it('reconnaît la résiliation par date du portail sans cancel_at_period_end', async () => {
     mocks.retrieveSubscription.mockResolvedValue({ ...subscription(), cancel_at: 1900000000 });
@@ -137,8 +141,7 @@ describe('synchronisation Stripe', () => {
     mocks.retrieveSubscription.mockResolvedValue(subscription('canceled'));
     await handleStripeEvent(event());
     expect(mocks.retrieveSubscription).toHaveBeenCalledWith('sub_test');
-    // The status written is current; the grant remains unusable when canceled (DB integration test).
-    expect(mocks.execute).toHaveBeenCalledTimes(3);
+    expect(mocks.execute).toHaveBeenCalledTimes(2);
   });
   it('refuse les événements réels et les retours Checkout d’un autre compte', async () => {
     await expect(handleStripeEvent({ ...event(), livemode: true })).rejects.toMatchObject({
@@ -181,5 +184,44 @@ describe('synchronisation Stripe', () => {
       }),
       { idempotencyKey: 'alcide-checkout-user-cs_old' },
     );
+  });
+  it.each([
+    ['development', ''],
+    ['production', 'true'],
+    ['test', 'true'],
+    ['', 'true'],
+  ])('ferme les services sans appeler Stripe (%s, flag=%s)', async (environment, flag) => {
+    vi.stubEnv('NODE_ENV', environment);
+    vi.stubEnv('STRIPE_TEST_SIMULATION_ENABLED', flag);
+    for (const operation of [
+      () => createCheckout('user', 'test@alcide.invalid'),
+      () => createPortal('user'),
+      () => syncCheckout('user', 'cs_test_paid'),
+    ])
+      await expect(operation()).rejects.toMatchObject({ statusCode: 503 });
+    expect(mocks.retrievePrice).not.toHaveBeenCalled();
+    expect(mocks.retrieveSession).not.toHaveBeenCalled();
+    expect(mocks.createPortal).not.toHaveBeenCalled();
+    expect(mocks.execute).not.toHaveBeenCalled();
+  });
+  it('acquitte un webhook retardé lorsque fermé, sans réseau ni grant', async () => {
+    vi.stubEnv('STRIPE_TEST_SIMULATION_ENABLED', '');
+    await handleStripeEvent(event());
+    expect(mocks.execute).toHaveBeenCalledOnce();
+    expect(mocks.retrieveSubscription).not.toHaveBeenCalled();
+    expect(mocks.retrieveInvoice).not.toHaveBeenCalled();
+  });
+  it('synchronise le retour TEST complet sans accorder de droits réels', async () => {
+    mocks.retrieveSession.mockResolvedValue({
+      livemode: false,
+      client_reference_id: 'user',
+      customer: 'cus_test',
+      status: 'complete',
+      subscription: 'sub_test',
+    });
+    await syncCheckout('user', 'cs_test_paid');
+    expect(mocks.execute).toHaveBeenCalledOnce();
+    expect(mocks.retrieveSubscription).toHaveBeenCalledWith('sub_test');
+    expect(mocks.retrieveInvoice).not.toHaveBeenCalled();
   });
 });

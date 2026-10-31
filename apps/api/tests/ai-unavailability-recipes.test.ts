@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GenerateWorkoutInput } from '@alcide/shared';
 import { generateWorkout } from '../src/services/workout-ai.service.js';
 
+const accounting = { onAttempt: vi.fn(), onUsage: vi.fn() };
 const fetchMock = vi.fn();
 
 const input: GenerateWorkoutInput = {
@@ -36,7 +37,7 @@ describe('CR-013 - indisponibilite OpenAI', () => {
     async (status, statusText) => {
       fetchMock.mockResolvedValue({ ok: false, status, statusText });
 
-      await expect(generateWorkout(input, aiConfig)).rejects.toMatchObject({
+      await expect(generateWorkout(input, aiConfig, accounting)).rejects.toMatchObject({
         statusCode: 503,
         code: 'SERVICE_UNAVAILABLE',
       });
@@ -55,7 +56,7 @@ describe('CR-013 - indisponibilite OpenAI', () => {
         }),
     );
 
-    const generation = generateWorkout(input, aiConfig);
+    const generation = generateWorkout(input, aiConfig, accounting);
     const assertion = expect(generation).rejects.toMatchObject({
       statusCode: 503,
       code: 'SERVICE_UNAVAILABLE',

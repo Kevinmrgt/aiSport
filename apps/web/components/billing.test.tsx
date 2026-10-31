@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GenerationQuotaNotice } from './GenerationQuotaNotice';
 import { ProgramForm } from './ProgramForm';
@@ -14,7 +14,7 @@ describe('offres et crédits', () => {
   });
   it('affiche les deux offres avec les composants existants', () => {
     const { container } = render(<BillingOffers />);
-    expect(screen.getByText('9,99 €')).toBeTruthy();
+    expect(screen.getByText('5 €')).toBeTruthy();
     expect(container.querySelectorAll('.glass-panel').length).toBe(2);
     expect(screen.getByText('Découverte')).toBeTruthy();
   });
@@ -38,10 +38,30 @@ describe('offres et crédits', () => {
     );
     expect(screen.queryByText(/Acces jury/)).toBeNull();
   });
-  it('bloque un programme lorsque les semaines dépassent le solde même non nul', async () => {
-    render(
+  it('propose deux semaines au pilote et exige deux crédits standard', () => {
+    const onSubmit = vi.fn();
+    const { rerender } = render(
       <ProgramForm
-        onSubmit={vi.fn()}
+        onSubmit={onSubmit}
+        generationQuota={{
+          mode: 'standard',
+          plan: 'free',
+          limited: true,
+          remaining: 1,
+          limit: null,
+          used: 0,
+        }}
+      />,
+    );
+    expect(
+      screen.getByRole<HTMLButtonElement>('button', { name: /Crédits insuffisants/ }).disabled,
+    ).toBe(true);
+    const weeks = document.querySelector<HTMLSelectElement>('select[name="weeks_count"]')!;
+    expect(weeks.value).toBe('2');
+    expect(Array.from(weeks.options, (option) => option.value)).toEqual(['2']);
+    rerender(
+      <ProgramForm
+        onSubmit={onSubmit}
         generationQuota={{
           mode: 'standard',
           plan: 'free',
@@ -52,11 +72,6 @@ describe('offres et crédits', () => {
         }}
       />,
     );
-    expect(
-      screen.getByRole<HTMLButtonElement>('button', { name: /Crédits insuffisants/ }).disabled,
-    ).toBe(true);
-    const weeks = document.querySelector('select[name="weeks_count"]')!;
-    await act(() => Promise.resolve(fireEvent.change(weeks, { target: { value: '2' } })));
     expect(
       screen.getByRole<HTMLButtonElement>('button', { name: /Générer le programme/ }).disabled,
     ).toBe(false);

@@ -32,6 +32,7 @@ import {
   createCheckout,
   createPortal,
   handleStripeEvent,
+  syncCheckout,
 } from '../src/services/billing.service.js';
 
 const app = new Hono();
@@ -42,6 +43,8 @@ describe('API de facturation', () => {
     vi.resetAllMocks();
     vi.stubEnv('STRIPE_SECRET_KEY', 'sk_test_fixture');
     vi.stubEnv('STRIPE_WEBHOOK_SECRET', 'whsec_fixture');
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('STRIPE_TEST_SIMULATION_ENABLED', 'true');
   });
   it('refuse les utilisateurs anonymes, jury et bêta', async () => {
     expect((await app.request('/billing/checkout', { method: 'POST' })).status).toBe(401);
@@ -73,6 +76,7 @@ describe('API de facturation', () => {
     expect(createPortal).toHaveBeenCalledWith('owner');
   });
   it('vérifie la signature sur le corps brut sans connexion Google', async () => {
+    vi.stubEnv('STRIPE_TEST_SIMULATION_ENABLED', '');
     const payload = JSON.stringify({
       id: 'evt_test',
       type: 'invoice.paid',
@@ -114,5 +118,34 @@ describe('API de facturation', () => {
     });
     expect(response.status).toBe(503);
     expect(handleStripeEvent).not.toHaveBeenCalled();
+  });
+  it.each(['', 'false'])(
+    'ferme Checkout, portail et sync avant le service sans opt-in (%s)',
+    async (flag) => {
+      vi.stubEnv('STRIPE_TEST_SIMULATION_ENABLED', flag);
+      for (const path of ['checkout', 'portal', 'sync']) {
+        const response = await app.request(`/billing/${path}`, {
+          method: 'POST',
+          headers: { 'test-user': 'owner' },
+          body: 'invalid body',
+        });
+        expect(response.status).toBe(503);
+      }
+      expect(createCheckout).not.toHaveBeenCalled();
+      expect(createPortal).not.toHaveBeenCalled();
+      expect(syncCheckout).not.toHaveBeenCalled();
+    },
+  );
+  it('interdit la simulation en production même avec le flag explicite', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    expect(
+      (
+        await app.request('/billing/checkout', {
+          method: 'POST',
+          headers: { 'test-user': 'owner' },
+        })
+      ).status,
+    ).toBe(503);
+    expect(createCheckout).not.toHaveBeenCalled();
   });
 });

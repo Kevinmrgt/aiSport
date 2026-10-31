@@ -40,23 +40,40 @@ describe.skipIf(!url)('confirmed usage and unknown generation provisions', () =>
     ).GenerationBudgetRepository(database.db);
   });
   beforeEach(async () => {
+    await database.db.execute(
+      sql`truncate pilot_attempts, pilot_admissions, pilot_invitations, pilot_control`,
+    );
     await database.db.delete(users).where(eq(users.id, userId));
     await database.db
       .delete(generationDailyBudgets)
       .where(eq(generationDailyBudgets.scope, 'global'));
     await database.db.insert(users).values({ id: userId, email: `${userId}@alcide.test` });
     await repository.setEnabled(true);
+    const { PilotRepository } = await import('../src/repositories/pilot.repository.js');
+    const pilot = new PilotRepository(database.db);
+    await pilot.activate({
+      reviewer: 'integration-test',
+      reviewReference: 'synthetic-local-fixture',
+      legacyProvisionsReviewed: true,
+      providerBalanceReviewed: true,
+      allGenerationPathsReviewed: true,
+      legacyNanoUsd: 0,
+    });
+    await pilot.invite(userId);
   });
   afterAll(async () => {
     if (!database) return;
+    await database.db.execute(
+      sql`truncate pilot_attempts, pilot_admissions, pilot_invitations, pilot_control`,
+    );
     await database.db.delete(users).where(eq(users.id, userId));
     await database.db
       .delete(generationDailyBudgets)
       .where(eq(generationDailyBudgets.scope, 'global'));
     await database.pool.end();
   });
-  async function operation() {
-    return (await repository.begin(userId, randomUUID(), 'program', hash, policy)).operation;
+  async function operation(limits = policy) {
+    return (await repository.begin(userId, randomUUID(), 'program', hash, limits)).operation;
   }
   async function stored(id: string) {
     return (
@@ -64,26 +81,25 @@ describe.skipIf(!url)('confirmed usage and unknown generation provisions', () =>
     )[0]!;
   }
 
-  it('admits four weeks and heterogeneous retries within the unchanged daily cap, then rejects further excess without debit', async () => {
-    const op = await operation();
-    const attempts = [13335, 13372, 13372, 13352, 13335, 13372, 13372, 13352].map((input) =>
-      bound(input, 5100),
-    );
-    await Promise.all(
-      attempts.map((attempt) => repository.reserveAttempt(op.id, userId, attempt, 8, policy)),
-    );
+  it('admits two weeks and heterogeneous retries within a persistent token cap, then rejects further excess without debit', async () => {
+    const attempts = [13335, 13372, 13372, 13352].map((input) => bound(input, 5100));
     const expected = attempts.reduce(
       (sum, attempt) => sum + attempt.inputTokensUpperBound + attempt.maxCompletionTokens,
       0,
     );
-    expect(await stored(op.id)).toMatchObject({ attempts: 8, reservedTokens: expected });
+    const limits = { ...policy, userDailyTokens: expected };
+    const op = await operation(limits);
+    await Promise.all(
+      attempts.map((attempt) => repository.reserveAttempt(op.id, userId, attempt, 4, limits)),
+    );
+    expect(await stored(op.id)).toMatchObject({ attempts: 4, reservedTokens: expected });
     expect(expected).toBeLessThan(160_000);
-    const next = await operation();
+    const next = await operation(limits);
     await expect(
-      repository.reserveAttempt(next.id, userId, attempts[0]!, 2, policy),
+      repository.reserveAttempt(next.id, userId, bound(13335, 5100), 2, limits),
     ).rejects.toMatchObject({ statusCode: 429 });
     const daily = await database.db.select().from(generationDailyBudgets);
-    expect(daily.every((row) => row.attempts === 8 && row.reservedTokens === expected)).toBe(true);
+    expect(daily.every((row) => row.attempts === 4 && row.reservedTokens === expected)).toBe(true);
   });
 
   it('settles heterogeneous parallel receipts once, retains unknown attempts and charges usage above the admitted bound', async () => {
@@ -240,23 +256,21 @@ describe.skipIf(!url)('confirmed usage and unknown generation provisions', () =>
     const past = new Date(Date.now() - 86_400_000),
       day = past.toISOString().slice(0, 10),
       id = randomUUID();
-    await database.db
-      .insert(generationOperations)
-      .values({
-        id,
-        userId,
-        operationKey: randomUUID(),
-        kind: 'workout',
-        inputHash: hash,
-        status: 'failed',
-        resourceId: randomUUID(),
-        attempts: 1,
-        reservedTokens: 500,
-        inputTokens: 50,
-        outputTokens: 50,
-        createdAt: past,
-        leaseExpiresAt: new Date(0),
-      });
+    await database.db.insert(generationOperations).values({
+      id,
+      userId,
+      operationKey: randomUUID(),
+      kind: 'workout',
+      inputHash: hash,
+      status: 'failed',
+      resourceId: randomUUID(),
+      attempts: 1,
+      reservedTokens: 500,
+      inputTokens: 50,
+      outputTokens: 50,
+      createdAt: past,
+      leaseExpiresAt: new Date(0),
+    });
     await database.db.insert(generationUsageEvents).values({
       operationId: id,
       eventKey: createHash('sha256')

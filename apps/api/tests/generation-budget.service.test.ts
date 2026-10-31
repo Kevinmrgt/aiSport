@@ -33,6 +33,26 @@ describe('persistent generation orchestration', () => {
   });
   afterEach(() => vi.unstubAllEnvs());
 
+  it('rejects programs outside the pilot scope before admission', async () => {
+    for (const input of [
+      { weeks_count: 3, sessions_per_week: 5 },
+      { weeks_count: 2, sessions_per_week: 6 },
+    ]) {
+      await expect(
+        executeBudgetedGeneration({
+          userId,
+          kind: 'program',
+          input,
+          maxAttempts: 4,
+          generate: vi.fn(),
+          replay: vi.fn(),
+          complete: vi.fn(),
+        }),
+      ).rejects.toMatchObject({ statusCode: 400 });
+    }
+    expect(repository.begin).not.toHaveBeenCalled();
+  });
+
   it('reserves before provider execution and accounts before completion', async () => {
     const events: string[] = [];
     repository.reserveAttempt.mockImplementation(() => {
@@ -84,7 +104,7 @@ describe('persistent generation orchestration', () => {
         userId,
         operationId: operationKey,
         kind: 'workout',
-        input: {},
+        input: { weeks_count: 2, sessions_per_week: 5 },
         maxAttempts: 2,
         generate,
         replay,
@@ -103,7 +123,7 @@ describe('persistent generation orchestration', () => {
       executeBudgetedGeneration({
         userId,
         kind: 'workout',
-        input: {},
+        input: { weeks_count: 2, sessions_per_week: 5 },
         maxAttempts: 2,
         generate,
         replay: vi.fn(),
@@ -120,7 +140,7 @@ describe('persistent generation orchestration', () => {
       executeBudgetedGeneration({
         userId,
         kind: 'program',
-        input: {},
+        input: { weeks_count: 2, sessions_per_week: 5 },
         maxAttempts: 8,
         generate: async (execution) => {
           await execution.onAttempt?.(attempt);
@@ -185,7 +205,7 @@ describe('credits and persistent generation replay', () => {
       executeBudgetedGeneration({
         userId,
         kind: 'workout',
-        input: {},
+        input: { weeks_count: 2, sessions_per_week: 5 },
         maxAttempts: 2,
         withEntitlement,
         generate,
@@ -208,7 +228,7 @@ describe('credits and persistent generation replay', () => {
       executeBudgetedGeneration({
         userId,
         kind: 'program',
-        input: {},
+        input: { weeks_count: 2, sessions_per_week: 5 },
         maxAttempts: 4,
         withEntitlement: () =>
           Promise.reject(new AppError(402, 'INSUFFICIENT_CREDITS', 'Solde insuffisant')),
@@ -236,7 +256,7 @@ describe('admission proof for measured settlement', () => {
   const options = {
     userId,
     kind: 'program' as const,
-    input: {},
+    input: { weeks_count: 2, sessions_per_week: 5 },
     maxAttempts: 4,
     replay: vi.fn(),
     complete: vi.fn().mockResolvedValue({}),

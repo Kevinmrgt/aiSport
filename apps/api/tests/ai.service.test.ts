@@ -13,6 +13,7 @@ import { AppError } from '../src/types/app-error.js';
 
 const fetchMock = vi.fn();
 const config = { provider: 'openai' as const, apiKey: 'test-only', model: 'gpt-5.4-mini' };
+const accounting = { onAttempt: vi.fn(), onUsage: vi.fn() };
 function response(overrides: object = {}) {
   return {
     ok: true,
@@ -51,7 +52,7 @@ describe('contrat fournisseur IA', () => {
       expect(getAiInputTokensUpperBound(prompt, { systemMessage, jsonSchema })).toBe(expected);
       fetchMock.mockResolvedValue(response());
       const onAttempt = vi.fn();
-      await callAiProvider(config, prompt, { systemMessage, jsonSchema, onAttempt });
+      await callAiProvider(config, prompt, { ...accounting, systemMessage, jsonSchema, onAttempt });
       expect(onAttempt).toHaveBeenCalledWith(
         expect.objectContaining({ inputTokensUpperBound: expected }),
       );
@@ -114,6 +115,7 @@ describe('contrat fournisseur IA', () => {
   it('refuse un appel quand la réservation échoue, sans consommation fournisseur', async () => {
     await expect(
       callAiProvider(config, 'data', {
+        ...accounting,
         onAttempt: () => {
           throw AppError.tooManyRequests('Budget épuisé');
         },
@@ -125,6 +127,7 @@ describe('contrat fournisseur IA', () => {
   it('refuse une panne du suivi budgétaire sans exposer son erreur interne', async () => {
     await expect(
       callAiProvider(config, 'data', {
+        ...accounting,
         onAttempt: () => {
           throw new Error('secret interne');
         },
@@ -143,7 +146,9 @@ describe('contrat fournisseur IA', () => {
     async (reason, choice) => {
       fetchMock.mockResolvedValue(response({ choices: [choice] }));
       const onUsage = vi.fn();
-      await expect(callAiProvider(config, 'data', { onUsage })).rejects.toMatchObject({ reason });
+      await expect(
+        callAiProvider(config, 'data', { ...accounting, onUsage }),
+      ).rejects.toMatchObject({ reason });
       expect(onUsage).toHaveBeenCalledTimes(1);
     },
   );
@@ -157,7 +162,7 @@ describe('contrat fournisseur IA', () => {
     });
     let error: unknown;
     try {
-      await callAiProvider(config, 'data');
+      await callAiProvider(config, 'data', accounting);
     } catch (caught) {
       error = caught;
     }
@@ -175,7 +180,7 @@ describe('contrat fournisseur IA', () => {
     });
     let error: unknown;
     try {
-      await callAiProvider(config, 'data');
+      await callAiProvider(config, 'data', accounting);
     } catch (caught) {
       error = caught;
     }
@@ -217,8 +222,9 @@ describe('contrat fournisseur IA', () => {
           init.signal?.addEventListener('abort', () => reject(new Error('aborted')));
         }),
     );
-    const call = callAiProvider(config, 'data', { signal: controller.signal });
+    const call = callAiProvider(config, 'data', { ...accounting, signal: controller.signal });
     const assertion = expect(call).rejects.toBeInstanceOf(AiCancelledError);
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
     controller.abort();
     await assertion;
     await expect(
@@ -232,6 +238,16 @@ describe('contrat fournisseur IA', () => {
       false,
     );
   });
+
+  it.each([{}, { onAttempt: vi.fn() }, { onUsage: vi.fn() }])(
+    'refuses a provider path without both accounting callbacks before any HTTP',
+    async (options) => {
+      await expect(callAiProvider(config, 'data', options)).rejects.toBeInstanceOf(
+        AiAccountingError,
+      );
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe('HTTP-local immutable accounting receipts', () => {
@@ -280,8 +296,26 @@ describe('HTTP-local immutable accounting receipts', () => {
     fetchMock.mockResolvedValue(response({ usage: undefined }));
     const usage = vi.fn(),
       admission = vi.fn();
-    await callAiProvider(config, 'data', { onAttempt: admission, onUsage: usage });
+    await expect(
+      callAiProvider(config, 'data', { onAttempt: admission, onUsage: usage }),
+    ).rejects.toBeInstanceOf(AiAccountingError);
     expect(admission).toHaveBeenCalledOnce();
     expect(usage).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { prompt_tokens: -1, completion_tokens: 8, total_tokens: 7 },
+    { prompt_tokens: 12, completion_tokens: 8, total_tokens: 21 },
+    { prompt_tokens: 1.5, completion_tokens: 8, total_tokens: 9.5 },
+  ])('stops on invalid usage without settling or retrying the provision', async (invalid) => {
+    fetchMock.mockResolvedValue(response({ usage: invalid }));
+    const onUsage = vi.fn();
+    const error = await callAiProvider(config, 'data', { ...accounting, onUsage }).catch(
+      (caught: unknown) => caught,
+    );
+    expect(error).toBeInstanceOf(AiAccountingError);
+    expect(onUsage).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(await waitForAiRetry(error, Date.now() + 50_000, 5_000)).toBe(false);
   });
 });

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { BILLING_OFFER } from '@alcide/shared';
 import { auth } from '@/lib/auth';
 import { serverApi } from '@/lib/server-api';
 import { GlassPanel } from '@/components/PremiumPrimitives';
@@ -6,6 +7,7 @@ import { BillingButton } from '@/components/BillingButton';
 import { connectBillingGoogle } from './actions';
 
 export const dynamic = 'force-dynamic';
+const monthlyPrice = `${new Intl.NumberFormat('fr-FR').format(BILLING_OFFER.monthlyPriceCents / 100)} €`;
 
 export default async function SubscriptionPage({
   searchParams,
@@ -47,13 +49,19 @@ export default async function SubscriptionPage({
         </h1>
       </header>
       <p className="premium-chip w-fit">Mode test · aucun prélèvement réel</p>
-      {status?.suspended && <p role="status" className="glass-soft p-4">Votre compte est suspendu. Vous pouvez toujours gérer votre abonnement et votre moyen de paiement.</p>}
+      {status?.suspended && (
+        <p role="status" className="glass-soft p-4">
+          Votre compte est suspendu. Vous pouvez toujours gérer votre abonnement et votre moyen de
+          paiement.
+        </p>
+      )}
       {!google ? (
         <GlassPanel className="panel-padding">
           <h2 className="panel-title">Votre entraînement commence ici</h2>
           <p className="muted-copy my-5">
-            Connectez-vous avec Google pour recevoir 3 crédits gratuits et accéder à Premium à 9,99
-            € TTC par mois.
+            Connectez-vous avec Google pour recevoir {BILLING_OFFER.freeCredits} crédits gratuits.
+            L’offre Premium est prévue à {monthlyPrice} TTC par mois. Les souscriptions restent
+            fermées pendant la préparation du pilote.
           </p>
           <form action={connectBillingGoogle}>
             <button className="action-primary" type="submit">
@@ -94,7 +102,7 @@ export default async function SubscriptionPage({
                   {status.plan === 'premium' ? 'Alcide Premium' : 'Alcide Découverte'}
                 </h2>
                 <span className="premium-chip">
-                  {status.plan === 'premium' ? '9,99 € TTC / mois' : 'Gratuit'}
+                  {status.plan === 'premium' ? `${monthlyPrice} TTC / mois` : 'Gratuit'}
                 </span>
               </div>
               <p className="mt-8">
@@ -121,9 +129,11 @@ export default async function SubscriptionPage({
                 </p>
               )}
               <div className="mt-8 flex flex-wrap gap-4">
-                {!status.suspended && <Link href="/generate" className="action-secondary">
-                  Créer une séance
-                </Link>}
+                {!status.suspended && (
+                  <Link href="/generate" className="action-secondary">
+                    Créer une séance
+                  </Link>
+                )}
                 {status.canManage && (
                   <BillingButton kind="portal">Gérer mon abonnement</BillingButton>
                 )}
@@ -134,10 +144,13 @@ export default async function SubscriptionPage({
                 <p className="section-kicker">Allez plus loin</p>
                 <h2 className="panel-title mt-3">30 crédits par mois, votre rythme en plus</h2>
                 <p className="muted-copy my-5">
-                  Premium : 9,99 € TTC par mois, renouvellement automatique. Résiliation à tout
-                  moment pour la fin de la période payée. Les crédits mensuels expirent sans report.
+                  Premium : {monthlyPrice} TTC par mois, renouvellement automatique. Résiliation à
+                  tout moment pour la fin de la période payée. Les crédits mensuels expirent sans
+                  report.
                 </p>
-                <BillingButton kind="checkout">Passer à Premium · 9,99 € / mois</BillingButton>
+                <BillingButton kind="checkout">
+                  Passer à Premium · {monthlyPrice} / mois
+                </BillingButton>
               </GlassPanel>
             )}
           </>

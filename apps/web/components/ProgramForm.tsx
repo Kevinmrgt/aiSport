@@ -24,11 +24,7 @@ const LEVEL_OPTIONS = [
   { value: 'advanced', label: 'Avancé' },
 ];
 
-const WEEKS_OPTIONS = [
-  { value: '2', label: '2 semaines' },
-  { value: '3', label: '3 semaines' },
-  { value: '4', label: '4 semaines' },
-];
+const WEEKS_OPTIONS = [{ value: '2', label: '2 semaines' }];
 
 const SESSIONS_OPTIONS = [
   { value: '2', label: '2 séances / semaine' },
@@ -55,7 +51,7 @@ export function ProgramForm({ onSubmit, generationQuota }: ProgramFormProps) {
   const [formData, setFormData] = useState({
     sport: '',
     level: 'beginner' as GenerateProgramInput['level'],
-    weeks_count: 3,
+    weeks_count: 2,
     sessions_per_week: 3,
     session_duration_minutes: 30,
     goals: '',
@@ -137,11 +133,17 @@ export function ProgramForm({ onSubmit, generationQuota }: ProgramFormProps) {
           >
             <strong>Erreur :</strong> {globalError}
             {canStartNewOperation && (
-              <button type="button" className="mt-3 block font-bold underline" onClick={() => {
-                operation.reset();
-                setCanStartNewOperation(false);
-                setGlobalError(null);
-              }}>Démarrer une nouvelle tentative</button>
+              <button
+                type="button"
+                className="mt-3 block font-bold underline"
+                onClick={() => {
+                  operation.reset();
+                  setCanStartNewOperation(false);
+                  setGlobalError(null);
+                }}
+              >
+                Démarrer une nouvelle tentative
+              </button>
             )}
           </div>
         )}
@@ -283,7 +285,11 @@ export function ProgramForm({ onSubmit, generationQuota }: ProgramFormProps) {
           disabled={!formReady || isLoading || quotaExhausted}
         >
           {quotaExhausted
-            ? generationQuota.mode === 'standard' ? 'Crédits insuffisants' : generationQuota.mode === 'beta' ? 'Solde bêta épuisé' : 'Quota jury atteint'
+            ? generationQuota.mode === 'standard'
+              ? 'Crédits insuffisants'
+              : generationQuota.mode === 'beta'
+                ? 'Solde bêta épuisé'
+                : 'Quota jury atteint'
             : isLoading
               ? 'Préparation du programme…'
               : 'Générer le programme'}

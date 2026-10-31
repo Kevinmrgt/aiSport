@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { AppError } from '../types/app-error.js';
 import { BILLING_OFFER, type BillingStatus } from '@alcide/shared';
+import { billingSimulationEnabled } from '../services/billing-policy.js';
 
 export type BillingTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 export type CreditPersistence = <T>(save: (tx: BillingTransaction) => Promise<T>) => Promise<T>;
@@ -49,11 +50,12 @@ export async function findBillingUser(customerId: string): Promise<string | null
 }
 
 async function availableGrants(tx: BillingTransaction, userId: string): Promise<Grant[]> {
+  // All subscription grants in this TEST-only integration are simulations.
+  // Retain historical rows for audit/recovery, but never spend them on real AI.
   const result =
     await tx.execute(sql`SELECT g.id,g.source_key,g.remaining,g.subscription_id,g.expires_at FROM billing_credit_grants g
-    LEFT JOIN billing_subscriptions s ON s.id=g.subscription_id
     WHERE g.user_id=${userId}::uuid AND g.starts_at<=now() AND (g.expires_at IS NULL OR g.expires_at>now())
-    AND (g.subscription_id IS NULL OR s.status IN ('active','past_due'))
+    AND g.subscription_id IS NULL AND g.source_key NOT LIKE 'premium:%'
     ORDER BY g.expires_at ASC NULLS LAST,g.id`);
   return result.rows as unknown as Grant[];
 }
@@ -87,28 +89,24 @@ export async function readBillingStatus(userId: string): Promise<BillingStatus> 
       await tx.execute(sql`SELECT * FROM billing_subscriptions WHERE user_id=${userId}::uuid
       ORDER BY CASE WHEN status IN ('active','past_due','incomplete','trialing','unpaid','paused') THEN 0 ELSE 1 END,updated_at DESC LIMIT 1`);
     const subscription = result.rows[0];
-    const premiumGrants = grants.filter((g) => g.subscription_id !== null);
-    const freeCredits = grants
-      .filter((g) => g.subscription_id === null)
-      .reduce((sum, g) => sum + g.remaining, 0);
-    const premiumCredits = premiumGrants.reduce((sum, g) => sum + g.remaining, 0);
+    const freeCredits = grants.reduce((sum, g) => sum + g.remaining, 0);
     const status = subscription?.['status'] as string | undefined;
-    const premium = premiumGrants.length > 0;
-    const periodEnd =
-      premiumGrants[0]?.expires_at ?? (subscription?.['period_end'] as string | undefined);
+    const periodEnd = subscription?.['period_end'] as string | undefined;
     return {
-      plan: premium ? 'premium' : 'free',
+      plan: 'free',
       subscriptionStatus: status ?? null,
       freeCredits,
       offeredCredits: grants
         .filter((g) => g.source_key.startsWith('admin:'))
         .reduce((sum, g) => sum + g.remaining, 0),
-      premiumCredits,
-      remaining: freeCredits + premiumCredits,
+      premiumCredits: 0,
+      remaining: freeCredits,
       periodEnd: periodEnd ? new Date(periodEnd).toISOString() : null,
       cancelAtPeriodEnd: subscription?.['cancel_at_period_end'] === true,
-      canSubscribe: !status || ['canceled', 'incomplete_expired'].includes(status),
-      canManage: account.stripe_customer_id !== null,
+      canSubscribe:
+        billingSimulationEnabled() &&
+        (!status || ['canceled', 'incomplete_expired'].includes(status)),
+      canManage: billingSimulationEnabled() && account.stripe_customer_id !== null,
       testMode: true,
     };
   });
@@ -155,9 +153,14 @@ export async function persistWithCredits<T>(
   save: (tx: BillingTransaction) => Promise<T>,
 ): Promise<T> {
   return withBillingAccount(userId, async (tx) => {
-    const result = await tx.execute(sql`UPDATE billing_credit_reservations SET state='committed'
+    const result = await tx.execute(sql`UPDATE billing_credit_reservations r SET state='committed'
       WHERE id=${reservationId}::uuid AND user_id=${userId}::uuid AND state='pending'
-      AND created_at>now()-interval '10 minutes' RETURNING id`);
+      AND created_at>now()-interval '10 minutes'
+      AND NOT EXISTS (
+        SELECT 1 FROM jsonb_array_elements(r.allocations) a
+        LEFT JOIN billing_credit_grants g ON g.id=(a->>'id')::uuid AND g.user_id=r.user_id
+        WHERE g.id IS NULL OR g.subscription_id IS NOT NULL OR g.source_key LIKE 'premium:%'
+      ) RETURNING id`);
     if (!result.rows.length)
       throw AppError.serviceUnavailable('La génération a expiré. Veuillez réessayer.');
     // Saving the result and committing the debit succeed or roll back together.

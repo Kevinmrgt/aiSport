@@ -1,7 +1,7 @@
 export const BILLING_OFFER = {
   freeCredits: 3,
   premiumCredits: 30,
-  monthlyPriceCents: 999,
+  monthlyPriceCents: 500,
   currency: 'eur',
 } as const;
 

@@ -106,7 +106,7 @@ describe('formulaires metier', () => {
 
     expect((await screen.findByRole('alert')).textContent).toContain('Service IA indisponible');
     expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ sport: 'natation', weeks_count: 3, sessions_per_week: 3 }),
+      expect.objectContaining({ sport: 'natation', weeks_count: 2, sessions_per_week: 3 }),
       expect.any(String),
     );
   });

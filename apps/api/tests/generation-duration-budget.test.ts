@@ -99,6 +99,7 @@ describe('regeneration of an infeasible composition within the unchanged input b
       { sport: 'marche', level: 'beginner', duration_minutes: 15, goals },
       ai,
       {
+        onUsage: vi.fn(),
         onAttempt: (attempt) => {
           bounds.push(attempt.inputTokensUpperBound);
           if (attempt.inputTokensUpperBound > 16384)
@@ -169,6 +170,7 @@ describe('regeneration of an infeasible composition within the unchanged input b
         },
         ai,
         {
+          onUsage: vi.fn(),
           onAttempt: (attempt) => {
             bounds.push(attempt.inputTokensUpperBound);
             if (attempt.inputTokensUpperBound > 16384)

@@ -149,13 +149,13 @@ export async function callAiProvider(
     inputTokensUpperBound,
   });
   throwIfCancelled(options.signal);
-  if (options.onAttempt) {
-    try {
-      await options.onAttempt(attempt);
-    } catch (error) {
-      if (error instanceof AppError) throw error;
-      throw new AiAccountingError();
-    }
+  // Every provider path must be reserved and measurable, including internal callers.
+  if (!options.onAttempt || !options.onUsage) throw new AiAccountingError();
+  try {
+    await options.onAttempt(attempt);
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new AiAccountingError();
   }
   throwIfCancelled(options.signal);
   const controller = new AbortController();
@@ -236,6 +236,7 @@ async function callOpenAi(
     );
   }
   const data = (await response.json()) as OpenAiChatResponse;
+  let accounted = false;
   if (data.usage && options.onUsage) {
     const { prompt_tokens: input, completion_tokens: output, total_tokens: total } = data.usage;
     if (
@@ -258,11 +259,14 @@ async function callOpenAi(
           },
           attempt,
         );
+        accounted = true;
       } catch {
         throw new AiAccountingError();
       }
     }
   }
+  // Keep the admitted provision unresolved rather than accepting an unmeasured result.
+  if (!accounted) throw new AiAccountingError();
   const choice = data.choices?.[0];
   if (choice?.message?.refusal) throw new AiResponseError('refusal');
   if (choice?.finish_reason === 'length') throw new AiResponseError('truncated');

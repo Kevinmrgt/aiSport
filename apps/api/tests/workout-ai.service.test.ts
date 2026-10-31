@@ -5,6 +5,7 @@ import type { GenerateWorkoutInput } from '@alcide/shared';
 import type { AiConfig } from '../src/services/ai.service.js';
 
 // Mock fetch global (OWASP A10: pas d'appels réels à l'IA en test)
+const accounting = { onAttempt: vi.fn(), onUsage: vi.fn() };
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
@@ -47,6 +48,7 @@ const validWorkoutResponse = {
 };
 
 const validApiResponse = {
+  usage: { prompt_tokens: 12, completion_tokens: 8, total_tokens: 20 },
   choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(validWorkoutResponse) } }],
 };
 
@@ -73,7 +75,7 @@ describe('WorkoutAiService', () => {
         json: () => Promise.resolve(validApiResponse),
       });
 
-      const result = await generateWorkout(defaultInput, mockAiConfig);
+      const result = await generateWorkout(defaultInput, mockAiConfig, accounting);
 
       expect(result.title).toBe('Séance Course à Pied Débutant');
       expect(result.sport).toBe('course à pied');
@@ -93,11 +95,12 @@ describe('WorkoutAiService', () => {
         ok: true,
         json: () =>
           Promise.resolve({
+            usage: { prompt_tokens: 12, completion_tokens: 8, total_tokens: 20 },
             choices: [{ finish_reason: 'stop', message: { content: wrappedJson } }],
           }),
       });
 
-      const result = await generateWorkout(defaultInput, mockAiConfig);
+      const result = await generateWorkout(defaultInput, mockAiConfig, accounting);
       expect(result.title).toBe('Séance Course à Pied Débutant');
     });
 
@@ -109,10 +112,11 @@ describe('WorkoutAiService', () => {
         ok: true,
         json: () =>
           Promise.resolve({
+            usage: { prompt_tokens: 12, completion_tokens: 8, total_tokens: 20 },
             choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(response) } }],
           }),
       });
-      const result = await generateWorkout(defaultInput, mockAiConfig);
+      const result = await generateWorkout(defaultInput, mockAiConfig, accounting);
       expect(result.exercises[0]!.prescription!.reps).toBeUndefined();
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
@@ -125,6 +129,7 @@ describe('WorkoutAiService', () => {
           ok: true,
           json: () =>
             Promise.resolve({
+              usage: { prompt_tokens: 12, completion_tokens: 8, total_tokens: 20 },
               choices: [
                 { finish_reason: 'stop', message: { content: JSON.stringify(invalidWorkout) } },
               ],
@@ -136,7 +141,7 @@ describe('WorkoutAiService', () => {
           json: () => Promise.resolve(validApiResponse),
         });
 
-      const result = await generateWorkout(defaultInput, mockAiConfig);
+      const result = await generateWorkout(defaultInput, mockAiConfig, accounting);
       expect(mockFetch).toHaveBeenCalledTimes(2);
       expect(result.exercises).toHaveLength(1);
     });
@@ -156,6 +161,7 @@ describe('WorkoutAiService', () => {
           ok: true,
           json: () =>
             Promise.resolve({
+              usage: { prompt_tokens: 12, completion_tokens: 8, total_tokens: 20 },
               choices: [
                 {
                   finish_reason: 'stop',
@@ -169,7 +175,7 @@ describe('WorkoutAiService', () => {
           json: () => Promise.resolve(validApiResponse),
         });
 
-      const result = await generateWorkout(defaultInput, mockAiConfig);
+      const result = await generateWorkout(defaultInput, mockAiConfig, accounting);
 
       expect(mockFetch).toHaveBeenCalledTimes(2);
       expect(result.exercises[0]?.duration_seconds).toBe(1380);
@@ -187,12 +193,15 @@ describe('WorkoutAiService', () => {
         ok: true,
         json: () =>
           Promise.resolve({
+            usage: { prompt_tokens: 12, completion_tokens: 8, total_tokens: 20 },
             choices: [{ finish_reason: 'stop', message: { content: 'pas du JSON valide' } }],
           }),
       });
 
-      await expect(generateWorkout(defaultInput, mockAiConfig)).rejects.toThrow(AppError);
-      await expect(generateWorkout(defaultInput, mockAiConfig)).rejects.toMatchObject({
+      await expect(generateWorkout(defaultInput, mockAiConfig, accounting)).rejects.toThrow(
+        AppError,
+      );
+      await expect(generateWorkout(defaultInput, mockAiConfig, accounting)).rejects.toMatchObject({
         statusCode: 503,
       });
     });
@@ -204,8 +213,10 @@ describe('WorkoutAiService', () => {
         statusText: 'Too Many Requests',
       });
 
-      await expect(generateWorkout(defaultInput, mockAiConfig)).rejects.toThrow(AppError);
-      await expect(generateWorkout(defaultInput, mockAiConfig)).rejects.toMatchObject({
+      await expect(generateWorkout(defaultInput, mockAiConfig, accounting)).rejects.toThrow(
+        AppError,
+      );
+      await expect(generateWorkout(defaultInput, mockAiConfig, accounting)).rejects.toMatchObject({
         statusCode: 503,
       });
     });
@@ -221,7 +232,7 @@ describe('WorkoutAiService', () => {
           });
         });
 
-        const generation = generateWorkout(defaultInput, mockAiConfig);
+        const generation = generateWorkout(defaultInput, mockAiConfig, accounting);
         const assertion = expect(generation).rejects.toMatchObject({ statusCode: 503 });
         await vi.advanceTimersByTimeAsync(45_000);
 

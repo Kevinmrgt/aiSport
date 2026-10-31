@@ -9,6 +9,7 @@ export default defineConfig({
     './src/db/generation-budget.schema.ts',
     './src/db/privacy.schema.ts',
     './src/db/session-operation.schema.ts',
+    './src/db/pilot.schema.ts',
   ],
   out: './drizzle',
   dialect: 'postgresql',

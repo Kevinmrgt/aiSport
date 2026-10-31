@@ -1,4 +1,5 @@
 import { AppError } from '../types/app-error.js';
+import { PILOT_MODELS } from './pilot-policy.js';
 
 export interface GenerationPolicy {
   enabled: boolean;
@@ -39,7 +40,7 @@ export function generationPolicy(): GenerationPolicy {
   if (
     allowedModels.length === 0 ||
     allowedModels.length > 8 ||
-    allowedModels.some((model) => !/^gpt-[a-zA-Z0-9.-]{1,80}$/.test(model)) ||
+    allowedModels.some((model) => !(PILOT_MODELS as readonly string[]).includes(model)) ||
     !allowedModels.includes(defaultModel)
   ) {
     throw AppError.serviceUnavailable('Politique de modeles IA invalide');

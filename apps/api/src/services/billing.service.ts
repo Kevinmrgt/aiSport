@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { BILLING_OFFER } from '@alcide/shared';
 import { billingReturnUrl, premiumPriceId, stripeClient, stripeId } from '../lib/stripe.js';
 import { AppError } from '../types/app-error.js';
+import { assertBillingSimulationEnabled, billingSimulationEnabled } from './billing-policy.js';
 import {
   withBillingAccount,
   findBillingUser,
@@ -22,12 +23,18 @@ async function validatePrice(stripe: Stripe): Promise<string> {
     price.recurring.interval_count !== 1 ||
     price.tax_behavior !== 'inclusive'
   ) {
-    throw AppError.serviceUnavailable('Le tarif de test Premium doit être de 9,99 € TTC par mois.');
+    const amount = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(
+      BILLING_OFFER.monthlyPriceCents / 100,
+    );
+    throw AppError.serviceUnavailable(
+      `Le tarif de test Premium doit être de ${amount} TTC par mois.`,
+    );
   }
   return price.id;
 }
 
 export async function createCheckout(userId: string, email: string): Promise<{ url: string }> {
+  assertBillingSimulationEnabled();
   const stripe = stripeClient();
   const price = await validatePrice(stripe);
   return withBillingAccount(userId, async (tx, account) => {
@@ -86,6 +93,7 @@ export async function createCheckout(userId: string, email: string): Promise<{ u
 }
 
 export async function createPortal(userId: string): Promise<{ url: string }> {
+  assertBillingSimulationEnabled();
   const stripe = stripeClient();
   return withBillingAccount(userId, async (_tx, account) => {
     if (!account.stripe_customer_id)
@@ -107,7 +115,6 @@ async function reconcileSubscription(
   userId: string,
   customerId: string,
   subscriptionId: string,
-  invoiceId?: string,
 ): Promise<void> {
   // Fetch inside the per-user lock: delayed and out-of-order events cannot restore stale access.
   const sub = await stripe.subscriptions.retrieve(subscriptionId);
@@ -130,35 +137,11 @@ async function reconcileSubscription(
     VALUES (${sub.id},${userId}::uuid,${sub.status},${new Date(item.current_period_end * 1000).toISOString()}::timestamptz,${cancellationScheduled})
     ON CONFLICT(id) DO UPDATE SET status=excluded.status,period_end=excluded.period_end,
       cancel_at_period_end=excluded.cancel_at_period_end,updated_at=now()`);
-  const invoiceIds = new Set(
-    [invoiceId, stripeId(sub.latest_invoice)].filter((id): id is string => Boolean(id)),
-  );
-  for (const id of invoiceIds) {
-    const invoice = await stripe.invoices.retrieve(id);
-    if (
-      invoice.livemode ||
-      invoice.status !== 'paid' ||
-      stripeId(invoice.customer) !== customerId ||
-      stripeId(invoice.parent?.subscription_details?.subscription) !== sub.id ||
-      !['subscription_create', 'subscription_cycle'].includes(invoice.billing_reason ?? '')
-    )
-      continue;
-    for await (const line of stripe.invoices.listLineItems(id, { limit: 100 })) {
-      if (
-        stripeId(line.pricing?.price_details?.price) !== premiumPriceId() ||
-        line.parent?.subscription_item_details?.proration ||
-        line.period.end <= line.period.start
-      )
-        continue;
-      await tx.execute(sql`INSERT INTO billing_credit_grants(user_id,source_key,subscription_id,amount,remaining,starts_at,expires_at)
-        VALUES (${userId}::uuid,${`premium:${sub.id}:${line.period.start}`},${sub.id},${BILLING_OFFER.premiumCredits},${BILLING_OFFER.premiumCredits},
-          ${new Date(line.period.start * 1000).toISOString()}::timestamptz,${new Date(line.period.end * 1000).toISOString()}::timestamptz)
-        ON CONFLICT(source_key) DO NOTHING`);
-    }
-  }
+  // Informational TEST state only. Even paid invoices cannot fund real AI.
 }
 
 export async function syncCheckout(userId: string, sessionId: string): Promise<void> {
+  assertBillingSimulationEnabled();
   const stripe = stripeClient();
   return withBillingAccount(userId, async (tx, account) => {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
@@ -180,8 +163,7 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
   if (event.livemode)
     throw AppError.badRequest('Seuls les événements Stripe de test sont acceptés.');
   let customerId: string | null = null,
-    subscriptionId: string | null = null,
-    invoiceId: string | undefined;
+    subscriptionId: string | null = null;
   if (event.type.startsWith('customer.subscription.')) {
     const sub = event.data.object as Stripe.Subscription;
     customerId = stripeId(sub.customer);
@@ -194,7 +176,6 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
     const invoice = event.data.object as Stripe.Invoice;
     customerId = stripeId(invoice.customer);
     subscriptionId = stripeId(invoice.parent?.subscription_details?.subscription);
-    invoiceId = invoice.id;
   } else if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
     customerId = stripeId(session.customer);
@@ -203,7 +184,6 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
   if (!customerId || !subscriptionId) return;
   const userId = await findBillingUser(customerId);
   if (!userId) return;
-  const stripe = stripeClient();
   const customer = customerId,
     subscription = subscriptionId;
   await withBillingAccount(userId, async (tx) => {
@@ -211,6 +191,9 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
       sql`INSERT INTO billing_webhook_events(id) VALUES (${event.id}) ON CONFLICT DO NOTHING RETURNING id`,
     );
     if (!processed.rows.length) return;
-    await reconcileSubscription(tx, stripe, userId, customer, subscription, invoiceId);
+    // A delayed notification remains harmless when billing is closed. Keep its
+    // idempotency receipt, without contacting Stripe or allocating AI credits.
+    if (!billingSimulationEnabled()) return;
+    await reconcileSubscription(tx, stripeClient(), userId, customer, subscription);
   });
 }

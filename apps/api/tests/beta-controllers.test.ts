@@ -72,7 +72,7 @@ function app(
 describe('beta controllers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubEnv('AI_ALLOWED_MODELS', 'gpt-5.4-mini,gpt-5.4,gpt-5.5');
+    vi.stubEnv('AI_ALLOWED_MODELS', 'gpt-5.4-mini');
   });
   afterEach(() => vi.unstubAllEnvs());
 
@@ -128,12 +128,15 @@ describe('beta controllers', () => {
     const saved = await app().request('/admin/platform-settings', {
       method: 'PUT',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ defaultAiModel: 'gpt-5.4', defaultBetaGenerationBalance: 20 }),
+      body: JSON.stringify({
+        defaultAiModel: 'gpt-5.4-mini',
+        defaultBetaGenerationBalance: 20,
+      }),
     });
     expect(saved.status).toBe(200);
     expect(platformSettings.upsertPlatformSettings).toHaveBeenCalledWith(
       {
-        defaultAiModel: 'gpt-5.4',
+        defaultAiModel: 'gpt-5.4-mini',
         defaultBetaGenerationBalance: 20,
       },
       'admin@example.com',
