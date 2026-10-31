@@ -14,7 +14,10 @@ class ReleaseError extends Error {
 const fail = (message) => { throw new ReleaseError(message); };
 const production = (item) => !item.gitBranch && (Array.isArray(item.target) ? item.target : [item.target]).includes('production');
 const safeKey = (key) => /^[A-Z][A-Z0-9_]+$/.test(key);
-const mutableKeys = new Set(['DATABASE_URL', 'ALCIDE_DATABASE_URL', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'API_URL', 'NEXT_PUBLIC_API_URL', 'FRONTEND_URL', 'AUTH_URL', 'NEXTAUTH_URL', 'AI_MAX_COMPLETION_TOKENS']);
+const requiredPublisherKeys = ['LEGAL_OPERATOR_NAME', 'LEGAL_CONTACT_EMAIL', 'LEGAL_HOSTING_NAME', 'LEGAL_HOSTING_CONTACT',
+  'LEGAL_OPERATOR_ADDRESS', 'LEGAL_CONTACT_PHONE', 'LEGAL_OPERATOR_REGISTRATION', 'LEGAL_PUBLICATION_DIRECTOR'];
+const publisherKeys = new Set([...requiredPublisherKeys, 'LEGAL_VAT_NUMBER', 'LEGAL_DATA_HOSTING_NAME', 'LEGAL_DATA_HOSTING_CONTACT']);
+const mutableKeys = new Set(['DATABASE_URL', 'ALCIDE_DATABASE_URL', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'API_URL', 'NEXT_PUBLIC_API_URL', 'FRONTEND_URL', 'AUTH_URL', 'NEXTAUTH_URL', 'AI_MAX_COMPLETION_TOKENS', ...publisherKeys]);
 const releaseStages = new Set(['input_validation', 'ci_verification', 'configuration_read', 'bootstrap_plan', 'source_reference', 'backup', 'rehearsal',
   'diagnostic_input', 'diagnostic_deployment_lookup', 'diagnostic_environment_pull', 'diagnostic_project_environment_pull', 'diagnostic_project_database_read', 'diagnostic_database_sql',
   'prepared_backup_verification', 'live_target_verification', 'additive_live_migration', 'api_reference', 'web_reference', 'bootstrap_apply', 'admin_lookup_source', 'admin_lookup_target', 'admin_identity_comparison',
@@ -85,6 +88,28 @@ export function safeReleaseFailure(error, stage) {
   };
 }
 
+// This validates supplied public notices, never their legal completeness or accuracy.
+// A configured GitHub secret alone must not change an ordinary release.
+export function validateLegalPublisherInput(env) {
+  if (!env.PUBLISHER_CONFIRM) return {};
+  if (env.PUBLISHER_CONFIRM !== 'publish-provided-required-notices' || !['deploy', 'update'].includes(env.RELEASE_MODE)) fail('explicit_legal_publisher_confirmation_required');
+  const raw = env.LEGAL_PUBLISHER_JSON;
+  if (typeof raw !== 'string' || !raw || Buffer.byteLength(raw, 'utf8') > 16_384) fail('legal_publisher_payload_required');
+  let values;
+  try { values = JSON.parse(raw); } catch { fail('legal_publisher_payload_invalid'); }
+  if (!values || typeof values !== 'object' || Array.isArray(values) || Object.keys(values).some((key) => !publisherKeys.has(key))) fail('legal_publisher_keys_not_allowlisted');
+  if (requiredPublisherKeys.some((key) => !Object.hasOwn(values, key))) fail('legal_publisher_required_values_missing');
+  if (Object.hasOwn(values, 'LEGAL_DATA_HOSTING_NAME') !== Object.hasOwn(values, 'LEGAL_DATA_HOSTING_CONTACT')) fail('legal_publisher_data_host_pair_required');
+  for (const [key, value] of Object.entries(values)) {
+    const limit = key === 'LEGAL_CONTACT_EMAIL' ? 254 : key === 'LEGAL_CONTACT_PHONE' ? 80 : /ADDRESS|CONTACT/.test(key) ? 1024 : 512;
+    if (typeof value !== 'string' || !value || value.trim() !== value || value.length > limit || /[\u0000-\u001f\u007f<>]/.test(value) ||
+        /(?:javascript|vbscript|data)\s*:|postgres(?:ql)?:\/\/|-----BEGIN|\bBearer\s|\b(?:sk|rk)_(?:live|test)_|\bsk-(?:proj-|[a-z0-9]{20})/i.test(value)) fail('legal_publisher_value_invalid');
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.LEGAL_CONTACT_EMAIL) ||
+      !/^[+()\d .-]{6,80}$/.test(values.LEGAL_CONTACT_PHONE) || values.LEGAL_CONTACT_PHONE.replace(/\D/g, '').length < 6) fail('legal_publisher_contact_invalid');
+  return values;
+}
+
 export function validateReleaseInput(env) {
   const mode = env.RELEASE_MODE ?? 'plan';
   if (!['plan', 'rehearse', 'deploy', 'update'].includes(mode)) fail('invalid_release_mode');
@@ -100,6 +125,7 @@ export function validateReleaseInput(env) {
   if (mode === 'update' && env.UPDATE_CONFIRM !== 'preserve-live-admin-production') fail('explicit_live_update_confirmation_required');
   if (mode === 'update' && env.BOOTSTRAP_REUSE_EXISTING) fail('live_update_does_not_use_seed_reuse');
   if (mode !== 'plan' && Buffer.from(env.BACKUP_ENCRYPTION_KEY ?? '', 'base64').length !== 32) fail('backup_encryption_key_required');
+  validateLegalPublisherInput(env);
   return mode;
 }
 
@@ -222,6 +248,7 @@ export class VercelProduction {
   }
   async replace(project, original, key, value, undo) {
     if (!mutableKeys.has(key)) fail('environment_write_not_allowlisted');
+    if (publisherKeys.has(key) && project !== this.env.VERCEL_WEB_PROJECT_ID) fail('legal_publisher_web_project_required');
     const base = `/v9/projects/${encodeURIComponent(project)}/env`;
     if (original && (Array.isArray(original.target) ? original.target : [original.target]).length === 1) {
       // Register compensation before mutation: a timed-out request may have succeeded.
@@ -246,8 +273,9 @@ export class VercelProduction {
 }
 
 export async function inspectConfiguration(env, provider) {
+  const publisherValues = validateLegalPublisherInput(env);
   const apiKeys = ['DATABASE_URL', 'ALCIDE_DATABASE_URL', 'SERVICE_SECRET', 'AUTH_SECRET', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'BOOTSTRAP_ADMIN_USER_ID', 'APP_REVISION', 'FRONTEND_URL', 'AI_MAX_COMPLETION_TOKENS'];
-  const webKeys = ['SERVICE_SECRET', 'AUTH_SECRET', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'APP_REVISION', 'API_URL', 'NEXT_PUBLIC_API_URL', 'AUTH_URL', 'NEXTAUTH_URL'];
+  const webKeys = ['SERVICE_SECRET', 'AUTH_SECRET', 'PRODUCTION_ACCESS_MODE', 'ADMIN_EMAILS', 'APP_REVISION', 'API_URL', 'NEXT_PUBLIC_API_URL', 'AUTH_URL', 'NEXTAUTH_URL', ...Object.keys(publisherValues)];
   const [api, web, webMetadata] = await Promise.all([provider.snapshot(env.VERCEL_API_PROJECT_ID, apiKeys), provider.snapshot(env.VERCEL_WEB_PROJECT_ID, webKeys), provider.list(env.VERCEL_WEB_PROJECT_ID)]);
   const checks = {
     serviceSecretStrong: strongSecret(api.SERVICE_SECRET?.value) && strongSecret(web.SERVICE_SECRET?.value),
@@ -264,7 +292,7 @@ export async function inspectConfiguration(env, provider) {
     if (!applicationOverrideSelected) fail('live_update_application_database_required');
     if (decodeURIComponent(databaseUrl(direct.value).pathname.slice(1)) !== env.TARGET_DATABASE_NAME) fail('live_update_database_name_mismatch');
   } else targetDatabaseUrl(direct.value, env.TARGET_DATABASE_NAME);
-  return { api, web, source: direct.value, sourceDirectDerived: direct.sourceDirectDerived, applicationOverrideSelected, checks, ready: Object.values(checks).every(Boolean) };
+  return { api, web, publisherValues, source: direct.value, sourceDirectDerived: direct.sourceDirectDerived, applicationOverrideSelected, checks, ready: Object.values(checks).every(Boolean) };
 }
 
 // A deliberately small SQL grammar, not a heuristic search for DROP. New tables
@@ -869,7 +897,7 @@ export async function inspectVercelBuildArtifacts(env, { component = 'api', expe
     if (!['api', 'web'].includes(component) || env.GITHUB_ACTIONS !== 'true' || !env.GITHUB_WORKSPACE || resolve(env.GITHUB_WORKSPACE) !== root) fail('artifact_capture_requires_github_checkout');
     const expected = expectedValues ?? Object.fromEntries([...mutableKeys].filter((key) => typeof env[key] === 'string').map((key) => [key, env[key]]));
     const keys = Object.keys(expected);
-    if (!keys.length || keys.some((key) => !mutableKeys.has(key) || typeof expected[key] !== 'string') || (component === 'api' && !(expected.ALCIDE_DATABASE_URL !== undefined ? expected.ALCIDE_DATABASE_URL : expected.DATABASE_URL))) fail('artifact_expected_configuration_required');
+    if (!keys.length || keys.some((key) => !mutableKeys.has(key) || typeof expected[key] !== 'string' || (component !== 'web' && publisherKeys.has(key))) || (component === 'api' && !(expected.ALCIDE_DATABASE_URL !== undefined ? expected.ALCIDE_DATABASE_URL : expected.DATABASE_URL))) fail('artifact_expected_configuration_required');
     const projectId = component === 'api' ? env.VERCEL_API_PROJECT_ID : env.VERCEL_WEB_PROJECT_ID;
     const actualRoot = await realpath(root);
     const confined = async (path) => {
@@ -970,7 +998,7 @@ export async function bindVercelFunctionEnvironment(env, { component = 'api', ex
   const root = resolve(cwd);
   if (!['api', 'web'].includes(component) || env.GITHUB_ACTIONS !== 'true' || !env.GITHUB_WORKSPACE || resolve(env.GITHUB_WORKSPACE) !== root) fail('function_binding_requires_github_checkout');
   const keys = Object.keys(expectedValues ?? {});
-  if (!keys.length || keys.some((key) => !mutableKeys.has(key) || typeof expectedValues[key] !== 'string') || (component === 'api' && !(expectedValues.ALCIDE_DATABASE_URL !== undefined ? expectedValues.ALCIDE_DATABASE_URL : expectedValues.DATABASE_URL))) fail('function_binding_expected_values_required');
+  if (!keys.length || keys.some((key) => !mutableKeys.has(key) || typeof expectedValues[key] !== 'string' || (component !== 'web' && publisherKeys.has(key))) || (component === 'api' && !(expectedValues.ALCIDE_DATABASE_URL !== undefined ? expectedValues.ALCIDE_DATABASE_URL : expectedValues.DATABASE_URL))) fail('function_binding_expected_values_required');
   const projectId = component === 'api' ? env.VERCEL_API_PROJECT_ID : env.VERCEL_WEB_PROJECT_ID;
   if (!projectId) fail('function_binding_project_required');
   const actualRoot = await realpath(root);
@@ -1056,7 +1084,9 @@ export async function deployClosedProduction(env, configuration, provider, { boo
   const tagCompensation = (offset, component, key) => { for (const action of undo.slice(offset)) { action.component = component; action.key = key; } };
   const releaseValuesByProject = new Map();
   let failedStage = 'api_reference';
-  const cli = (project, args, action = args[0]) => command('npx', ['--yes', 'vercel@54.17.2', ...args, '--token', env.VERCEL_TOKEN], { ...env, ...releaseValuesByProject.get(project), VERCEL_PROJECT_ID: project, VERCEL_TELEMETRY_DISABLED: '1', VERCEL_FORCE_BUILD: '1', APP_REVISION: env.RELEASE_REVISION }, 1_200_000,
+  // The JSON transport is never forwarded to Vercel or a build subprocess.
+  const commandEnvironment = Object.fromEntries(Object.entries(env).filter(([key]) => !key.startsWith('LEGAL_')));
+  const cli = (project, args, action = args[0]) => command('npx', ['--yes', 'vercel@54.17.2', ...args, '--token', env.VERCEL_TOKEN], { ...commandEnvironment, ...releaseValuesByProject.get(project), VERCEL_PROJECT_ID: project, VERCEL_TELEMETRY_DISABLED: '1', VERCEL_FORCE_BUILD: '1', APP_REVISION: env.RELEASE_REVISION }, 1_200_000,
     { stage: `${project === env.VERCEL_API_PROJECT_ID ? 'api' : 'web'}_${action}` });
   const urls = [];
   const buildArtifactDiagnostics = {};
@@ -1067,6 +1097,9 @@ export async function deployClosedProduction(env, configuration, provider, { boo
   const aliasVerification = {};
   const automation = { temporaryTokenUsed: false, revokedBeforePromotion: false };
   try {
+    failedStage = 'input_validation';
+    const publisherValues = validateLegalPublisherInput({ ...env, LEGAL_PUBLISHER_JSON: env.LEGAL_PUBLISHER_JSON ??
+      (configuration.publisherValues && Object.keys(configuration.publisherValues).length ? JSON.stringify(configuration.publisherValues) : undefined) });
     for (const [index, project] of [env.VERCEL_API_PROJECT_ID, env.VERCEL_WEB_PROJECT_ID].entries()) {
       failedStage = index === 0 ? 'api_reference' : 'web_reference';
       const reference = await provider.previousDeployment(project);
@@ -1097,7 +1130,7 @@ export async function deployClosedProduction(env, configuration, provider, { boo
     }
     const values = [
       { DATABASE_URL: newDatabase, ALCIDE_DATABASE_URL: newDatabase, PRODUCTION_ACCESS_MODE: 'admin-only', ADMIN_EMAILS: env.BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_USER_ID: adminId, APP_REVISION: env.RELEASE_REVISION, FRONTEND_URL: 'https://www.alcideai.fr', AI_MAX_COMPLETION_TOKENS: '11000' },
-      { PRODUCTION_ACCESS_MODE: 'admin-only', ADMIN_EMAILS: env.BOOTSTRAP_ADMIN_EMAIL, APP_REVISION: env.RELEASE_REVISION, API_URL: 'https://ai-sport-api.vercel.app', NEXT_PUBLIC_API_URL: 'https://ai-sport-api.vercel.app', AUTH_URL: 'https://www.alcideai.fr', NEXTAUTH_URL: 'https://www.alcideai.fr' },
+      { PRODUCTION_ACCESS_MODE: 'admin-only', ADMIN_EMAILS: env.BOOTSTRAP_ADMIN_EMAIL, APP_REVISION: env.RELEASE_REVISION, API_URL: 'https://ai-sport-api.vercel.app', NEXT_PUBLIC_API_URL: 'https://ai-sport-api.vercel.app', AUTH_URL: 'https://www.alcideai.fr', NEXTAUTH_URL: 'https://www.alcideai.fr', ...publisherValues },
     ];
     for (const [index, project] of [env.VERCEL_API_PROJECT_ID, env.VERCEL_WEB_PROJECT_ID].entries()) {
       const component = index === 0 ? 'api' : 'web';
@@ -1120,9 +1153,16 @@ export async function deployClosedProduction(env, configuration, provider, { boo
       cli(project, ['build', '--prod']);
       failedStage = `${component}_function_environment`;
       const functionEnvironmentBinding = await functionEnvironmentBinder({ ...env, ...values[index] }, { component, expectedValues: values[index] });
+      if (index === 1 && Object.keys(publisherValues).length && (functionEnvironmentBinding.complete !== true || functionEnvironmentBinding.readbackVerified !== true || !(functionEnvironmentBinding.nodeBoundCount > 0))) fail('legal_publisher_runtime_binding_required');
       buildArtifactDiagnostics[component] = { functionEnvironmentBinding };
       failedStage = `${component}_build_artifacts`;
       buildArtifactDiagnostics[component] = { ...await artifactInspector({ ...env, ...values[index] }, { component, expectedValues: values[index], sourceDatabaseUrl: configuration.source }), functionEnvironmentBinding };
+      if (index === 1 && Object.keys(publisherValues).length) {
+        const artifacts = buildArtifactDiagnostics[component];
+        if (artifacts.complete !== true || artifacts.onlyOneOutputDirectory !== true || artifacts.environmentOverridesConsistent !== true ||
+            artifacts.outputs?.length !== 1 || artifacts.outputs.some((output) => !output.projectIdMatches || !output.projectRootDirectoryMatches || !output.productionBuildTarget || !output.cliVersionMatches ||
+              !output.pulledEnvironmentPresent || Object.keys(publisherValues).some((key) => !output.pulledEnvironmentComparedKeys?.includes(key) || output.pulledEnvironmentMismatchedKeys?.includes(key)))) fail('legal_publisher_build_verification_required');
+      }
       failedStage = `${component}_deploy`;
       // Bare --env KEY makes the pinned CLI read the value from child env.
       // Secret values never become command arguments or persisted CLI logs.
@@ -1177,7 +1217,7 @@ export async function deployClosedProduction(env, configuration, provider, { boo
       });
     }
     return { complete: true, access: 'admin-only', revision: env.RELEASE_REVISION, reuseExistingRequested: env.BOOTSTRAP_REUSE_EXISTING === 'verified-admin-copy', deploymentUrls: urls, previousDeploymentUrls: previous, unauthenticatedProtectedApiStatus: 401,
-      previousAliasReferences: references, aliasVerification, automation,
+      previousAliasReferences: references, aliasVerification, automation, legalPublisher: { applied: Object.keys(publisherValues).length > 0, webOnly: true, keysConfigured: Object.keys(publisherValues).length },
       ...(liveTargetEvidence ? { existingLiveTargetVerified: true, liveTarget: liveTargetEvidence } : { bootstrap: bootstrapResult }), buildArtifactDiagnostics, webOAuthConfiguration };
   } catch (error) {
     let rollbackComplete = true;
@@ -1244,6 +1284,10 @@ export async function runProductionAdminRelease(input, { provider, bootstrap = r
     if (['deploy', 'update'].includes(mode)) { failedStage = 'ci_verification'; report.ci = await requireSuccessfulCi(env, fetcher); }
     failedStage = 'configuration_read';
     const configuration = await inspectConfiguration(env, client);
+    // The private transport has served its only purpose. Backups/rehearsals and
+    // deployment subprocesses receive neither the JSON nor optional stale fields.
+    delete env.LEGAL_PUBLISHER_JSON;
+    report.legalPublisher = { requested: Object.keys(configuration.publisherValues).length > 0, webOnly: true, keysProvided: Object.keys(configuration.publisherValues).length };
     report.configuration = configuration.checks; report.sourceDirectDerived = configuration.sourceDirectDerived; report.applicationDatabaseOverrideSelected = configuration.applicationOverrideSelected;
     if (mode === 'update') {
       failedStage = 'live_target_verification';

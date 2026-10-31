@@ -3,7 +3,7 @@ import test from 'node:test';
 import { access, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { VercelProduction, validateReleaseInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand, safeReleaseFailure, verifyReleaseConfiguration, checkReleaseHealth, inspectDeploymentDatabase, safeVercelValidation, cleanupVercelCheckout, inspectVercelBuildArtifacts, bindVercelFunctionEnvironment, checkWebOAuthConfiguration, verifyLiveAdminProduction, rehearse, verifyPreparedBackup, validateAdditiveMigrationSql, readAdditiveUpdatePlan, applyAdditiveLiveUpdate, checkAliasConvergence, verifyRestoredConfiguration } from './production-admin-release.mjs';
+import { VercelProduction, validateReleaseInput, validateLegalPublisherInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand, safeReleaseFailure, verifyReleaseConfiguration, checkReleaseHealth, inspectDeploymentDatabase, safeVercelValidation, cleanupVercelCheckout, inspectVercelBuildArtifacts, bindVercelFunctionEnvironment, checkWebOAuthConfiguration, verifyLiveAdminProduction, rehearse, verifyPreparedBackup, validateAdditiveMigrationSql, readAdditiveUpdatePlan, applyAdditiveLiveUpdate, checkAliasConvergence, verifyRestoredConfiguration } from './production-admin-release.mjs';
 import { readCandidateLineage } from './db-migration-lineage.mjs';
 import { fileHash, migrationFingerprint } from './db-operations.mjs';
 
@@ -38,6 +38,130 @@ function providerFixture() {
     replace: async () => assert.fail('plan attempted environment write') };
 }
 const ready = { complete: true, ready: true, googleIdentityCount: 0, legacyGoogleLinkRequired: true, retainedRows: { users: 1 } };
+
+// Entirely fictional public-notice fixtures. Never use a real publisher here.
+const publisherFixture = () => ({ LEGAL_OPERATOR_NAME: 'Fixture Publisher EI', LEGAL_CONTACT_EMAIL: 'public@example.test',
+  LEGAL_HOSTING_NAME: 'Fixture Web Host', LEGAL_HOSTING_CONTACT: '10 Fixture Avenue, Example City',
+  LEGAL_OPERATOR_ADDRESS: '20 Fixture Road, Example City', LEGAL_CONTACT_PHONE: '+33 1 00 00 00 00',
+  LEGAL_OPERATOR_REGISTRATION: 'Fixture register 000000000', LEGAL_PUBLICATION_DIRECTOR: 'Fixture Director',
+  LEGAL_DATA_HOSTING_NAME: 'Fixture Data Host', LEGAL_DATA_HOSTING_CONTACT: '30 Fixture Lane, Example City' });
+const publisherInput = (values = publisherFixture()) => ({ ...env, RELEASE_MODE: 'update', PUBLISHER_CONFIRM: 'publish-provided-required-notices', LEGAL_PUBLISHER_JSON: JSON.stringify(values) });
+
+test('legal notices need the exact explicit deploy/update opt-in and ignore an unused secret', () => {
+  for (const mode of ['plan', 'rehearse', 'deploy', 'update']) {
+    assert.deepEqual(validateLegalPublisherInput({ ...env, RELEASE_MODE: mode, LEGAL_PUBLISHER_JSON: 'unused invalid JSON' }), {});
+  }
+  for (const mode of ['deploy', 'update']) assert.deepEqual(validateLegalPublisherInput({ ...publisherInput(), RELEASE_MODE: mode }), publisherFixture());
+  for (const change of [{ RELEASE_MODE: 'plan' }, { RELEASE_MODE: 'rehearse' }, { PUBLISHER_CONFIRM: 'yes' }, { PUBLISHER_CONFIRM: ' publish-provided-required-notices' }]) {
+    assert.throws(() => validateLegalPublisherInput({ ...publisherInput(), ...change }), /explicit_legal_publisher_confirmation_required/);
+  }
+});
+
+test('legal payload rejects arbitrary keys, secrets, executable content and invalid or unbounded data without echoing it', async () => {
+  const invalid = [null, [], 'private-marker', {}, { ...publisherFixture(), NEXT_PUBLIC_SERVICE_SECRET: 'private-marker' },
+    { ...publisherFixture(), LEGAL_CONTACT_EMAIL: 'private-marker' }, { ...publisherFixture(), LEGAL_CONTACT_PHONE: 'private-marker' },
+    ...['javascript:private-marker', 'data:private-marker', '<script>private-marker</script>', 'private-marker\nsecond line', 'postgresql://private-marker', 'sk_live_private-marker', 'x'.repeat(1025), 123, ''].map((value) => ({ ...publisherFixture(), LEGAL_OPERATOR_ADDRESS: value })),
+    Object.fromEntries(Object.entries(publisherFixture()).filter(([key]) => key !== 'LEGAL_DATA_HOSTING_CONTACT'))];
+  for (const values of invalid) {
+    let caught;
+    try { validateLegalPublisherInput(publisherInput(values)); } catch (error) { caught = error; }
+    assert.ok(caught);
+    assert.equal(JSON.stringify(safeReleaseFailure(caught, 'input_validation')).includes('private-marker'), false);
+  }
+  for (const raw of ['{private-marker', 'x'.repeat(16_385), '{"__proto__":"private-marker"}']) {
+    const result = await runProductionAdminRelease({ ...publisherInput(), LEGAL_PUBLISHER_JSON: raw,
+      UPDATE_CONFIRM: 'preserve-live-admin-production', BACKUP_ENCRYPTION_KEY: Buffer.alloc(32).toString('base64') }, { fetcher: async () => assert.fail('invalid payload reached CI/provider') });
+    assert.equal(result.complete, false); assert.equal(result.failure.failedStage, 'input_validation'); assert.equal(JSON.stringify(result).includes('private-marker'), false);
+  }
+});
+
+test('legal snapshot is restricted to provided Web keys; omitted VAT and ordinary releases preserve existing settings', async () => {
+  for (const confirmed of [false, true]) {
+    const input = confirmed ? { ...publisherInput(), RELEASE_MODE: 'deploy' } : { ...env, LEGAL_PUBLISHER_JSON: 'ignored invalid secret' };
+    const provider = providerFixture(); const snapshots = [];
+    const originalSnapshot = provider.snapshot;
+    provider.snapshot = async (project, keys) => { snapshots.push([project, keys]); return originalSnapshot(project, keys); };
+    const result = await inspectConfiguration(input, provider);
+    assert.deepEqual(result.publisherValues, confirmed ? publisherFixture() : {});
+    for (const [project, keys] of snapshots) {
+      assert.deepEqual(keys.filter((key) => key.startsWith('LEGAL_')).sort(), confirmed && project === 'web' ? Object.keys(publisherFixture()).sort() : []);
+      assert.equal(keys.includes('LEGAL_VAT_NUMBER'), false);
+    }
+  }
+});
+
+test('legal writes enforce Web scope and restore original absence, value, type and shared targets', async () => {
+  for (const original of [null, { id: 'existing', key: 'LEGAL_OPERATOR_ADDRESS', value: 'Prior fixture address', type: 'plain', target: ['production'] },
+    { id: 'existing', key: 'LEGAL_OPERATOR_ADDRESS', value: 'Prior fixture address', type: 'encrypted', target: ['production', 'preview', 'development'] }]) {
+    const state = original ? [structuredClone(original)] : [];
+    const provider = new VercelProduction(env); let mutations = 0;
+    provider.list = async () => state;
+    provider.snapshot = async (_project, keys) => Object.fromEntries(keys.map((key) => [key, state.find((item) => item.key === key && item.target.includes('production')) ?? null]));
+    provider.request = async (path, method, body) => {
+      mutations += 1;
+      if (method === 'PATCH') { Object.assign(state.find((item) => path.endsWith(`/${item.id}`)), body); return {}; }
+      if (method === 'DELETE') { state.splice(state.findIndex((item) => path.endsWith(`/${item.id}`)), 1); return {}; }
+      assert.equal(method, 'POST'); const item = { ...body, id: 'created' }; state.push(item); return { created: [item] };
+    };
+    await assert.rejects(provider.replace('api', original, 'LEGAL_OPERATOR_ADDRESS', 'New fixture address', []), /legal_publisher_web_project_required/);
+    assert.equal(mutations, 0);
+    const undo = []; await provider.replace('web', original, 'LEGAL_OPERATOR_ADDRESS', 'New fixture address', undo);
+    assert.equal(state.find((item) => item.target.includes('production')).value, 'New fixture address');
+    if (original?.target.length > 1) assert.deepEqual(state.find((item) => item.id === 'existing').target, ['preview', 'development']);
+    for (const compensate of undo.reverse()) await compensate();
+    assert.equal((await verifyRestoredConfiguration('web', { LEGAL_OPERATOR_ADDRESS: original }, ['LEGAL_OPERATOR_ADDRESS'], provider)).complete, true);
+    assert.deepEqual(state, original ? [original] : []);
+  }
+});
+
+test('publisher notices are Web-only through build/runtime, redact proofs, and compensate a failed staged Web', async () => {
+  for (const scenario of ['success', 'health_failure', 'empty_runtime', 'stale_build']) {
+    const failWeb = scenario !== 'success';
+    const input = publisherInput(); const values = publisherFixture(); const original = configuration();
+    for (const key of Object.keys(values)) original.web[key] = null;
+    original.web.LEGAL_OPERATOR_ADDRESS = { value: 'Prior fixture address', type: 'plain', target: ['production', 'preview'] };
+    original.web.LEGAL_VAT_NUMBER = { value: 'Preserved fixture VAT', type: 'encrypted', target: ['production'] };
+    const current = structuredClone(original); const writes = []; const commands = []; const bindings = [];
+    const provider = providerFixture();
+    provider.snapshot = async (project, keys) => Object.fromEntries(keys.map((key) => [key, current[project][key] ?? null]));
+    provider.replace = async (project, captured, key, value, undo) => {
+      if (key.startsWith('LEGAL_')) { assert.equal(project, 'web'); assert.deepEqual(captured, original.web[key]); }
+      writes.push([project, key]); const prior = structuredClone(current[project][key]);
+      undo.push(async () => { if (prior === undefined) delete current[project][key]; else current[project][key] = prior; });
+      current[project][key] = { value, target: ['production'], type: prior?.type ?? 'encrypted' };
+    };
+    const result = await deployClosedProduction(input, { ...original, source }, provider, {
+      liveVerifier: async () => ({ adminId: privateAdminId, evidence: { complete: true, existingLiveTargetVerified: true, pendingMigrations: 0 } }),
+      cleanup: async () => {}, denied: async () => {}, oauthConfiguration: async () => ({ canonicalCallbackVerified: true }),
+      health: async (url) => { if (scenario === 'health_failure' && url === 'https://new-web.vercel.app/api/health') throw new Error('private-marker'); },
+      functionEnvironmentBinder: async (_env, { component, expectedValues }) => {
+        bindings.push(component);
+        assert.deepEqual(Object.keys(expectedValues).filter((key) => key.startsWith('LEGAL_')).sort(), component === 'web' ? Object.keys(values).sort() : []);
+        return scenario === 'empty_runtime' && component === 'web' ? { complete: true, readbackVerified: true, nodeBoundCount: 0 } : mockFunctionBinder();
+      },
+      artifactInspector: async (_env, { component }) => ({ complete: true, onlyOneOutputDirectory: true, environmentOverridesConsistent: true, outputs: [{
+        projectIdMatches: true, projectRootDirectoryMatches: true, productionBuildTarget: true, cliVersionMatches: true,
+        pulledEnvironmentPresent: true, pulledEnvironmentComparedKeys: component === 'web' ? Object.keys(values) : [],
+        pulledEnvironmentMismatchedKeys: scenario === 'stale_build' && component === 'web' ? ['LEGAL_OPERATOR_ADDRESS'] : [],
+      }] }),
+      command: (_tool, args, child) => {
+        commands.push(args); assert.equal(child.LEGAL_PUBLISHER_JSON, undefined);
+        assert.deepEqual(Object.keys(child).filter((key) => key.startsWith('LEGAL_')).sort(), child.VERCEL_PROJECT_ID === 'web' ? Object.keys(values).sort() : []);
+        for (const value of Object.values(values)) assert.equal(args.includes(value), false);
+        if (args.includes('deploy')) return `https://new-${child.VERCEL_PROJECT_ID}.vercel.app`;
+        return '';
+      },
+    });
+    assert.deepEqual(bindings, ['api', 'web']);
+    assert.equal(result.complete, !failWeb);
+    if (scenario === 'empty_runtime') assert.equal(result.failure.reason, 'legal_publisher_runtime_binding_required');
+    if (scenario === 'stale_build') assert.equal(result.failure.reason, 'legal_publisher_build_verification_required');
+    assert.equal(writes.some(([, key]) => key === 'LEGAL_VAT_NUMBER'), false);
+    for (const value of [...Object.values(values), 'private-marker', 'Prior fixture address', 'Preserved fixture VAT']) assert.equal(JSON.stringify(result).includes(value), false);
+    if (failWeb) { assert.equal(result.rollbackComplete, true); assert.deepEqual(current, original); assert.equal(commands.some((args) => args.includes('promote')), false); }
+    else { assert.equal(result.legalPublisher.applied, true); for (const [key, value] of Object.entries(values)) assert.equal(current.web[key].value, value); }
+  }
+});
 
 const aliasHealthPayload = (servedRevision, extra = {}) => ({ service: 'alcide-api', status: 'ready', revision: servedRevision,
   timestamp: new Date().toISOString(), checks: { database: 'ok', schema: 'ok', aiConfiguration: 'ok' }, ...extra });
@@ -381,16 +505,18 @@ test('live update blocks SQL database, owner, accounts and unsafe or divergent m
 test('live update prepare requires exact CI and backs up the active URL without calling selective bootstrap', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'alcide-live-prepare-'));
   const fixture = await liveVerifierFixture(); const config = liveConfiguration(); const before = structuredClone(fixture.state); const calls = [];
-  const input = { ...liveEnv(), RELEASE_DIRECTORY: directory };
+  const input = { ...liveEnv(), RELEASE_DIRECTORY: directory, PUBLISHER_CONFIRM: 'publish-provided-required-notices', LEGAL_PUBLISHER_JSON: JSON.stringify(publisherFixture()) };
   try {
     const deps = { provider: liveProvider(config), fetcher: ciSuccess, liveVerifier: fixture.verifier,
       bootstrap: async () => assert.fail('live update must not call bootstrap'),
       identityReader: async (url) => { assert.equal(url, config.source); return { sourceIdentity: 'private-identity', databaseMajor: 17 }; },
-      backupRunner: async (scriptName, child) => { calls.push('backup'); assert.equal(scriptName, 'db-backup.mjs'); assert.equal(child.DATABASE_URL, config.source); assert.equal(child.PG_TOOLS_DOCKER_IMAGE, 'postgres:17-alpine'); assert.equal(child.BACKUP_ENCRYPTION_KEY, input.BACKUP_ENCRYPTION_KEY); },
-      rehearsalRunner: async (child, _directory, url, _identity, _bootstrap, options) => { calls.push('restore'); assert.equal(child.RELEASE_MODE, 'update'); assert.equal(url, config.source); assert.equal(options.liveConfiguration.source, url); return { fullRestoreVerified: true, selectiveCopyPerformed: false }; },
+      backupRunner: async (scriptName, child) => { calls.push('backup'); assert.equal(child.LEGAL_PUBLISHER_JSON, undefined); assert.equal(scriptName, 'db-backup.mjs'); assert.equal(child.DATABASE_URL, config.source); assert.equal(child.PG_TOOLS_DOCKER_IMAGE, 'postgres:17-alpine'); assert.equal(child.BACKUP_ENCRYPTION_KEY, input.BACKUP_ENCRYPTION_KEY); },
+      rehearsalRunner: async (child, _directory, url, _identity, _bootstrap, options) => { calls.push('restore'); assert.equal(child.LEGAL_PUBLISHER_JSON, undefined); assert.deepEqual(options.liveConfiguration.publisherValues, publisherFixture()); assert.equal(child.RELEASE_MODE, 'update'); assert.equal(url, config.source); assert.equal(options.liveConfiguration.source, url); return { fullRestoreVerified: true, selectiveCopyPerformed: false }; },
     };
     const result = await runProductionAdminRelease(input, deps);
     assert.equal(result.complete, true); assert.equal(result.phase, 'prepared'); assert.equal(result.existingLiveTargetVerified, true);
+    assert.equal(result.legalPublisher.requested, true); assert.equal(result.legalPublisher.applied, undefined);
+    for (const value of Object.values(publisherFixture())) assert.equal(JSON.stringify(result).includes(value), false);
     assert.equal(result.bootstrap, undefined); assert.equal(result.adminCopyVerified, undefined); assert.deepEqual(calls, ['backup', 'restore']); assert.deepEqual(fixture.state, before);
     calls.length = 0;
     const refused = await runProductionAdminRelease(input, { ...deps, fetcher: async () => ({ ok: true, json: async () => ({ workflow_runs: [] }) }) });
@@ -1299,6 +1425,30 @@ test('function binding pins Node release values, preserves unrelated env, skips 
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
+test('Web publisher bindings and pulled build values are privately verified while API bindings reject notices', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'alcide-web-publisher-binding-'));
+  const cache = join(root, '.vercel'); const node = join(cache, 'output/functions/web.func');
+  const gha = { ...env, GITHUB_ACTIONS: 'true', GITHUB_WORKSPACE: root }; const expected = publisherFixture();
+  try {
+    await mkdir(node, { recursive: true });
+    await writeFile(join(cache, 'project.json'), JSON.stringify({ projectId: 'web', settings: { rootDirectory: 'apps/web' } }));
+    await writeFile(join(cache, 'output/builds.json'), JSON.stringify({ target: 'production', cliVersion: '54.17.2' }));
+    await writeFile(join(node, '.vc-config.json'), JSON.stringify({ runtime: 'nodejs24.x', environment: { EXISTING: 'preserved-fixture' } }));
+    await writeFile(join(cache, '.env.production.local'), Object.entries(expected).map(([key, value]) => `${key}=${JSON.stringify(value)}`).join('\n'));
+    const binding = await bindVercelFunctionEnvironment(gha, { cwd: root, component: 'web', expectedValues: expected });
+    assert.equal(binding.readbackVerified, true); assert.equal(binding.nodeBoundCount, 1);
+    const output = JSON.parse(await readFile(join(node, '.vc-config.json'), 'utf8'));
+    assert.deepEqual(output.environment, { EXISTING: 'preserved-fixture', ...expected });
+    const artifacts = await inspectVercelBuildArtifacts(gha, { cwd: root, component: 'web', expectedValues: expected });
+    assert.equal(artifacts.complete, true); assert.equal(artifacts.environmentOverridesConsistent, true);
+    assert.deepEqual(artifacts.outputs[0].pulledEnvironmentComparedKeys.sort(), Object.keys(expected).sort());
+    assert.deepEqual(artifacts.outputs[0].pulledEnvironmentMismatchedKeys, []);
+    for (const value of Object.values(expected)) assert.equal(JSON.stringify({ binding, artifacts }).includes(value), false);
+    await assert.rejects(bindVercelFunctionEnvironment(gha, { cwd: root, component: 'api', expectedValues: { DATABASE_URL: source, ...expected } }), /function_binding_expected_values_required/);
+    assert.equal((await inspectVercelBuildArtifacts(gha, { cwd: root, component: 'api', expectedValues: { DATABASE_URL: source, ...expected } })).reason, 'artifact_expected_configuration_required');
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
 test('function binding rejects wrong project, wrong root directory, multiple outputs and external aliases before modifying configs', async () => {
   const root = await mkdtemp(join(tmpdir(), 'alcide-function-reject-'));
   const outside = await mkdtemp(join(tmpdir(), 'alcide-function-outside-'));
@@ -1510,6 +1660,9 @@ test('workflow preserves encrypted backup before release under the shared produc
   assert.match(workflow, /default: plan/);
   assert.match(workflow, /options: \[plan, rehearse, deploy, update\]/);
   assert.match(workflow, /UPDATE_CONFIRM: \$\{\{ inputs.update_confirm \}\}/);
+  assert.match(workflow, /publisher_confirm:\s*\n\s*description:[^\n]*\n\s*type: string\s*\n\s*default: ''/);
+  assert.match(workflow, /PUBLISHER_CONFIRM: \$\{\{ inputs.publisher_confirm \}\}/);
+  assert.match(workflow, /LEGAL_PUBLISHER_JSON: \$\{\{ secrets.PRODUCTION_LEGAL_PUBLISHER_JSON \}\}/);
   assert.match(workflow, /if: inputs.mode == 'deploy' \|\| inputs.mode == 'update'/);
   assert.match(workflow, /group: production-database-release/);
   assert.match(workflow, /actions: read/);
