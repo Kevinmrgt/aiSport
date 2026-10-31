@@ -9,6 +9,7 @@ COPY pnpm-workspace.yaml ./
 COPY pnpm-lock.yaml ./
 COPY package.json ./
 COPY packages/shared/package.json ./packages/shared/
+COPY packages/minimatch-legacy-compat/ ./packages/minimatch-legacy-compat/
 COPY apps/web/package.json ./apps/web/
 
 RUN pnpm install --frozen-lockfile
@@ -23,6 +24,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+COPY --from=deps /app/packages/minimatch-legacy-compat ./packages/minimatch-legacy-compat
 
 COPY pnpm-workspace.yaml ./
 COPY tsconfig.base.json ./
