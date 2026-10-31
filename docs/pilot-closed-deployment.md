@@ -1,6 +1,6 @@
 # Livraison des protections avec pilote fermé
 
-État : qualification locale réussie ; **déploiement non encore effectué**.
+État au 31 octobre 2026 : **déployé et vérifié en production, pilote inactif et inscriptions fermées**.
 
 Le candidat réunit les incidents techniques (`0014_technical_incidents`) et les
 protections financières du pilote (`0015_pilot_protections`). Il conserve les
@@ -131,3 +131,51 @@ Le SHA candidat, la CI, la sauvegarde/restauration de la vraie cible, les deux
 déploiements et leurs contrôles finaux sont consignés par le chef lors de leur
 exécution. Aucun contrôle local présenté ici ne prétend établir une connexion
 Google neuve ni une génération réelle chez le fournisseur.
+
+## Livraison distante vérifiée
+
+La révision applicative déployée est
+`dade429d84d258382b83a96acc5e92a24eb93333`.
+La [CI complète](https://github.com/Kevinmrgt/aiSport/actions/runs/41211290335)
+est réussie sur ce SHA : typage, lint, audit de sécurité, couvertures unitaires et
+PostgreSQL, parcours publics, construction, recette authentifiée compilée et
+images Docker API/Web. La recette authentifiée compte neuf contrôles réussis et
+zéro appel IA réel ; ses cinq appels sont des réponses locales simulées.
+Elle vérifie aussi les refus avant activation puis sans invitation, le tarif de
+5 € et les souscriptions fermées. L'ancien coupe-circuit global est initialisé
+explicitement dans cette seule base de recette locale neuve.
+
+Le [déploiement contrôlé](https://github.com/Kevinmrgt/aiSport/actions/runs/41211889161)
+est réussi en mode `update`, avec la confirmation de pilote fermé et les deux
+confirmations de recette IA réelle et de publication légale laissées vides.
+
+| Preuve distante | Résultat |
+| --- | --- |
+| Contrôle préalable puis final de l'hébergement | Plan Vercel Hobby confirmé |
+| Accès API et Web | `admin-only`, même unique allowlist ; API protégée sans authentification : 401 |
+| Sauvegarde de la cible réelle | Chiffrée, archivée avant migration ; restauration intégrale vérifiée sur copie isolée |
+| Migration sur copie puis cible réelle | 14 → 16 ; incidents puis protections pilote, hashes exacts |
+| Conservation | Même base, toutes les données et le catalogue existants préservés, identité Google conservée |
+| État final du pilote | Désactivé ; 0 activation, 0 invitation, 0 admission et 0 tentative |
+| Stripe | Simulation désactivée ; les protections TEST sont dans la révision servie |
+| API canonique | `/health/ready` : `ready`, schéma et base OK, SHA exact |
+| Web canonique | `/api/health` : `ok`, SHA exact |
+| Dépense | Aucun achat, provisionnement payant, paiement ou appel IA réel lancé |
+
+Les deux contrôles publics ont été relus après la réussite du workflow. La
+variable de supervision `PROD_EXPECTED_REVISION` désigne maintenant ce SHA ;
+`ENABLE_GHA_VERCEL_CD` reste `false`. Cette lecture de santé ne certifie pas la
+cadence du planificateur ni une nouvelle connexion OAuth.
+
+Les artefacts du run conservent séparément la sauvegarde chiffrée
+`closed-admin-backup-41211889161-1` et les preuves expurgées
+`closed-admin-evidence-41211889161-1` pendant 30 jours. Les copies locales des
+preuves expurgées et la lecture de santé sont dans
+`tmp/pilot-release/production-41211889161/` ; aucun secret ni dump déchiffré
+n'est versionné. L'empreinte de la sauvegarde chiffrée est
+`97292b19eecd628aacf6c93b97df94a311fa29c77159964f845f9322fc99c6d6`.
+
+Le plafond applicatif de 20 USD sur 720 heures et les limites serveur sont
+déployés. Aucune fenêtre de pilote n'a été démarrée et aucun droit d'accès
+pilote n'a été créé. Les 720 heures commenceront uniquement lors d'une
+activation opérateur explicite ultérieure.
