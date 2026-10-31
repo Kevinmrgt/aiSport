@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { AppError } from '../types/app-error.js';
+import { captureIncident } from './incident.service.js';
 
 export type AiProvider = 'openai';
 export interface AiConfig {
@@ -150,11 +151,15 @@ export async function callAiProvider(
   });
   throwIfCancelled(options.signal);
   // Every provider path must be reserved and measurable, including internal callers.
-  if (!options.onAttempt || !options.onUsage) throw new AiAccountingError();
+  if (!options.onAttempt || !options.onUsage) {
+    captureIncident({ source: 'ai', code: 'AI_ACCOUNTING_ERROR', statusCode: 503 });
+    throw new AiAccountingError();
+  }
   try {
     await options.onAttempt(attempt);
   } catch (error) {
     if (error instanceof AppError) throw error;
+    captureIncident({ source: 'ai', code: 'AI_ACCOUNTING_ERROR', statusCode: 503 });
     throw new AiAccountingError();
   }
   throwIfCancelled(options.signal);
@@ -170,7 +175,30 @@ export async function callAiProvider(
     return await callOpenAi(config.apiKey, model, prompt, controller.signal, options, attempt);
   } catch (error) {
     if (options.signal?.aborted) throw new AiCancelledError();
-    if (timedOut) throw new AiTimeoutError(timeoutMs);
+    if (timedOut) {
+      captureIncident({ source: 'ai', code: 'AI_TIMEOUT', statusCode: 504 });
+      throw new AiTimeoutError(timeoutMs);
+    }
+    if (error instanceof AiAccountingError) {
+      captureIncident({ source: 'ai', code: 'AI_ACCOUNTING_ERROR', statusCode: 503 });
+    } else if (error instanceof AiProviderError) {
+      captureIncident({
+        source: 'ai',
+        code: 'AI_PROVIDER_ERROR',
+        statusCode: error.status >= 500 ? error.status : 502,
+      });
+    } else if (
+      error instanceof AiResponseError &&
+      ['protocol', 'truncated'].includes(error.reason)
+    ) {
+      captureIncident({ source: 'ai', code: 'AI_RESPONSE_INVALID', statusCode: 502 });
+    } else if (!(error instanceof AppError) && !(error instanceof AiResponseError)) {
+      captureIncident({
+        source: 'ai',
+        code: error instanceof SyntaxError ? 'AI_RESPONSE_INVALID' : 'AI_NETWORK_ERROR',
+        statusCode: 502,
+      });
+    }
     throw error;
   } finally {
     clearTimeout(timeoutId);

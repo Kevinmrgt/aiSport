@@ -11,6 +11,8 @@ import type {
   AdminContentDetail,
   AdminSummary,
   AdminSettingsResponse,
+  AdminIncident,
+  AdminIncidentQuery,
 } from '@alcide/shared';
 import { requireAdmin } from './admin';
 import { serverFetch, type AdminOverview } from './server-api';
@@ -19,7 +21,7 @@ export async function adminFetch<T>(path: string, options?: RequestInit): Promis
   await requireAdmin();
   return serverFetch<T>(`/admin${path}`, options);
 }
-function queryString(query: AdminQuery) {
+function queryString(query: AdminQuery | AdminIncidentQuery) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query))
     if (value !== undefined && value !== '') params.set(key, String(value));
@@ -37,6 +39,8 @@ export const adminApi = {
   credits: (query: AdminQuery) =>
     adminFetch<AdminPage<AdminCreditEntry>>(`/credits${queryString(query)}`),
   audit: (query: AdminQuery) => adminFetch<AdminAuditPage>(`/audit${queryString(query)}`),
+  incidents: (query: AdminIncidentQuery) =>
+    adminFetch<AdminPage<AdminIncident>>(`/incidents${queryString(query)}`),
   contents: (kind: 'workouts' | 'programs', query: AdminQuery) =>
     adminFetch<AdminPage<AdminContent>>(`/${kind}${queryString(query)}`),
   content: (kind: 'workouts' | 'programs', id: string) =>

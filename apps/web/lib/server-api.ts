@@ -111,7 +111,11 @@ export async function serverFetch<T>(
   }
 
   const authMethod = session.user.authMethod === 'beta' ? 'beta' : 'standard';
-  if (authMethod === 'beta' && session.user.betaMustChangePassword && !['/auth/beta/password', '/account/status', '/account', '/account/export'].includes(path)) {
+  if (
+    authMethod === 'beta' &&
+    session.user.betaMustChangePassword &&
+    !['/auth/beta/password', '/account/status', '/account', '/account/export'].includes(path)
+  ) {
     redirect('/change-password');
   }
   const requestId = crypto.randomUUID();
@@ -151,7 +155,9 @@ export async function serverFetch<T>(
         ),
         'x-request-id': requestId,
         'x-auth-method': authMethod,
-        ...(authMethod === 'beta' && session.user.betaSessionVersion ? { 'x-beta-session-version': session.user.betaSessionVersion } : {}),
+        ...(authMethod === 'beta' && session.user.betaSessionVersion
+          ? { 'x-beta-session-version': session.user.betaSessionVersion }
+          : {}),
         'x-auth-issued-at': String(session.user.authIssuedAt ?? ''),
       },
     });
@@ -187,14 +193,18 @@ export async function serverFetch<T>(
     );
   }
 
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
 
 export const serverApi = {
   getBillingStatus: (): Promise<BillingStatus> => serverFetch<BillingStatus>('/billing/status'),
-  createCheckout: (): Promise<{ url: string }> => serverFetch('/billing/checkout', { method: 'POST' }, 55_000),
-  createBillingPortal: (): Promise<{ url: string }> => serverFetch('/billing/portal', { method: 'POST' }, 30_000),
-  syncCheckout: (sessionId: string): Promise<{ ok: true }> => serverFetch('/billing/sync', { method: 'POST', body: JSON.stringify({ sessionId }) }, 55_000),
+  createCheckout: (): Promise<{ url: string }> =>
+    serverFetch('/billing/checkout', { method: 'POST' }, 55_000),
+  createBillingPortal: (): Promise<{ url: string }> =>
+    serverFetch('/billing/portal', { method: 'POST' }, 30_000),
+  syncCheckout: (sessionId: string): Promise<{ ok: true }> =>
+    serverFetch('/billing/sync', { method: 'POST', body: JSON.stringify({ sessionId }) }, 55_000),
   getGenerationQuota: (): Promise<GenerationQuota> =>
     serverFetch<GenerationQuota>('/generation-quota'),
 
@@ -282,32 +292,54 @@ export const serverApi = {
       body: JSON.stringify(input),
     }),
 
-  changeBetaPassword: (input: { currentPassword: string; newPassword: string }): Promise<{ ok: boolean }> =>
-    serverFetch<{ ok: boolean }>('/auth/beta/password', { method: 'PUT', body: JSON.stringify(input) }),
+  changeBetaPassword: (input: {
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<{ ok: boolean }> =>
+    serverFetch<{ ok: boolean }>('/auth/beta/password', {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
 
   listBetaTesters: (): Promise<{ betaTesters: BetaTesterSummary[] }> =>
     serverFetch<{ betaTesters: BetaTesterSummary[] }>('/admin/beta-testers'),
 
-  getAdminOverview: (): Promise<AdminOverview> =>
-    serverFetch<AdminOverview>('/admin/overview'),
+  getAdminOverview: (): Promise<AdminOverview> => serverFetch<AdminOverview>('/admin/overview'),
 
-  savePlatformSettings: (input: AdminOverview['settings']): Promise<{ settings: AdminOverview['settings'] }> =>
+  savePlatformSettings: (
+    input: AdminOverview['settings'],
+  ): Promise<{ settings: AdminOverview['settings'] }> =>
     serverFetch<{ settings: AdminOverview['settings'] }>('/admin/platform-settings', {
       method: 'PUT',
       body: JSON.stringify(input),
     }),
 
-  createBetaTester: (input: { name: string; email: string; generationBalance: number }): Promise<BetaTesterSummary & { temporaryPassword: string }> =>
-    serverFetch<BetaTesterSummary & { temporaryPassword: string }>('/admin/beta-testers', { method: 'POST', body: JSON.stringify(input) }),
+  createBetaTester: (input: {
+    name: string;
+    email: string;
+    generationBalance: number;
+  }): Promise<BetaTesterSummary & { temporaryPassword: string }> =>
+    serverFetch<BetaTesterSummary & { temporaryPassword: string }>('/admin/beta-testers', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
 
   adjustBetaCredits: (userId: string, amount: number): Promise<{ generationBalance: number }> =>
-    serverFetch<{ generationBalance: number }>(`/admin/beta-testers/${userId}/credits`, { method: 'POST', body: JSON.stringify({ amount }) }),
+    serverFetch<{ generationBalance: number }>(`/admin/beta-testers/${userId}/credits`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    }),
 
   setBetaStatus: (userId: string, active: boolean): Promise<{ ok: boolean }> =>
-    serverFetch<{ ok: boolean }>(`/admin/beta-testers/${userId}/status`, { method: 'PATCH', body: JSON.stringify({ active }) }),
+    serverFetch<{ ok: boolean }>(`/admin/beta-testers/${userId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ active }),
+    }),
 
   resetBetaPassword: (userId: string): Promise<{ temporaryPassword: string }> =>
-    serverFetch<{ temporaryPassword: string }>(`/admin/beta-testers/${userId}/password-reset`, { method: 'POST' }),
+    serverFetch<{ temporaryPassword: string }>(`/admin/beta-testers/${userId}/password-reset`, {
+      method: 'POST',
+    }),
 
   deleteBetaTester: (userId: string): Promise<{ ok: boolean }> =>
     serverFetch<{ ok: boolean }>(`/admin/beta-testers/${userId}`, { method: 'DELETE' }),

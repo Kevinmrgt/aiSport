@@ -370,6 +370,46 @@ export function validateAdditiveMigrationSql(sql, previouslyCreated = new Set())
   return { statements: statements.map((statement) => statement.sql), createdTables: created };
 }
 
+// This is a reviewed artifact, not an extension of the generic SQL grammar.
+// Changing one byte, the tag or the journal timestamp requires another review.
+export const pinnedPilotMigration = Object.freeze({
+  tag: '0015_pilot_protections', index: 15, createdAt: 1793453127096,
+  hash: '18d9f8d8c852d9a5e8aaabb07020b713a5d0a803ccea446b0e4f84c2b273cb2e',
+  tables: Object.freeze(['pilot_admissions', 'pilot_attempts', 'pilot_control', 'pilot_invitations']),
+});
+
+export function validatePinnedPilotMigration(candidate, sql, previouslyCreated = new Set()) {
+  if (candidate.tag !== pinnedPilotMigration.tag || candidate.index !== pinnedPilotMigration.index || candidate.createdAt !== pinnedPilotMigration.createdAt ||
+      candidate.hash !== pinnedPilotMigration.hash || createHash('sha256').update(sql).digest('hex') !== pinnedPilotMigration.hash)
+    fail('live_update_pinned_pilot_migration_mismatch');
+  if (pinnedPilotMigration.tables.some((table) => previouslyCreated.has(table))) fail('live_update_duplicate_added_table');
+  const createdTables = new Set([...previouslyCreated, ...pinnedPilotMigration.tables]);
+  // The digest pins the exact breakpoint positions and all function bodies too.
+  const statements = sql.split('--> statement-breakpoint').map((statement) => statement.trim()).filter(Boolean);
+  return { statements, createdTables };
+}
+
+async function requireNewPilotObjects(client) {
+  const result = (await client.query(`select
+    (select count(*)::integer from pg_class c join pg_namespace n on n.oid=c.relnamespace
+      where n.nspname='public' and c.relname in ('pilot_admissions','pilot_attempts','pilot_control','pilot_invitations')) as relations,
+    (select count(*)::integer from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+      where n.nspname='public' and p.proname in ('pilot_preserve_control','pilot_preserve_ledger')) as functions,
+    (select count(*)::integer from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace
+      where n.nspname='public' and t.tgname in ('pilot_control_immutable','pilot_invitations_preserved','pilot_admissions_preserved','pilot_attempts_preserved')) as triggers`)).rows[0];
+  if (!result || result.relations !== 0 || result.functions !== 0 || result.triggers !== 0) fail('live_update_pilot_objects_already_exist');
+}
+
+export async function verifyClosedPilotState(client) {
+  const result = (await client.query(`select
+    (select count(*)::integer from public.pilot_control) as controls,
+    (select count(*)::integer from public.pilot_invitations) as invitations,
+    (select count(*)::integer from public.pilot_admissions) as admissions,
+    (select count(*)::integer from public.pilot_attempts) as attempts`)).rows[0];
+  if (!result || ['controls', 'invitations', 'admissions', 'attempts'].some((key) => result[key] !== 0)) fail('live_update_pilot_not_closed');
+  return { complete: true, enabled: false, activations: 0, invitations: 0, admissions: 0, attempts: 0 };
+}
+
 export async function readAdditiveUpdatePlan(lineage, { folder = migrationsFolder } = {}) {
   const candidates = await readCandidateLineage(folder);
   if (lineage.compatible !== true || !Number.isSafeInteger(lineage.appliedMigrations) || lineage.appliedMigrations < 1 ||
@@ -378,7 +418,9 @@ export async function readAdditiveUpdatePlan(lineage, { folder = migrationsFolde
   for (const candidate of candidates.slice(lineage.appliedMigrations)) {
     const sql = await readFile(new URL(`${candidate.tag}.sql`, folder), 'utf8');
     if (createHash('sha256').update(sql).digest('hex') !== candidate.hash) fail('live_update_migration_hash_changed');
-    const validated = validateAdditiveMigrationSql(sql, created); created = validated.createdTables;
+    const validated = candidate.tag === pinnedPilotMigration.tag
+      ? validatePinnedPilotMigration({ ...candidate, index: candidates.indexOf(candidate) }, sql, created) : validateAdditiveMigrationSql(sql, created);
+    created = validated.createdTables;
     migrations.push({ ...candidate, statements: validated.statements });
   }
   return { appliedMigrationsBefore: lineage.appliedMigrations, appliedMigrationsAfter: candidates.length,
@@ -418,11 +460,12 @@ export async function verifyLiveAdminProduction(env, configuration, {
     const lineage = await lineageInspector(client);
     const plan = await planReader(lineage);
     const googleCount = await verifyAdminRows(client, env, pinnedId, authorized);
+    const pilotClosed = lineage.appliedMigrations > pinnedPilotMigration.index ? await verifyClosedPilotState(client) : undefined;
     await client.query('rollback');
     return { adminId: pinnedId, evidence: { complete: true, existingLiveTargetVerified: true, sourceReadOnly: true,
       databaseNameVerified: true, adminOwnerVerified: true, usersVerified: 1, googleAccountsVerified: googleCount,
       appliedMigrations: lineage.appliedMigrations, pendingMigrations: lineage.pendingMigrations,
-      additiveSuffix: plan.suffix, dataPreserved: true } };
+      additiveSuffix: plan.suffix, dataPreserved: true, ...(pilotClosed ? { pilotClosed } : {}) } };
   } finally { await client.end().catch(() => undefined); }
 }
 
@@ -503,6 +546,8 @@ export async function applyAdditiveLiveUpdate(env, configuration, expected, {
     if (!expected || JSON.stringify(summary) !== JSON.stringify({ appliedMigrationsBefore: expected.appliedMigrationsBefore,
       appliedMigrationsAfter: expected.appliedMigrationsAfter, suffix: expected.suffix })) fail('live_update_rehearsed_suffix_mismatch');
     const before = await stateReader(client);
+    const addsPilot = plan.migrations.some((migration) => migration.tag === pinnedPilotMigration.tag);
+    if (addsPilot) await requireNewPilotObjects(client);
     for (const migration of plan.migrations) {
       for (const statement of migration.statements) await client.query(statement);
       await client.query('insert into drizzle.__drizzle_migrations (hash, created_at) values ($1, $2)', [migration.hash, migration.createdAt]);
@@ -512,9 +557,12 @@ export async function applyAdditiveLiveUpdate(env, configuration, expected, {
         afterLineage.matchedPrefix !== plan.appliedMigrationsAfter) fail('live_update_post_migration_lineage_invalid');
     const after = await stateReader(client, before); assertPreservationState(before, after);
     if (await verifyAdminRows(client, env, configuration.api.BOOTSTRAP_ADMIN_USER_ID.value, env.BOOTSTRAP_ADMIN_EMAIL.trim().toLowerCase()) !== googleCount) fail('live_update_google_identity_changed');
+    const pilotClosed = addsPilot || before.tables.some((table) => table.schema === 'public' && table.name === 'pilot_control')
+      ? await verifyClosedPilotState(client) : undefined;
     await client.query('commit'); transaction = false;
     return { complete: true, ...summary, sameDatabase: true, fullDataPreserved: true, existingCatalogPreserved: true,
-      oldDeploymentSchemaCompatible: true, ownerGooglePreserved: true, existingTablesVerified: before.tables.length };
+      oldDeploymentSchemaCompatible: true, ownerGooglePreserved: true, existingTablesVerified: before.tables.length,
+      ...(pilotClosed ? { pilotClosed } : {}) };
   } finally {
     if (transaction) await client.query('rollback').catch(() => undefined);
     if (locked) await client.query('select pg_advisory_unlock(1946010371, 1)').catch(() => undefined);
@@ -639,6 +687,9 @@ export async function verifyPreparedBackup(env, directory, source, { identityRea
     const plan = await planReader({ compatible: true, appliedMigrations: migration.appliedMigrationsBefore,
       matchedPrefix: migration.appliedMigrationsBefore, pendingMigrations: migration.appliedMigrationsAfter - migration.appliedMigrationsBefore });
     if (migration.appliedMigrationsAfter !== plan.appliedMigrationsAfter || JSON.stringify(migration.suffix) !== JSON.stringify(plan.suffix)) fail('live_update_rehearsed_suffix_mismatch');
+    if (plan.appliedMigrationsAfter > pinnedPilotMigration.index &&
+        (!migration.pilotClosed?.complete || migration.pilotClosed.enabled !== false ||
+         ['activations', 'invitations', 'admissions', 'attempts'].some((key) => migration.pilotClosed[key] !== 0))) fail('live_update_pilot_closed_rehearsal_required');
   }
   const modeVerified = env.RELEASE_MODE === 'update' ?
     fullRestoreVerified && proof.releaseMode === 'update' && proof.fullRestoreVerified === true && proof.existingLiveTargetVerified === true &&

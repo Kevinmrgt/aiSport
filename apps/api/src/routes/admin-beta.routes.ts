@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { handleListIncidents, handleUpdateIncident } from '../controllers/incident.controller.js';
 import {
   handleAdjustBetaBalance,
   handleCreateBetaTester,
@@ -33,6 +34,8 @@ adminBetaRouter.use('*', async (ctx, next) => {
   await next();
 });
 adminBetaRouter.get('/summary', handleAdminSummary);
+adminBetaRouter.get('/incidents', handleListIncidents);
+adminBetaRouter.patch('/incidents/:id', handleUpdateIncident);
 adminBetaRouter.get('/analytics', handleAdminAnalytics);
 adminBetaRouter.get('/members', handleAdminMembers);
 adminBetaRouter.get('/members/:id', handleAdminMember);

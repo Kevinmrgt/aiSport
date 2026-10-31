@@ -27,6 +27,10 @@ describe('lectures administrateur côté serveur', () => {
       [() => adminApi.member('a/b'), '/members/a%2Fb'],
       [() => adminApi.subscriptions({ page: 1 }), '/subscriptions?page=1'],
       [() => adminApi.credits({ page: 1 }), '/credits?page=1'],
+      [
+        () => adminApi.incidents({ page: 1, source: 'web', status: 'new' }),
+        '/incidents?page=1&source=web&status=new',
+      ],
       [() => adminApi.contents('workouts', { page: 1 }), '/workouts?page=1'],
       [() => adminApi.content('programs', 'a/b'), '/programs/a%2Fb'],
     ];

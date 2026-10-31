@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import { reportBrowserIncident } from '@/lib/browser-incidents';
 
 interface ErrorPageProps {
   error: Error & { digest?: string };
@@ -12,6 +13,7 @@ interface ErrorPageProps {
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
   useEffect(() => {
     console.error('[ErrorBoundary]', error.digest ?? 'unknown');
+    reportBrowserIncident('react_boundary');
   }, [error]);
 
   return (

@@ -1,6 +1,11 @@
 'use client';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
+import { reportBrowserIncident } from '@/lib/browser-incidents';
 export default function AdminError({ reset }: { reset: () => void }) {
+  useEffect(() => {
+    reportBrowserIncident('react_boundary');
+  }, []);
   return (
     <section className="admin-panel" role="alert">
       <h1>Chargement impossible</h1>

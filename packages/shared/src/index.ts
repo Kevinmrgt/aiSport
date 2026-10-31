@@ -80,3 +80,4 @@ export type { GenerationQuota } from './types/generation-quota.types.js';
 export { BILLING_OFFER } from './types/billing.types.js';
 export type { BillingStatus } from './types/billing.types.js';
 export * from './admin.js';
+export * from './incidents.js';

@@ -1,3 +1,4 @@
+import { logFailure } from '../lib/logging.js';
 import type { Context } from 'hono';
 import { z } from 'zod';
 import {
@@ -64,7 +65,7 @@ export async function handleSaveSettings(ctx: Context): Promise<Response> {
       aiModel: normalizeOpenAiModel(parsed.data.model),
     });
   } catch {
-    console.error('[Settings]', { code: 'SETTINGS_WRITE_FAILED' });
+    logFailure('[Settings]', { code: 'SETTINGS_WRITE_FAILED' });
     throw AppError.internal(
       'Impossible de sauvegarder les parametres. Reessayez dans quelques instants.',
     );

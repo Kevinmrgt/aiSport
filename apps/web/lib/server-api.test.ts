@@ -4,7 +4,7 @@ vi.mock('server-only', () => ({}));
 vi.mock('@/lib/auth', () => ({ auth: vi.fn() }));
 
 import { auth } from '@/lib/auth';
-import { isServerApiNotFound, ServerApiError, serverApi } from './server-api';
+import { isServerApiNotFound, ServerApiError, serverApi, serverFetch } from './server-api';
 
 const authMock = vi.mocked(auth);
 
@@ -47,6 +47,17 @@ describe('serverApi', () => {
 
     await expect(serverApi.getStats()).rejects.toThrow('Non authentifie');
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('accepte une collecte sans contenu sans tenter de lire du JSON', async () => {
+    const reply = response(undefined, 204);
+    const json = vi.fn();
+    reply.json = json;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply));
+    await expect(
+      serverFetch<void>('/incidents', { method: 'POST', body: '{}' }, 2_000),
+    ).resolves.toBeUndefined();
+    expect(json).not.toHaveBeenCalled();
   });
 
   it('atteste la verification du JWT serveur et refuse les sessions interdites avant fetch', async () => {

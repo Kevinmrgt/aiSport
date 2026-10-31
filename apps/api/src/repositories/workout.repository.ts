@@ -1,3 +1,4 @@
+import { logFailure } from '../lib/logging.js';
 import { eq, desc, and, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { workouts } from '../db/schema.js';
@@ -29,9 +30,9 @@ export async function createWorkout(userId: string, workout: Workout): Promise<W
     // OWASP A09: logger l'erreur DB native avant de la convertir en AppError
     // (les erreurs Drizzle/PostgreSQL ne sont pas des AppError — elles deviendraient
     // des [UnexpectedError] 500 sans message utile sans ce wrapper)
-    console.error('[WorkoutRepository] Erreur DB createWorkout:', {
+    logFailure('[WorkoutRepository] Erreur DB createWorkout:', {
       code: 'DB_WRITE_FAILED',
-      timestamp: new Date().toISOString(),
+      statusCode: 500,
     });
     throw AppError.internal("Erreur de base de données lors de la création de l'entraînement");
   }

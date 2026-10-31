@@ -10,6 +10,7 @@ import {
   AdminReasonSchema,
   AdminSettingsSchema,
   AdminSuspensionSchema,
+  UpdateIncidentStatusSchema,
 } from '@alcide/shared';
 import { adminApi, adminFetch } from '@/lib/admin-api';
 import { requireAdmin } from '@/lib/admin';
@@ -29,6 +30,7 @@ const operations = z.enum([
   'credits.grant',
   'settings.model',
   'settings.balance',
+  'incident.status',
 ]);
 export async function performAdminAction(
   operation: string,
@@ -43,7 +45,9 @@ export async function performAdminAction(
   };
   const userId = string('userId');
   if (
-    !['beta.create', 'settings.model', 'settings.balance'].includes(action.data) &&
+    !['beta.create', 'settings.model', 'settings.balance', 'incident.status'].includes(
+      action.data,
+    ) &&
     !z.string().uuid().safeParse(userId).success
   )
     return { error: 'Membre invalide.' };
@@ -51,6 +55,18 @@ export async function performAdminAction(
   try {
     let result: AdminActionResult = { success: true };
     switch (action.data) {
+      case 'incident.status': {
+        const incidentId = string('incidentId');
+        if (!z.string().uuid().safeParse(incidentId).success)
+          return { error: 'Incident invalide.' };
+        const parsed = UpdateIncidentStatusSchema.safeParse({ status: string('status') });
+        if (!parsed.success) return { error: 'Statut invalide.' };
+        await adminFetch(`/incidents/${incidentId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(parsed.data),
+        });
+        break;
+      }
       case 'beta.create': {
         const input = validate(AdminBetaCreateSchema, {
           name: string('name'),

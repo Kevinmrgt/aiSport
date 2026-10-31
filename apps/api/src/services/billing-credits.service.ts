@@ -1,3 +1,4 @@
+import { logFailure } from '../lib/logging.js';
 import {
   persistWithCredits,
   releaseCredits,
@@ -17,7 +18,10 @@ export async function withBillingCredits<T>(
     try {
       await releaseCredits(userId, reservation);
     } catch {
-      console.error('[Billing] Credit release deferred to reservation recovery', { reservation });
+      logFailure('[Billing] Credit release deferred to reservation recovery', {
+        code: 'CREDIT_RELEASE_FAILED',
+        statusCode: 500,
+      });
     }
     throw error;
   }

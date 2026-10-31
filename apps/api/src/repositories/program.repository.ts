@@ -1,3 +1,4 @@
+import { logFailure } from '../lib/logging.js';
 import { and, eq, desc, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { trainingPrograms } from '../db/schema.js';
@@ -55,9 +56,9 @@ export async function createProgram(
     created = result[0];
   } catch {
     // OWASP A09: logger l'erreur DB native avant de la convertir en AppError
-    console.error('[ProgramRepository] Erreur DB createProgram:', {
+    logFailure('[ProgramRepository] Erreur DB createProgram:', {
       code: 'DB_WRITE_FAILED',
-      timestamp: new Date().toISOString(),
+      statusCode: 500,
     });
     throw AppError.internal('Erreur de base de données lors de la création du programme');
   }

@@ -1,3 +1,4 @@
+import { logFailure } from '../lib/logging.js';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
 import { db } from '../db/index.js';
@@ -125,9 +126,9 @@ async function insertSessionLog(
       .returning();
     created = result[0];
   } catch {
-    console.error('[SessionLogRepository] Erreur DB createSessionLog:', {
+    logFailure('[SessionLogRepository] Erreur DB createSessionLog:', {
       code: 'DB_WRITE_FAILED',
-      timestamp: new Date().toISOString(),
+      statusCode: 500,
     });
     throw AppError.internal('Erreur de base de donnees lors de la creation du journal de seance');
   }

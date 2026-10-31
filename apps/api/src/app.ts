@@ -11,6 +11,7 @@ import { requestId } from './lib/logging.js';
 import { bodyLimit } from 'hono/body-limit';
 import { handleError } from './middleware/error.middleware.js';
 import { registerRoutes } from './routes/index.js';
+import { incidentMiddleware } from './services/incident.service.js';
 
 const frontendUrl = process.env['FRONTEND_URL'] ?? 'http://localhost:3000';
 
@@ -61,6 +62,7 @@ app.use('*', async (ctx, next) => {
     durationMs: Math.round(performance.now() - started),
   });
 });
+app.use('*', incidentMiddleware);
 // Bound untrusted input before JSON parsing and Zod validation.
 app.use(
   '*',

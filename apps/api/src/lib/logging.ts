@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { captureFailure } from '../services/incident.service.js';
 
 export function requestId(value?: string): string {
   return value &&
@@ -11,6 +12,7 @@ export function logFailure(
   event: string,
   details: { requestId?: string; code?: string; statusCode?: number; errorName?: string },
 ): void {
+  captureFailure(details);
   // Only these fields may cross the log boundary. Never spread exception objects.
   console.error(event, {
     requestId: details.requestId,

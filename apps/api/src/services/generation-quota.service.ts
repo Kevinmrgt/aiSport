@@ -1,3 +1,4 @@
+import { logFailure } from '../lib/logging.js';
 import type { GenerationQuota } from '@alcide/shared';
 import {
   getGenerationQuotaUsage,
@@ -89,9 +90,9 @@ export async function runWithGenerationQuota<T>(
     try {
       await releaseGenerationSlot(userId);
     } catch {
-      console.error('[GenerationQuota] Impossible de liberer la reservation apres echec', {
+      logFailure('[GenerationQuota] Impossible de liberer la reservation apres echec', {
         code: 'QUOTA_RELEASE_FAILED',
-        timestamp: new Date().toISOString(),
+        statusCode: 500,
       });
     }
     throw error;

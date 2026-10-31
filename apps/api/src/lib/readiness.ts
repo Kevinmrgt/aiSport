@@ -15,9 +15,10 @@ type DatabaseChecks = Pick<ReadinessResult['checks'], 'database' | 'schema'>;
 // Kept in sync with the committed journal by readiness.test.ts. No runtime file I/O
 // is needed in Vercel's serverless bundle.
 export const READINESS_MIGRATION_TIMESTAMP = 1793453127096;
-export const READINESS_MIGRATION_COUNT = 15;
+export const READINESS_MIGRATION_COUNT = 16;
 
 const REQUIRED_TABLES = [
+  'public.incidents',
   'public.users',
   'public.accounts',
   'public.sessions',

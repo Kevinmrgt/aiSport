@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import './globals.css';
+import { IncidentCollector } from '@/components/IncidentCollector';
 
 const bodyFont = localFont({
   src: [
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: { readonly children: React.Reac
   return (
     <html lang="fr">
       <body className={`${bodyFont.variable} ${displayFont.variable} font-sans antialiased`}>
+        <IncidentCollector />
         {children}
       </body>
     </html>

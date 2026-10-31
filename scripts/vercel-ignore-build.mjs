@@ -37,6 +37,7 @@ const decision = getIgnoreDecision({
   app,
   vercelEnv: process.env.VERCEL_ENV,
   forceBuild: process.env.VERCEL_FORCE_BUILD,
+  gitRef: process.env.VERCEL_GIT_COMMIT_REF,
   files,
 });
 

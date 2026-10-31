@@ -1,9 +1,57 @@
 {
   "id": "523f8c0e-934f-4454-951d-7427e2aaeb45",
-  "prevId": "18c84cbe-481f-4194-8d05-9c25ab897744",
+  "prevId": "154ebd74-3efb-4ff4-9a6d-b2addf09a9ef",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.account_revocations": {
+      "name": "account_revocations",
+      "schema": "",
+      "columns": {
+        "subject_hash": {
+          "name": "subject_hash",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "revoked_at": {
+          "name": "revoked_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "account_revocations_expires_idx": {
+          "name": "account_revocations_expires_idx",
+          "columns": [
+            {
+              "expression": "expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.accounts": {
       "name": "accounts",
       "schema": "",
@@ -812,6 +860,326 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.generation_control": {
+      "name": "generation_control",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "'global'"
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "generation_control_global_check": {
+          "name": "generation_control_global_check",
+          "value": "\"generation_control\".\"id\" = 'global'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.generation_daily_budgets": {
+      "name": "generation_daily_budgets",
+      "schema": "",
+      "columns": {
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "day": {
+          "name": "day",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "reserved_tokens": {
+          "name": "reserved_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "input_tokens": {
+          "name": "input_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "output_tokens": {
+          "name": "output_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "generation_daily_budgets_user_idx": {
+          "name": "generation_daily_budgets_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "generation_daily_budgets_user_id_users_id_fk": {
+          "name": "generation_daily_budgets_user_id_users_id_fk",
+          "tableFrom": "generation_daily_budgets",
+          "tableTo": "users",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "generation_daily_budgets_scope_day_pk": {
+          "name": "generation_daily_budgets_scope_day_pk",
+          "columns": ["scope", "day"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "generation_daily_budgets_scope_check": {
+          "name": "generation_daily_budgets_scope_check",
+          "value": "(\"generation_daily_budgets\".\"scope\" = 'global' and \"generation_daily_budgets\".\"user_id\" is null) or (\"generation_daily_budgets\".\"user_id\" is not null and \"generation_daily_budgets\".\"scope\" = 'user:' || \"generation_daily_budgets\".\"user_id\"::text)"
+        },
+        "generation_daily_budgets_counters_check": {
+          "name": "generation_daily_budgets_counters_check",
+          "value": "\"generation_daily_budgets\".\"attempts\" >= 0 and \"generation_daily_budgets\".\"reserved_tokens\" >= 0 and \"generation_daily_budgets\".\"input_tokens\" >= 0 and \"generation_daily_budgets\".\"output_tokens\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.generation_operations": {
+      "name": "generation_operations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "operation_key": {
+          "name": "operation_key",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "input_hash": {
+          "name": "input_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'running'"
+        },
+        "resource_id": {
+          "name": "resource_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "reserved_tokens": {
+          "name": "reserved_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "input_tokens": {
+          "name": "input_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "output_tokens": {
+          "name": "output_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "lease_expires_at": {
+          "name": "lease_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "generation_operations_user_key_uidx": {
+          "name": "generation_operations_user_key_uidx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "operation_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "generation_operations_active_idx": {
+          "name": "generation_operations_active_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "lease_expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "generation_operations_user_id_users_id_fk": {
+          "name": "generation_operations_user_id_users_id_fk",
+          "tableFrom": "generation_operations",
+          "tableTo": "users",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "generation_operations_kind_check": {
+          "name": "generation_operations_kind_check",
+          "value": "\"generation_operations\".\"kind\" in ('workout', 'program')"
+        },
+        "generation_operations_status_check": {
+          "name": "generation_operations_status_check",
+          "value": "\"generation_operations\".\"status\" in ('running', 'succeeded', 'failed')"
+        },
+        "generation_operations_counters_check": {
+          "name": "generation_operations_counters_check",
+          "value": "\"generation_operations\".\"attempts\" >= 0 and \"generation_operations\".\"reserved_tokens\" >= 0 and \"generation_operations\".\"input_tokens\" >= 0 and \"generation_operations\".\"output_tokens\" >= 0"
+        },
+        "generation_operations_hash_check": {
+          "name": "generation_operations_hash_check",
+          "value": "\"generation_operations\".\"input_hash\" ~ '^[a-f0-9]{64}$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.generation_quotas": {
       "name": "generation_quotas",
       "schema": "",
@@ -867,6 +1235,262 @@
       },
       "isRLSEnabled": false
     },
+    "public.generation_usage_events": {
+      "name": "generation_usage_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "operation_id": {
+          "name": "operation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_key": {
+          "name": "event_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "input_tokens": {
+          "name": "input_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "output_tokens": {
+          "name": "output_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "total_tokens": {
+          "name": "total_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "generation_usage_events_operation_key_uidx": {
+          "name": "generation_usage_events_operation_key_uidx",
+          "columns": [
+            {
+              "expression": "operation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "event_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "generation_usage_events_operation_id_generation_operations_id_fk": {
+          "name": "generation_usage_events_operation_id_generation_operations_id_fk",
+          "tableFrom": "generation_usage_events",
+          "tableTo": "generation_operations",
+          "columnsFrom": ["operation_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "generation_usage_events_tokens_check": {
+          "name": "generation_usage_events_tokens_check",
+          "value": "\"generation_usage_events\".\"input_tokens\" >= 0 and \"generation_usage_events\".\"output_tokens\" >= 0 and \"generation_usage_events\".\"total_tokens\" >= \"generation_usage_events\".\"input_tokens\" + \"generation_usage_events\".\"output_tokens\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.incidents": {
+      "name": "incidents",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "fingerprint": {
+          "name": "fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "severity": {
+          "name": "severity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "route": {
+          "name": "route",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "method": {
+          "name": "method",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status_code": {
+          "name": "status_code",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_request_id": {
+          "name": "last_request_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "occurrence_count": {
+          "name": "occurrence_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "first_seen_at": {
+          "name": "first_seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "last_seen_at": {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'new'"
+        }
+      },
+      "indexes": {
+        "incidents_last_seen_idx": {
+          "name": "incidents_last_seen_idx",
+          "columns": [
+            {
+              "expression": "last_seen_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "incidents_status_last_seen_idx": {
+          "name": "incidents_status_last_seen_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "last_seen_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "incidents_fingerprint_unique": {
+          "name": "incidents_fingerprint_unique",
+          "nullsNotDistinct": false,
+          "columns": ["fingerprint"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "incidents_source_check": {
+          "name": "incidents_source_check",
+          "value": "\"incidents\".\"source\" IN ('api','ai','web')"
+        },
+        "incidents_severity_check": {
+          "name": "incidents_severity_check",
+          "value": "\"incidents\".\"severity\" IN ('warning','error','critical')"
+        },
+        "incidents_status_check": {
+          "name": "incidents_status_check",
+          "value": "\"incidents\".\"status\" IN ('new','in_progress','resolved')"
+        },
+        "incidents_count_check": {
+          "name": "incidents_count_check",
+          "value": "\"incidents\".\"occurrence_count\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.page_visits": {
       "name": "page_visits",
       "schema": "",
@@ -904,6 +1528,315 @@
         }
       },
       "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.pilot_admissions": {
+      "name": "pilot_admissions",
+      "schema": "",
+      "columns": {
+        "operation_id": {
+          "name": "operation_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "invitation_id": {
+          "name": "invitation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "pilot_admissions_invitation_id_pilot_invitations_id_fk": {
+          "name": "pilot_admissions_invitation_id_pilot_invitations_id_fk",
+          "tableFrom": "pilot_admissions",
+          "tableTo": "pilot_invitations",
+          "columnsFrom": ["invitation_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.pilot_attempts": {
+      "name": "pilot_attempts",
+      "schema": "",
+      "columns": {
+        "receipt_id": {
+          "name": "receipt_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "operation_id": {
+          "name": "operation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "input_nano_usd_per_token": {
+          "name": "input_nano_usd_per_token",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "output_nano_usd_per_token": {
+          "name": "output_nano_usd_per_token",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "input_tokens_upper_bound": {
+          "name": "input_tokens_upper_bound",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "output_tokens_upper_bound": {
+          "name": "output_tokens_upper_bound",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reserved_nano_usd": {
+          "name": "reserved_nano_usd",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "actual_nano_usd": {
+          "name": "actual_nano_usd",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "input_tokens": {
+          "name": "input_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "output_tokens": {
+          "name": "output_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider_request_hash": {
+          "name": "provider_request_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "settled_at": {
+          "name": "settled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usage_model": {
+          "name": "usage_model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "pilot_attempts_provider_receipt_uidx": {
+          "name": "pilot_attempts_provider_receipt_uidx",
+          "columns": [
+            {
+              "expression": "provider_request_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "pilot_attempts_operation_id_pilot_admissions_operation_id_fk": {
+          "name": "pilot_attempts_operation_id_pilot_admissions_operation_id_fk",
+          "tableFrom": "pilot_attempts",
+          "tableTo": "pilot_admissions",
+          "columnsFrom": ["operation_id"],
+          "columnsTo": ["operation_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "pilot_attempts_amounts": {
+          "name": "pilot_attempts_amounts",
+          "value": "\"pilot_attempts\".\"reserved_nano_usd\" >= 0 and (\"pilot_attempts\".\"actual_nano_usd\" is null or \"pilot_attempts\".\"actual_nano_usd\" >= 0) and \"pilot_attempts\".\"input_nano_usd_per_token\" >= 825 and \"pilot_attempts\".\"output_nano_usd_per_token\" >= 4950"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.pilot_control": {
+      "name": "pilot_control",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "activated_at": {
+          "name": "activated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ends_at": {
+          "name": "ends_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cap_nano_usd": {
+          "name": "cap_nano_usd",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "legacy_nano_usd": {
+          "name": "legacy_nano_usd",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "review_reference": {
+          "name": "review_reference",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reviewer": {
+          "name": "reviewer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "pilot_control_constants": {
+          "name": "pilot_control_constants",
+          "value": "\"pilot_control\".\"id\" = 'global' and \"pilot_control\".\"cap_nano_usd\" = 20000000000 and \"pilot_control\".\"ends_at\" = \"pilot_control\".\"activated_at\" + interval '720 hours' and \"pilot_control\".\"legacy_nano_usd\" >= 0 and \"pilot_control\".\"legacy_nano_usd\" <= \"pilot_control\".\"cap_nano_usd\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.pilot_invitations": {
+      "name": "pilot_invitations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "pilot_invitations_user_uidx": {
+          "name": "pilot_invitations_user_uidx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "pilot_invitations_user_id_users_id_fk": {
+          "name": "pilot_invitations_user_id_users_id_fk",
+          "tableFrom": "pilot_invitations",
+          "tableTo": "users",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -958,6 +1891,83 @@
           "value": "\"platform_settings\".\"default_beta_generation_balance\" BETWEEN 1 AND 10000"
         }
       },
+      "isRLSEnabled": false
+    },
+    "public.session_log_operations": {
+      "name": "session_log_operations",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "operation_key": {
+          "name": "operation_key",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "input_hash": {
+          "name": "input_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "log_id": {
+          "name": "log_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "session_log_operations_log_idx": {
+          "name": "session_log_operations_log_idx",
+          "columns": [
+            {
+              "expression": "log_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "session_log_operations_user_id_users_id_fk": {
+          "name": "session_log_operations_user_id_users_id_fk",
+          "tableFrom": "session_log_operations",
+          "tableTo": "users",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "session_log_operations_log_id_session_logs_id_fk": {
+          "name": "session_log_operations_log_id_session_logs_id_fk",
+          "tableFrom": "session_log_operations",
+          "tableTo": "session_logs",
+          "columnsFrom": ["log_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "session_log_operations_user_id_operation_key_pk": {
+          "name": "session_log_operations_user_id_operation_key_pk",
+          "columns": ["user_id", "operation_key"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.session_logs": {
@@ -1718,860 +2728,6 @@
           "value": "jsonb_typeof(\"workouts\".\"data\") = 'object' and \"workouts\".\"data\" ? 'exercises'"
         }
       },
-      "isRLSEnabled": false
-    },
-    "public.generation_control": {
-      "name": "generation_control",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "'global'"
-        },
-        "enabled": {
-          "name": "enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "generation_control_global_check": {
-          "name": "generation_control_global_check",
-          "value": "\"generation_control\".\"id\" = 'global'"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.generation_daily_budgets": {
-      "name": "generation_daily_budgets",
-      "schema": "",
-      "columns": {
-        "scope": {
-          "name": "scope",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "day": {
-          "name": "day",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "attempts": {
-          "name": "attempts",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "reserved_tokens": {
-          "name": "reserved_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "input_tokens": {
-          "name": "input_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "output_tokens": {
-          "name": "output_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "generation_daily_budgets_user_idx": {
-          "name": "generation_daily_budgets_user_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "generation_daily_budgets_user_id_users_id_fk": {
-          "name": "generation_daily_budgets_user_id_users_id_fk",
-          "tableFrom": "generation_daily_budgets",
-          "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "generation_daily_budgets_scope_day_pk": {
-          "name": "generation_daily_budgets_scope_day_pk",
-          "columns": ["scope", "day"]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "generation_daily_budgets_scope_check": {
-          "name": "generation_daily_budgets_scope_check",
-          "value": "(\"generation_daily_budgets\".\"scope\" = 'global' and \"generation_daily_budgets\".\"user_id\" is null) or (\"generation_daily_budgets\".\"user_id\" is not null and \"generation_daily_budgets\".\"scope\" = 'user:' || \"generation_daily_budgets\".\"user_id\"::text)"
-        },
-        "generation_daily_budgets_counters_check": {
-          "name": "generation_daily_budgets_counters_check",
-          "value": "\"generation_daily_budgets\".\"attempts\" >= 0 and \"generation_daily_budgets\".\"reserved_tokens\" >= 0 and \"generation_daily_budgets\".\"input_tokens\" >= 0 and \"generation_daily_budgets\".\"output_tokens\" >= 0"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.generation_operations": {
-      "name": "generation_operations",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "operation_key": {
-          "name": "operation_key",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "input_hash": {
-          "name": "input_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'running'"
-        },
-        "resource_id": {
-          "name": "resource_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "attempts": {
-          "name": "attempts",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "reserved_tokens": {
-          "name": "reserved_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "input_tokens": {
-          "name": "input_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "output_tokens": {
-          "name": "output_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "lease_expires_at": {
-          "name": "lease_expires_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "generation_operations_user_key_uidx": {
-          "name": "generation_operations_user_key_uidx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "operation_key",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "generation_operations_active_idx": {
-          "name": "generation_operations_active_idx",
-          "columns": [
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "lease_expires_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "generation_operations_user_id_users_id_fk": {
-          "name": "generation_operations_user_id_users_id_fk",
-          "tableFrom": "generation_operations",
-          "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "generation_operations_kind_check": {
-          "name": "generation_operations_kind_check",
-          "value": "\"generation_operations\".\"kind\" in ('workout', 'program')"
-        },
-        "generation_operations_status_check": {
-          "name": "generation_operations_status_check",
-          "value": "\"generation_operations\".\"status\" in ('running', 'succeeded', 'failed')"
-        },
-        "generation_operations_counters_check": {
-          "name": "generation_operations_counters_check",
-          "value": "\"generation_operations\".\"attempts\" >= 0 and \"generation_operations\".\"reserved_tokens\" >= 0 and \"generation_operations\".\"input_tokens\" >= 0 and \"generation_operations\".\"output_tokens\" >= 0"
-        },
-        "generation_operations_hash_check": {
-          "name": "generation_operations_hash_check",
-          "value": "\"generation_operations\".\"input_hash\" ~ '^[a-f0-9]{64}$'"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.generation_usage_events": {
-      "name": "generation_usage_events",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "operation_id": {
-          "name": "operation_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "event_key": {
-          "name": "event_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "model": {
-          "name": "model",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "input_tokens": {
-          "name": "input_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "output_tokens": {
-          "name": "output_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "total_tokens": {
-          "name": "total_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "generation_usage_events_operation_key_uidx": {
-          "name": "generation_usage_events_operation_key_uidx",
-          "columns": [
-            {
-              "expression": "operation_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "event_key",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "generation_usage_events_operation_id_generation_operations_id_fk": {
-          "name": "generation_usage_events_operation_id_generation_operations_id_fk",
-          "tableFrom": "generation_usage_events",
-          "tableTo": "generation_operations",
-          "columnsFrom": ["operation_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "generation_usage_events_tokens_check": {
-          "name": "generation_usage_events_tokens_check",
-          "value": "\"generation_usage_events\".\"input_tokens\" >= 0 and \"generation_usage_events\".\"output_tokens\" >= 0 and \"generation_usage_events\".\"total_tokens\" >= \"generation_usage_events\".\"input_tokens\" + \"generation_usage_events\".\"output_tokens\""
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.account_revocations": {
-      "name": "account_revocations",
-      "schema": "",
-      "columns": {
-        "subject_hash": {
-          "name": "subject_hash",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "revoked_at": {
-          "name": "revoked_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "account_revocations_expires_idx": {
-          "name": "account_revocations_expires_idx",
-          "columns": [
-            {
-              "expression": "expires_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.session_log_operations": {
-      "name": "session_log_operations",
-      "schema": "",
-      "columns": {
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "operation_key": {
-          "name": "operation_key",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "input_hash": {
-          "name": "input_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "log_id": {
-          "name": "log_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "session_log_operations_log_idx": {
-          "name": "session_log_operations_log_idx",
-          "columns": [
-            {
-              "expression": "log_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "session_log_operations_user_id_users_id_fk": {
-          "name": "session_log_operations_user_id_users_id_fk",
-          "tableFrom": "session_log_operations",
-          "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "session_log_operations_log_id_session_logs_id_fk": {
-          "name": "session_log_operations_log_id_session_logs_id_fk",
-          "tableFrom": "session_log_operations",
-          "tableTo": "session_logs",
-          "columnsFrom": ["log_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "session_log_operations_user_id_operation_key_pk": {
-          "name": "session_log_operations_user_id_operation_key_pk",
-          "columns": ["user_id", "operation_key"]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.pilot_admissions": {
-      "name": "pilot_admissions",
-      "schema": "",
-      "columns": {
-        "operation_id": {
-          "name": "operation_id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "invitation_id": {
-          "name": "invitation_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "pilot_admissions_invitation_id_pilot_invitations_id_fk": {
-          "name": "pilot_admissions_invitation_id_pilot_invitations_id_fk",
-          "tableFrom": "pilot_admissions",
-          "tableTo": "pilot_invitations",
-          "columnsFrom": ["invitation_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.pilot_attempts": {
-      "name": "pilot_attempts",
-      "schema": "",
-      "columns": {
-        "receipt_id": {
-          "name": "receipt_id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "operation_id": {
-          "name": "operation_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "model": {
-          "name": "model",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "input_nano_usd_per_token": {
-          "name": "input_nano_usd_per_token",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "output_nano_usd_per_token": {
-          "name": "output_nano_usd_per_token",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "input_tokens_upper_bound": {
-          "name": "input_tokens_upper_bound",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "output_tokens_upper_bound": {
-          "name": "output_tokens_upper_bound",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "reserved_nano_usd": {
-          "name": "reserved_nano_usd",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "state": {
-          "name": "state",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "actual_nano_usd": {
-          "name": "actual_nano_usd",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "input_tokens": {
-          "name": "input_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "output_tokens": {
-          "name": "output_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "provider_request_hash": {
-          "name": "provider_request_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "settled_at": {
-          "name": "settled_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "usage_model": {
-          "name": "usage_model",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "pilot_attempts_provider_receipt_uidx": {
-          "name": "pilot_attempts_provider_receipt_uidx",
-          "columns": [
-            {
-              "expression": "provider_request_hash",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "pilot_attempts_operation_id_pilot_admissions_operation_id_fk": {
-          "name": "pilot_attempts_operation_id_pilot_admissions_operation_id_fk",
-          "tableFrom": "pilot_attempts",
-          "tableTo": "pilot_admissions",
-          "columnsFrom": ["operation_id"],
-          "columnsTo": ["operation_id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "pilot_attempts_amounts": {
-          "name": "pilot_attempts_amounts",
-          "value": "\"pilot_attempts\".\"reserved_nano_usd\" >= 0 and (\"pilot_attempts\".\"actual_nano_usd\" is null or \"pilot_attempts\".\"actual_nano_usd\" >= 0) and \"pilot_attempts\".\"input_nano_usd_per_token\" >= 825 and \"pilot_attempts\".\"output_nano_usd_per_token\" >= 4950"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.pilot_control": {
-      "name": "pilot_control",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "enabled": {
-          "name": "enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "activated_at": {
-          "name": "activated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "ends_at": {
-          "name": "ends_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "cap_nano_usd": {
-          "name": "cap_nano_usd",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "legacy_nano_usd": {
-          "name": "legacy_nano_usd",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "review_reference": {
-          "name": "review_reference",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "reviewer": {
-          "name": "reviewer",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "pilot_control_constants": {
-          "name": "pilot_control_constants",
-          "value": "\"pilot_control\".\"id\" = 'global' and \"pilot_control\".\"cap_nano_usd\" = 20000000000 and \"pilot_control\".\"ends_at\" = \"pilot_control\".\"activated_at\" + interval '720 hours' and \"pilot_control\".\"legacy_nano_usd\" >= 0 and \"pilot_control\".\"legacy_nano_usd\" <= \"pilot_control\".\"cap_nano_usd\""
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.pilot_invitations": {
-      "name": "pilot_invitations",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "pilot_invitations_user_uidx": {
-          "name": "pilot_invitations_user_uidx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "pilot_invitations_user_id_users_id_fk": {
-          "name": "pilot_invitations_user_id_users_id_fk",
-          "tableFrom": "pilot_invitations",
-          "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
       "isRLSEnabled": false
     }
   },

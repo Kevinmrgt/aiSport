@@ -6,6 +6,8 @@ import { join } from 'node:path';
 import { VercelProduction, validateReleaseInput, validateLegalPublisherInput, directSourceUrl, inspectConfiguration, runProductionAdminRelease, requireSuccessfulCi, deployClosedProduction, checkUnauthenticatedApiDenied, privateCommand, safeReleaseFailure, verifyReleaseConfiguration, checkReleaseHealth, inspectDeploymentDatabase, safeVercelValidation, cleanupVercelCheckout, inspectVercelBuildArtifacts, bindVercelFunctionEnvironment, checkWebOAuthConfiguration, verifyLiveAdminProduction, rehearse, verifyPreparedBackup, validateAdditiveMigrationSql, readAdditiveUpdatePlan, applyAdditiveLiveUpdate, checkAliasConvergence, verifyRestoredConfiguration } from './production-admin-release.mjs';
 import { readCandidateLineage } from './db-migration-lineage.mjs';
 import { fileHash, migrationFingerprint } from './db-operations.mjs';
+import { createHash } from 'node:crypto';
+import { pinnedPilotMigration, validatePinnedPilotMigration, verifyClosedPilotState } from './production-admin-release.mjs';
 
 const revision = 'a'.repeat(40);
 const oldRevision = 'b'.repeat(40);
@@ -319,7 +321,8 @@ const ciSuccess = async () => ({ ok: true, json: async () => ({ workflow_runs: [
 async function currentMigrationProof() {
   const count = (await readCandidateLineage()).length;
   return { complete: true, sameDatabase: true, fullDataPreserved: true, existingCatalogPreserved: true,
-    oldDeploymentSchemaCompatible: true, ownerGooglePreserved: true, appliedMigrationsBefore: count, appliedMigrationsAfter: count, suffix: [] };
+    oldDeploymentSchemaCompatible: true, ownerGooglePreserved: true, appliedMigrationsBefore: count, appliedMigrationsAfter: count, suffix: [],
+    pilotClosed: { complete: true, enabled: false, activations: 0, invitations: 0, admissions: 0, attempts: 0 } };
 }
 const preservedLiveData = () => ({
   users: [{ id: privateAdminId, email: env.BOOTSTRAP_ADMIN_EMAIL }],
@@ -342,20 +345,21 @@ async function liveVerifierFixture({ state = preservedLiveData(), database = env
       if (sql === 'select hash, created_at from drizzle.__drizzle_migrations order by created_at asc, id asc') return { rows: applied };
       if (sql === 'select id, email from public.users limit 2') return { rows: state.users.slice(0, 2) };
       if (sql === 'select user_id, type, provider, provider_account_id from public.accounts limit 2') return { rows: state.accounts.slice(0, 2) };
+      if (sql.includes('from public.pilot_control')) return { rows: [{ controls: 0, invitations: 0, admissions: 0, attempts: 0 }] };
       assert.fail(`Unexpected SQL in read-only live update: ${sql}`);
     },
   }) }) };
 }
 
 test('only the reviewed additive suffix is accepted, preserving the original applied hashes', async () => {
-  const candidates = await readCandidateLineage(); assert.equal(candidates.length, 14);
-  const plan = await readAdditiveUpdatePlan({ compatible: true, appliedMigrations: 13, matchedPrefix: 13, pendingMigrations: 1 });
-  assert.equal(plan.migrations.length, 1); assert.equal(plan.migrations[0].statements.length, 27);
-  assert.deepEqual(plan.suffix, [candidates[13]]);
+  const candidates = await readCandidateLineage(); assert.equal(candidates.length, 16);
+  const plan = await readAdditiveUpdatePlan({ compatible: true, appliedMigrations: 13, matchedPrefix: 13, pendingMigrations: 3 });
+  assert.equal(plan.migrations.length, 3); assert.equal(plan.migrations[0].statements.length, 27);
+  assert.deepEqual(plan.suffix, candidates.slice(13));
   assert.equal(plan.suffix[0].tag, '0013_restore_september_product');
-  const fixture = await liveVerifierFixture({ lineageChange: (applied) => { applied.pop(); } });
+  const fixture = await liveVerifierFixture({ lineageChange: (applied) => { applied.splice(13); } });
   const verified = await fixture.verifier(liveEnv(), liveConfiguration());
-  assert.equal(verified.evidence.appliedMigrations, 13); assert.equal(verified.evidence.pendingMigrations, 1);
+  assert.equal(verified.evidence.appliedMigrations, 13); assert.equal(verified.evidence.pendingMigrations, 3);
   assert.deepEqual(verified.evidence.additiveSuffix, plan.suffix);
   assert.equal(fixture.queries.some((sql) => /^(create|alter|insert|update|delete|drop)/i.test(sql)), false);
 });
@@ -380,10 +384,72 @@ test('additive SQL grammar rejects data changes, destructive DDL, executable def
   assert.equal(safe.statements.length, 2);
 });
 
+test('pilot executable SQL is accepted only as the immutable reviewed artifact at its exact journal position', async () => {
+  const sql = await readFile(new URL('../apps/api/drizzle/0015_pilot_protections.sql', import.meta.url), 'utf8');
+  assert.equal(createHash('sha256').update(sql).digest('hex'), pinnedPilotMigration.hash);
+  const accepted = validatePinnedPilotMigration(pinnedPilotMigration, sql);
+  assert.equal(accepted.statements.length, 15);
+  assert.deepEqual([...accepted.createdTables].sort(), [...pinnedPilotMigration.tables].sort());
+  assert.equal(accepted.statements.filter((statement) => /CREATE FUNCTION/.test(statement)).length, 2);
+  assert.equal(accepted.statements.filter((statement) => /CREATE TRIGGER/.test(statement)).length, 4);
+  assert.throws(() => validateAdditiveMigrationSql(sql), /live_update/);
+  for (const change of [{ tag: '0016_pilot_protections' }, { hash: 'a'.repeat(64) }, { createdAt: pinnedPilotMigration.createdAt + 1 }, { index: 14 }]) {
+    assert.throws(() => validatePinnedPilotMigration({ ...pinnedPilotMigration, ...change }, sql), /pinned_pilot/);
+  }
+  for (const changedSql of [sql + '\n', sql.replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION'),
+    sql.replace('ON pilot_control FOR EACH ROW', 'ON users FOR EACH ROW'), sql.replace("interval '720 hours'", "interval '721 hours'"),
+    sql + '\nINSERT INTO pilot_control VALUES (\'enabled\');', sql + '\nDROP TABLE users;']) {
+    assert.notEqual(changedSql, sql);
+    assert.throws(() => validatePinnedPilotMigration({ ...pinnedPilotMigration, hash: createHash('sha256').update(changedSql).digest('hex') }, changedSql), /pinned_pilot/);
+    assert.throws(() => validatePinnedPilotMigration(pinnedPilotMigration, changedSql), /pinned_pilot/);
+    assert.throws(() => validateAdditiveMigrationSql(changedSql), /live_update/);
+  }
+  for (const table of pinnedPilotMigration.tables) assert.throws(() => validatePinnedPilotMigration(pinnedPilotMigration, sql, new Set([table])), /duplicate_added_table/);
+  assert.throws(() => { pinnedPilotMigration.hash = 'changed'; }, TypeError);
+  assert.throws(() => pinnedPilotMigration.tables.push('users'), TypeError);
+});
+
+test('the fourteen previously deployed migrations keep their original SQL hashes, tags and timestamps', async () => {
+  // Recorded from the unchanged origin/main baseline, not derived from this checkout.
+  const baseline = (await readCandidateLineage()).slice(0, 14);
+  assert.equal(createHash('sha256').update(JSON.stringify(baseline)).digest('hex'), '4958561b11e708f78dd4ec1f92f589979f3add95446383fba364d0a64164ceee');
+});
+
+test('the plan reader cannot authorize another pilot file by changing its SQL, name or journal timestamp', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'alcide-pinned-pilot-'));
+  const folder = new URL(`file:///${directory.replaceAll('\\', '/')}/`);
+  const journal = JSON.parse(await readFile(new URL('../apps/api/drizzle/meta/_journal.json', import.meta.url), 'utf8'));
+  const original = await readFile(new URL('../apps/api/drizzle/0015_pilot_protections.sql', import.meta.url), 'utf8');
+  try {
+    await mkdir(join(directory, 'meta'));
+    for (const entry of journal.entries) await writeFile(join(directory, `${entry.tag}.sql`), await readFile(new URL(`../apps/api/drizzle/${entry.tag}.sql`, import.meta.url)));
+    const lineage = { compatible: true, appliedMigrations: 15, matchedPrefix: 15, pendingMigrations: 1 };
+    for (const kind of ['exact', 'sql', 'name', 'timestamp']) {
+      const fixture = structuredClone(journal);
+      const entry = fixture.entries[15];
+      if (kind === 'name') entry.tag = '0015_other_pilot';
+      if (kind === 'timestamp') entry.when += 1;
+      await writeFile(join(directory, `${entry.tag}.sql`), kind === 'sql' ? original + '\n' : original);
+      await writeFile(join(directory, 'meta/_journal.json'), JSON.stringify(fixture));
+      if (kind === 'exact') assert.deepEqual((await readAdditiveUpdatePlan(lineage, { folder })).suffix, [{ tag: pinnedPilotMigration.tag, hash: pinnedPilotMigration.hash, createdAt: pinnedPilotMigration.createdAt }]);
+      else await assert.rejects(readAdditiveUpdatePlan(lineage, { folder }), /live_update/);
+    }
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test('a closed pilot proof requires every activation, invitation, admission and attempt count to be exactly zero', async () => {
+  const empty = { controls: 0, invitations: 0, admissions: 0, attempts: 0 };
+  assert.deepEqual(await verifyClosedPilotState({ query: async () => ({ rows: [empty] }) }), { complete: true, enabled: false, activations: 0, invitations: 0, admissions: 0, attempts: 0 });
+  for (const field of Object.keys(empty)) for (const value of [1, '0', null]) {
+    await assert.rejects(verifyClosedPilotState({ query: async () => ({ rows: [{ ...empty, [field]: value }] }) }), /pilot_not_closed/);
+  }
+  await assert.rejects(verifyClosedPilotState({ query: async () => ({ rows: [] }) }), /pilot_not_closed/);
+});
+
 test('additive migration commits only after catalog, all existing data and Google checks, and shares the production SQL lock', async () => {
-  const plan = await readAdditiveUpdatePlan({ compatible: true, appliedMigrations: 13, matchedPrefix: 13, pendingMigrations: 1 });
-  for (const scenario of ['success', 'data_change', 'catalog_change', 'google_change', 'wrong_proof', 'write_failure', 'lineage_failure', 'lock_busy']) {
-    const statements = []; let inserted = false; let reads = 0; let stateReads = 0;
+  const plan = await readAdditiveUpdatePlan({ compatible: true, appliedMigrations: 13, matchedPrefix: 13, pendingMigrations: 3 });
+  for (const scenario of ['success', 'data_change', 'catalog_change', 'google_change', 'wrong_proof', 'write_failure', 'lineage_failure', 'lock_busy', 'pilot_relations', 'pilot_functions', 'pilot_triggers', 'pilot_active']) {
+    const statements = []; let inserted = 0; let reads = 0; let stateReads = 0;
     const before = { tables: [{ schema: 'public', name: 'users' }, { schema: 'public', name: 'user_settings' }],
       catalog: [{ schema: 'public', name: 'users', attname: 'id', type: 'uuid' }],
       constraints: [{ name: 'users_pk' }], indexes: [{ name: 'users_pk' }], triggers: [], policies: [],
@@ -401,12 +467,14 @@ test('additive migration commits only after catalog, all existing data and Googl
             if (sql === 'select user_id, type, provider, provider_account_id from public.accounts limit 2') {
               reads += 1; return { rows: scenario === 'google_change' && reads > 1 ? [] : preservedLiveData().accounts };
             }
-            if (sql.startsWith('insert into drizzle')) { assert.deepEqual(values, [plan.suffix[0].hash, plan.suffix[0].createdAt]); inserted = true; }
+            if (sql.startsWith('insert into drizzle')) { assert.deepEqual(values, [plan.suffix[inserted].hash, plan.suffix[inserted].createdAt]); inserted += 1; }
+            if (sql.includes('from pg_proc')) return { rows: [{ relations: Number(scenario === 'pilot_relations'), functions: Number(scenario === 'pilot_functions'), triggers: Number(scenario === 'pilot_triggers') }] };
+            if (sql.includes('from public.pilot_control')) return { rows: [{ controls: Number(scenario === 'pilot_active'), invitations: 0, admissions: 0, attempts: 0 }] };
             if (scenario === 'write_failure' && /^\s*CREATE TABLE/.test(sql)) throw Object.assign(new Error('private-db-row-and-url'), { code: '42501' });
             return { rows: [] };
           } };
         },
-        lineageInspector: async () => ({ compatible: true, appliedMigrations: inserted ? 14 : 13, matchedPrefix: inserted ? 14 : 13, pendingMigrations: inserted && scenario !== 'lineage_failure' ? 0 : 1 }),
+        lineageInspector: async () => ({ compatible: true, appliedMigrations: 13 + inserted, matchedPrefix: 13 + inserted, pendingMigrations: inserted === 3 && scenario !== 'lineage_failure' ? 0 : 3 }),
         planReader: async () => plan,
         stateReader: async (_client, previous) => {
           stateReads += 1; const state = structuredClone(before);
@@ -423,11 +491,13 @@ test('additive migration commits only after catalog, all existing data and Googl
     if (scenario === 'success') {
       assert.equal(error, undefined); assert.equal(result.complete, true); assert.equal(result.oldDeploymentSchemaCompatible, true);
       assert.equal(result.fullDataPreserved, true); assert.deepEqual(result.suffix, plan.suffix); assert.equal(statements.includes('commit'), true); assert.equal(stateReads, 2);
+      assert.equal(result.pilotClosed.complete, true); assert.equal(result.pilotClosed.invitations, 0);
       assert.equal(JSON.stringify(result).includes('private'), false); assert.equal(JSON.stringify(result).includes(privateAdminId), false);
     } else {
       assert.ok(error, scenario); assert.equal(statements.includes('commit'), false);
       if (scenario !== 'lock_busy') assert.equal(statements.includes('rollback'), true);
       if (scenario === 'wrong_proof' || scenario === 'lock_busy') assert.equal(statements.some((sql) => sql.includes('CREATE TABLE')), false);
+      if (['pilot_relations', 'pilot_functions', 'pilot_triggers'].includes(scenario)) assert.equal(statements.some((sql) => sql.includes('CREATE TABLE')), false);
       const failure = safeReleaseFailure(error, 'additive_live_migration'); assert.equal(JSON.stringify(failure).includes('private-db-row'), false);
     }
     assert.equal(statements[0], 'select pg_try_advisory_lock(1946010371, 1) as locked');
@@ -450,7 +520,7 @@ test('live update verifies the exact candidate lineage and Google owner using on
   assert.deepEqual(fixture.state, before);
   assert.equal(fixture.queries[0], 'begin isolation level repeatable read read only');
   assert.equal(fixture.queries.at(-2), 'rollback'); assert.equal(fixture.queries.at(-1), 'end');
-  assert.ok(fixture.queries.every((sql) => /^(select |begin isolation level repeatable read read only$|rollback$|end$)/.test(sql)));
+  assert.ok(fixture.queries.every((sql) => /^(select\s|begin isolation level repeatable read read only$|rollback$|end$)/.test(sql)));
   for (const value of [privateAdminId, env.BOOTSTRAP_ADMIN_EMAIL, 'private-real-subject-fixture', 'private_password']) assert.equal(JSON.stringify(verified.evidence).includes(value), false);
   fixture.state.accounts = [];
   assert.equal((await fixture.verifier(liveEnv(), liveConfiguration())).evidence.googleAccountsVerified, 0);
@@ -489,7 +559,7 @@ test('live update blocks SQL database, owner, accounts and unsafe or divergent m
     { mutate: (data) => { data.accounts[0].type = 'credentials'; } },
     { mutate: (data) => { data.accounts[0].provider_account_id = ''; } },
     { mutate: (data) => { data.accounts.push({ ...data.accounts[0] }); } },
-    { lineageChange: (applied) => { applied.splice(-2); } },
+    { lineageChange: (applied) => { applied.splice(12); } },
     { lineageChange: (applied) => { applied[0].hash = 'divergent'; } },
     { lineageChange: (applied) => { applied.push({ hash: 'unknown', created_at: '9999999999999' }); } },
   ];
@@ -554,7 +624,7 @@ test('live update rehearsal restores all live tables before an optional additive
   const identity = { sourceIdentity: 'fixture-source-identity', databaseMajor: 17 };
   const config = liveConfiguration(); const original = preservedLiveData(); const before = structuredClone(original); let restored;
   const commands = []; const fingerprint = await migrationFingerprint();
-  const plan = await readAdditiveUpdatePlan({ compatible: true, appliedMigrations: 13, matchedPrefix: 13, pendingMigrations: 1 });
+  const plan = await readAdditiveUpdatePlan({ compatible: true, appliedMigrations: 13, matchedPrefix: 13, pendingMigrations: 3 });
   try {
     await writeFile(`${input.BACKUP_FILE}.enc`, 'encrypted-placeholder');
     await writeFile(`${input.BACKUP_FILE}.manifest.json`, JSON.stringify({ migrationFingerprint: fingerprint, dumpSha256: 'f'.repeat(64) }));
@@ -584,14 +654,14 @@ test('live update rehearsal restores all live tables before an optional additive
       liveVerifier: async (child, localConfig) => {
         assert.deepEqual(restored, before); assert.equal(child.TARGET_DATABASE_NAME, 'restore_source');
         assert.equal(localConfig.source, localConfig.api.ALCIDE_DATABASE_URL.value);
-        const fixture = await liveVerifierFixture({ state: restored, database: 'restore_source', lineageChange: (applied) => { applied.pop(); } });
+        const fixture = await liveVerifierFixture({ state: restored, database: 'restore_source', lineageChange: (applied) => { applied.splice(13); } });
         return fixture.verifier(child, localConfig);
       },
     });
     assert.deepEqual(original, before); assert.deepEqual(restored, before); assert.deepEqual(commands, ['run', 'port', 'rm']);
     assert.equal(proof.releaseMode, 'update'); assert.equal(proof.fullRestoreVerified, true); assert.equal(proof.selectiveCopyPerformed, false);
     assert.equal(proof.fullRestoreEvidenceSha256, await fileHash(join(directory, 'restore.json')));
-    assert.deepEqual(proof.additiveMigrationRehearsal.suffix, plan.suffix); assert.equal(proof.additiveMigrationRehearsal.appliedMigrationsAfter, 14);
+    assert.deepEqual(proof.additiveMigrationRehearsal.suffix, plan.suffix); assert.equal(proof.additiveMigrationRehearsal.appliedMigrationsAfter, 16);
     assert.equal(proof.adminCopyVerified, undefined); assert.equal(proof.selectiveCopyVerified, undefined); assert.equal(proof.isolatedTargetCreated, undefined);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
@@ -619,6 +689,10 @@ test('live update full restoration proof is hash-bound to backup, revision, line
     await writeFile(join(directory, 'rehearsal.json'), JSON.stringify(proof)); await verify();
     await writeFile(join(directory, 'rehearsal.json'), JSON.stringify({ ...proof, additiveMigrationRehearsal: { ...proof.additiveMigrationRehearsal, suffix: [{ hash: 'wrong' }] } }));
     await assert.rejects(verify(), /rehearsed_suffix_mismatch/);
+    for (const pilotClosed of [undefined, { complete: false }, { complete: true, enabled: true, activations: 0, invitations: 0, admissions: 0, attempts: 0 }, { complete: true, enabled: false, activations: 0, invitations: 1, admissions: 0, attempts: 0 }]) {
+      await writeFile(join(directory, 'rehearsal.json'), JSON.stringify({ ...proof, additiveMigrationRehearsal: { ...proof.additiveMigrationRehearsal, pilotClosed } }));
+      await assert.rejects(verify(), /pilot_closed_rehearsal_required/);
+    }
     for (const changed of [{ releaseMode: 'deploy' }, { selectiveCopyVerified: true }, { selectiveCopyPerformed: true }, { fullRestoreVerified: false }, { fullRestoreEvidenceSha256: 'wrong' }]) {
       await writeFile(join(directory, 'rehearsal.json'), JSON.stringify({ ...proof, ...changed }));
       await assert.rejects(verify(), /fresh_backup_rehearsal/);

@@ -10,6 +10,7 @@ export default defineConfig({
     './src/db/privacy.schema.ts',
     './src/db/session-operation.schema.ts',
     './src/db/pilot.schema.ts',
+    './src/db/incident.schema.ts',
   ],
   out: './drizzle',
   dialect: 'postgresql',

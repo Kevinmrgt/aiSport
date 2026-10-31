@@ -5,6 +5,7 @@ import * as generationSchema from './generation-budget.schema.js';
 import * as privacySchema from './privacy.schema.js';
 import * as sessionOperationSchema from './session-operation.schema.js';
 import * as pilotSchema from './pilot.schema.js';
+import * as incidentSchema from './incident.schema.js';
 import { resolveDatabaseUrl } from './database-url.js';
 
 // OWASP A02: connexion via variable d'env uniquement, jamais hardcodée
@@ -28,6 +29,7 @@ export const db = drizzle(pool, {
     ...privacySchema,
     ...sessionOperationSchema,
     ...pilotSchema,
+    ...incidentSchema,
   },
 });
 

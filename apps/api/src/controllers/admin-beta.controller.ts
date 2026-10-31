@@ -1,3 +1,4 @@
+import { logFailure } from '../lib/logging.js';
 import { generationPolicy } from '../services/generation-policy.js';
 import type { Context } from 'hono';
 import { z } from 'zod';
@@ -80,7 +81,7 @@ export async function handleSavePlatformSettings(ctx: Context): Promise<Response
   try {
     await upsertPlatformSettings(parsed.data, ctx.get('auth').email);
   } catch {
-    console.error('[Admin]', { code: 'PLATFORM_SETTINGS_WRITE_FAILED' });
+    logFailure('[Admin]', { code: 'PLATFORM_SETTINGS_WRITE_FAILED' });
     throw AppError.internal(
       'Impossible de sauvegarder les réglages. Réessayez dans quelques instants.',
     );

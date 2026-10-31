@@ -37,13 +37,17 @@ const relevantPrefixes = {
   ],
 };
 
-export function getIgnoreDecision({ app, vercelEnv, forceBuild, files }) {
+export function getIgnoreDecision({ app, vercelEnv, forceBuild, gitRef, files }) {
   if (!supportedApps.includes(app)) {
     throw new Error(`Unknown app: ${app}`);
   }
 
   if (forceBuild === '1') {
     return { ignore: false, reason: 'Forced build: continue.' };
+  }
+
+  if (gitRef === 'codex/pilot-protections') {
+    return { ignore: true, reason: 'Closed pilot release: only the qualified manual workflow may build.' };
   }
 
   if (vercelEnv === 'production') {

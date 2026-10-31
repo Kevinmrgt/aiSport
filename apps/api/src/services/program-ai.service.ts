@@ -1,3 +1,4 @@
+import { logFailure } from '../lib/logging.js';
 import { generationPolicy } from './generation-policy.js';
 import { sessionDurationPrompt } from './session-duration-policy.js';
 import { ProgramWeekSchema, TrainingProgramSchema } from '@alcide/shared';
@@ -282,7 +283,7 @@ export async function generateProgram(
 
   const validated = TrainingProgramSchema.safeParse(program);
   if (!validated.success) {
-    console.error('[AiProgramService]', { code: 'FINAL_VALIDATION_FAILED' });
+    logFailure('[AiProgramService]', { code: 'FINAL_VALIDATION_FAILED' });
     throw AppError.internal('Erreur lors de la validation du programme genere');
   }
 

@@ -36,6 +36,10 @@ on:
         description: Optional real API recipe, one-workout-one-program-existing-admin
         type: string
         default: ''
+      closed_pilot_confirm:
+        description: Optional closed pilot release, keep-pilot-inactive-without-spend
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -68,6 +72,7 @@ jobs:
       VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
       BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
       ADMIN_RECIPE_CONFIRM: ${{ inputs.qualification_confirm }}
+      CLOSED_PILOT_CONFIRM: ${{ inputs.closed_pilot_confirm }}
       GITHUB_TOKEN: ${{ github.token }}
       VERCEL_TELEMETRY_DISABLED: '1'
     steps:
@@ -75,6 +80,7 @@ jobs:
         run: |
           node -e 'if (!/^[a-f0-9]{40}$/.test(process.env.RELEASE_REVISION || "")) process.exit(1)'
           node -e 'const c=process.env.ADMIN_RECIPE_CONFIRM || ""; if(c && (c!=="one-workout-one-program-existing-admin" || !["deploy","update"].includes(process.env.RELEASE_MODE))) process.exit(1)'
+          node -e 'const c=process.env.CLOSED_PILOT_CONFIRM || ""; if(c && (c!=="keep-pilot-inactive-without-spend" || process.env.RELEASE_MODE!=="update" || process.env.ADMIN_RECIPE_CONFIRM || process.env.PUBLISHER_CONFIRM)) process.exit(1)'
 
       - name: Checkout immutable candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -99,6 +105,13 @@ jobs:
 
       - name: Build shared validation schemas
         run: pnpm --filter shared build
+
+      - name: Verify free hosting, closed access and inactive pilot before any production changes
+        if: inputs.closed_pilot_confirm == 'keep-pilot-inactive-without-spend'
+        env:
+          PILOT_CHECK_PHASE: before
+          CLOSED_PILOT_EVIDENCE_FILE: ${{ runner.temp }}/admin-release-closed-before.json
+        run: node scripts/verify-closed-pilot-release.mjs
 
       - name: Plan or prepare encrypted full backup and isolated candidate rehearsal
         env:
@@ -131,6 +144,13 @@ jobs:
         env:
           ADMIN_RECIPE_EVIDENCE_FILE: ${{ runner.temp }}/admin-production-recipe.json
         run: node apps/api/scripts/qualify-production-admin.mjs
+
+      - name: Verify deployed protections with pilot inactive and inscriptions closed
+        if: (inputs.mode == 'update') && inputs.closed_pilot_confirm == 'keep-pilot-inactive-without-spend'
+        env:
+          PILOT_CHECK_PHASE: after
+          CLOSED_PILOT_EVIDENCE_FILE: ${{ runner.temp }}/admin-release-closed-after.json
+        run: node scripts/verify-closed-pilot-release.mjs
 
       - name: Preserve sanitized technical evidence
         if: always()

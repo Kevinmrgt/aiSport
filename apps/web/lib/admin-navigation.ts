@@ -52,10 +52,14 @@ export const adminNavigation: Array<{
   {
     label: 'Journal',
     icon: 'list',
-    items: [{ label: 'Actions administratives', href: '/admin/journal' }],
+    items: [
+      { label: 'Actions administratives', href: '/admin/journal' },
+      { label: 'Erreurs et incidents', href: '/admin/erreurs' },
+    ],
   },
 ];
 export const adminActionLabels: Record<string, string> = {
+  'incident.status_changed': 'Statut d’incident modifié',
   'member.suspended': 'Membre suspendu',
   'member.reactivated': 'Membre réactivé',
   'credits.granted': 'Crédits offerts',

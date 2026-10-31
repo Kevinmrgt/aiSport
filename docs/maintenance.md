@@ -30,6 +30,51 @@ non-régression concerné, puis lint, types, tests et build. Vérifier la CI sur
 commit à livrer et le parcours après déploiement avant de clore l'issue.
 Ne pas masquer un échec en abaissant un seuil ou en ignorant le test concerné.
 
+## Journal des erreurs dans l’administration
+
+La rubrique **Journal → Erreurs et incidents** (`/admin/erreurs`) regroupe les
+erreurs techniques de l’API, les échecs du fournisseur IA et les erreurs non
+gérées du navigateur. La collecte commence avec la livraison de cette fonction ;
+elle ne reprend pas les anciens logs. Les erreurs de saisie et refus d’accès
+ordinaires ne deviennent pas des incidents.
+
+Chaque groupe indique son code, son origine, sa gravité, la route concernée,
+la méthode, le statut HTTP éventuel, le dernier identifiant de requête, le
+nombre d’occurrences et les premières/dernières détections. Les filtres portent
+sur la dernière détection. L’identifiant de requête permet le rapprochement
+avec les logs techniques. Le suivi **Nouveau / En cours / Résolu** est réservé
+aux administrateurs Google vérifiés et ses modifications sont consignées dans
+le journal des actions. Une nouvelle occurrence rouvre un groupe résolu.
+
+Le stockage contient uniquement des champs techniques autorisés : aucun
+message d’exception, stack, contenu IA, adresse de membre, identifiant de membre,
+paramètre d’URL ou secret. Les routes sont remplacées par des modèles connus
+(par exemple `/workouts/:id`). Les événements du navigateur passent par une
+route de même origine authentifiée ; les visiteurs sans session autorisée ne
+sont pas couverts. Le collecteur limite et déduplique ses envois, sans réessai.
+
+La table conserve au plus 2 000 groupes. Les groupes sans nouvelle occurrence
+depuis trente jours sont exclus de la consultation et purgés lors d’une collecte
+ultérieure, au plus toutes les quinze minutes par processus. Le compteur d’un
+groupe actif est cumulatif depuis sa première détection ; il ne représente pas
+un nombre d’utilisateurs ni un compteur glissant sur trente jours.
+
+La collecte reste facultative pour les parcours : saturation, indisponibilité
+de la base ou échec d’envoi peuvent faire perdre un événement. Les sondes de
+disponibilité et logs d’exploitation restent nécessaires, notamment si l’API
+ou le Web ne démarrent pas. Ce journal ne déclenche pas d’alerte automatique.
+
+La migration additive `0014_technical_incidents` doit être appliquée par la
+procédure de livraison habituelle avant l’utilisation de la nouvelle API.
+Pour une recette locale avec les builds Web/API et une base PostgreSQL de test
+distincte, définir `TEST_DATABASE_URL` et `LOCAL_INCIDENT_RECIPES=1`, puis lancer
+`node scripts/qualify-local-incidents.mjs`. Le runner refuse une base distante
+ou sans nom de test/audit, signe ses sessions synthétiques en mémoire et
+simule le fournisseur sans appel payant. Il vérifie les accès, la collecte,
+la déduplication, le changement de statut, la récidive et les affichages bureau/
+mobile. Son rapport expurgé et ses captures se trouvent dans
+`tmp/admin-incidents/` ; la recette ne prouve pas une connexion Google distante.
+
 ## Base de données
 
 Avant une migration sensible, créer et identifier une sauvegarde ou branche

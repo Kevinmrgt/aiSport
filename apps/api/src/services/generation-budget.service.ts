@@ -1,3 +1,4 @@
+import { logFailure } from '../lib/logging.js';
 import type { CreditPersistence } from '../repositories/billing.repository.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { generationBudgetRepository } from '../repositories/generation-budget.repository.js';
@@ -124,7 +125,7 @@ export async function executeBudgetedGeneration<Content, Record>(options: {
       await generationBudgetRepository.fail(operationId, options.userId);
     } catch {
       // Keep the reservation and lease after uncertain failures; never open a second attempt.
-      console.error('[GenerationBudget]', { code: 'OPERATION_FINALIZATION_FAILED' });
+      logFailure('[GenerationBudget]', { code: 'OPERATION_FINALIZATION_FAILED' });
     }
     throw error;
   }

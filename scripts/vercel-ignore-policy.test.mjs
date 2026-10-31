@@ -9,6 +9,12 @@ import { getIgnoreDecision } from './vercel-ignore-policy.mjs';
 const cliPath = fileURLToPath(new URL('./vercel-ignore-build.mjs', import.meta.url));
 const vercelIgnorePath = fileURLToPath(new URL('../.vercelignore', import.meta.url));
 
+test('closed pilot branch never starts an automatic preview but the reviewed workflow can force its build', () => {
+  const input = { app: 'api', vercelEnv: 'preview', gitRef: 'codex/pilot-protections', files: ['apps/api/src/index.ts'] };
+  assert.equal(getIgnoreDecision(input).ignore, true);
+  assert.equal(getIgnoreDecision({ ...input, forceBuild: '1' }).ignore, false);
+});
+
 test('excludes generated output, including private reports, from Vercel uploads', () => {
   const patterns = readFileSync(vercelIgnorePath, 'utf8')
     .split(/\r?\n/)

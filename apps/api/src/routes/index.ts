@@ -10,9 +10,11 @@ import { programRouter } from './program.routes.js';
 import { settingsRouter } from './settings.routes.js';
 import { sessionLogRouter } from './session-log.routes.js';
 import { accountRouter } from './account.routes.js';
+import { incidentRouter } from './incident.routes.js';
 
 // Registre central de toutes les routes (architecture.md)
 export function registerRoutes(app: Hono): void {
+  app.route('/incidents', incidentRouter);
   app.route('/health', healthRouter);
   app.route('/workouts', workoutRouter);
   app.route('/programs', programRouter);

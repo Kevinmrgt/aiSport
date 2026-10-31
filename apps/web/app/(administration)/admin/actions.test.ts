@@ -40,6 +40,25 @@ beforeEach(() => {
   });
 });
 describe('actions administrateur', () => {
+  it('valide un statut d’incident sans dépendre d’un identifiant de membre', async () => {
+    const input = new FormData();
+    input.set('incidentId', userId);
+    input.set('status', 'resolved');
+    expect(await performAdminAction('incident.status', input)).toEqual({ success: true });
+    expect(mocks.requireAdmin).toHaveBeenCalled();
+    expect(mocks.fetch).toHaveBeenCalledWith(`/incidents/${userId}`, {
+      method: 'PATCH',
+      body: '{"status":"resolved"}',
+    });
+    expect(mocks.revalidate).toHaveBeenCalledWith('/admin', 'layout');
+  });
+  it.each([
+    { incidentId: 'not-an-id', status: 'resolved' },
+    { incidentId: userId, status: 'unknown' },
+  ])('refuse une modification d’incident invalide', async (fields) => {
+    expect(await performAdminAction('incident.status', form(fields))).toHaveProperty('error');
+    expect(mocks.fetch).not.toHaveBeenCalled();
+  });
   it.each([
     [
       'beta.credits',
