@@ -17,6 +17,74 @@ const apiRequire = createRequire(resolve(apiRoot, 'package.json'));
 const origin = 'http://127.0.0.1:3007';
 const apiOrigin = 'http://127.0.0.1:3008';
 
+export function recipeDatabaseEnvironment(value) {
+  const target = assertLocalTestDatabase(value);
+  if (target.pathname !== '/alcide_audit' || target.search || target.hash)
+    throw new Error(
+      'Recipes require the dedicated local alcide_audit database without URL overrides',
+    );
+  const databaseUrl = target.toString();
+  return {
+    DATABASE_URL: databaseUrl,
+    ALCIDE_DATABASE_URL: databaseUrl,
+    TEST_DATABASE_URL: databaseUrl,
+  };
+}
+
+export async function assertFreshRecipeDatabase(pool) {
+  const state = (
+    await pool.query(`select
+    (select count(*)::int from users) as users,
+    (select count(*)::int from generation_operations) as operations,
+    (select count(*)::int from generation_daily_budgets) as budgets,
+    (select count(*)::int from pilot_control) as controls,
+    (select count(*)::int from pilot_invitations) as invitations,
+    (select count(*)::int from pilot_admissions) as admissions,
+    (select count(*)::int from pilot_attempts) as attempts`)
+  ).rows[0];
+  assert.ok(
+    state &&
+      ['users', 'operations', 'budgets', 'controls', 'invitations', 'admissions', 'attempts'].every(
+        (key) => state[key] === 0,
+      ),
+    'Recipes require a fresh isolated database; existing pilot history cannot be reset',
+  );
+}
+
+async function pilotFixtureAction(env, action, { reviewReference, userId } = {}) {
+  recipeDatabaseEnvironment(env.TEST_DATABASE_URL);
+  assert.equal(env.DATABASE_URL, env.TEST_DATABASE_URL);
+  assert.equal(env.ALCIDE_DATABASE_URL, env.TEST_DATABASE_URL);
+  assert.equal(env.LOCAL_PRODUCTION_RECIPES, '1');
+  assert.equal(env.OPENAI_API_KEY, 'local-fixture-no-real-api-key');
+  assert.ok(['enable-generation', 'activate', 'invite'].includes(action));
+  const repositoryUrl = pathToFileURL(
+    resolve(apiRoot, 'dist/src/repositories/pilot.repository.js'),
+  ).href;
+  const databaseModule = pathToFileURL(resolve(apiRoot, 'dist/src/db/index.js')).href;
+  const review = {
+    reviewer: 'synthetic-local-browser-recipe',
+    reviewReference,
+    legacyProvisionsReviewed: true,
+    providerBalanceReviewed: true,
+    allGenerationPathsReviewed: true,
+    legacyNanoUsd: 0,
+  };
+  const budgetUrl = pathToFileURL(
+    resolve(apiRoot, 'dist/src/repositories/generation-budget.repository.js'),
+  ).href;
+  const work =
+    action === 'enable-generation'
+      ? `const {GenerationBudgetRepository}=await import(${JSON.stringify(budgetUrl)});await new GenerationBudgetRepository().setEnabled(true);`
+      : action === 'activate'
+        ? `await pilot.activate(${JSON.stringify(review)});`
+        : `await pilot.invite(${JSON.stringify(userId)});`;
+  const code = `const {PilotRepository}=await import(${JSON.stringify(repositoryUrl)});const {pool}=await import(${JSON.stringify(databaseModule)});try{const pilot=new PilotRepository();${work}}finally{await pool.end();}`;
+  const child = start(['--input-type=module', '-e', code], env, apiRoot);
+  const [exit] = await once(child, 'exit');
+  assert.equal(exit, 0, 'Explicit synthetic pilot operation failed');
+}
+
 export function recipeRouteCategory(path) {
   const route = String(path ?? '').split('?')[0];
   if (route === '/workouts') return 'workout_history';
@@ -35,7 +103,8 @@ export function summarizeRecipeFlight({ method, status, contentType, body }) {
     flight: typeof contentType === 'string' && contentType.includes('text/x-component'),
     fixtureWorkoutPresent: typeof body === 'string' && body.includes('Séance de recette locale'),
     emptyWorkoutHistoryPresent:
-      typeof body === 'string' && (body.includes('Aucune séance') || body.includes('Aucune seance')),
+      typeof body === 'string' &&
+      (body.includes('Aucune séance') || body.includes('Aucune seance')),
   };
 }
 
@@ -99,7 +168,8 @@ async function ready(url, child) {
 export async function runLocalRecipes() {
   if (process.env.LOCAL_PRODUCTION_RECIPES !== '1')
     throw new Error('Set LOCAL_PRODUCTION_RECIPES=1 explicitly');
-  const databaseUrl = assertLocalTestDatabase(process.env.TEST_DATABASE_URL).toString();
+  const databaseEnvironment = recipeDatabaseEnvironment(process.env.TEST_DATABASE_URL);
+  const databaseUrl = databaseEnvironment.TEST_DATABASE_URL;
   const scope = process.env.LOCAL_RECIPES_SCOPE ?? 'all';
   if (!['all', 'deletion'].includes(scope)) throw new Error('Unknown local recipe scope');
   await access(resolve(webRoot, '.next/BUILD_ID'));
@@ -111,6 +181,11 @@ export async function runLocalRecipes() {
   await mkdir(output, { recursive: true });
   const runId = randomUUID();
   const counterFile = resolve(output, `fixture-counter-${runId}.json`);
+  const reviewReference = `synthetic-local-browser-recipe:${runId}`;
+  await writeFile(counterFile, JSON.stringify({ attempts: 0, simulatedFailures: 0 }), {
+    flag: 'wx',
+    mode: 0o600,
+  });
   const authSecret = randomBytes(32).toString('hex');
   const serviceSecret = randomBytes(32).toString('hex');
   const issuedAt = Date.now() - 2_000;
@@ -123,8 +198,7 @@ export async function runLocalRecipes() {
     ...process.env,
     NODE_ENV: 'production',
     LOCAL_PRODUCTION_RECIPES: '1',
-    DATABASE_URL: databaseUrl,
-    TEST_DATABASE_URL: databaseUrl,
+    ...databaseEnvironment,
     OPENAI_API_KEY: 'local-fixture-no-real-api-key',
     SERVICE_SECRET: serviceSecret,
     AUTH_SECRET: authSecret,
@@ -195,6 +269,9 @@ export async function runLocalRecipes() {
     console.log(JSON.stringify({ check: name, result: 'passed' }));
   };
   try {
+    await check('dedicated_database_starts_without_users_or_pilot_history', () =>
+      assertFreshRecipeDatabase(pool),
+    );
     api = start(
       [resolve(apiRoot, 'tests/helpers/local-ai-fixture.mjs'), '--serve'],
       env,
@@ -306,27 +383,47 @@ export async function runLocalRecipes() {
       const anonymous = await browser.newContext({ viewport: { width: 1280, height: 900 } });
       const publicPage = await anonymous.newPage();
       await publicPage.goto(origin);
-      await expect(publicPage.getByRole('heading', { level: 1, name: 'Créer une séance' })).toBeVisible();
-      await publicPage.screenshot({ path: resolve(output, 'restored-fd-home-local.png'), fullPage: true });
+      await expect(
+        publicPage.getByRole('heading', { level: 1, name: 'Créer une séance' }),
+      ).toBeVisible();
+      await publicPage.screenshot({
+        path: resolve(output, 'restored-fd-home-local.png'),
+        fullPage: true,
+      });
       const navigation = publicPage.getByRole('navigation', { name: 'Navigation principale' });
-      await expect(navigation.getByRole('link', { name: 'Les offres' })).toHaveAttribute('href', '/tarifs');
+      await expect(navigation.getByRole('link', { name: 'Les offres' })).toHaveAttribute(
+        'href',
+        '/tarifs',
+      );
       await navigation.getByRole('link', { name: 'Les offres' }).click();
       await expect(publicPage.getByRole('heading', { level: 1 })).toBeVisible();
-      await expect(publicPage.getByText(/9,99/).first()).toBeVisible();
+      await expect(publicPage.getByText(/^5\s*€$/).first()).toBeVisible();
+      await publicPage.goto(`${origin}/abonnement`);
+      await expect(publicPage.getByText(/souscriptions restent fermées/)).toBeVisible();
       await publicPage.goto(`${origin}/admin`);
       await publicPage.waitForURL(/\/login(?:\?|$)/);
       await anonymous.close();
       await page.goto(`${origin}/admin`);
       await expect(page.getByRole('navigation', { name: /administration/i })).toBeVisible();
-      await page.screenshot({ path: resolve(output, 'restored-fd-admin-local.png'), fullPage: true });
-      await expect(page.getByRole('link', { name: 'Tous les membres' }).first()).toHaveAttribute('href', '/admin/membres');
-      await expect(page.getByRole('link', { name: 'Abonnements', exact: true }).first()).toHaveAttribute('href', '/admin/abonnements');
+      await page.screenshot({
+        path: resolve(output, 'restored-fd-admin-local.png'),
+        fullPage: true,
+      });
+      await expect(page.getByRole('link', { name: 'Tous les membres' }).first()).toHaveAttribute(
+        'href',
+        '/admin/membres',
+      );
+      await expect(
+        page.getByRole('link', { name: 'Abonnements', exact: true }).first(),
+      ).toHaveAttribute('href', '/admin/abonnements');
       const memberContext = contexts[1];
       const memberPage = await memberContext.newPage();
       await memberPage.goto(`${origin}/admin`);
       await memberPage.waitForURL(/\/dashboard$/);
       await memberPage.close();
-      const fixtureUser = await pool.query('select id from users where email=$1', [identities[0].email]);
+      const fixtureUser = await pool.query('select id from users where email=$1', [
+        identities[0].email,
+      ]);
       assert.equal(fixtureUser.rows.length, 1);
       const grant = await fetch(`${apiOrigin}/admin/members/${fixtureUser.rows[0].id}/credits`, {
         method: 'POST',
@@ -338,10 +435,78 @@ export async function runLocalRecipes() {
           'x-email-verified': 'true',
           'x-auth-issued-at': String(issuedAt),
         },
-        body: JSON.stringify({ amount: 10, reason: 'Recette locale isolée', requestId: randomUUID() }),
+        body: JSON.stringify({
+          amount: 10,
+          reason: 'Recette locale isolée',
+          requestId: randomUUID(),
+        }),
       });
       assert.equal(grant.status, 200);
+      await page.goto(`${origin}/abonnement`);
+      await expect(page.getByRole('button', { name: /^Passer à Premium/ })).toHaveCount(0);
     });
+    await check(
+      'closed_pilot_blocks_calls_until_explicit_synthetic_activation_and_invitation',
+      async () => {
+        detail = 'verify_closed_before_activation';
+        const generate = (identity) =>
+          fetch(`${apiOrigin}/workouts/generate`, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              'x-internal-secret': serviceSecret,
+              'x-user-id': identity.subject,
+              'x-user-email': identity.email,
+              'x-email-verified': 'true',
+              'x-auth-issued-at': String(issuedAt),
+              'idempotency-key': randomUUID(),
+            },
+            body: JSON.stringify({
+              sport: 'marche',
+              level: 'beginner',
+              duration_minutes: 15,
+              goals: 'Recette locale sans appel fournisseur avant admission',
+            }),
+          });
+        assert.equal((await generate(identities[0])).status, 503);
+        assert.equal(JSON.parse(await readFile(counterFile, 'utf8')).attempts, 0);
+        detail = 'enable_only_legacy_test_kill_switch_with_pilot_still_closed';
+        await pilotFixtureAction(env, 'enable-generation');
+        const closed = await generate(identities[0]);
+        assert.equal(closed.status, 503);
+        assert.equal(
+          (await closed.json()).message,
+          'Le pilote IA est ferme ou sa comptabilite requiert une verification',
+        );
+        assert.equal(JSON.parse(await readFile(counterFile, 'utf8')).attempts, 0);
+        detail = 'activate_synthetic_pilot';
+        await pilotFixtureAction(env, 'activate', { reviewReference });
+        detail = 'verify_uninvited_account';
+        const uninvited = await generate(identities[1]);
+        const rejection = await uninvited.json();
+        report.uninvitedGate = {
+          status: uninvited.status,
+          invitationRequired: rejection.error === 'PILOT_INVITATION_REQUIRED',
+          accountingUnavailable:
+            rejection.message ===
+            'La reservation de generation est indisponible. Aucun appel IA ne peut etre lance.',
+          pilotClosed:
+            rejection.message ===
+            'Le pilote IA est ferme ou sa comptabilite requiert une verification',
+        };
+        assert.equal(uninvited.status, 403);
+        assert.equal(rejection.error, 'PILOT_INVITATION_REQUIRED');
+        assert.equal(JSON.parse(await readFile(counterFile, 'utf8')).attempts, 0);
+        const admissions = await pool.query('select count(*)::int as count from pilot_admissions');
+        assert.equal(admissions.rows[0].count, 0);
+        detail = 'invite_only_owned_synthetic_account';
+        const user = await pool.query('select id from users where email=$1', [identities[0].email]);
+        assert.equal(user.rows.length, 1);
+        await pilotFixtureAction(env, 'invite', { userId: user.rows[0].id });
+        report.explicitSyntheticPilotActivated = true;
+        report.onlyOwnedSyntheticUserInvited = true;
+      },
+    );
     let workoutUrl;
     await check('authenticated_workout_generation_via_server_action', async () => {
       await page.goto(`${origin}/generate`);
@@ -463,7 +628,9 @@ export async function runLocalRecipes() {
         ).toContainText('Alcide n’a pas réussi à finaliser cette séance.', { timeout: 30_000 });
         await expect(page.locator('form[aria-labelledby="form-title"]')).toBeVisible();
         await expect(page.locator('input[name="sport"]')).toHaveValue('marche');
-        await expect(page.getByRole('button', { name: 'Générer la séance', exact: true })).toBeEnabled();
+        await expect(
+          page.getByRole('button', { name: 'Générer la séance', exact: true }),
+        ).toBeEnabled();
         await expect(page.locator('textarea[name="goals"]')).toHaveValue('fixture-indisponible');
         detail = 'verify_failure_did_not_persist';
         const result = await pool.query(
@@ -517,13 +684,20 @@ export async function runLocalRecipes() {
           : 'assertion_failed',
     };
     if (currentPage) {
-      await currentPage.screenshot({ path: resolve(root, 'tmp/fd-local-failure.png'), fullPage: true }).catch(() => undefined);
+      await currentPage
+        .screenshot({ path: resolve(root, 'tmp/fd-local-failure.png'), fullPage: true })
+        .catch(() => undefined);
       report.failure.ui = await currentPage
         .evaluate(() => ({
-          generationFormPresent: Boolean(document.querySelector('form[aria-labelledby="form-title"]')),
+          generationFormPresent: Boolean(
+            document.querySelector('form[aria-labelledby="form-title"]'),
+          ),
           generationPending: Boolean(document.getElementById('generation-heading')),
-          failureGoalRetained: document.querySelector('textarea[name="goals"]')?.value === 'fixture-indisponible',
-          generationFailureAlertPresent: Array.from(document.querySelectorAll('[role="alert"]')).some((alert) => alert.textContent?.includes('n’a pas réussi à finaliser cette séance')),
+          failureGoalRetained:
+            document.querySelector('textarea[name="goals"]')?.value === 'fixture-indisponible',
+          generationFailureAlertPresent: Array.from(
+            document.querySelectorAll('[role="alert"]'),
+          ).some((alert) => alert.textContent?.includes('n’a pas réussi à finaliser cette séance')),
           timerCompleted: Boolean(document.getElementById('session-complete-title')),
           journalSaved: document.body.textContent?.includes('Retour enregistré.') ?? false,
           articleCount: document.querySelectorAll('[role="article"]').length,
@@ -574,6 +748,15 @@ export async function runLocalRecipes() {
     await stop(web);
     await stop(api);
     try {
+      await pool.query('update pilot_control set enabled=false where review_reference=$1', [
+        reviewReference,
+      ]);
+      const pilot = await pool.query(
+        'select enabled from pilot_control where review_reference=$1',
+        [reviewReference],
+      );
+      report.syntheticPilotInactiveAfterCleanup = pilot.rows.every((row) => row.enabled === false);
+      assert.equal(report.syntheticPilotInactiveAfterCleanup, true);
       await pool.query('delete from users where email = any($1::text[])', [
         identities.map((item) => item.email),
       ]);
