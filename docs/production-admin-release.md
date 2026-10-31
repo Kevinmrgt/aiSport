@@ -132,6 +132,49 @@ ou son erreur ne remplace donc pas la vérification des alias servis.
 Contrats officiels : [Get an Alias](https://vercel.com/docs/rest-api/aliases/get-an-alias)
 et [Vercel promote](https://vercel.com/docs/cli/promote).
 
+## Publication explicite des coordonnées légales
+
+Le secret GitHub `PRODUCTION_LEGAL_PUBLISHER_JSON` transporte une map JSON de
+coordonnées publiques fournies et vérifiées par l'éditeur. Il ne faut y placer
+aucun contact administratif privé, secret technique, donnée de compte ou URL de
+base. Les valeurs réelles restent hors du dépôt, des tests et des preuves.
+
+L'entrée `publisher_confirm` est vide par défaut : le secret est alors ignoré et
+les variables légales existantes restent inchangées. Seule la valeur exacte
+`publish-provided-required-notices`, en mode `deploy` ou `update`, autorise leur
+application. La préparation valide déjà le payload, sans l'appliquer. La phase
+release conserve les contrôles de CI, sauvegarde chiffrée et restauration isolée
+avant toute écriture des variables.
+
+La whitelist exige `LEGAL_OPERATOR_NAME`, `LEGAL_OPERATOR_ADDRESS`,
+`LEGAL_OPERATOR_REGISTRATION`, `LEGAL_CONTACT_EMAIL`, `LEGAL_CONTACT_PHONE`,
+`LEGAL_PUBLICATION_DIRECTOR`, `LEGAL_HOSTING_NAME` et `LEGAL_HOSTING_CONTACT`.
+Le nom doit contenir la désignation légale réellement retenue, y compris la
+mention EI lorsqu'elle s'applique. `LEGAL_DATA_HOSTING_NAME` et
+`LEGAL_DATA_HOSTING_CONTACT` sont facultatifs mais doivent être fournis ensemble.
+`LEGAL_VAT_NUMBER` est facultatif ; l'omettre conserve sa valeur antérieure.
+L'omission d'une paire facultative conserve aussi les valeurs existantes.
+Il n'existe pas d'opération de suppression via ce payload. Les clés inconnues,
+objets imbriqués, valeurs vides, caractères de contrôle, balisage et URI
+exécutables sont refusés. Le JSON est borné à 16 Kio et chaque champ est borné.
+
+Seul le projet Web reçoit les clés fournies, sans préfixe `NEXT_PUBLIC_`. Le
+workflow capture leurs anciennes valeurs, types, portées et absences, relit les
+écritures, puis transmet les mêmes valeurs au build et aux fonctions Node du
+candidat. Les variables partagées avec Preview ou Development sont scindées
+pour préserver ces portées. Une configuration de fonction manquante, une
+lecture du pull incohérente ou un artefact d'un autre projet bloque la promotion
+et déclenche les compensations avec relecture. Le JSON de transport n'est pas
+transmis aux commandes de sauvegarde ou Vercel ; les arguments de déploiement
+ne contiennent que les noms des variables.
+
+Les preuves donnent uniquement le nombre de clés et les résultats techniques.
+Elles n'attestent ni la véracité des coordonnées, ni la conformité juridique
+complète. Le texte des mentions est destiné à être rendu publiquement par le
+Web. Cette injection ne configure ni la base légale des traitements, ni leurs
+transferts, ni leurs durées de conservation et n'autorise aucune ouverture du
+service ou recette IA payante.
+
 ## Recette API optionnelle avec le fournisseur réel
 
 L'entrée `qualification_confirm` reste vide par défaut. Seule la valeur exacte

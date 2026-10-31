@@ -28,6 +28,10 @@ on:
         description: For update only, preserve-live-admin-production
         type: string
         default: ''
+      publisher_confirm:
+        description: Optional public notices, publish-provided-required-notices
+        type: string
+        default: ''
       qualification_confirm:
         description: Optional real API recipe, one-workout-one-program-existing-admin
         type: string
@@ -52,6 +56,8 @@ jobs:
       TARGET_DATABASE_NAME: ${{ inputs.target_database_name }}
       BOOTSTRAP_CONFIRM: ${{ inputs.bootstrap_confirm }}
       UPDATE_CONFIRM: ${{ inputs.update_confirm }}
+      PUBLISHER_CONFIRM: ${{ inputs.publisher_confirm }}
+      LEGAL_PUBLISHER_JSON: ${{ secrets.PRODUCTION_LEGAL_PUBLISHER_JSON }}
       BOOTSTRAP_REUSE_EXISTING: ${{ inputs.reuse_existing && 'verified-admin-copy' || '' }}
       BOOTSTRAP_ADMIN_EMAIL: ${{ secrets.BOOTSTRAP_ADMIN_EMAIL }}
       ADMIN_IMPORT_POLICY: account-only
