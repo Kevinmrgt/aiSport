@@ -57,7 +57,7 @@ jobs:
         run: node scripts/production-admin-release.mjs
       - name: Preserve sanitized feasibility result
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: admin-release-plan-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/admin-release-plan.json
@@ -65,7 +65,7 @@ jobs:
           retention-days: 7
       - name: Preserve encrypted actual source backup and isolated rehearsal evidence
         if: always() && inputs.mode == 'admin-rehearse'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: admin-rehearsal-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -97,7 +97,7 @@ jobs:
         run: node scripts/production-target-inventory.mjs
       - name: Preserve access results including unavailable targets
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: target-inventory-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/target-inventory.json
@@ -234,7 +234,7 @@ jobs:
 
       - name: Preserve encrypted archive and sanitized verification evidence
         if: always() && steps.backup.outcome == 'success'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: database-verification-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
